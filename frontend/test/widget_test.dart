@@ -5,9 +5,15 @@ import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/adaptive_difficulty_service.dart';
 
 void main() {
+  // The app opens on a brief branded splash before role selection — see
+  // `features/auth/splash_screen.dart`. 1200ms clears its 1100ms timer.
+  const Duration pastSplash = Duration(milliseconds: 1200);
+
   testWidgets('role selection is the entry point', (WidgetTester tester) async {
     await tester.pumpWidget(const MemoryMitraApp());
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+    await tester.pump(pastSplash);
+    await tester.pump();
 
     expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
     expect(find.text('Patient'), findsOneWidget);
@@ -18,7 +24,9 @@ void main() {
   testWidgets('selecting Patient opens the companion home screen',
       (WidgetTester tester) async {
     await tester.pumpWidget(const MemoryMitraApp());
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+    await tester.pump(pastSplash);
+    await tester.pump();
 
     await tester.tap(find.text('Patient'));
     // The companion breathes forever, so the tree never "settles".

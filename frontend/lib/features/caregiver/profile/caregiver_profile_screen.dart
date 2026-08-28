@@ -304,14 +304,6 @@ class CaregiverProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
                   const Center(child: BrandLockup(size: 34, center: true)),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Text(
-                      'Prototype for SIH 2026 · PS 26003\nDemo data only. Not a diagnostic tool.',
-                      textAlign: TextAlign.center,
-                      style: AppText.caption,
-                    ),
-                  ),
                 ],
               ),
             ),

@@ -270,14 +270,6 @@ class PatientProfileScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),
                   ),
-                  const SizedBox(height: Insets.md),
-                  Center(
-                    child: Text(
-                      'MemoryMitra prototype · demo data only\nNot a diagnostic tool',
-                      textAlign: TextAlign.center,
-                      style: AppText.caption,
-                    ),
-                  ),
                 ],
               ),
             ),

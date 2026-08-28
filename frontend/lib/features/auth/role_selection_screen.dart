@@ -140,25 +140,9 @@ class RoleSelectionScreen extends StatelessWidget {
                             ),
                           ),
                           SizedBox(height: tall ? 26 : 18),
-                          FadeInUp(
+                          const FadeInUp(
                             delayMs: 310,
-                            child: Column(
-                              children: <Widget>[
-                                const WovenStrip(height: 10, opacity: 0.5),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Prototype  ·  SIH 2026  ·  Problem Statement 26003',
-                                  textAlign: TextAlign.center,
-                                  style: AppText.caption.sized(11.5),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Demo data only. Not a diagnostic tool.',
-                                  textAlign: TextAlign.center,
-                                  style: AppText.caption.sized(11.5),
-                                ),
-                              ],
-                            ),
+                            child: WovenStrip(height: 10, opacity: 0.5),
                           ),
                         ],
                       ),

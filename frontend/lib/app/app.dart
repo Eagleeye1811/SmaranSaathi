@@ -7,6 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/auth/role_selection_screen.dart';
 import '../features/auth/sign_in_screen.dart';
+import '../features/auth/splash_screen.dart';
 import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
 import '../features/patient/patient_shell.dart';
@@ -66,14 +67,21 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   }
 
   Widget get _home {
-    final Widget roleFlow = switch (_startRole) {
-      'patient' => const PatientShell(),
-      'caregiver' => const CaregiverShell(),
-      'doctor' => const DoctorShell(),
-      _ => const RoleSelectionScreen(),
-    };
+    // A kiosk-mode boot (`--dart-define=MM_START=...`) skips straight to a
+    // role, on purpose — the splash beat and the sign-in gate are both about
+    // the normal first-launch experience, not a fixed demo rig.
+    if (_startRole.isNotEmpty) {
+      return switch (_startRole) {
+        'patient' => const PatientShell(),
+        'caregiver' => const CaregiverShell(),
+        _ => const DoctorShell(),
+      };
+    }
+
     final AuthService? auth = widget.authService;
-    return auth == null ? roleFlow : AuthGate(authService: auth, child: roleFlow);
+    final Widget roleSelection =
+        auth == null ? const RoleSelectionScreen() : AuthGate(authService: auth, child: const RoleSelectionScreen());
+    return SplashScreen(next: roleSelection);
   }
 
   @override

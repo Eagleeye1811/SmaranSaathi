@@ -5,7 +5,6 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/services/auth_service.dart';
-import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../widgets/clinic_widgets.dart';
@@ -176,15 +175,6 @@ class DoctorProfileScreen extends StatelessWidget {
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.swap_horiz_rounded),
                     label: const Text('Switch to another role'),
-                  ),
-                ),
-                const SizedBox(height: Insets.lg),
-                const ClinicalDisclaimer(),
-                const SizedBox(height: Insets.md),
-                Center(
-                  child: Text(
-                    'MemoryMitra prototype · SIH 2026 · PS 26003',
-                    style: CT.caption,
                   ),
                 ),
               ],

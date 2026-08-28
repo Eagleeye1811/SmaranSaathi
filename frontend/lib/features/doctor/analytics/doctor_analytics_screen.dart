@@ -6,7 +6,6 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
 import '../../../core/services/app_state.dart';
-import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
@@ -206,8 +205,6 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: Insets.lg),
-                const ClinicalDisclaimer(),
               ],
             ),
           ),
