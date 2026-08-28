@@ -64,22 +64,40 @@ class StoryGame extends StatefulWidget {
   State<StoryGame> createState() => _StoryGameState();
 }
 
+enum _Phase { intro, story }
+
 class _StoryGameState extends State<StoryGame> {
   final GameTracker _tracker = GameTracker();
   final GameDefinition _game = MockData.game(GameId.story);
   late final AppState _state = AppScope.read(context);
-  late final int _level = _state.levelOf(GameId.story);
+  late final int _maxUnlockedLevel = _state.levelOf(GameId.story);
+  late int _selectedLevel;
   late final List<StoryRound> _rounds = _buildRounds(_state.patient);
 
+  _Phase _phase = _Phase.intro;
   int _index = 0;
   StoryChoice? _chosen;
   bool _analysing = false;
+
+
+  bool get _onPhotoRound => _index == _rounds.length;
 
   // Personal-photo round
   final Set<int> _fragments = <int>{};
   bool _storyEvaluated = false;
 
-  bool get _onPhotoRound => _index == _rounds.length;
+  @override
+  void initState() {
+    super.initState();
+    _selectedLevel = _state.levelOf(GameId.story);
+  }
+
+  void _changeLevel(int lvl) {
+    setState(() {
+      _selectedLevel = lvl;
+    });
+  }
+
 
   List<StoryRound> _buildRounds(Patient p) {
     final String daughter = p.family.isEmpty ? 'her daughter' : p.family.first.name;
@@ -282,7 +300,7 @@ class _StoryGameState extends State<StoryGame> {
 
   void _finish() {
     final GamePerformance p = _tracker.build(
-      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.story, _level),
+      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.story, _selectedLevel),
     );
     final AdaptiveDecision d = _state.finishGame(GameId.story, p);
     Navigator.of(context).pushReplacement(
@@ -291,23 +309,147 @@ class _StoryGameState extends State<StoryGame> {
           game: _game,
           performance: p,
           decision: d,
-          playedLevel: _level,
+          playedLevel: _selectedLevel,
         ),
       ),
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    if (_onPhotoRound) return _buildPhotoRound();
+    if (_phase == _Phase.intro) {
+      return _buildIntro();
+    }
+
+    if (_onPhotoRound) {
+      return _buildPhotoRound();
+    }
+
     return _buildStoryRound(_rounds[_index]);
+  }
+
+  Widget _buildIntro() {
+    return GameShell(
+      game: _game,
+      level: _selectedLevel,
+      companionMessage: 'Let us listen to a story together and explore what happens next.',
+      companionState: CompanionState.happy,
+      bottom: BigButton(
+        label: 'Start story',
+        icon: Icons.play_arrow_rounded,
+        color: _game.accent,
+        onPressed: () => setState(() => _phase = _Phase.story),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            MmCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 1,
+                            title: 'Simple',
+                            subtitle: 'Story recall',
+                            unlocked: 1 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 1,
+                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 2,
+                            title: 'Guided',
+                            subtitle: 'Story recall',
+                            unlocked: 2 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 2,
+                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 3,
+                            title: 'Advanced',
+                            subtitle: 'Open story',
+                            unlocked: 3 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 3,
+                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 4,
+                            title: 'Open',
+                            subtitle: 'Free memory',
+                            unlocked: 4 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 4,
+                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 5,
+                            title: 'Deep Memory',
+                            subtitle: 'Full recall',
+                            unlocked: 5 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 5,
+                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+            MmCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('ECHOES OF ASSAM', style: AppText.overline),
+                  const SizedBox(height: 8),
+                  Text('Story & Memory Recall', style: AppText.h1.sized(26)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Listen to warm everyday stories set in your homeland, and choose what happens next.',
+                    style: AppText.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStoryRound(StoryRound round) {
     final int total = _rounds.length + 1;
     return GameShell(
       game: _game,
-      level: _level,
+      level: _selectedLevel,
+
       stepLabel: 'Part ${_index + 1} of $total',
       progress: (_index + (_chosen != null ? 0.6 : 0)) / total,
       companionMessage: _chosen == null
@@ -400,7 +542,7 @@ class _StoryGameState extends State<StoryGame> {
 
     return GameShell(
       game: _game,
-      level: _level,
+      level: _selectedLevel,
       stepLabel: 'Part $total of $total',
       progress: _storyEvaluated ? 1 : 0.86,
       companionMessage: _storyEvaluated
@@ -776,3 +918,90 @@ class _ScoreRow extends StatelessWidget {
     );
   }
 }
+
+class _LevelOptionChip extends StatelessWidget {
+  const _LevelOptionChip({
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Level $levelNum',
+                  style: AppText.caption.wght(800).tint(
+                        unlocked
+                            ? (selected ? AppColors.primary : AppColors.inkMuted)
+                            : AppColors.inkMuted.withValues(alpha: 0.5),
+                      ),
+                ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : 'Locked 🔒',
+              style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -35,15 +36,17 @@ class FamiliarPlaceGame extends StatefulWidget {
   State<FamiliarPlaceGame> createState() => _FamiliarPlaceGameState();
 }
 
-enum _Phase { memorise, explore }
+enum _Phase { intro, memorise, explore }
 
 class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   final GameTracker _tracker = GameTracker();
   final GameDefinition _game = MockData.game(GameId.familiarPlace);
   late final AppState _state = AppScope.read(context);
-  late final int _level = _state.levelOf(GameId.familiarPlace);
+  late final int _maxUnlockedLevel = _state.levelOf(GameId.familiarPlace);
+  late int _selectedLevel;
 
-  _Phase _phase = _Phase.memorise;
+  _Phase _phase = _Phase.intro;
+
   int _roomIndex = 0;
   final Set<String> _found = <String>{};
   final Set<String> _wrongTaps = <String>{};
@@ -67,27 +70,32 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
       id: 'cup', name: 'Tea cup', icon: Icons.emoji_food_beverage_rounded, color: AppColors.accent);
   static const RoomObject _japi =
       RoomObject(id: 'japi', name: 'Japi hat', icon: Icons.umbrella_rounded, color: AppColors.primary);
+  static const RoomObject _loom =
+      RoomObject(id: 'loom', name: 'Handloom', icon: Icons.grid_on_rounded, color: AppColors.terracotta);
 
   List<RoomObject> get _targets => <RoomObject>[
         _clock,
-        _book,
         _cup,
-        if (_level >= 3) _japi,
+        _book,
+        if (_roomCount >= 4) _japi,
+        if (_roomCount >= 5) _loom,
       ];
 
-  int get _hintBudget => switch (_level) {
+
+  int get _hintBudget => switch (_selectedLevel) {
         1 => 3,
         2 => 2,
         3 => 2,
         _ => 1,
       };
 
-  int get _roomCount => switch (_level) {
+  int get _roomCount => switch (_selectedLevel) {
         1 => 3,
         2 => 4,
         3 => 4,
         _ => 5,
       };
+
 
   late final List<Room> _rooms = _layoutFor(_roomCount);
 
@@ -126,11 +134,13 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
           name: chosen[i].name,
           rect: plan[i],
           icon: chosen[i].icon,
-          objects: chosen[i].objects,
+          objects: List<RoomObject>.from(chosen[i].objects)
+            ..shuffle(math.Random(_selectedLevel * 997 + i * 41 + 13)),
           floor: chosen[i].floor,
         ),
     ];
   }
+
 
   List<Room> _buildRooms() {
     return <Room>[
@@ -224,8 +234,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
         rect: Rect.fromLTWH(0.62, 0.28, 0.38, 0.24),
         floor: Color(0xFFF3E6DB),
         objects: <RoomObject>[
-          RoomObject(
-              id: 'loom', name: 'Handloom', icon: Icons.grid_on_rounded, color: AppColors.terracotta),
+          _loom,
           RoomObject(
               id: 'shuttle', name: 'Shuttle', icon: Icons.swap_horiz_rounded, color: AppColors.accent),
           RoomObject(
@@ -234,10 +243,13 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               id: 'gamosa', name: 'Gamosa', icon: Icons.view_stream_rounded, color: AppColors.danger),
           RoomObject(
               id: 'scissors', name: 'Scissors', icon: Icons.content_cut_rounded, color: AppColors.inkSoft),
+          RoomObject(
+              id: 'fan2', name: 'Hand fan', icon: Icons.toys_rounded, color: AppColors.primary),
         ],
       ),
     ];
   }
+
 
   static const List<ObjectHints> _hintBook = <ObjectHints>[
     ObjectHints('clock', <String>[
@@ -260,7 +272,13 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
       'It is made of bamboo and leaves.',
       'It is hanging out in the courtyard.',
     ]),
+    ObjectHints('loom', <String>[
+      'It is used for weaving cloth.',
+      'You shuttle threads across it.',
+      'Look in the loom room.',
+    ]),
   ];
+
 
   RoomObject? get _nextTarget {
     for (final RoomObject t in _targets) {
@@ -272,10 +290,17 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   // ── lifecycle ──────────────────────────────────────────────────────────
 
   @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _selectedLevel = _state.levelOf(GameId.familiarPlace);
   }
+
+  void _changeLevel(int lvl) {
+    setState(() {
+      _selectedLevel = lvl;
+    });
+  }
+
 
   void _startExploring() {
     setState(() {
@@ -345,7 +370,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   void _finish({required bool completed}) {
     _timer?.cancel();
     final GamePerformance p = _tracker.build(
-      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.familiarPlace, _level),
+      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.familiarPlace, _selectedLevel),
       completed: completed,
     );
     final AdaptiveDecision d = _state.finishGame(GameId.familiarPlace, p);
@@ -355,7 +380,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
           game: _game,
           performance: p,
           decision: d,
-          playedLevel: _level,
+          playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
             (label: 'Objects to find', value: '${_targets.length}'),
             (label: 'Objects found', value: '${_found.length}'),
@@ -371,14 +396,131 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
   @override
   Widget build(BuildContext context) {
+    if (_phase == _Phase.intro) return _buildIntro();
     if (_phase == _Phase.memorise) return _buildMemorise();
     return _buildExplore();
+  }
+
+  Widget _buildIntro() {
+    return GameShell(
+      game: _game,
+      level: _selectedLevel,
+      companionMessage: 'Let us walk through the house together and find familiar items.',
+      companionState: CompanionState.happy,
+      bottom: BigButton(
+        label: 'Start exploring',
+        icon: Icons.explore_rounded,
+        color: _game.accent,
+        onPressed: () => setState(() => _phase = _Phase.memorise),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            MmCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 1,
+                            title: 'Easy',
+                            subtitle: '3 rooms',
+                            unlocked: 1 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 1,
+                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 2,
+                            title: 'Medium',
+                            subtitle: '4 rooms',
+                            unlocked: 2 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 2,
+                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 3,
+                            title: 'Hard',
+                            subtitle: '5 rooms',
+                            unlocked: 3 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 3,
+                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 4,
+                            title: 'Expert',
+                            subtitle: '5 rooms · 1 hint',
+                            unlocked: 4 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 4,
+                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 5,
+                            title: 'Mastery',
+                            subtitle: '5 rooms · Fast',
+                            unlocked: 5 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 5,
+                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+            MmCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('FAMILIAR PLACES', style: AppText.overline),
+                  const SizedBox(height: 8),
+                  Text('Spatial Orientation', style: AppText.h1.sized(26)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Explore your virtual home map and recall where key items are kept.',
+                    style: AppText.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildMemorise() {
     return GameShell(
       game: _game,
-      level: _level,
+      level: _selectedLevel,
+
       companionMessage:
           'Before we walk through the house, remember these ${_targets.length} things.',
       companionState: CompanionState.thinking,
@@ -473,7 +615,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
     return GameShell(
       game: _game,
-      level: _level,
+      level: _selectedLevel,
       stepLabel: '${_found.length}/${_targets.length} found',
       progress: _found.length / _targets.length,
       hintsLeft: _hintBudget - _tracker.hints,
@@ -507,8 +649,6 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          _targetStrip(),
-          const SizedBox(height: Insets.md),
           _roomPanel(room, mapHeight: 150),
           const SizedBox(height: Insets.md),
           if (_revealedHints.isNotEmpty) ...<Widget>[
@@ -526,6 +666,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
     );
   }
 
+
   Widget _wideLayout(Room room) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 0),
@@ -539,13 +680,12 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  _targetStrip(vertical: true),
-                  const SizedBox(height: Insets.md),
                   _hintPanel(alwaysShow: true),
                 ],
               ),
             ),
           ),
+
           const SizedBox(width: Insets.md),
           // ── centre: the room ─────────────────────────────────────────
           Expanded(
@@ -575,87 +715,6 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
   // ── panels ─────────────────────────────────────────────────────────────
 
-  Widget _targetStrip({bool vertical = false}) {
-    final Widget items = vertical
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (final RoomObject t in _targets)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _targetChip(t, wide: true),
-                ),
-            ],
-          )
-        : Row(
-            children: <Widget>[
-              for (final RoomObject t in _targets)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _targetChip(t),
-                  ),
-                ),
-            ],
-          );
-
-    return MmCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('LOOKING FOR', style: AppText.overline),
-          const SizedBox(height: 10),
-          items,
-        ],
-      ),
-    );
-  }
-
-  Widget _targetChip(RoomObject t, {bool wide = false}) {
-    final bool got = _found.contains(t.id);
-    return AnimatedContainer(
-      duration: Motion.normal,
-      padding: EdgeInsets.symmetric(horizontal: wide ? 12 : 8, vertical: 10),
-      decoration: BoxDecoration(
-        color: got ? AppColors.successTint : AppColors.surfaceMuted,
-        borderRadius: Corners.r(Corners.sm),
-        border: Border.all(
-          color: got ? AppColors.success.withValues(alpha: 0.5) : AppColors.hairline,
-        ),
-      ),
-      child: wide
-          ? Row(
-              children: <Widget>[
-                Icon(got ? Icons.check_circle_rounded : t.icon,
-                    size: 20, color: got ? AppColors.success : t.color),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(t.name,
-                      style: AppText.body.wght(700).tint(
-                            got ? AppColors.success : AppColors.ink,
-                          )),
-                ),
-              ],
-            )
-          : Column(
-              children: <Widget>[
-                Icon(got ? Icons.check_circle_rounded : t.icon,
-                    size: 24, color: got ? AppColors.success : t.color),
-                const SizedBox(height: 5),
-                Text(
-                  t.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.caption.sized(11.5).wght(700).tint(
-                        got ? AppColors.success : AppColors.inkSoft,
-                      ),
-                ),
-              ],
-            ),
-    );
-  }
 
   Widget _roomPanel(Room room, {required double mapHeight}) {
     return MmCard(
@@ -829,3 +888,90 @@ class _TimerPill extends StatelessWidget {
     );
   }
 }
+
+class _LevelOptionChip extends StatelessWidget {
+  const _LevelOptionChip({
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Level $levelNum',
+                  style: AppText.caption.wght(800).tint(
+                        unlocked
+                            ? (selected ? AppColors.primary : AppColors.inkMuted)
+                            : AppColors.inkMuted.withValues(alpha: 0.5),
+                      ),
+                ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : 'Locked 🔒',
+              style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
