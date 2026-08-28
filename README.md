@@ -110,6 +110,23 @@ text, five permanently-labelled destinations, and requires no typing anywhere.
 
 ---
 
+## Repository layout
+
+```
+DementiaApp/
+├── frontend/          the Flutter application (Android · iOS · web)
+├── backend/           reserved for the FastAPI sync service — empty for now
+├── README.md
+└── .gitignore
+```
+
+Every command in this README runs from `frontend/` unless stated otherwise.
+The app is offline-first and complete without the backend: it stores
+everything locally and queues what would be synced, so `backend/` staying
+empty costs no functionality.
+
+---
+
 ## Architecture
 
 ```
@@ -125,16 +142,23 @@ text, five permanently-labelled destinations, and requires no typing anywhere.
 └───────────────────────────┬──────────────────────────────────┘
                             │  repository interfaces
 ┌───────────────────────────▼──────────────────────────────────┐
-│  Data                                                        │
-│  PatientRepository · GameRepository                          │
-│  AnalyticsRepository · ReminderRepository                    │
+│  Data — repository interfaces                                │
+│  Patient · Game · Analytics · Reminder                       │
+│  Daily · Settings · Sync                                     │
+├──────────────────────────────┬───────────────────────────────┤
+│  Hive implementations        │  Mock implementations         │
+│  (the shipped app)           │  (tests, pure demo)           │
+└──────────────┬───────────────┴───────────────────────────────┘
+               │
+┌──────────────▼───────────────────────────────────────────────┐
+│  Local storage — Hive boxes on device / IndexedDB on web     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 Screens depend only on repository **interfaces**, never on a concrete
-implementation. Swapping the local store for a remote backend is a matter of
-writing new implementations and changing the four constructor arguments in
-`AppState` — no screen changes.
+implementation. No widget imports Hive. Swapping the local store for a remote
+backend means writing new implementations and changing the constructor
+arguments in `AppState` — no screen changes.
 
 State is a single `ChangeNotifier` exposed through an `InheritedNotifier`, so
 there is no state-management dependency and no hidden global state. Every screen
@@ -146,12 +170,15 @@ subscribes to exactly what it reads.
 
 | Concern | Choice | Why |
 |---|---|---|
-| Framework | Flutter 3.32, Material 3 | One codebase, native performance on low-end Android |
+| Framework | Flutter 3.32, Material 3 | One codebase across Android, iOS and the web |
 | Language | Dart 3.8 | Sealed switches and records used throughout the domain layer |
 | State | `ChangeNotifier` + `InheritedNotifier` | No third-party dependency; predictable rebuild scope |
 | Graphics | `CustomPainter` | Every illustration, chart, portrait and pattern is vector-drawn |
 | Typography | Nunito (variable) | Warm, high-legibility, one 270 KB file for the whole weight range |
-| Dependencies | `cupertino_icons` only | Smaller binary, no supply chain, no plugin breakage on OS updates |
+| Local storage | `hive_ce` | Offline-first by default; no SQL, no schema migration step, works on web |
+| Hive adapters | Hand-written | No `build_runner`; the wire format matches the generator's, without the tool chain |
+| Connectivity | `connectivity_plus` | Behind a `ConnectivityService` interface so tests drive it directly |
+| Web | CanvasKit via `flutter build web` | No native plugins, so the same code ships as a browser app |
 
 **No binary image assets.** Every portrait, memory photograph, game
 illustration, textile tile, card back, floor plan and chart is drawn at runtime.
@@ -177,11 +204,14 @@ flutter doctor
 
 ```bash
 git clone <repository-url>
-cd DementiaApp
+cd DementiaApp/frontend
 
 flutter pub get
 flutter run
 ```
+
+The Flutter project root is `frontend/`, not the repository root — `flutter`
+commands fail from the top level because there is no `pubspec.yaml` there.
 
 ### Targeting a device
 
@@ -189,6 +219,7 @@ flutter run
 flutter devices                       # list available devices
 flutter run -d "iPhone 17"            # iOS simulator
 flutter run -d <android-device-id>    # Android device or emulator
+flutter run -d chrome                 # web app, in a browser
 ```
 
 ### Release builds
@@ -197,7 +228,38 @@ flutter run -d <android-device-id>    # Android device or emulator
 flutter build apk --release           # Android APK
 flutter build appbundle --release     # Play Store bundle
 flutter build ios --release           # iOS
+flutter build web --release           # web app -> build/web
 ```
+
+### Running as a web app
+
+The app uses no native plugins, so it runs unchanged in a browser. For local
+development:
+
+```bash
+flutter run -d chrome
+```
+
+To serve a release build from any static host:
+
+```bash
+flutter build web --release
+cd build/web && python3 -m http.server 8080
+```
+
+`build/web` is a plain static bundle — deploy it to GitHub Pages, Netlify,
+Firebase Hosting, or any object store. If it is served from a subdirectory
+rather than the domain root, pass the path at build time:
+
+```bash
+flutter build web --release --base-href /memory-mitra/
+```
+
+It is also installable: `frontend/web/manifest.json` declares MemoryMitra as a PWA, so a
+caregiver can add it to a phone home screen and open it full-screen. Because a
+mouse is the primary pointer on desktop, `_AppScrollBehavior` in
+`frontend/lib/app/app.dart` lets mouse drags scroll every list and the onboarding
+`PageView`, matching the touch behaviour.
 
 ---
 
@@ -219,10 +281,11 @@ Omit the flag and the app opens on role selection.
 ## Project structure
 
 ```
-lib/
+frontend/lib/
 ├── main.dart
 ├── app/
 │   ├── app.dart                        root widget, live accessibility scaling
+│   ├── bootstrap.dart                  opens local storage, hydrates state
 │   ├── routes/app_routes.dart          shared page transitions
 │   └── theme/
 │       ├── app_colors.dart             palette + verified chart series colours
@@ -236,6 +299,8 @@ lib/
 │   │   └── clinical.dart               CognitiveProfile, ClinicPatient, DoctorAlert
 │   ├── services/
 │   │   ├── app_state.dart              single source of truth
+│   │   ├── sync_manager.dart           durable outbox, drains on reconnect
+│   │   ├── connectivity_service.dart   real / manual / overridable connectivity
 │   │   ├── adaptive_difficulty_service.dart
 │   │   └── personalization_service.dart
 │   └── widgets/
@@ -248,7 +313,8 @@ lib/
 │       └── app_nav_bar.dart            navigation + connectivity
 ├── data/
 │   ├── mock/                           content catalogue
-│   └── repositories/                   interfaces + local implementations
+│   ├── local/                          Hive adapters, boxes, sync queue model
+│   └── repositories/                   interfaces + Hive and mock implementations
 └── features/
     ├── auth/                           role selection
     ├── patient/
@@ -259,6 +325,67 @@ lib/
     └── doctor/
         └── overview/  patients/  analytics/  alerts/  profile/
 ```
+
+---
+
+## Offline-first persistence
+
+The app assumes the connection is the exception, not the rule. Everything the
+user generates is written to a local Hive box first; reaching a server is a
+later, optional step that can fail without losing anything.
+
+```
+        offline                          online
+user action                        user action
+     │                                  │
+     ▼                                  ▼
+  Hive box  ──▶ pending sync queue    Hive box ──▶ queue ──▶ SyncManager
+  (durable)     (durable)             (durable)              │
+                                                             ▼
+                                                       mark synced
+```
+
+`AppState` holds an in-memory read model so every getter stays synchronous and
+no screen awaits IO. Each mutation updates that model, then writes through to a
+repository **and** records an outbox entry in the same call — the two can never
+disagree after a crash. Writes are chained rather than parallel, so two rapid
+taps cannot interleave into one box.
+
+**Boxes**
+
+| Box | Holds |
+|---|---|
+| `mm_patients` | The personalised profile, with family, life memories, assets and routine |
+| `mm_sessions` | Every completed activity: level, accuracy, focus, memory, hints, mistakes, seconds, completion |
+| `mm_levels` | Adaptive difficulty level per activity |
+| `mm_cognitive_profile` | Per-domain cognitive scores and the overall figure |
+| `mm_journal` | Memory-journal entries |
+| `mm_daily` | Mood, answered questions, journey progress, engagement, day stamp |
+| `mm_reminders` | The day's reminders and their done state |
+| `mm_settings` | Text size, contrast, reduced motion, voice prompts, offline override |
+| `mm_sync_queue` | The durable outbox |
+
+Enum values are stored by **name**, not index, so reordering a Dart enum can
+never silently reinterpret stored rows. Type ids are permanent and documented
+in `HiveTypeIds`. The day-scoped boxes roll over on the first read of a new day,
+so yesterday's ticked reminders do not read as today's adherence.
+
+**The sync manager.** `SyncManager` drains the outbox whenever connectivity
+returns — no one taps anything. A failed send leaves the operation queued with
+its attempt count and error, never dropped; a connection lost mid-drain stops
+the run and leaves the remainder for the next reconnect. Where the operation is
+actually *sent* is a one-method `SyncTransport`. No backend exists yet, so the
+shipped transport is a loopback that accepts after a short delay; a Firebase or
+FastAPI client implements that one method and nothing else in the app changes.
+That service will live in `backend/`.
+
+The caregiver's "work offline" switch is a genuine offline state, not a mock —
+it forces the connectivity layer offline on a device that is online. It can
+only force *offline*: no switch conjures a connection that does not exist.
+
+If Hive cannot be opened at all — a locked profile directory, a browser with
+site data disabled — the app falls back to an in-memory session and starts
+anyway, reporting the fact through `AppState.hydrated`.
 
 ---
 
@@ -302,6 +429,13 @@ The suite covers three layers:
 - **End-to-end journeys** — playing an activity through to its result screen and
   difficulty adjustment, a mood check-in and a reminder propagating to the
   caregiver dashboard, and the offline queue filling and draining.
+- **Persistence** — `test/persistence_test.dart` restarts the app for real:
+  the state is disposed, Hive is closed, and a second `AppState` is built over
+  the same directory. It covers a result surviving a restart, a result saved
+  and queued with no connection, both surviving a restart *while still
+  offline*, the queue draining by itself when the connection returns, a failed
+  send staying retryable, and settings, reminders, profile and cognitive scores
+  round-tripping.
 
 To render every screen for design review:
 
@@ -315,6 +449,7 @@ Output lands in `test_goldens/goldens/`.
 
 ## Roadmap
 
+- A real sync backend behind `SyncTransport` (Firebase or FastAPI)
 - Speech input and text-to-speech in all eight supported regional languages
 - On-device language model for open-ended story evaluation
 - Recorded instrument audio for Melody of the Valleys
