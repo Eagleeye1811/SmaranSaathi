@@ -98,11 +98,20 @@ class PatientProfileScreen extends StatelessWidget {
                                   label: 'She loves',
                                   value: p.favouriteFood.isEmpty ? 'Pitha' : p.favouriteFood),
                               _Fact(label: 'Family', value: '${p.family.length} people'),
+                              if (p.phoneNumber.isNotEmpty)
+                                _Fact(label: 'Phone number', value: p.phoneNumber),
                             ],
                           ),
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
+                  // ── SMS Alert Phone Number ───────────────────────────
+                  FadeInUp(
+                    delayMs: 30,
+                    child: _SmsPhoneNumberCard(patient: p),
                   ),
                   const SizedBox(height: Insets.lg),
 
@@ -486,3 +495,219 @@ class _SwitchRow extends StatelessWidget {
     );
   }
 }
+
+class _SmsPhoneNumberCard extends StatefulWidget {
+  const _SmsPhoneNumberCard({required this.patient});
+
+  final Patient patient;
+
+  @override
+  State<_SmsPhoneNumberCard> createState() => _SmsPhoneNumberCardState();
+}
+
+class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
+  late final TextEditingController _phoneController;
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.patient.phoneNumber);
+  }
+
+  @override
+  void didUpdateWidget(_SmsPhoneNumberCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.patient.phoneNumber != oldWidget.patient.phoneNumber && !_isEditing) {
+      _phoneController.text = widget.patient.phoneNumber;
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _save(AppState state) {
+    final String newPhone = _phoneController.text.trim();
+    state.updatePatientPhoneNumber(newPhone);
+    setState(() => _isEditing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          newPhone.isEmpty
+              ? 'Phone number removed'
+              : 'Phone number updated for real-time SMS notifications!',
+        ),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    final String currentPhone = widget.patient.phoneNumber;
+
+    return MmCard(
+      shadow: AppColors.liftShadow(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTint,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.sms_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'SMS Alerts Mobile Number',
+                      style: AppText.bodyLarge.wght(800),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'For real-time reminder notifications on phone',
+                      style: AppText.caption.sized(12).tint(AppColors.inkSoft),
+                    ),
+                  ],
+                ),
+              ),
+              if (!_isEditing)
+                IconButton(
+                  icon: Icon(
+                    currentPhone.isEmpty ? Icons.add_call : Icons.edit_rounded,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _phoneController.text = currentPhone;
+                      _isEditing = true;
+                    });
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (_isEditing) ...<Widget>[
+            TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'e.g., +919876543210',
+                labelText: 'Mobile Number with country code',
+                fillColor: Colors.white,
+                filled: true,
+                prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: Corners.r(Corners.md),
+                  borderSide: const BorderSide(color: AppColors.hairline),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: Corners.r(Corners.md),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _phoneController.text = currentPhone;
+                      _isEditing = false;
+                    });
+                  },
+                  child: Text('Cancel', style: AppText.body.tint(AppColors.inkMuted)),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _save(state),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: Corners.r(Corners.md)),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: const Text('Save Number', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ] else ...<Widget>[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: currentPhone.isNotEmpty
+                    ? AppColors.primaryTint.withValues(alpha: 0.5)
+                    : AppColors.hairline.withValues(alpha: 0.3),
+                borderRadius: Corners.r(Corners.md),
+                border: Border.all(
+                  color: currentPhone.isNotEmpty
+                      ? AppColors.primary.withValues(alpha: 0.3)
+                      : AppColors.hairline,
+                ),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    currentPhone.isNotEmpty ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                    color: currentPhone.isNotEmpty ? AppColors.primary : AppColors.inkMuted,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        currentPhone.isNotEmpty ? currentPhone : 'No mobile number added yet',
+                        style: AppText.bodyLarge
+                            .wght(700)
+                            .tint(currentPhone.isNotEmpty ? AppColors.primaryDeep : AppColors.inkMuted),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _phoneController.text = currentPhone;
+                        _isEditing = true;
+                      });
+                    },
+                    child: Text(
+                      currentPhone.isNotEmpty ? 'Change' : 'Add Number',
+                      style: AppText.body.wght(800).tint(AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+

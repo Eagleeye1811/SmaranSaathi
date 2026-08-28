@@ -21,6 +21,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
         ReminderKind.cognitive => AppColors.primary,
         ReminderKind.appointment => AppColors.plum,
         ReminderKind.routine => AppColors.accent,
+        ReminderKind.social => AppColors.indigo,
       };
 
   @override

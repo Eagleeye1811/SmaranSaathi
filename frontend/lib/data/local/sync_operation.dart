@@ -14,6 +14,7 @@ enum SyncOperationKind {
   reflection,
   assessmentUpdate,
   baselineCaptured,
+  reminderCreate,
   unknown,
 }
 
@@ -27,6 +28,7 @@ extension SyncOperationKindX on SyncOperationKind {
         SyncOperationKind.reflection => 'Evening reflection',
         SyncOperationKind.assessmentUpdate => 'Assessment answers',
         SyncOperationKind.baselineCaptured => 'Cognitive baseline',
+        SyncOperationKind.reminderCreate => 'Reminder created',
         SyncOperationKind.unknown => 'Pending change',
       };
 }

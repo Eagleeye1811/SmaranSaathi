@@ -7,6 +7,7 @@ import '../core/services/connectivity_service.dart';
 import '../core/services/firebase_auth_service.dart';
 import '../core/services/http_sync_transport.dart';
 import '../core/services/sync_manager.dart';
+import '../core/services/notification_service.dart';
 import '../data/local/hive_store.dart';
 import '../data/repositories/hive_repositories.dart';
 import '../firebase_options.dart';
@@ -37,6 +38,7 @@ String get _syncBaseUrl {
 /// should still be able to run today's activities; they just will not survive
 /// a restart, and [AppState.hydrated] reports that.
 Future<AppState> bootstrapAppState({String? storagePath}) async {
+  await LocalNotificationService.instance.initialize();
   final SyncTransport? transport = _syncBaseUrl.isEmpty ? null : HttpSyncTransport(baseUrl: _syncBaseUrl);
 
   final HiveStore? store = await HiveStore.tryOpen(path: storagePath);

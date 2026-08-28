@@ -72,3 +72,5 @@ class Patient(APIModel):
     routine: List[RoutineItem] = []
     stage_note: str = "Early-stage memory changes"
     joined_on: str = "Profile created today"
+    # E.164 format e.g. +919876543210 — used by the SMS scheduler
+    phone_number: Optional[str] = None

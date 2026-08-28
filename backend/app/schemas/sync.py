@@ -19,6 +19,7 @@ SyncOperationKind = Literal[
     "reflection",
     "assessmentUpdate",
     "baselineCaptured",
+    "reminderCreate",
     "unknown",
 ]
 
@@ -75,7 +76,9 @@ class ReminderTogglePayload(APIModel):
 
 class ProfileUpdatePayload(APIModel):
     patient_id: str
-    name: str
+    name: Optional[str] = None
+    phone_number: Optional[str] = None
+
 
 
 class ReflectionPayload(APIModel):
@@ -107,3 +110,19 @@ class BaselineCapturedPayload(APIModel):
     scores: Dict[str, float]
     captured_at: str
     session_count: int
+
+
+class SyncReminderPayload(APIModel):
+    id: str
+    time: str
+    minutes_from_midnight: int
+    title: str
+    kind: str
+    detail: str = ""
+    sms_enabled: bool = True
+
+
+class ReminderCreatePayload(APIModel):
+    patient_id: str
+    reminder: SyncReminderPayload
+

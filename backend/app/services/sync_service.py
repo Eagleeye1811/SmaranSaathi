@@ -14,8 +14,9 @@ is a no-op), so no deterministic id is needed there.
 import time
 
 from app.core.errors import ApiError
-from app.models.daily import JournalEntry, MoodLevel
+from app.models.daily import JournalEntry, MoodLevel, Reminder, ReminderKind
 from app.models.game import GameId, GamePerformance, GameSession
+from app.models.patient import Patient
 from app.repositories.base import (
     AssessmentRepository,
     DailyRepository,
@@ -35,6 +36,7 @@ from app.schemas.sync import (
     ReminderTogglePayload,
     SyncOperationRequest,
     SyncOperationResult,
+    ReminderCreatePayload,
 )
 
 
@@ -118,11 +120,29 @@ class SyncService:
             payload = ProfileUpdatePayload.model_validate(raw_payload)
             existing_patient = await self._patients.get(patient_id)
             if existing_patient is not None:
-                await self._patients.update(existing_patient.model_copy(update={"name": payload.name}))
-            # No profile exists yet on the backend for this patient (it was
-            # created locally and hasn't been synced as a full profile) —
-            # nothing to update. The full-profile sync path isn't wired yet;
-            # the Flutter side currently only ever enqueues {patientId, name}.
+                updates = {}
+                if payload.name is not None:
+                    updates["name"] = payload.name
+                if payload.phone_number is not None:
+                    updates["phone_number"] = payload.phone_number
+                if updates:
+                    await self._patients.update(existing_patient.model_copy(update=updates))
+            else:
+                new_patient = Patient(
+                    id=patient_id,
+                    name=payload.name or "Aama Devi",
+                    short_name=payload.name or "Aama",
+                    age=72,
+                    location="Assam",
+                    language="Assamese",
+                    occupation="Weaver",
+                    favourite_activity="Weaving",
+                    favourite_food="Pitha",
+                    tradition="Magh Bihu",
+                    portrait_scene="portrait_aama",
+                    phone_number=payload.phone_number or "",
+                )
+                await self._patients.create(new_patient)
 
         elif kind == "assessmentUpdate":
             payload = AssessmentUpdatePayload.model_validate(raw_payload)
@@ -141,6 +161,20 @@ class SyncService:
                     "sessionCount": payload.session_count,
                 },
             )
+
+        elif kind == "reminderCreate":
+            payload = ReminderCreatePayload.model_validate(raw_payload)
+            r_data = payload.reminder
+            reminder = Reminder(
+                id=r_data.id,
+                time=r_data.time,
+                minutes_from_midnight=r_data.minutes_from_midnight,
+                title=r_data.title,
+                kind=ReminderKind(r_data.kind),
+                detail=r_data.detail,
+                sms_enabled=r_data.sms_enabled,
+            )
+            await self._reminders.create(patient_id, reminder)
 
         elif kind in ("reflection", "unknown"):
             ReflectionPayload.model_validate(raw_payload) if kind == "reflection" else None

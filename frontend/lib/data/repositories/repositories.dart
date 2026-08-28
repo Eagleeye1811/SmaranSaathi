@@ -49,6 +49,7 @@ abstract class AnalyticsRepository {
 abstract class ReminderRepository {
   Future<List<Reminder>> today(String patientId);
   Future<void> setDone(String reminderId, bool done);
+  Future<void> save(Reminder reminder);
 
   /// Writes the day's reminder list if none is stored yet. Existing rows —
   /// including their done state — are left alone.
@@ -195,6 +196,16 @@ class MockReminderRepository implements ReminderRepository {
   Future<void> setDone(String reminderId, bool done) async {
     final int i = _reminders.indexWhere((Reminder r) => r.id == reminderId);
     if (i >= 0) _reminders[i] = _reminders[i].copyWith(done: done);
+  }
+
+  @override
+  Future<void> save(Reminder reminder) async {
+    final int i = _reminders.indexWhere((Reminder r) => r.id == reminder.id);
+    if (i >= 0) {
+      _reminders[i] = reminder;
+    } else {
+      _reminders.add(reminder);
+    }
   }
 }
 

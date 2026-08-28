@@ -8,62 +8,12 @@ import '../../core/models/auth_user.dart';
 import '../../core/services/app_state.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
-import '../../core/widgets/companion.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../auth/role_selection_screen.dart';
 import '../auth/sign_in_screen.dart';
 import 'intake_kit.dart';
 
-/// The first thing anyone sees. Two seconds, then out of the way.
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, this.next});
-
-  /// What to show once the splash finishes. Defaults to the welcome screen.
-  final Widget? next;
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 1800), () {
-      if (!mounted) return;
-      Nav.rootTo(context, widget.next ?? const WelcomeScreen());
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: MotifBackground(
-        opacity: 0.05,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Companion(state: CompanionState.idle, size: 132),
-              const SizedBox(height: Insets.lg),
-              const BrandLockup(size: 34, center: true, showTagline: false),
-              const SizedBox(height: Insets.sm),
-              Text('Understand. Track. Support.',
-                  style: AppText.body.copyWith(color: AppColors.inkSoft)),
-              const SizedBox(height: Insets.xxl),
-              const SizedBox(
-                width: 120,
-                child: MeterBar(value: 1, height: 4, color: AppColors.primarySoft),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// What the product is, before anyone signs anything.
 ///

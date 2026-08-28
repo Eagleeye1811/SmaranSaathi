@@ -13,10 +13,11 @@ import '../../../core/widgets/ui_kit.dart';
 /// Header used on every patient screen: identity on the left, the two controls
 /// an elderly user might need on the right, and nothing else.
 class PatientTopBar extends StatelessWidget {
-  const PatientTopBar({super.key, this.trailing, this.onExit});
+  const PatientTopBar({super.key, this.trailing, this.onExit, this.showExit = true});
 
   final Widget? trailing;
   final VoidCallback? onExit;
+  final bool showExit;
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +42,15 @@ class PatientTopBar extends StatelessWidget {
               if (goingOnline) state.syncNow();
             },
           ),
-          const SizedBox(width: 8),
-          RoundIconButton(
-            icon: Icons.logout_rounded,
-            size: 40,
-            tooltip: 'Switch role',
-            onPressed: onExit ?? () => Navigator.of(context).maybePop(),
-          ),
+          if (showExit) ...<Widget>[
+            const SizedBox(width: 8),
+            RoundIconButton(
+              icon: Icons.logout_rounded,
+              size: 40,
+              tooltip: 'Switch role',
+              onPressed: onExit ?? () => Navigator.of(context).maybePop(),
+            ),
+          ],
         ],
       ),
     );
@@ -297,6 +300,7 @@ class ReminderRow extends StatelessWidget {
       ReminderKind.cognitive => AppColors.primary,
       ReminderKind.appointment => AppColors.plum,
       ReminderKind.routine => AppColors.accent,
+      ReminderKind.social => AppColors.indigo,
     };
 
     return AnimatedContainer(

@@ -17,6 +17,7 @@ class ReminderKind(str, Enum):
     cognitive = "cognitive"
     appointment = "appointment"
     routine = "routine"
+    social = "social"
 
 
 class JournalEntry(APIModel):
@@ -35,6 +36,9 @@ class Reminder(APIModel):
     kind: ReminderKind
     detail: str = ""
     done: bool = False
+    # When True the scheduler will send an SMS to the patient's phone_number
+    # at the scheduled time. Patients can opt-out per reminder.
+    sms_enabled: bool = True
 
 
 class MoodCheckIn(APIModel):

@@ -22,6 +22,7 @@ class ReminderService:
             title=data.title,
             kind=data.kind,
             detail=data.detail,
+            sms_enabled=data.sms_enabled,
         )
         return await self._repository.create(data.patient_id, reminder)
 

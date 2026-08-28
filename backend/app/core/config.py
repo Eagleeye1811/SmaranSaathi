@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     device_jwt_issuer: str = "memorymitra-backend"
     device_jwt_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 days
 
+    # ── SMS notifications via Twilio (Phase 4) ────────────────────────────
+    # All three must be set for SMS to be enabled. Leave blank in dev to skip
+    # sending silently — the scheduler still runs but no SMS is dispatched.
+    twilio_account_sid: Optional[str] = None
+    twilio_auth_token: Optional[str] = None
+    twilio_from_number: Optional[str] = None
+    # Set to False in .env to disable all outgoing SMS without removing creds.
+    sms_enabled: bool = True
+
     def model_post_init(self, __context: object) -> None:
         if self.app_env == "production" and self.device_jwt_secret == _INSECURE_DEVICE_JWT_SECRET:
             raise RuntimeError(
@@ -67,7 +76,16 @@ class Settings(BaseSettings):
     def firebase_configured(self) -> bool:
         return bool(self.firebase_project_id and self.google_application_credentials)
 
+    @property
+    def twilio_configured(self) -> bool:
+        """True only when all three Twilio credentials are present and SMS is enabled."""
+        return bool(
+            self.sms_enabled
+            and self.twilio_account_sid
+            and self.twilio_auth_token
+            and self.twilio_from_number
+        )
 
-@lru_cache
+
 def get_settings() -> Settings:
     return Settings()

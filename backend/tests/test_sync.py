@@ -152,6 +152,45 @@ def test_sync_baseline_capture(authed_client, device_headers) -> None:
     assert response.json()["status"] == "synced"
 
 
+def test_sync_profile_update_and_reminder_creation(authed_client, device_headers) -> None:
+    # 1. Profile update with phone number
+    profile_body = {
+        "operationId": "op-profile-1",
+        "kind": "profileUpdate",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {
+            "patientId": _PATIENT_ID,
+            "name": "Aama Devi",
+            "phoneNumber": "+919876543210",
+        },
+    }
+    resp1 = authed_client.post("/api/v1/sync/operations", json=profile_body, headers=device_headers)
+    assert resp1.status_code == 200
+    assert resp1.json()["status"] == "synced"
+
+    # 2. Reminder creation with sms_enabled
+    reminder_body = {
+        "operationId": "op-reminder-create-1",
+        "kind": "reminderCreate",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {
+            "patientId": _PATIENT_ID,
+            "reminder": {
+                "id": "rem_12345",
+                "time": "08:00 AM",
+                "minutesFromMidnight": 480,
+                "title": "Morning Medicine",
+                "kind": "medicine",
+                "detail": "Take after breakfast",
+                "smsEnabled": True,
+            },
+        },
+    }
+    resp2 = authed_client.post("/api/v1/sync/operations", json=reminder_body, headers=device_headers)
+    assert resp2.status_code == 200
+    assert resp2.json()["status"] == "synced"
+
+
 def test_sync_rejects_an_unrecognised_kind(authed_client, device_headers) -> None:
     """A kind the backend does not know is a client/server version mismatch,
     and must fail loudly rather than being silently swallowed."""
@@ -164,3 +203,4 @@ def test_sync_rejects_an_unrecognised_kind(authed_client, device_headers) -> Non
 
     response = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
     assert response.status_code == 422
+

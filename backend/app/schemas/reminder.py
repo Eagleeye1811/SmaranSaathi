@@ -9,6 +9,7 @@ class ReminderCreate(APIModel):
     title: str
     kind: ReminderKind
     detail: str = ""
+    sms_enabled: bool = True
 
 
 class ReminderSetDone(APIModel):

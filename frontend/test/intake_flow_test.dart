@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memory_mitra/app/theme/app_theme.dart';
 import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/clinical.dart';
 import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/core/widgets/ui_kit.dart';

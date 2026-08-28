@@ -84,7 +84,7 @@ extension MoodLevelX on MoodLevel {
       };
 }
 
-enum ReminderKind { medicine, hydration, cognitive, appointment, routine }
+enum ReminderKind { medicine, hydration, cognitive, appointment, routine, social }
 
 extension ReminderKindX on ReminderKind {
   String get label => switch (this) {
@@ -93,6 +93,7 @@ extension ReminderKindX on ReminderKind {
         ReminderKind.cognitive => 'Cognitive activity',
         ReminderKind.appointment => 'Appointment',
         ReminderKind.routine => 'Daily routine',
+        ReminderKind.social => 'Social activity',
       };
 
   IconData get icon => switch (this) {
@@ -101,6 +102,7 @@ extension ReminderKindX on ReminderKind {
         ReminderKind.cognitive => Icons.psychology_alt_rounded,
         ReminderKind.appointment => Icons.event_available_rounded,
         ReminderKind.routine => Icons.wb_twilight_rounded,
+        ReminderKind.social => Icons.people_rounded,
       };
 
   String get glyph => switch (this) {
@@ -109,6 +111,7 @@ extension ReminderKindX on ReminderKind {
         ReminderKind.cognitive => '🧠',
         ReminderKind.appointment => '📅',
         ReminderKind.routine => '🛌',
+        ReminderKind.social => '🤝',
       };
 }
 
@@ -122,6 +125,7 @@ class Reminder {
     required this.kind,
     this.detail = '',
     this.done = false,
+    this.smsEnabled = true,
   });
 
   final String id;
@@ -131,8 +135,11 @@ class Reminder {
   final ReminderKind kind;
   final String detail;
   final bool done;
+  /// When true, the backend scheduler will send an SMS to the patient's
+  /// registered phone number at the scheduled time.
+  final bool smsEnabled;
 
-  Reminder copyWith({bool? done}) => Reminder(
+  Reminder copyWith({bool? done, bool? smsEnabled}) => Reminder(
         id: id,
         time: time,
         minutesFromMidnight: minutesFromMidnight,
@@ -140,6 +147,7 @@ class Reminder {
         kind: kind,
         detail: detail,
         done: done ?? this.done,
+        smsEnabled: smsEnabled ?? this.smsEnabled,
       );
 }
 

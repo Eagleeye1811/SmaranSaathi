@@ -234,13 +234,14 @@ class PatientAdapter extends TypeAdapter<Patient> {
       routine: (f[14] as List<dynamic>?)?.cast<RoutineItem>() ?? const <RoutineItem>[],
       stageNote: f[15] as String? ?? 'Early-stage memory changes',
       joinedOn: f[16] as String? ?? 'Profile created today',
+      phoneNumber: f[17] as String? ?? '',
     );
   }
 
   @override
   void write(BinaryWriter writer, Patient obj) {
     writer
-      ..writeByte(17)
+      ..writeByte(18)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -274,7 +275,9 @@ class PatientAdapter extends TypeAdapter<Patient> {
       ..writeByte(15)
       ..write(obj.stageNote)
       ..writeByte(16)
-      ..write(obj.joinedOn);
+      ..write(obj.joinedOn)
+      ..writeByte(17)
+      ..write(obj.phoneNumber);
   }
 }
 
@@ -455,13 +458,14 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       kind: f[4] as ReminderKind? ?? ReminderKind.routine,
       detail: f[5] as String? ?? '',
       done: f[6] as bool? ?? false,
+      smsEnabled: f[7] as bool? ?? true,
     );
   }
 
   @override
   void write(BinaryWriter writer, Reminder obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -475,7 +479,9 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..writeByte(5)
       ..write(obj.detail)
       ..writeByte(6)
-      ..write(obj.done);
+      ..write(obj.done)
+      ..writeByte(7)
+      ..write(obj.smsEnabled);
   }
 }
 

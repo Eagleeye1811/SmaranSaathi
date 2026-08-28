@@ -157,6 +157,11 @@ class HiveReminderRepository implements ReminderRepository {
     if (existing == null) return;
     await _store.reminders.put(reminderId, existing.copyWith(done: done));
   }
+
+  @override
+  Future<void> save(Reminder reminder) async {
+    await _store.reminders.put(reminder.id, reminder);
+  }
 }
 
 class HiveDailyRepository implements DailyRepository {
