@@ -38,6 +38,8 @@ flutter:
     - assets/videos/
     - assets/videos/procedural_test.mp4
     - assets/videos/washing_clothes.mp4
+    - assets/videos/splash_screen.mp4
+
 
 
   fonts:
