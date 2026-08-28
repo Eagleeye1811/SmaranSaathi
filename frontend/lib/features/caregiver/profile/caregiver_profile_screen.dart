@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/widgets/account_section.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
@@ -287,6 +288,8 @@ class CaregiverProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
+
+                  const AccountSection(),
 
                   FadeInUp(
                     delayMs: 180,

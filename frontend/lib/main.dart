@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app/app.dart';
 import 'app/bootstrap.dart';
 import 'core/services/app_state.dart';
+import 'core/services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,5 +19,10 @@ Future<void> main() async {
   // frame, so no screen ever has to render an empty state it will immediately
   // replace.
   final AppState state = await bootstrapAppState();
-  runApp(MemoryMitraApp(state: state));
+  // Real sign-in when Firebase is actually configured for this platform and
+  // build (Android today — see firebase_options.dart); `null` otherwise, in
+  // which case MemoryMitraApp opens straight to role selection exactly as
+  // it always has.
+  final AuthService? auth = await bootstrapAuth();
+  runApp(MemoryMitraApp(state: state, authService: auth));
 }

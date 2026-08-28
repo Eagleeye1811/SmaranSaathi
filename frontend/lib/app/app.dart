@@ -2,20 +2,29 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../core/services/app_state.dart';
+import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/auth/role_selection_screen.dart';
+import '../features/auth/sign_in_screen.dart';
 import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
 import '../features/patient/patient_shell.dart';
 import 'theme/app_theme.dart';
 
 class MemoryMitraApp extends StatefulWidget {
-  const MemoryMitraApp({super.key, this.state});
+  const MemoryMitraApp({super.key, this.state, this.authService});
 
   /// A pre-built, already-hydrated state. `main` passes the persistent one;
   /// tests and `const MemoryMitraApp()` fall back to an in-memory session.
   final AppState? state;
+
+  /// Gates the role-selection flow behind a real sign-in when given. `main`
+  /// passes a real `FirebaseAuthService` once Firebase has actually
+  /// initialized; every test and `const MemoryMitraApp()` gets `null`, which
+  /// skips the gate entirely — role selection is reached exactly as it
+  /// always was. See `core/services/auth_service.dart`.
+  final AuthService? authService;
 
   @override
   State<MemoryMitraApp> createState() => _MemoryMitraAppState();
@@ -56,12 +65,16 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
     }
   }
 
-  Widget get _home => switch (_startRole) {
-    'patient' => const PatientShell(),
-    'caregiver' => const CaregiverShell(),
-    'doctor' => const DoctorShell(),
-    _ => const RoleSelectionScreen(),
-  };
+  Widget get _home {
+    final Widget roleFlow = switch (_startRole) {
+      'patient' => const PatientShell(),
+      'caregiver' => const CaregiverShell(),
+      'doctor' => const DoctorShell(),
+      _ => const RoleSelectionScreen(),
+    };
+    final AuthService? auth = widget.authService;
+    return auth == null ? roleFlow : AuthGate(authService: auth, child: roleFlow);
+  }
 
   @override
   void dispose() {

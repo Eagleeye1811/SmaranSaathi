@@ -120,6 +120,59 @@ def test_authenticated_request_creates_and_reads_through_firestore() -> None:
         firebase_auth.delete_user(user.uid)
 
 
+@pytest.mark.skipif(
+    not settings.firebase_web_api_key,
+    reason="FIREBASE_WEB_API_KEY not set — needed to mint real ID tokens for this test",
+)
+def test_declared_role_round_trips_through_a_real_token_refresh() -> None:
+    """The exact chain `POST /api/v1/auth/role` exists for: a user signs in
+    with no role claim yet, declares a role, and — only after re-authenticating
+    (the same "forceRefresh" a real client does) — `/auth/me` reflects it.
+    Proves the self-declared-role endpoint actually sets a real Firebase
+    custom claim, not just a database row somewhere."""
+    from firebase_admin import auth as firebase_auth
+
+    init_firebase()
+    email = f"pytest-{uuid.uuid4().hex[:12]}@example.com"
+    password = "Pytest!" + uuid.uuid4().hex[:16]
+    user = firebase_auth.create_user(email=email, password=password)
+    client = TestClient(app)
+
+    def _sign_in() -> str:
+        response = httpx.post(
+            "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword",
+            params={"key": settings.firebase_web_api_key},
+            json={"email": email, "password": password, "returnSecureToken": True},
+            timeout=15,
+        )
+        response.raise_for_status()
+        return response.json()["idToken"]
+
+    try:
+        first_token = _sign_in()
+        before = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {first_token}"})
+        assert before.status_code == 200
+        assert before.json()["role"] == "caregiver"  # default when no claim is set yet
+
+        set_role = client.post(
+            "/api/v1/auth/role",
+            headers={"Authorization": f"Bearer {first_token}"},
+            json={"role": "doctor"},
+        )
+        assert set_role.status_code == 200
+        assert set_role.json()["role"] == "doctor"
+
+        # A stale (already-issued) token still carries the old claims — this
+        # is expected Firebase behaviour, not a bug, which is exactly why
+        # FirebaseAuthService.declareRole() force-refreshes afterward.
+        fresh_token = _sign_in()
+        after = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {fresh_token}"})
+        assert after.status_code == 200
+        assert after.json()["role"] == "doctor"
+    finally:
+        firebase_auth.delete_user(user.uid)
+
+
 def test_sync_operation_reaches_firestore_and_is_idempotent() -> None:
     """The Phase 3 checklist, steps 5-8, for real: FastAPI receives a synced
     operation, Firestore stores it under the operation's own id, the

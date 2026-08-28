@@ -1,18 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/services/app_state.dart';
+import '../core/services/auth_service.dart';
 import '../core/services/connectivity_service.dart';
+import '../core/services/firebase_auth_service.dart';
 import '../core/services/http_sync_transport.dart';
 import '../core/services/sync_manager.dart';
 import '../data/local/hive_store.dart';
 import '../data/repositories/hive_repositories.dart';
+import '../firebase_options.dart';
 
 /// Set via `--dart-define=MM_SYNC_BASE_URL=http://10.0.2.2:8000` (Android
 /// emulator) or `http://127.0.0.1:8000` (web/desktop/iOS simulator) to point
 /// the app at a real backend. Empty (the default) keeps today's behaviour
 /// byte-for-byte — [AppState]'s own default transport, [LoopbackTransport],
 /// is used — so building without this flag is unaffected by Phase 3 existing
-/// at all.
+/// at all. The same URL doubles as the backend base for [bootstrapAuth]'s
+/// `POST /api/v1/auth/role` / `GET /api/v1/auth/me` calls.
 const String _syncBaseUrl = String.fromEnvironment('MM_SYNC_BASE_URL');
 
 /// Builds the app's state with local persistence wired in.
@@ -47,6 +52,27 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
 
   await state.hydrate();
   return state;
+}
+
+/// Attempts real Firebase sign-in; returns `null` on any failure — no
+/// platform config yet (web/iOS — see `firebase_options.dart`), no network
+/// at first launch, anything. `null` means [MemoryMitraApp] skips the
+/// sign-in gate entirely and behaves exactly as it did before this existed,
+/// the same graceful-degradation contract [bootstrapAppState] already makes
+/// for Hive and connectivity.
+Future<AuthService?> bootstrapAuth() async {
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  } catch (error) {
+    debugPrint('bootstrap: Firebase unavailable, skipping the sign-in gate ($error)');
+    return null;
+  }
+  if (_syncBaseUrl.isEmpty) {
+    debugPrint('bootstrap: Firebase initialized but MM_SYNC_BASE_URL is unset — '
+        'declareRole/fetchMe would have nowhere to send requests, skipping the sign-in gate.');
+    return null;
+  }
+  return FirebaseAuthService(backendBaseUrl: _syncBaseUrl);
 }
 
 /// Real connectivity everywhere the plugin works. Tests and headless runs pass

@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
@@ -167,6 +168,8 @@ class DoctorProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: Insets.lg),
 
+                const _DoctorAccountSection(),
+
                 FadeInUp(
                   delayMs: 140,
                   child: OutlinedButton.icon(
@@ -188,6 +191,87 @@ class DoctorProfileScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Clinic-themed equivalent of `core/widgets/account_section.dart`'s
+/// `AccountSection` — same real sign-out/`fetchMe` round trip, styled with
+/// `ClinicCard`/`CT`/`clinicAccent` instead of the warm patient/caregiver
+/// palette, since a doctor's surface deliberately never looks like theirs.
+/// Renders nothing when there's no `AuthGate` above it (every existing test,
+/// any build without Firebase configured).
+class _DoctorAccountSection extends StatefulWidget {
+  const _DoctorAccountSection();
+
+  @override
+  State<_DoctorAccountSection> createState() => _DoctorAccountSectionState();
+}
+
+class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
+  Future<Map<String, dynamic>?>? _me;
+  AuthService? _service;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final AuthService? service = AuthScope.maybeOf(context);
+    if (service != _service) {
+      _service = service;
+      _me = service?.fetchMe();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AuthService? service = _service;
+    if (service == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.lg),
+      child: FadeInUp(
+        delayMs: 130,
+        child: ClinicCard(
+          padding: const EdgeInsets.all(Insets.lg),
+          child: FutureBuilder<Map<String, dynamic>?>(
+            future: _me,
+            builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>?> snapshot) {
+              final Map<String, dynamic>? me = snapshot.data;
+              final String email = (me?['email'] as String?) ?? service.currentUser?.email ?? '—';
+              final String? role = me?['role'] as String?;
+              return Row(
+                children: <Widget>[
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: AppColors.clinicAccent.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.badge_outlined, color: AppColors.clinicAccent),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text('Signed in as', style: CT.caption),
+                        Text(email, style: CT.body.wght(700)),
+                        if (role != null) Text('Role: $role', style: CT.caption),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => service.signOut(),
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Log out'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
       ),
     );
   }

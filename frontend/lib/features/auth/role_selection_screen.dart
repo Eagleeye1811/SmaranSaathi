@@ -5,6 +5,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/services/app_state.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/companion.dart';
 import '../../core/widgets/illustration.dart';
@@ -98,6 +99,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               accent: AppColors.terracotta,
                               tint: AppColors.terracottaTint,
                               onTap: () {
+                                AuthScope.maybeOf(context)?.declareRole('patient');
                                 state.setRole(AppRole.patient);
                                 Nav.push(context, const PatientShell());
                               },
@@ -114,6 +116,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               accent: AppColors.primary,
                               tint: AppColors.primaryTint,
                               onTap: () {
+                                AuthScope.maybeOf(context)?.declareRole('caregiver');
                                 state.setRole(AppRole.caregiver);
                                 Nav.push(context, const CaregiverShell());
                               },
@@ -130,6 +133,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               accent: AppColors.secondary,
                               tint: AppColors.secondaryTint,
                               onTap: () {
+                                AuthScope.maybeOf(context)?.declareRole('doctor');
                                 state.setRole(AppRole.doctor);
                                 Nav.push(context, const DoctorShell());
                               },

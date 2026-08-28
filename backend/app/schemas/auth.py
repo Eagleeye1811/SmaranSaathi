@@ -22,3 +22,7 @@ class DeviceTokenResponse(APIModel):
     device_id: str
     token: str
     expires_at_millis: int
+
+
+class SetRoleRequest(APIModel):
+    role: UserRole

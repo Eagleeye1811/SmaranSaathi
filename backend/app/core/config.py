@@ -1,14 +1,23 @@
 """Environment-driven configuration.
 
 Every value here has a safe local-dev default so the app boots with zero
-setup. Nothing secret has a real default — `firebase_project_id`,
-`google_application_credentials` and `device_jwt_secret` all resolve to
-placeholder/None values until a real `.env` supplies them (see `.env.example`).
+setup. `firebase_project_id` and `google_application_credentials` resolve to
+`None` until a real `.env` supplies them (see `.env.example`) — Firebase-backed
+routes then fail loudly (`core/firebase.py`) rather than silently misbehaving.
+
+`device_jwt_secret` is the one exception: it needs *some* default so device
+sync auth works out of the box in local dev, so it falls back to a
+well-known, publicly-visible placeholder value. `Settings` refuses to
+construct with that placeholder still in effect when `app_env=production` —
+see `model_post_init` below — so a deployment can't silently ship with every
+device token forgeable.
 """
 from functools import lru_cache
 from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_DEVICE_JWT_SECRET = "dev-insecure-secret-change-me"
 
 
 class Settings(BaseSettings):
@@ -37,9 +46,18 @@ class Settings(BaseSettings):
     firebase_web_api_key: Optional[str] = None
 
     # ── Device sync auth (Phase 3) ────────────────────────────────────────
-    device_jwt_secret: str = "dev-insecure-secret-change-me"
+    device_jwt_secret: str = _INSECURE_DEVICE_JWT_SECRET
     device_jwt_issuer: str = "memorymitra-backend"
     device_jwt_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 days
+
+    def model_post_init(self, __context: object) -> None:
+        if self.app_env == "production" and self.device_jwt_secret == _INSECURE_DEVICE_JWT_SECRET:
+            raise RuntimeError(
+                "DEVICE_JWT_SECRET is unset (still the local-dev placeholder) while "
+                "APP_ENV=production. Every device sync token would be forgeable. Set a "
+                "real DEVICE_JWT_SECRET in the environment before starting in production "
+                "(see .env.example for how to generate one)."
+            )
 
     @property
     def cors_origins(self) -> List[str]:

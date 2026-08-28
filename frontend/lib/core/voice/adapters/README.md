@@ -1,45 +1,15 @@
 # Speech plugin adapters
 
-The voice layer is complete and tested, but it ships with the *unavailable*
-engines wired in, because activating the real ones needs two lines in
-`pubspec.yaml` — which this phase was told not to modify.
+**Status: activated.** `speech_to_text_recognizer.dart` and
+`flutter_tts_synthesizer.dart` are the real, live implementations —
+`speech_to_text` and `flutter_tts` are in `pubspec.yaml`, and
+`buildVoiceController` (`../voice_bootstrap.dart`) defaults to these two
+classes, so every entry point (`AskMitraButton` included) gets real
+microphone input and real speech output with no extra wiring.
 
-Everything else is done. Activation is three steps and touches no logic.
-
-## 1. Add the packages
-
-```yaml
-dependencies:
-  speech_to_text: ^7.0.0
-  flutter_tts: ^4.2.0
-```
-
-Then `flutter pub get`.
-
-## 2. Rename the adapters
-
-```bash
-mv speech_to_text_recognizer.dart.template speech_to_text_recognizer.dart
-mv flutter_tts_synthesizer.dart.template   flutter_tts_synthesizer.dart
-```
-
-They are written against the interfaces in `../speech_engines.dart` and
-compile as-is once the packages resolve. They are `.template` only so this
-build analyses cleanly without the dependencies.
-
-## 3. Pass them in
-
-One call site, in `lib/features/patient/home/patient_home_screen.dart`:
-
-```dart
-const AskMitraButton(
-  recognizer: SpeechToTextRecognizer(),
-  synthesizer: FlutterTtsSynthesizer(),
-)
-```
-
-Or set the defaults in `buildVoiceController` (`../voice_bootstrap.dart`) so
-every future entry point gets them.
+(The `.template` files that used to sit alongside these before the packages
+were added have been removed — they're no longer needed now that activation
+is done.)
 
 ## Platform configuration
 
