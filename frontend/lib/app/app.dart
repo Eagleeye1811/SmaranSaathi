@@ -5,8 +5,10 @@ import '../core/services/app_state.dart';
 import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
-import '../features/intake/welcome_screens.dart';
+import '../features/intake/welcome_screens.dart' hide SplashScreen;
 import '../features/patient/patient_entry.dart';
+import '../features/auth/splash_screen.dart';
+
 import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
 import 'theme/app_theme.dart';
