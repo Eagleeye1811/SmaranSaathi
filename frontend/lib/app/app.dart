@@ -5,11 +5,10 @@ import '../core/services/app_state.dart';
 import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
-import '../features/auth/role_selection_screen.dart';
-import '../features/auth/sign_in_screen.dart';
+import '../features/intake/welcome_screens.dart';
+import '../features/patient/patient_entry.dart';
 import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
-import '../features/patient/patient_shell.dart';
 import 'theme/app_theme.dart';
 
 class MemoryMitraApp extends StatefulWidget {
@@ -19,11 +18,14 @@ class MemoryMitraApp extends StatefulWidget {
   /// tests and `const MemoryMitraApp()` fall back to an in-memory session.
   final AppState? state;
 
-  /// Gates the role-selection flow behind a real sign-in when given. `main`
-  /// passes a real `FirebaseAuthService` once Firebase has actually
-  /// initialized; every test and `const MemoryMitraApp()` gets `null`, which
-  /// skips the gate entirely — role selection is reached exactly as it
-  /// always was. See `core/services/auth_service.dart`.
+  /// The active auth service, published to the tree through an `AuthScope`.
+  ///
+  /// Sign-in is *not* a gate in front of the app: it is a step in the journey,
+  /// reached from the welcome screen (`WelcomeScreen.continueFrom`) so the
+  /// person sees what the product is before being asked for an email. `main`
+  /// passes a real `FirebaseAuthService` once Firebase has initialised; every
+  /// test and `const MemoryMitraApp()` gets `null`, and the sign-in step is
+  /// then skipped entirely. See `core/services/auth_service.dart`.
   final AuthService? authService;
 
   @override
@@ -66,14 +68,17 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   }
 
   Widget get _home {
-    final Widget roleFlow = switch (_startRole) {
-      'patient' => const PatientShell(),
+    return switch (_startRole) {
+      'patient' => const PatientEntry(),
       'caregiver' => const CaregiverShell(),
       'doctor' => const DoctorShell(),
-      _ => const RoleSelectionScreen(),
+      // Everyone else starts at the splash, then the welcome screen — which
+      // explains what the product is, and is where sign-in is reached from
+      // (`WelcomeScreen.continueFrom`) before the role picker and the intake.
+      // `MM_START` skips straight past both, so a kiosk build and the test
+      // suite are unaffected.
+      _ => const SplashScreen(next: WelcomeScreen()),
     };
-    final AuthService? auth = widget.authService;
-    return auth == null ? roleFlow : AuthGate(authService: auth, child: roleFlow);
   }
 
   @override
@@ -85,7 +90,16 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScope(
+    final AuthService? auth = widget.authService;
+    // Above `MaterialApp`, not inside `home`.
+    //
+    // An inherited widget placed in `home` only covers the *first* route:
+    // anything pushed afterwards is built under the Navigator, outside it. The
+    // welcome screen is pushed by the splash, so an AuthScope in `home` was
+    // invisible to it and sign-in was silently skipped. Sitting above the
+    // MaterialApp, it is an ancestor of the Navigator and therefore of every
+    // route — the same placement `AppScope` and `LocaleScope` already use.
+    final Widget app = AppScope(
       state: _state,
       child: LocaleScope(
         controller: _locale,
@@ -120,6 +134,8 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
         ),
       ),
     );
+
+    return auth == null ? app : AuthScope(authService: auth, child: app);
   }
 }
 

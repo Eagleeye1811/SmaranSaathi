@@ -31,6 +31,7 @@ class AppSettings {
     this.voicePrompts = true,
     this.offlineOverride = false,
     this.lastRole,
+    this.lastAccountId,
   });
 
   final TextSizePreference textSize;
@@ -46,6 +47,14 @@ class AppSettings {
   /// back through the role picker.
   final String? lastRole;
 
+  /// The Firebase uid whose assessment this device last worked on.
+  ///
+  /// Persisted so a restart reopens the same person's intake *before* anyone
+  /// has signed in again — the app is offline-first, and losing a
+  /// half-finished questionnaire because the network was down at launch would
+  /// defeat the point of storing it locally at all.
+  final String? lastAccountId;
+
   AppSettings copyWith({
     TextSizePreference? textSize,
     bool? highContrast,
@@ -53,6 +62,7 @@ class AppSettings {
     bool? voicePrompts,
     bool? offlineOverride,
     String? lastRole,
+    String? lastAccountId,
   }) {
     return AppSettings(
       textSize: textSize ?? this.textSize,
@@ -61,6 +71,7 @@ class AppSettings {
       voicePrompts: voicePrompts ?? this.voicePrompts,
       offlineOverride: offlineOverride ?? this.offlineOverride,
       lastRole: lastRole ?? this.lastRole,
+      lastAccountId: lastAccountId ?? this.lastAccountId,
     );
   }
 }

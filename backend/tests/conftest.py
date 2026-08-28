@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.core.dependencies import (
     get_analytics_repository,
+    get_assessment_repository,
     get_caregiver_link_repository,
     get_daily_repository,
     get_game_session_repository,
@@ -15,6 +16,7 @@ from app.core.security import get_current_user
 from app.main import app
 from app.models.user import User, UserRole
 from app.repositories.memory.analytics import InMemoryAnalyticsRepository
+from app.repositories.memory.assessments import InMemoryAssessmentRepository
 from app.repositories.memory.caregivers import InMemoryCaregiverLinkRepository
 from app.repositories.memory.daily import InMemoryDailyRepository
 from app.repositories.memory.patients import InMemoryPatientRepository
@@ -60,6 +62,7 @@ def authed_client():
     reminders = InMemoryReminderRepository()
     caregiver_links = InMemoryCaregiverLinkRepository()
     sync_ledger = InMemorySyncLedgerRepository()
+    assessments = InMemoryAssessmentRepository()
 
     app.dependency_overrides[get_current_user] = _fake_user
     app.dependency_overrides[get_patient_repository] = lambda: patients
@@ -69,12 +72,14 @@ def authed_client():
     app.dependency_overrides[get_reminder_repository] = lambda: reminders
     app.dependency_overrides[get_caregiver_link_repository] = lambda: caregiver_links
     app.dependency_overrides[get_sync_ledger_repository] = lambda: sync_ledger
+    app.dependency_overrides[get_assessment_repository] = lambda: assessments
 
     test_client = TestClient(app)
     yield test_client
 
     for dependency in (
         get_current_user,
+        get_assessment_repository,
         get_patient_repository,
         get_game_session_repository,
         get_analytics_repository,

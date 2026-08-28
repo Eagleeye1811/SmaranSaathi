@@ -12,6 +12,8 @@ enum SyncOperationKind {
   reminderToggle,
   profileUpdate,
   reflection,
+  assessmentUpdate,
+  baselineCaptured,
   unknown,
 }
 
@@ -23,6 +25,8 @@ extension SyncOperationKindX on SyncOperationKind {
         SyncOperationKind.reminderToggle => 'Reminder update',
         SyncOperationKind.profileUpdate => 'Profile update',
         SyncOperationKind.reflection => 'Evening reflection',
+        SyncOperationKind.assessmentUpdate => 'Assessment answers',
+        SyncOperationKind.baselineCaptured => 'Cognitive baseline',
         SyncOperationKind.unknown => 'Pending change',
       };
 }

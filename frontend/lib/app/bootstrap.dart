@@ -44,6 +44,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
     analytics: HiveAnalyticsRepository(store),
     reminders: HiveReminderRepository(store),
     daily: HiveDailyRepository(store),
+    assessment: HiveAssessmentRepository(store),
     settings: HiveSettingsRepository(store),
     sync: HiveSyncRepository(store),
     connectivity: _connectivityForPlatform(),
@@ -67,10 +68,13 @@ Future<AuthService?> bootstrapAuth() async {
     debugPrint('bootstrap: Firebase unavailable, skipping the sign-in gate ($error)');
     return null;
   }
+  // The backend URL is optional. Sign-in itself is pure Firebase and works
+  // without it; only `declareRole`/`fetchMe` need a server, and both already
+  // swallow a failed request. Requiring the URL here used to disable sign-in
+  // entirely on a device with Firebase perfectly well configured.
   if (_syncBaseUrl.isEmpty) {
-    debugPrint('bootstrap: Firebase initialized but MM_SYNC_BASE_URL is unset — '
-        'declareRole/fetchMe would have nowhere to send requests, skipping the sign-in gate.');
-    return null;
+    debugPrint('bootstrap: no MM_SYNC_BASE_URL — sign-in is available, but the '
+        'role claim will not be recorded server-side.');
   }
   return FirebaseAuthService(backendBaseUrl: _syncBaseUrl);
 }

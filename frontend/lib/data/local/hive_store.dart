@@ -27,6 +27,12 @@ class HiveStore {
   static const String settingsBox = 'mm_settings';
   static const String syncQueueBox = 'mm_sync_queue';
 
+  /// The structured intake and the cognitive baseline. Stored as plain JSON
+  /// maps rather than through a typed adapter: the assessment models change
+  /// shape as the questionnaire is refined, and a map tolerates a new field
+  /// where a fixed adapter would need a new type id every time.
+  static const String assessmentBox = 'mm_assessment';
+
   static bool _adaptersRegistered = false;
   static HiveStore? _instance;
 
@@ -95,6 +101,7 @@ class HiveStore {
       Hive.openBox<Reminder>(remindersBox),
       Hive.openBox<dynamic>(settingsBox),
       Hive.openBox<PendingOperation>(syncQueueBox),
+      Hive.openBox<dynamic>(assessmentBox),
     ]);
     store._open = true;
     _instance = store;
@@ -123,6 +130,7 @@ class HiveStore {
   Box<Reminder> get reminders => Hive.box<Reminder>(remindersBox);
   Box<dynamic> get settings => Hive.box<dynamic>(settingsBox);
   Box<PendingOperation> get syncQueue => Hive.box<PendingOperation>(syncQueueBox);
+  Box<dynamic> get assessment => Hive.box<dynamic>(assessmentBox);
 
   Future<void> close() async {
     _open = false;
@@ -142,6 +150,7 @@ class HiveStore {
       reminders.clear(),
       settings.clear(),
       syncQueue.clear(),
+      assessment.clear(),
     ]);
   }
 }

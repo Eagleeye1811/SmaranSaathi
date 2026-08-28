@@ -7,6 +7,7 @@ enum GameId { procedure, story, familiarPlace, melody, weaves, memoryCards }
 enum CognitiveDomain { memory, attention, reasoning, spatial, auditory, procedural }
 
 extension CognitiveDomainX on CognitiveDomain {
+  /// The patient-facing name, kept warm and plain.
   String get label => switch (this) {
         CognitiveDomain.memory => 'Memory',
         CognitiveDomain.attention => 'Attention',
@@ -14,6 +15,31 @@ extension CognitiveDomainX on CognitiveDomain {
         CognitiveDomain.spatial => 'Spatial',
         CognitiveDomain.auditory => 'Auditory',
         CognitiveDomain.procedural => 'Procedural',
+      };
+
+  /// The name a clinician would recognise, used on the cognitive profile,
+  /// the trends and the report.
+  ///
+  /// Each label is claimed only where the activity behind it genuinely
+  /// exercises that function — the six activities were not built to a
+  /// standard battery, so nothing here is presented as an equivalent of one.
+  String get clinicalLabel => switch (this) {
+        CognitiveDomain.memory => 'Memory',
+        CognitiveDomain.attention => 'Attention',
+        CognitiveDomain.reasoning => 'Language & reasoning',
+        CognitiveDomain.spatial => 'Visuospatial',
+        CognitiveDomain.auditory => 'Auditory processing',
+        CognitiveDomain.procedural => 'Executive function',
+      };
+
+  /// What the activities in this domain actually ask the person to do.
+  String get measures => switch (this) {
+        CognitiveDomain.memory => 'Recalling and recognising material after a delay',
+        CognitiveDomain.attention => 'Sustaining focus and resisting distraction',
+        CognitiveDomain.reasoning => 'Following a narrative and choosing a sensible next step',
+        CognitiveDomain.spatial => 'Locating objects and orienting within a familiar space',
+        CognitiveDomain.auditory => 'Holding and reproducing a heard sequence',
+        CognitiveDomain.procedural => 'Sequencing and planning the steps of a familiar task',
       };
 
   IconData get icon => switch (this) {
@@ -24,6 +50,28 @@ extension CognitiveDomainX on CognitiveDomain {
         CognitiveDomain.auditory => Icons.graphic_eq_rounded,
         CognitiveDomain.procedural => Icons.checklist_rounded,
       };
+}
+
+/// Which domain each activity reports into.
+///
+/// The single source of truth: the content catalogue, the AI context and the
+/// monitoring service all read this rather than each keeping their own copy —
+/// they disagreed once, and a domain score computed from a different mapping
+/// than the one shown on screen is the worst kind of wrong.
+class GameDomains {
+  const GameDomains._();
+
+  static CognitiveDomain of(GameId id) => switch (id) {
+        GameId.procedure => CognitiveDomain.procedural,
+        GameId.story => CognitiveDomain.reasoning,
+        GameId.familiarPlace => CognitiveDomain.spatial,
+        GameId.melody => CognitiveDomain.auditory,
+        GameId.weaves => CognitiveDomain.attention,
+        GameId.memoryCards => CognitiveDomain.memory,
+      };
+
+  static List<GameId> forDomain(CognitiveDomain domain) =>
+      GameId.values.where((GameId g) => of(g) == domain).toList(growable: false);
 }
 
 /// Static definition of an activity — name, framing, illustration, focus.
@@ -63,6 +111,9 @@ class GamePerformance {
     required this.mistakes,
     required this.seconds,
     required this.completed,
+    this.attempts = 0,
+    this.correct = 0,
+    this.responseMillis = 0,
   });
 
   /// 0–100
@@ -73,6 +124,24 @@ class GamePerformance {
   final int mistakes;
   final int seconds;
   final bool completed;
+
+  /// Response-level counts. Recorded because a clinician reads *how* a score
+  /// was reached, not just the score: 70% reached in eight confident attempts
+  /// is a different observation from 70% reached in twenty hesitant ones.
+  final int attempts;
+  final int correct;
+
+  /// Mean time per response, in milliseconds. Derived from the session's own
+  /// clock rather than measured per tap, so it is an average pace rather than
+  /// a laboratory reaction time — the report says so.
+  final int responseMillis;
+
+  double get responseSeconds => responseMillis / 1000;
+
+  String get responseLabel =>
+      responseMillis == 0 ? '—' : '${(responseMillis / 1000).toStringAsFixed(1)}s';
+
+  int get incorrect => attempts == 0 ? mistakes : (attempts - correct).clamp(0, attempts);
 
   /// A single friendly headline number shown on the result screen.
   int get overall => ((accuracy * 0.5) + (focus * 0.25) + (memory * 0.25)).round().clamp(0, 100);

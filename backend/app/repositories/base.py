@@ -96,6 +96,24 @@ class CaregiverLinkRepository(ABC):
     async def list_for_caregiver(self, caregiver_id: str) -> List[CaregiverPatientLink]: ...
 
 
+class AssessmentRepository(ABC):
+    """The structured intake and the cognitive baseline, as the Flutter app
+    recorded them. Stored as documents rather than typed rows for the same
+    reason the app does: the questionnaire is still moving."""
+
+    @abstractmethod
+    async def save_intake_step(self, patient_id: str, step: str, payload: dict) -> None: ...
+
+    @abstractmethod
+    async def get_intake(self, patient_id: str) -> Optional[dict]: ...
+
+    @abstractmethod
+    async def save_baseline(self, patient_id: str, baseline: dict) -> None: ...
+
+    @abstractmethod
+    async def get_baseline(self, patient_id: str) -> Optional[dict]: ...
+
+
 class SyncLedgerRepository(ABC):
     """The idempotency record behind `/api/v1/sync/operations` — one entry
     per `PendingOperation.id` the Flutter app has ever successfully synced.

@@ -7,8 +7,11 @@ plugins {
 
 android {
     namespace = "com.memorymitra.memory_mitra"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned rather than taken from `flutter.*`: flutter_tts and the
+    // androidx.core the Firebase plugins pull in both require API 36, and the
+    // Firebase / connectivity / path_provider plugins all want NDK 27.
+    compileSdk = 36
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -24,7 +27,9 @@ android {
         applicationId = "com.memorymitra.memory_mitra"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // flutter_tts needs 24 and firebase_auth needs 23; Flutter's own
+        // default is still 21, so the floor is pinned here.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

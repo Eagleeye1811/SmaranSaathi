@@ -10,6 +10,7 @@ from functools import lru_cache
 from app.core.config import get_settings
 from app.repositories.base import (
     AnalyticsRepository,
+    AssessmentRepository,
     CaregiverLinkRepository,
     DailyRepository,
     GameSessionRepository,
@@ -18,6 +19,7 @@ from app.repositories.base import (
     SyncLedgerRepository,
 )
 from app.repositories.memory.analytics import InMemoryAnalyticsRepository
+from app.repositories.memory.assessments import InMemoryAssessmentRepository
 from app.repositories.memory.caregivers import InMemoryCaregiverLinkRepository
 from app.repositories.memory.daily import InMemoryDailyRepository
 from app.repositories.memory.patients import InMemoryPatientRepository
@@ -87,3 +89,12 @@ def get_sync_ledger_repository() -> SyncLedgerRepository:
 
         return FirestoreSyncLedgerRepository()
     return InMemorySyncLedgerRepository()
+
+
+@lru_cache
+def get_assessment_repository() -> AssessmentRepository:
+    if get_settings().firebase_configured:
+        from app.repositories.firestore.assessments import FirestoreAssessmentRepository
+
+        return FirestoreAssessmentRepository()
+    return InMemoryAssessmentRepository()

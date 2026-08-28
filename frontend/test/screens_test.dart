@@ -13,6 +13,7 @@ import 'package:memory_mitra/features/patient/games/memory_cards/memory_cards_ga
 import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
 import 'package:memory_mitra/features/patient/games/story/story_game.dart';
 import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
+import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
 
 /// Layout regression suite.
@@ -87,7 +88,13 @@ void main() {
         await tester.pumpWidget(harness(const PatientShell(), state: state));
         await beat(tester);
 
-        for (final String tab in <String>['Games', 'Memories', 'Today', 'Profile', 'Home']) {
+        for (final String tab in <String>[
+          'Activities',
+          'Progress',
+          'Companion',
+          'Profile',
+          'Home',
+        ]) {
           await tester.tap(find.text(tab).last);
           await beat(tester);
           expect(tester.takeException(), isNull, reason: '$tab overflowed on $name');
@@ -100,9 +107,9 @@ void main() {
     testWidgets('every category renders', (WidgetTester tester) async {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.patient);
-      await tester.pumpWidget(harness(const PatientShell(), state: state));
-      await beat(tester);
-      await tester.tap(find.text('Memories').last);
+      // The wallet moved off the navigation bar and onto the dashboard, so the
+      // screen is exercised directly rather than through a tab.
+      await tester.pumpWidget(harness(const MemoryWalletScreen(), state: state));
       await beat(tester);
 
       final Finder chips = find.byKey(const Key('wallet-tabs'));
@@ -373,7 +380,7 @@ void main() {
       await beat(tester);
       expect(tester.takeException(), isNull);
 
-      for (final String tab in <String>['Games', 'Today', 'Profile']) {
+      for (final String tab in <String>['Activities', 'Progress', 'Profile']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
         expect(tester.takeException(), isNull, reason: '$tab broke at extra-large text');

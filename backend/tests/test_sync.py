@@ -109,3 +109,58 @@ def test_device_token_rejects_tampered_token(authed_client) -> None:
         json=_game_session_body("op-tampered-1"),
     )
     assert response.status_code == 401
+
+
+def test_sync_assessment_step_is_stored(authed_client, device_headers) -> None:
+    """The structured intake reaches the backend as one operation per step, so
+    a questionnaire abandoned half way still syncs what was answered."""
+    body = {
+        "operationId": "op-assessment-1",
+        "kind": "assessmentUpdate",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {
+            "patientId": _PATIENT_ID,
+            "step": "function",
+            "levels": {"fn_money": "needsHelp", "fn_meds": "independent"},
+        },
+    }
+
+    first = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
+    assert first.status_code == 200
+    assert first.json()["status"] == "synced"
+
+    # Replaying it is a duplicate, exactly like every other operation kind.
+    second = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
+    assert second.json()["status"] == "duplicate"
+
+
+def test_sync_baseline_capture(authed_client, device_headers) -> None:
+    body = {
+        "operationId": "op-baseline-1",
+        "kind": "baselineCaptured",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {
+            "patientId": _PATIENT_ID,
+            "scores": {"memory": 82.5, "attention": 88.0},
+            "capturedAt": "2026-06-01T10:00:00.000",
+            "sessionCount": 12,
+        },
+    }
+
+    response = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
+    assert response.status_code == 200
+    assert response.json()["status"] == "synced"
+
+
+def test_sync_rejects_an_unrecognised_kind(authed_client, device_headers) -> None:
+    """A kind the backend does not know is a client/server version mismatch,
+    and must fail loudly rather than being silently swallowed."""
+    body = {
+        "operationId": "op-bogus-1",
+        "kind": "somethingElse",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {"patientId": _PATIENT_ID},
+    }
+
+    response = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
+    assert response.status_code == 422

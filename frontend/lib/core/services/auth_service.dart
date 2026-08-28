@@ -35,6 +35,17 @@ abstract class AuthService {
 
   Future<AuthResult> signUp({required String email, required String password});
 
+  /// Google sign-in.
+  ///
+  /// Offered alongside email/password because the people who set this device
+  /// up — a caregiver, a health worker at a clinic — usually already have a
+  /// Google account on the phone and should not have to invent and remember
+  /// another password.
+  ///
+  /// Returns a failure (never throws) when the account picker is dismissed,
+  /// so a cancelled sign-in is an ordinary outcome rather than an error state.
+  Future<AuthResult> signInWithGoogle();
+
   Future<void> signOut();
 
   /// A fresh Firebase ID token for the signed-in user, or `null` if nobody
@@ -77,6 +88,9 @@ class NoAuthRequiredService implements AuthService {
   @override
   Future<AuthResult> signIn({required String email, required String password}) async =>
       const AuthResult.success(_demoUser);
+
+  @override
+  Future<AuthResult> signInWithGoogle() async => const AuthResult.success(_demoUser);
 
   @override
   Future<AuthResult> signUp({required String email, required String password}) async =>

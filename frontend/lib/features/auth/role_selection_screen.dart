@@ -13,7 +13,7 @@ import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../caregiver/caregiver_shell.dart';
 import '../doctor/doctor_shell.dart';
-import '../patient/patient_shell.dart';
+import '../patient/patient_entry.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -101,7 +101,7 @@ class RoleSelectionScreen extends StatelessWidget {
                               onTap: () {
                                 AuthScope.maybeOf(context)?.declareRole('patient');
                                 state.setRole(AppRole.patient);
-                                Nav.push(context, const PatientShell());
+                                Nav.push(context, const PatientEntry());
                               },
                             ),
                           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
@@ -11,6 +12,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../patient/health/report_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// One patient's longitudinal picture. Framed throughout as *cognitive
@@ -60,6 +62,51 @@ class PatientDetailScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
                   children: <Widget>[
+                    // ── The patient's own summary ───────────────────────
+                    //
+                    // Only for the patient this device is actually
+                    // monitoring: the rest of the caseload is synthetic
+                    // demonstration data with no intake behind it, and a
+                    // report built from someone else's answers would be
+                    // worse than no report.
+                    if (patient.id == state.patient.id && state.intakeComplete) ...<Widget>[
+                      FadeInUp(
+                        child: ClinicCard(
+                          padding: const EdgeInsets.all(Insets.lg),
+                          child: Row(
+                            children: <Widget>[
+                              const Icon(Icons.description_outlined,
+                                  color: AppColors.clinicAccent),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    Text('Cognitive health summary',
+                                        style: CT.h2.sized(17)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Symptoms, caregiver observations, function and '
+                                      'trends, as submitted by the patient',
+                                      style: CT.caption,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SoftButton(
+                                label: 'Open',
+                                icon: Icons.open_in_new_rounded,
+                                color: AppColors.clinicAccent,
+                                onPressed: () => Nav.push(context, const ReportScreen()),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: Insets.md),
+                    ],
+
                     // ── Identity ────────────────────────────────────────
                     FadeInUp(
                       child: ClinicCard(

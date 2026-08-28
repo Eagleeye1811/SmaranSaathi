@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/auth_user.dart';
@@ -12,15 +13,33 @@ import 'auth_service.dart';
 /// and a real round trip to the backend to self-declare a role (see
 /// `AuthService.declareRole`'s doc comment for why that needs a server call).
 class FirebaseAuthService implements AuthService {
-  FirebaseAuthService({required String backendBaseUrl, http.Client? client})
-      : _backendBaseUrl =
+  FirebaseAuthService({
+    required String backendBaseUrl,
+    http.Client? client,
+    GoogleSignIn? googleSignIn,
+  })  : _backendBaseUrl =
             backendBaseUrl.endsWith('/') ? backendBaseUrl.substring(0, backendBaseUrl.length - 1) : backendBaseUrl,
         _client = client ?? http.Client(),
-        _auth = fb.FirebaseAuth.instance;
+        _auth = fb.FirebaseAuth.instance,
+        _google = googleSignIn ??
+            GoogleSignIn(
+              scopes: const <String>['email'],
+              // Only needed where the platform cannot read the client id from
+              // a bundled config file (`google-services.json` /
+              // `GoogleService-Info.plist`). Supplied by
+              // `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` so no client id is
+              // committed, matching how the Gemini key and the sync URL are
+              // handled. Empty means "read it from the platform config".
+              serverClientId: _serverClientId.isEmpty ? null : _serverClientId,
+            );
+
+  static const String _serverClientId =
+      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 
   final String _backendBaseUrl;
   final http.Client _client;
   final fb.FirebaseAuth _auth;
+  final GoogleSignIn _google;
 
   @override
   Stream<AuthUser?> get authStateChanges => _auth.authStateChanges().asyncMap(_toAuthUser);
@@ -55,6 +74,46 @@ class FirebaseAuthService implements AuthService {
   Future<AuthResult> signUp({required String email, required String password}) =>
       _attempt(() => _auth.createUserWithEmailAndPassword(email: email.trim(), password: password));
 
+  /// Google sign-in, exchanged for a Firebase credential.
+  ///
+  /// Three steps, and each one can end the flow benignly: the person can
+  /// dismiss the account picker, the tokens can come back empty, or Firebase
+  /// can reject the credential. Only the last is an error worth showing — a
+  /// dismissed picker is reported as a plain cancellation so the screen does
+  /// not accuse anyone of failing.
+  @override
+  Future<AuthResult> signInWithGoogle() async {
+    try {
+      // A stale cached session survives an uninstall on Android and makes the
+      // picker skip straight to the wrong account, so start clean.
+      await _google.signOut();
+
+      final GoogleSignInAccount? account = await _google.signIn();
+      if (account == null) {
+        return const AuthResult.failure('Google sign-in was cancelled.');
+      }
+
+      final GoogleSignInAuthentication auth = await account.authentication;
+      if (auth.idToken == null && auth.accessToken == null) {
+        return const AuthResult.failure(
+            'Google did not return a usable token. Please try again.');
+      }
+
+      final fb.OAuthCredential credential = fb.GoogleAuthProvider.credential(
+        idToken: auth.idToken,
+        accessToken: auth.accessToken,
+      );
+      return _attempt(() => _auth.signInWithCredential(credential));
+    } on fb.FirebaseAuthException catch (error) {
+      return AuthResult.failure(_readableMessage(error));
+    } catch (error) {
+      debugPrint('FirebaseAuthService: Google sign-in failed ($error)');
+      return const AuthResult.failure(
+          'Google sign-in is not available on this device yet. '
+          'You can sign in with an email address instead.');
+    }
+  }
+
   Future<AuthResult> _attempt(Future<fb.UserCredential> Function() action) async {
     try {
       final fb.UserCredential credential = await action();
@@ -87,13 +146,22 @@ class FirebaseAuthService implements AuthService {
         return 'No connection right now — please check your internet and try again.';
       case 'too-many-requests':
         return 'Too many attempts. Please wait a moment and try again.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with this email. '
+            'Sign in with the email and password you used before.';
+      case 'operation-not-allowed':
+        return 'That sign-in method is not enabled for this project yet.';
       default:
         return error.message ?? 'Sign-in failed. Please try again.';
     }
   }
 
   @override
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    // Both, or the next Google sign-in silently reuses the same account.
+    await _google.signOut();
+    await _auth.signOut();
+  }
 
   @override
   Future<String?> idToken({bool forceRefresh = false}) => _auth.currentUser?.getIdToken(forceRefresh) ??

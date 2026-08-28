@@ -6,7 +6,7 @@ stays a loose `Dict[str, Any]` at the top level (it's whatever the queued
 `PendingOperation` carried); `sync_service.py` re-validates it against the
 matching payload schema below once `kind` is known.
 """
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 from app.models.common import APIModel
 
@@ -17,6 +17,8 @@ SyncOperationKind = Literal[
     "reminderToggle",
     "profileUpdate",
     "reflection",
+    "assessmentUpdate",
+    "baselineCaptured",
     "unknown",
 ]
 
@@ -79,3 +81,29 @@ class ProfileUpdatePayload(APIModel):
 class ReflectionPayload(APIModel):
     patient_id: str
     at: str
+
+
+class AssessmentUpdatePayload(APIModel):
+    """One completed step of the structured intake.
+
+    The step name is validated; the answers themselves are passed through as
+    written. The questionnaire is expected to keep changing shape as items are
+    added and reworded, and a strict schema here would mean a backend release
+    for every wording change — while the value of this record is the raw
+    answers, which the app already keyed by permanent item ids.
+    """
+
+    patient_id: str
+    step: Optional[str] = None
+
+    model_config = {"extra": "allow"}
+
+
+class BaselineCapturedPayload(APIModel):
+    """The person's baseline domain scores, frozen at the end of their first
+    complete assessment."""
+
+    patient_id: str
+    scores: Dict[str, float]
+    captured_at: str
+    session_count: int

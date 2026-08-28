@@ -17,7 +17,21 @@ import 'package:memory_mitra/features/patient/games/memory_cards/memory_cards_ga
 import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
 import 'package:memory_mitra/features/patient/games/story/story_game.dart';
 import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
+import 'package:memory_mitra/features/intake/baseline_screens.dart';
+import 'package:memory_mitra/features/intake/steps_consent_profile.dart';
+import 'package:memory_mitra/features/intake/steps_medical_caregiver.dart';
+import 'package:memory_mitra/features/intake/steps_reason_safety.dart';
+import 'package:memory_mitra/features/intake/steps_symptoms_function.dart';
+import 'package:memory_mitra/features/intake/welcome_screens.dart';
+import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
+import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
+import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
+import 'package:memory_mitra/features/patient/health/progress_screen.dart';
+import 'package:memory_mitra/features/patient/health/report_screen.dart';
+import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
+import 'package:memory_mitra/features/patient/today/today_screen.dart';
+import 'package:memory_mitra/l10n/app_localizations.dart';
 
 /// Renders every important screen to `test_goldens/goldens/` so the visual
 /// design can be reviewed without a device:
@@ -43,9 +57,19 @@ Widget harness(Widget child, {AppState? state, bool clinic = false}) {
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: clinic ? AppTheme.clinic() : AppTheme.warm(),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: child,
     ),
   );
+}
+
+/// A state carrying the twelve-week demonstration history, so the monitoring
+/// screens capture with real trends rather than an empty profile.
+Future<AppState> monitoredState() async {
+  final AppState state = AppState()..setRole(AppRole.patient);
+  await state.loadDemoJourney(now: DateTime(2026, 8, 28));
+  return state;
 }
 
 Future<void> beat(WidgetTester tester, [int ms = 1400]) async {
@@ -98,21 +122,28 @@ void main() {
     await tester.pumpWidget(harness(const PatientShell(), state: s));
     await beat(tester);
 
-    await tester.tap(find.text('Games').last);
+    await tester.tap(find.text('Activities').last);
     await beat(tester);
     await shoot(tester, '04_game_hub');
-
-    await tester.tap(find.text('Memories').last);
-    await beat(tester);
-    await shoot(tester, '05_memory_wallet');
-
-    await tester.tap(find.text('Today').last);
-    await beat(tester);
-    await shoot(tester, '06_today');
 
     await tester.tap(find.text('Profile').last);
     await beat(tester);
     await shoot(tester, '07_patient_profile');
+  });
+
+  // The memory wallet and the daily screen moved off the navigation bar onto
+  // the dashboard, so they are captured directly.
+  testWidgets('05 warm surfaces', (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState s = AppState()..setRole(AppRole.patient);
+
+    await tester.pumpWidget(harness(const MemoryWalletScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '05_memory_wallet');
+
+    await tester.pumpWidget(harness(const TodayScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '06_today');
   });
 
   testWidgets('08 procedure game', (WidgetTester tester) async {
@@ -249,5 +280,95 @@ void main() {
     );
     await beat(tester);
     await shoot(tester, '30_patient_record');
+  });
+
+  // ── The monitoring journey ─────────────────────────────────────────────
+
+  testWidgets('31 welcome and intake', (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState s = AppState()..setRole(AppRole.patient);
+
+    await tester.pumpWidget(harness(const WelcomeScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '31_welcome');
+
+    await tester.pumpWidget(harness(ConsentStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '32_consent');
+
+    await tester.pumpWidget(harness(ProfileStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '33_profile');
+
+    await tester.pumpWidget(harness(ReasonStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '34_reason');
+
+    await tester.pumpWidget(harness(SafetyStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '35_safety');
+  });
+
+  testWidgets('36 assessment steps', (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState s = AppState()..setRole(AppRole.patient);
+
+    await tester.pumpWidget(harness(SymptomStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '36_symptoms');
+
+    await tester.pumpWidget(harness(FunctionStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '37_function');
+
+    await tester.pumpWidget(harness(MedicalStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '38_medical');
+
+    await tester.pumpWidget(harness(CaregiverStep(onDone: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '39_caregiver');
+
+    await tester.pumpWidget(harness(BaselineIntroScreen(onBegin: () {}), state: s));
+    await beat(tester);
+    await shoot(tester, '40_baseline_intro');
+  });
+
+  testWidgets('41 monitoring surfaces', (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState s = await monitoredState();
+
+    await tester.pumpWidget(harness(const PatientShell(), state: s));
+    await beat(tester);
+    await shoot(tester, '41_health_dashboard');
+
+    await tester.pumpWidget(harness(const CognitiveProfileScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '42_cognitive_profile');
+
+    await tester.pumpWidget(harness(const ProgressScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '43_progress');
+
+    await tester.pumpWidget(harness(const ReportScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '44_doctor_report');
+
+    await tester.pumpWidget(harness(const CarePlanScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '45_care_plan');
+  });
+
+  testWidgets('46 companion', (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState s = await monitoredState();
+
+    await tester.pumpWidget(harness(const AssistantScreen(), state: s));
+    await beat(tester);
+    await shoot(tester, '46_companion');
+
+    await tester.tap(find.text('Explain my results'));
+    await beat(tester);
+    await shoot(tester, '47_companion_answer');
   });
 }

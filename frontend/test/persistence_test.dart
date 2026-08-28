@@ -64,6 +64,7 @@ void main() {
       analytics: HiveAnalyticsRepository(store),
       reminders: HiveReminderRepository(store),
       daily: HiveDailyRepository(store),
+      assessment: HiveAssessmentRepository(store),
       settings: HiveSettingsRepository(store),
       sync: HiveSyncRepository(store),
       connectivity: net,

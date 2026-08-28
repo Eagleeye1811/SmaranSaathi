@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies import (
+    get_assessment_repository,
     get_daily_repository,
     get_game_session_repository,
     get_patient_repository,
@@ -9,6 +10,7 @@ from app.core.dependencies import (
 )
 from app.core.device_auth import get_current_device
 from app.repositories.base import (
+    AssessmentRepository,
     DailyRepository,
     GameSessionRepository,
     PatientRepository,
@@ -27,8 +29,16 @@ def get_service(
     sessions: GameSessionRepository = Depends(get_game_session_repository),
     daily: DailyRepository = Depends(get_daily_repository),
     reminders: ReminderRepository = Depends(get_reminder_repository),
+    assessments: AssessmentRepository = Depends(get_assessment_repository),
 ) -> SyncService:
-    return SyncService(ledger=ledger, patients=patients, sessions=sessions, daily=daily, reminders=reminders)
+    return SyncService(
+        ledger=ledger,
+        patients=patients,
+        sessions=sessions,
+        daily=daily,
+        reminders=reminders,
+        assessments=assessments,
+    )
 
 
 @router.post("/operations", response_model=SyncOperationResult)

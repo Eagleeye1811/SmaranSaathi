@@ -1,8 +1,10 @@
 import 'package:hive_ce/hive.dart';
 
+import '../../core/models/assessment.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/monitoring.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
 import '../local/hive_store.dart';
@@ -234,6 +236,37 @@ class HiveDailyRepository implements DailyRepository {
       _store.daily.put(_kEngagement, engagement);
 }
 
+class HiveAssessmentRepository implements AssessmentRepository {
+  HiveAssessmentRepository(this._store);
+
+  final HiveStore _store;
+
+  String _intakeKey(String patientId) => 'intake:$patientId';
+  String _baselineKey(String patientId) => 'baseline:$patientId';
+
+  @override
+  Future<IntakeRecord?> intake(String patientId) async {
+    final Object? raw = _store.assessment.get(_intakeKey(patientId));
+    if (raw is! Map) return null;
+    return IntakeRecord.fromJson(raw);
+  }
+
+  @override
+  Future<void> saveIntake(String patientId, IntakeRecord record) =>
+      _store.assessment.put(_intakeKey(patientId), record.toJson());
+
+  @override
+  Future<CognitiveBaseline?> baseline(String patientId) async {
+    final Object? raw = _store.assessment.get(_baselineKey(patientId));
+    if (raw is! Map) return null;
+    return CognitiveBaseline.fromJson(raw);
+  }
+
+  @override
+  Future<void> saveBaseline(String patientId, CognitiveBaseline baseline) =>
+      _store.assessment.put(_baselineKey(patientId), baseline.toJson());
+}
+
 class HiveSettingsRepository implements SettingsRepository {
   HiveSettingsRepository(this._store);
 
@@ -253,18 +286,26 @@ class HiveSettingsRepository implements SettingsRepository {
       voicePrompts: b.get('voicePrompts') as bool? ?? true,
       offlineOverride: b.get('offlineOverride') as bool? ?? false,
       lastRole: b.get('lastRole') as String?,
+      lastAccountId: b.get('lastAccountId') as String?,
     );
   }
 
   @override
-  Future<void> save(AppSettings settings) => _store.settings.putAll(<String, dynamic>{
-        'textSize': settings.textSize.name,
-        'highContrast': settings.highContrast,
-        'reduceMotion': settings.reduceMotion,
-        'voicePrompts': settings.voicePrompts,
-        'offlineOverride': settings.offlineOverride,
-        if (settings.lastRole != null) 'lastRole': settings.lastRole,
-      });
+  Future<void> save(AppSettings settings) async {
+    await _store.settings.putAll(<String, dynamic>{
+      'textSize': settings.textSize.name,
+      'highContrast': settings.highContrast,
+      'reduceMotion': settings.reduceMotion,
+      'voicePrompts': settings.voicePrompts,
+      'offlineOverride': settings.offlineOverride,
+      if (settings.lastRole != null) 'lastRole': settings.lastRole,
+      if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
+    });
+    // A null account means "signed out", which has to *remove* the key —
+    // skipping the write would leave the previous uid in the box and reopen
+    // someone else's assessment on the next launch.
+    if (settings.lastAccountId == null) await _store.settings.delete('lastAccountId');
+  }
 }
 
 class HiveSyncRepository implements SyncRepository {

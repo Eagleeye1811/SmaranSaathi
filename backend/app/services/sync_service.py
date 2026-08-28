@@ -17,6 +17,7 @@ from app.core.errors import ApiError
 from app.models.daily import JournalEntry, MoodLevel
 from app.models.game import GameId, GamePerformance, GameSession
 from app.repositories.base import (
+    AssessmentRepository,
     DailyRepository,
     GameSessionRepository,
     PatientRepository,
@@ -24,6 +25,8 @@ from app.repositories.base import (
     SyncLedgerRepository,
 )
 from app.schemas.sync import (
+    AssessmentUpdatePayload,
+    BaselineCapturedPayload,
     GameSessionPayload,
     JournalEntryPayload,
     MoodCheckInPayload,
@@ -43,12 +46,14 @@ class SyncService:
         sessions: GameSessionRepository,
         daily: DailyRepository,
         reminders: ReminderRepository,
+        assessments: AssessmentRepository,
     ) -> None:
         self._ledger = ledger
         self._patients = patients
         self._sessions = sessions
         self._daily = daily
         self._reminders = reminders
+        self._assessments = assessments
 
     async def apply(self, request: SyncOperationRequest) -> SyncOperationResult:
         existing = await self._ledger.get(request.operation_id)
@@ -118,6 +123,24 @@ class SyncService:
             # created locally and hasn't been synced as a full profile) —
             # nothing to update. The full-profile sync path isn't wired yet;
             # the Flutter side currently only ever enqueues {patientId, name}.
+
+        elif kind == "assessmentUpdate":
+            payload = AssessmentUpdatePayload.model_validate(raw_payload)
+            answers = payload.model_dump(by_alias=True, exclude={"patient_id", "step"})
+            await self._assessments.save_intake_step(
+                patient_id, payload.step or "unspecified", answers
+            )
+
+        elif kind == "baselineCaptured":
+            payload = BaselineCapturedPayload.model_validate(raw_payload)
+            await self._assessments.save_baseline(
+                patient_id,
+                {
+                    "scores": payload.scores,
+                    "capturedAt": payload.captured_at,
+                    "sessionCount": payload.session_count,
+                },
+            )
 
         elif kind in ("reflection", "unknown"):
             ReflectionPayload.model_validate(raw_payload) if kind == "reflection" else None

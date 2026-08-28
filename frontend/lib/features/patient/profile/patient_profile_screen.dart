@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
@@ -9,6 +10,8 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../health/report_screen.dart';
+import '../patient_entry.dart';
 import '../settings/language_selector.dart';
 import '../widgets/patient_widgets.dart';
 
@@ -228,6 +231,75 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Assessment ────────────────────────────────────────
+                  FadeInUp(
+                    delayMs: 140,
+                    child: SectionHeader(
+                      title: 'Assessment',
+                      icon: Icons.fact_check_outlined,
+                      subtitle: state.intakeComplete
+                          ? 'Baseline captured · ${state.monitoring.totalSessions} sessions recorded'
+                          : 'Not completed yet',
+                    ),
+                  ),
+                  FadeInUp(
+                    delayMs: 150,
+                    child: MmCard(
+                      child: Column(
+                        children: <Widget>[
+                          ListRow(
+                            leading: const SoftIcon(icon: Icons.description_outlined),
+                            title: 'Doctor summary',
+                            subtitle: 'Symptoms, function and trends in one page',
+                            trailing: const Icon(Icons.chevron_right_rounded,
+                                color: AppColors.inkMuted),
+                            onTap: () => Nav.push(context, const ReportScreen()),
+                          ),
+                          const Divider(color: AppColors.hairline),
+                          ListRow(
+                            leading: const SoftIcon(
+                              icon: Icons.science_outlined,
+                              color: AppColors.secondary,
+                            ),
+                            title: 'Load demonstration history',
+                            subtitle:
+                                'Twelve weeks of weekly assessments, for showing how '
+                                'monitoring works. Replaces the current history.',
+                            trailing: const Icon(Icons.chevron_right_rounded,
+                                color: AppColors.inkMuted),
+                            onTap: () async {
+                              await state.loadDemoJourney();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Twelve weeks of history loaded'),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                          ),
+                          const Divider(color: AppColors.hairline),
+                          ListRow(
+                            leading: const SoftIcon(
+                              icon: Icons.restart_alt_rounded,
+                              color: AppColors.terracotta,
+                            ),
+                            title: 'Start the assessment over',
+                            subtitle: 'Clears the questionnaire and the baseline',
+                            trailing: const Icon(Icons.chevron_right_rounded,
+                                color: AppColors.inkMuted),
+                            onTap: () async {
+                              await state.resetAssessment();
+                              if (!context.mounted) return;
+                              Nav.rootTo(context, const PatientEntry());
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
                   FadeInUp(
                     delayMs: 160,
                     child: MmCard(
@@ -413,7 +485,7 @@ class _SwitchRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
+              activeColor: Colors.white,
               activeTrackColor: AppColors.primary,
             ),
           ),

@@ -1,6 +1,8 @@
+import '../../core/models/assessment.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/monitoring.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
 import '../local/sync_operation.dart';
@@ -61,6 +63,19 @@ abstract class DailyRepository {
   Future<void> markJourneyStep(String patientId, String step);
   Future<void> markGameCompleted(String patientId, GameId id);
   Future<void> saveEngagement(String patientId, int engagement);
+}
+
+/// The structured intake and the cognitive baseline.
+///
+/// Both are stored as JSON maps rather than typed rows: the questionnaire is
+/// expected to keep changing, and a map absorbs a new field without a schema
+/// step. `null` from either getter means "never answered", which the intake
+/// flow treats as "start at the beginning".
+abstract class AssessmentRepository {
+  Future<IntakeRecord?> intake(String patientId);
+  Future<void> saveIntake(String patientId, IntakeRecord record);
+  Future<CognitiveBaseline?> baseline(String patientId);
+  Future<void> saveBaseline(String patientId, CognitiveBaseline baseline);
 }
 
 abstract class SettingsRepository {
@@ -232,6 +247,24 @@ class MockDailyRepository implements DailyRepository {
       dayStamp: _snapshot.dayStamp,
     );
   }
+}
+
+class MockAssessmentRepository implements AssessmentRepository {
+  IntakeRecord? _intake;
+  CognitiveBaseline? _baseline;
+
+  @override
+  Future<IntakeRecord?> intake(String patientId) async => _intake;
+
+  @override
+  Future<void> saveIntake(String patientId, IntakeRecord record) async => _intake = record;
+
+  @override
+  Future<CognitiveBaseline?> baseline(String patientId) async => _baseline;
+
+  @override
+  Future<void> saveBaseline(String patientId, CognitiveBaseline baseline) async =>
+      _baseline = baseline;
 }
 
 class MockSettingsRepository implements SettingsRepository {

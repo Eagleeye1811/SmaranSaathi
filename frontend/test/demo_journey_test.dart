@@ -7,6 +7,7 @@ import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
 import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
+import 'package:memory_mitra/features/patient/today/today_screen.dart';
 import 'package:memory_mitra/features/patient/widgets/patient_widgets.dart';
 
 /// The demo the prototype is presented with, end to end: play an activity, see
@@ -139,9 +140,10 @@ void main() {
     expect(state.mood, isNotNull);
     expect(state.journeyDone, contains('checkin'));
 
-    // Tick off a reminder on the Today tab.
+    // Tick off a reminder. The daily screen moved off the navigation bar onto
+    // the dashboard, so it is opened directly against the same state.
     final int before = state.remindersDone;
-    await tester.tap(find.text('Today').last);
+    await tester.pumpWidget(harness(const TodayScreen(), state));
     await beat(tester);
     await tester.dragUntilVisible(
       find.text('Evening medicine'),

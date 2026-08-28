@@ -297,13 +297,18 @@ class GamePerformanceAdapter extends TypeAdapter<GamePerformance> {
       mistakes: f[4] as int? ?? 0,
       seconds: f[5] as int? ?? 0,
       completed: f[6] as bool? ?? false,
+      // Added after the first release: a box written by an older build has no
+      // field 7–9, which reads back as null and falls through to zero.
+      attempts: f[7] as int? ?? 0,
+      correct: f[8] as int? ?? 0,
+      responseMillis: f[9] as int? ?? 0,
     );
   }
 
   @override
   void write(BinaryWriter writer, GamePerformance obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.accuracy)
       ..writeByte(1)
@@ -317,7 +322,13 @@ class GamePerformanceAdapter extends TypeAdapter<GamePerformance> {
       ..writeByte(5)
       ..write(obj.seconds)
       ..writeByte(6)
-      ..write(obj.completed);
+      ..write(obj.completed)
+      ..writeByte(7)
+      ..write(obj.attempts)
+      ..writeByte(8)
+      ..write(obj.correct)
+      ..writeByte(9)
+      ..write(obj.responseMillis);
   }
 }
 

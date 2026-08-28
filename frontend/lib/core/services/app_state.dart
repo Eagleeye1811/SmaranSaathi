@@ -4,14 +4,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../data/local/sync_operation.dart';
+import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
+import '../models/assessment.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
+import '../models/monitoring.dart';
 import '../models/patient.dart';
+import '../models/report.dart';
 import '../models/settings.dart';
 import 'adaptive_difficulty_service.dart';
+import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
 import 'personalization_service.dart';
 import 'sync_manager.dart';
@@ -40,6 +45,7 @@ class AppState extends ChangeNotifier {
     AnalyticsRepository? analytics,
     ReminderRepository? reminders,
     DailyRepository? daily,
+    AssessmentRepository? assessment,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -49,6 +55,7 @@ class AppState extends ChangeNotifier {
         _analytics = analytics ?? MockAnalyticsRepository(),
         _reminderRepo = reminders ?? MockReminderRepository(),
         _daily = daily ?? MockDailyRepository(),
+        _assessment = assessment ?? MockAssessmentRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()) {
@@ -64,12 +71,14 @@ class AppState extends ChangeNotifier {
   final AnalyticsRepository _analytics;
   final ReminderRepository _reminderRepo;
   final DailyRepository _daily;
+  final AssessmentRepository _assessment;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   late final SyncManager _sync;
 
   static const AdaptiveDifficultyService adaptive = AdaptiveDifficultyService();
   static const PersonalizationService personalization = PersonalizationService();
+  static const CognitiveMonitoringService monitor = CognitiveMonitoringService();
 
   SyncManager get syncManager => _sync;
 
@@ -226,6 +235,16 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    // The structured intake and the personal baseline, for whichever account
+    // this device last worked on.
+    _accountId = settings.lastAccountId;
+    _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
+    _baseline = await _assessment.baseline(_assessmentScope);
+
+    if (_seedDemo && _intake.completedAtIso == null) {
+      await loadDemoJourney();
+    }
+
     await _sync.load();
     _hydrated = true;
     notifyListeners();
@@ -308,6 +327,9 @@ class AppState extends ChangeNotifier {
         'seconds': p.seconds,
         'completed': p.completed,
         'overall': p.overall,
+        'attempts': p.attempts,
+        'correct': p.correct,
+        'responseMillis': p.responseMillis,
         'timeLabel': session.timeLabel,
       });
     });
@@ -334,6 +356,316 @@ class AppState extends ChangeNotifier {
   }
 
   int gamesCompletedTotal() => _sessions.length;
+
+  // ── Assessment, baseline and monitoring ───────────────────────────────
+  //
+  // The intake is what turns activity scores into a health profile: why the
+  // person came, what they and their caregiver notice, how daily life is
+  // affected, and what else could explain a change. Every step writes through
+  // immediately, so a questionnaire abandoned half way is never lost.
+
+  /// Set with `--dart-define=MM_DEMO=true` to open onto the twelve-week
+  /// demonstration history instead of an empty profile.
+  static const bool _seedDemo = bool.fromEnvironment('MM_DEMO');
+
+  /// The signed-in Firebase uid, or null when nobody has signed in on this
+  /// device. Everything the person *answers* is filed under it.
+  String? _accountId;
+  String? get accountId => _accountId;
+
+  /// Where the assessment is stored and re-read from.
+  ///
+  /// Falls back to the patient id so the app works exactly as before with no
+  /// sign-in at all — the auth layer stays optional, which is what lets the
+  /// whole journey run offline and on a device with no Firebase config.
+  String get _assessmentScope => _accountId ?? _patient.id;
+
+  IntakeRecord _intake = IntakeRecord.empty;
+  IntakeRecord get intake => _intake;
+
+  CognitiveBaseline? _baseline;
+  CognitiveBaseline? get baseline => _baseline;
+
+  /// True once the person has consented, answered every questionnaire and
+  /// completed the baseline run.
+  bool get intakeComplete => _intake.isComplete && _baseline != null;
+
+  /// Where "Continue" resumes the intake.
+  IntakeStep get nextIntakeStep => _intake.nextStep;
+
+  /// The longitudinal picture — recomputed from the session history rather
+  /// than cached, so a figure on the dashboard can never drift out of step
+  /// with the sessions behind it.
+  MonitoringSnapshot get monitoring => monitor.snapshot(
+        sessions: _sessions,
+        baseline: _baseline,
+        intake: _intake,
+      );
+
+  /// The clinician-ready summary. Built from the same objects the screens
+  /// read, so what is shared is exactly what was shown.
+  ClinicalReport buildReport({DateTime? now}) => ClinicalReport.build(
+        patient: _patient,
+        intake: _intake,
+        snapshot: monitoring,
+        now: now ?? DateTime.now(),
+      );
+
+  /// Activities still to play in the baseline run, in catalogue order.
+  List<GameId> get baselineRemaining => GameId.values
+      .where((GameId g) => !_intake.baselineActivities.contains(g.name))
+      .toList(growable: false);
+
+  bool get baselineRunComplete => baselineRemaining.isEmpty;
+
+  void _saveIntake(IntakeRecord next, {Map<String, dynamic>? syncPayload}) {
+    // Stamp the record with the account that answered it, so the answers can
+    // always be attributed even after the file is copied or synced.
+    _intake = _accountId == null ? next : next.copyWith(accountId: _accountId);
+    notifyListeners();
+    _write(() async {
+      await _assessment.saveIntake(_assessmentScope, next);
+      if (syncPayload != null) {
+        await _sync.enqueue(SyncOperationKind.assessmentUpdate, <String, dynamic>{
+          'patientId': _patient.id,
+          if (_accountId != null) 'accountId': _accountId,
+          ...syncPayload,
+        });
+      }
+    });
+  }
+
+  void giveConsent() {
+    final DateTime now = DateTime.now();
+    _saveIntake(
+      _intake.copyWith(
+        consent: ConsentRecord(understood: true, atIso: now.toIso8601String()),
+        startedAtIso: _intake.startedAtIso.isEmpty ? now.toIso8601String() : null,
+      ),
+      syncPayload: <String, dynamic>{'step': 'consent', 'at': now.toIso8601String()},
+    );
+  }
+
+  /// The profile step.
+  ///
+  /// The identifying details live on [Patient] — including the profession,
+  /// which is not just a report line: [PersonalizationService] reads it to
+  /// choose the procedures and stories the activities are built from.
+  void saveIntakeProfile({
+    required String name,
+    required int age,
+    required String language,
+    String? occupation,
+    CompletedBy? completedBy,
+  }) {
+    _patient = _patient.copyWith(
+      name: name.trim().isEmpty ? _patient.name : name.trim(),
+      shortName: name.trim().isEmpty ? _patient.shortName : name.trim().split(' ').first,
+      age: age,
+      language: language,
+      occupation: (occupation ?? '').trim().isEmpty ? _patient.occupation : occupation!.trim(),
+    );
+    final Patient saved = _patient;
+    _saveIntake(
+      _intake.copyWith(completedBy: completedBy),
+      syncPayload: <String, dynamic>{'step': 'profile'},
+    );
+    _write(() async {
+      await _patients.save(saved);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
+        'patientId': saved.id,
+        'name': saved.name,
+      });
+    });
+  }
+
+  void saveReason(ReasonForVisit reason) => _saveIntake(
+        _intake.copyWith(reason: reason),
+        syncPayload: <String, dynamic>{'step': 'reason', ...reason.toJson()},
+      );
+
+  void saveSafetyCheck(SafetyCheck safety) => _saveIntake(
+        _intake.copyWith(safety: safety),
+        syncPayload: <String, dynamic>{'step': 'safety', ...safety.toJson()},
+      );
+
+  void answerSymptom(String itemId, SymptomFrequency frequency) => _saveIntake(
+        _intake.copyWith(symptoms: _intake.symptoms.withResponse(itemId, frequency)),
+      );
+
+  void saveSymptoms(SymptomAssessment symptoms) => _saveIntake(
+        _intake.copyWith(symptoms: symptoms),
+        syncPayload: <String, dynamic>{'step': 'symptoms', ...symptoms.toJson()},
+      );
+
+  void setFunctionLevel(String itemId, FunctionLevel level) => _saveIntake(
+        _intake.copyWith(function: _intake.function.withLevel(itemId, level)),
+      );
+
+  void saveFunction(FunctionalAssessment function) => _saveIntake(
+        _intake.copyWith(function: function),
+        syncPayload: <String, dynamic>{'step': 'function', ...function.toJson()},
+      );
+
+  void saveMedicalHistory(MedicalHistory medical) => _saveIntake(
+        _intake.copyWith(medical: medical),
+        syncPayload: <String, dynamic>{'step': 'medical', ...medical.toJson()},
+      );
+
+  void saveCaregiverObservation(CaregiverObservation observation) => _saveIntake(
+        _intake.copyWith(caregiver: observation),
+        syncPayload: <String, dynamic>{'step': 'caregiver', ...observation.toJson()},
+      );
+
+  /// Records one activity of the baseline run. Called on the result screen, so
+  /// an interrupted baseline resumes rather than restarting.
+  void markBaselineActivity(GameId id) {
+    if (_intake.baselineActivities.contains(id.name)) return;
+    _saveIntake(_intake.copyWith(
+      baselineActivities: <String>{..._intake.baselineActivities, id.name},
+    ));
+  }
+
+  /// Closes the intake and freezes the personal baseline.
+  ///
+  /// The baseline is computed from the person's *earliest* sessions in each
+  /// domain, which is exactly what the baseline run just produced. Everything
+  /// afterwards is reported as a deviation from it.
+  Future<void> captureBaseline({DateTime? now}) async {
+    final DateTime at = now ?? DateTime.now();
+    // From the sessions just played, not the oldest in the box. A fresh
+    // install seeds a fortnight of sample history so the charts are not blank,
+    // and baselining against that would mean the person's own assessment never
+    // reached their own baseline.
+    final CognitiveBaseline captured = monitor.buildBaseline(
+      _sessions,
+      at: at,
+      perDomain: 1,
+      fromEarliest: false,
+    );
+    _baseline = captured;
+    _intake = _intake.copyWith(
+      completedAtIso: _intake.completedAtIso ?? at.toIso8601String(),
+      baselineActivities: <String>{for (final GameId g in GameId.values) g.name},
+    );
+    notifyListeners();
+    final IntakeRecord record = _intake;
+    await _write(() async {
+      await _assessment.saveBaseline(_assessmentScope, captured);
+      await _assessment.saveIntake(_assessmentScope, record);
+      await _sync.enqueue(SyncOperationKind.baselineCaptured, <String, dynamic>{
+        'patientId': _patient.id,
+        if (_accountId != null) 'accountId': _accountId,
+        ...captured.toJson(),
+      });
+    });
+  }
+
+  /// Loads the twelve-week demonstration history — a complete monitoring
+  /// record that would otherwise take twelve weeks to produce. Replaces any
+  /// existing history, so it is offered explicitly rather than run silently.
+  Future<void> loadDemoJourney({DateTime? now}) async {
+    final DateTime at = now ?? DateTime.now();
+    final List<GameSession> demo = DemoJourney.sessions();
+
+    _sessions
+      ..clear()
+      ..addAll(demo);
+    _intake = DemoJourney.intake(now: at);
+    _baseline = monitor.buildBaseline(demo, at: at.subtract(const Duration(days: DemoJourney.weeks * 7)));
+
+    // Keep the legacy domain profile in step, so the caregiver and clinician
+    // screens built on it show the same person as the new ones.
+    final Map<CognitiveDomain, double> current = monitor.domainScores(demo);
+    _profile = CognitiveProfile(
+      scores: <CognitiveDomain, int>{
+        for (final MapEntry<CognitiveDomain, double> e in current.entries)
+          e.key: e.value.round(),
+      },
+      overall: current.isEmpty
+          ? _profile.overall
+          : (current.values.reduce((double a, double b) => a + b) / current.length).round(),
+      updated: 'Updated just now',
+    );
+
+    for (final GameId id in GameId.values) {
+      _levels[id] = 2;
+    }
+
+    final IntakeRecord record = _intake;
+    final CognitiveBaseline? captured = _baseline;
+    final CognitiveProfile profile = _profile;
+    notifyListeners();
+
+    await _write(() async {
+      for (final GameSession session in demo.reversed) {
+        await _games.recordSession(_patient.id, session);
+      }
+      for (final GameId id in GameId.values) {
+        await _games.saveLevel(_patient.id, id, 2);
+      }
+      await _analytics.saveProfile(_patient.id, profile);
+      await _assessment.saveIntake(_assessmentScope, record);
+      if (captured != null) await _assessment.saveBaseline(_assessmentScope, captured);
+    });
+  }
+
+  /// Binds this device's assessment to a signed-in account.
+  ///
+  /// Called once sign-in returns a uid, before the intake starts. Two things
+  /// happen: the storage scope moves to the uid, and whatever that account
+  /// already answered is loaded — so signing in on a second device continues
+  /// the questionnaire rather than restarting it, and signing in as someone
+  /// else on a shared device does not inherit the previous person's answers.
+  Future<void> signInAccount(String uid) async {
+    if (_accountId == uid) return;
+    // Only answers given *anonymously* can be adopted. Switching from one
+    // account to another must never carry the first person's answers across.
+    final bool wasAnonymous = _accountId == null;
+    _accountId = uid;
+    _persistSettings();
+
+    final IntakeRecord? stored = await _assessment.intake(uid);
+    final CognitiveBaseline? baseline = await _assessment.baseline(uid);
+
+    // A first sign-in adopts anything already answered anonymously on this
+    // device rather than throwing it away — someone who started the
+    // questionnaire and only then created an account keeps their progress.
+    if (wasAnonymous && stored == null && _intake.consentGiven) {
+      final IntakeRecord adopted = _intake.copyWith(accountId: uid);
+      _intake = adopted;
+      await _write(() async {
+        await _assessment.saveIntake(uid, adopted);
+        if (_baseline != null) await _assessment.saveBaseline(uid, _baseline!);
+      });
+    } else {
+      _intake = stored ?? IntakeRecord.empty;
+      _baseline = baseline;
+    }
+    notifyListeners();
+  }
+
+  /// Unbinds the account. The stored assessment is left untouched — signing
+  /// out is not the same as deleting someone's health record.
+  Future<void> signOutAccount() async {
+    if (_accountId == null) return;
+    _accountId = null;
+    _persistSettings();
+    _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
+    _baseline = await _assessment.baseline(_assessmentScope);
+    notifyListeners();
+  }
+
+  /// Clears the assessment so the intake can be walked from the beginning —
+  /// used between demonstrations and by "start over" in the profile.
+  Future<void> resetAssessment() async {
+    _intake = IntakeRecord.empty;
+    _baseline = null;
+    notifyListeners();
+    await _write(() async {
+      await _assessment.saveIntake(_assessmentScope, IntakeRecord.empty);
+    });
+  }
 
   // ── Daily conversation ─────────────────────────────────────────────────
   MoodLevel? _mood;
@@ -493,6 +825,7 @@ class AppState extends ChangeNotifier {
       voicePrompts: _voicePrompts,
       offlineOverride: _connectivity.forcedOffline,
       lastRole: _role == AppRole.none ? null : _role.name,
+      lastAccountId: _accountId,
     );
     _write(() => _settingsRepo.save(snapshot));
   }

@@ -233,16 +233,10 @@ class PatientAiContext {
     };
   }
 
-  /// The domain an activity exercises. Mirrors the activity catalogue without
-  /// importing it, so the AI layer stays independent of the content package.
-  static CognitiveDomain _domainOf(GameId id) => switch (id) {
-        GameId.procedure => CognitiveDomain.procedural,
-        GameId.story => CognitiveDomain.reasoning,
-        GameId.familiarPlace => CognitiveDomain.spatial,
-        GameId.melody => CognitiveDomain.auditory,
-        GameId.weaves => CognitiveDomain.memory,
-        GameId.memoryCards => CognitiveDomain.memory,
-      };
+  /// The domain an activity exercises, from the one canonical map in
+  /// `models/game.dart`. This used to be a second copy here, and the copy
+  /// disagreed — it filed the attention activity under memory.
+  static CognitiveDomain _domainOf(GameId id) => GameDomains.of(id);
 
   static CognitiveDomain domainOf(GameId id) => _domainOf(id);
 }

@@ -2,10 +2,12 @@
 
 # MemoryMitra
 
-**A gentle companion for every memory.**
+**From the first memory concern to clinician-ready insight.**
 
-An AI-powered cognitive care platform for elderly people living with dementia —
-built for the languages, culture and connectivity of India's North Eastern Region.
+An AI-assisted cognitive health monitoring platform — structured symptom and
+functional assessment, six cognitive activities, longitudinal tracking against
+a personal baseline, and a summary a doctor can actually use. Built for the
+languages, culture and connectivity of India's North Eastern Region.
 
 ![Flutter](https://img.shields.io/badge/Flutter-3.32%2B-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.8%2B-0175C2?logo=dart&logoColor=white)
@@ -18,23 +20,80 @@ built for the languages, culture and connectivity of India's North Eastern Regio
 
 ## Overview
 
-Dementia care is not a software problem you solve with a leaderboard. The people
-who need this app are in their seventies and eighties, they speak Assamese or
-Khasi or Mizo rather than English, they live where the network drops for hours at
-a time, and they are far more likely to engage with a photograph of their own
-daughter than with an abstract puzzle.
+People notice cognitive changes long before they know what they mean. Is this
+normal ageing? Is it getting worse? What should be tracked? When is it time to
+see a doctor? Meanwhile the clinician, when they are finally reached, gets
+fifteen minutes and a single snapshot of a person they have never measured
+before.
 
-MemoryMitra is built around that reality. It is a single application serving
-three connected audiences:
+MemoryMitra exists for that gap. It is **not a game app with a chart on top**:
+the six cognitive activities are one input among several, and the product is
+the **longitudinal cognitive health profile** they feed.
+
+```
+        PATIENT
+           │
+    ┌──────┴──────┐
+    │  SYMPTOMS   │  structured, grouped by domain
+    │  FUNCTION   │  how independently daily life still works
+    │  HISTORY    │  conditions, sleep, mood, medication
+    │  CAREGIVER  │  an independent second account
+    └──────┬──────┘
+           ▼
+   SIX COGNITIVE ACTIVITIES  ──▶  accuracy · pace · errors · hints · completion
+           │
+           ▼
+    PERSONAL BASELINE  ──▶  every later result is a deviation from *this*
+           │
+           ▼
+   COGNITIVE PROFILE + TRENDS
+           │
+    ┌──────┴──────┐
+    ▼             ▼
+ AI COMPANION   CLINICAL REPORT ──▶ DOCTOR ──▶ CARE PLAN ──▶ CONTINUOUS CARE
+```
+
+**What it will not do.** It does not detect, diagnose or exclude dementia or any
+other condition, and it deliberately shows no disease probabilities — a
+confident "Alzheimer's 78%" would demo well and be indefensible without a
+validated model. It reports *patterns*, always with the inputs that produced
+them, and says plainly that a clinician decides what they mean.
 
 | Role | What they get |
 |---|---|
-| **Patient** | A warm daily companion — mood check-ins, personalised memory questions, six adaptive cognitive activities, reminders, and a memory wallet of the people and places that matter to them. |
-| **Caregiver** | Profile creation, day-to-day oversight, engagement and adherence analytics, reminder management, and a memory profile that drives every personalised moment in the patient app. |
-| **Clinician** | Longitudinal cognitive performance trends across a caseload, per-domain profiles, and an alerts feed that surfaces meaningful change. |
+| **Patient** | Structured intake, a baseline assessment, six adaptive activities, weekly monitoring against their own baseline, a data-aware companion, and a doctor-ready summary. |
+| **Caregiver** | Profile creation, an independent observation record, day-to-day oversight, engagement and adherence analytics, and reminder management. |
+| **Clinician** | Longitudinal performance trends across a caseload, per-domain profiles, and an alerts feed that surfaces meaningful change. |
 
-Everything the patient does flows upward: a completed activity moves the
-caregiver's dashboard and the clinician's 30-day trend in the same moment.
+---
+
+## The patient journey
+
+Nineteen screens, one story. Each step writes through to disk as it is
+answered, so an intake abandoned half way resumes at the next unanswered
+question rather than at the beginning.
+
+| # | Screen | Why it exists |
+|---|---|---|
+| 01 | Splash | Two seconds, then out of the way |
+| 02 | Welcome | What the product is — and what it is not — before the first tap |
+| 03 | Sign in | Firebase Auth, or skipped entirely when Firebase is not configured |
+| 04 | Consent | What is collected, what it builds, and that it is not a diagnosis |
+| 05 | Profile | Age, language and education, because they change how a score reads |
+| 06 | Reason for using the app | Concerns, onset window, and how they have changed |
+| 07 | Safety check | Sudden onset or red-flag symptoms route to urgent care, not to monitoring |
+| 08 | Symptom assessment | 23 items across memory, attention, language, behaviour, movement |
+| 09 | Daily function | Eight activities, independent → needs help → full help |
+| 10 | Medical & lifestyle | Conditions, sleep, mood, medications — what else could move a score |
+| 11 | Caregiver observations | An independent second account, kept separate in the report |
+| 12 | Baseline intro | The framing: this is your starting point, not an exam |
+| 13 | Baseline run | Six activities, resumable, progress persisted after each |
+| 14 | Cognitive profile | Six domains vs baseline, radar, observed patterns |
+| 15 | Home dashboard | Status, today's activity, trends, companion, care plan |
+| 16 | Progress | Weekly trend, adherence, consistency, functional independence |
+| 17 | Companion | Six data-grounded quick actions; refuses to diagnose |
+| 18 | Doctor report | The whole record as one shareable summary |
+| 19 | Care plan | What happens next, generated from the person's own record |
 
 ---
 
@@ -93,6 +152,61 @@ the level rather than raising it, so difficulty never outruns the person.
 Each activity ends on the same encouraging result screen — never framed as an
 exam — and feeds the same adaptive engine.
 
+### Three levels of measurement
+
+Session metrics alone are noise. The value is in what they roll up into.
+
+| Level | What it is | Where it lives |
+|---|---|---|
+| **1 · Session** | Accuracy, focus, recall, hints, mistakes, attempts, correct responses, mean response time, completion | `GamePerformance` |
+| **2 · Domain** | Sessions grouped by the function they exercise, averaged over the last four | `CognitiveMonitoringService.domainScores` |
+| **3 · Longitudinal** | Deviation from the personal baseline, trend, consistency, adherence, functional change | `MonitoringSnapshot` |
+
+Activities map to domains only where the mapping is defensible — the six were
+not built to a standard battery, and the app says so rather than borrowing the
+authority of one:
+
+| Activity | Reported as |
+|---|---|
+| NER Memory Cards | Memory |
+| Weaves of the Hills | Attention |
+| Procedure Reconstruction | Executive function |
+| Finish the Story | Language & reasoning |
+| Familiar Place Explorer | Visuospatial |
+| Melody of the Valleys | Auditory processing |
+
+### The personal baseline
+
+The first complete pass through the six activities is frozen as the person's
+baseline. Everything afterwards is reported as a deviation from it, never
+against a population norm the app does not have.
+
+```
+change from baseline < 5 points   → within normal variation
+change ≥ 5 points                 → a trend worth reporting
+two declining domains, or one
+  plus reported functional
+  difficulty                      → suggest discussing with a clinician
+```
+
+The five-point floor is deliberate: repeated sessions of the same activity vary
+by that much for reasons unrelated to cognition, and an app that calls every dip
+a decline is an app people stop opening.
+
+### What the AI actually does
+
+The companion is data-aware and safety-constrained, not a chatbot:
+
+- **Explains results** from this person's own numbers, offline, with no model call
+- **Explains a change** — sleep, mood, illness, medication, variability — before
+  anyone concludes anything
+- **Prepares questions for the doctor**, generated from the actual record
+- **Refuses to diagnose**, under any phrasing. The guard runs *before* any model
+  is consulted, so it cannot be talked around: `HealthAssistant.diagnosisGuard`
+
+Free-text questions go to Gemini when it is reachable and to the on-device
+service when it is not; the quick actions never need a network at all.
+
 ### Offline-first
 
 Connectivity across the region is intermittent, so the app assumes it. All game
@@ -115,15 +229,15 @@ text, five permanently-labelled destinations, and requires no typing anywhere.
 ```
 DementiaApp/
 ├── frontend/          the Flutter application (Android · iOS · web)
-├── backend/           reserved for the FastAPI sync service — empty for now
+├── backend/           the FastAPI sync service (see backend/README.md)
 ├── README.md
 └── .gitignore
 ```
 
 Every command in this README runs from `frontend/` unless stated otherwise.
-The app is offline-first and complete without the backend: it stores
-everything locally and queues what would be synced, so `backend/` staying
-empty costs no functionality.
+The app is offline-first and complete without the backend: it stores everything
+locally and queues what would be synced, so a build with no `MM_SYNC_BASE_URL`
+loses no functionality.
 
 ---
 
@@ -263,6 +377,69 @@ mouse is the primary pointer on desktop, `_AppScrollBehavior` in
 
 ---
 
+## Authentication
+
+Sign-in is a **step in the journey, not a gate in front of it**: splash →
+welcome → sign in → role picker → intake. The person sees what the product is
+before being asked for an email, and everything they then answer is filed under
+their Firebase uid rather than under the device.
+
+```
+Welcome ──▶ Sign in ──▶ AppState.signInAccount(uid) ──▶ Role picker ──▶ Intake
+   │                          │
+   └── no Firebase config ────┴──▶ step skipped, journey unchanged
+```
+
+Two methods, both landing on the same path: email/password, and **Continue with
+Google**. A dismissed Google account picker is reported as a cancellation, not
+a failure.
+
+**What the uid buys.** The intake and the baseline are stored under
+`intake:<uid>` / `baseline:<uid>`, so:
+
+- a half-finished questionnaire follows the person, not the handset;
+- a second person signing in on a shared device gets a clean record rather than
+  inheriting the first person's answers;
+- answers given *before* signing in are adopted on first sign-in rather than
+  discarded;
+- signing out unbinds the account and leaves the record intact — signing out is
+  not the same as deleting someone's health record.
+
+The uid is also persisted locally, so a restart reopens the same record before
+anyone has re-authenticated. That matters on a device that is offline more often
+than not.
+
+### Enabling it
+
+The app runs perfectly well with no auth at all — that is the default, and every
+test uses it. To turn sign-in on you need a Firebase project with the platform
+registered (`lib/firebase_options.dart`, generated by `flutterfire configure`).
+
+In the Firebase console, under **Authentication → Sign-in method**, enable
+**Email/Password** and **Google**. For Google on Android, add the signing
+certificate's SHA-1 to the Android app:
+
+```bash
+keytool -list -v -alias androiddebugkey -keystore ~/.android/debug.keystore \
+  -storepass android -keypass android | grep SHA1
+```
+
+Then either drop the refreshed `google-services.json` into `android/app/`, or
+pass the Web client id at build time:
+
+```bash
+flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
+```
+
+On iOS, Google sign-in additionally needs the reversed client id registered as a
+URL scheme in `ios/Runner/Info.plist`.
+
+Nothing here is required for the backend: sign-in is pure Firebase. The backend
+URL only affects `declareRole` / `fetchMe`, and both already swallow a failed
+request.
+
+---
+
 ## Configuration
 
 Launch directly into a role, skipping role selection — useful for kiosk
@@ -274,7 +451,26 @@ flutter run --dart-define=MM_START=caregiver
 flutter run --dart-define=MM_START=doctor
 ```
 
-Omit the flag and the app opens on role selection.
+Omit the flag and the app opens on the splash, then role selection.
+
+Open onto the twelve-week demonstration history instead of an empty profile:
+
+```bash
+flutter run --dart-define=MM_DEMO=true
+```
+
+The same history can be loaded at any time from **Profile → Load demonstration
+history**, and the assessment can be cleared with **Start the assessment over** —
+both are there so a demonstration can be reset and repeated. The history is
+seeded, so every run produces identical numbers: the figure you rehearse is the
+figure on screen.
+
+Point the app at a running backend:
+
+```bash
+flutter run --dart-define=MM_SYNC_BASE_URL=http://10.0.2.2:8000   # Android emulator
+flutter run --dart-define=MM_SYNC_BASE_URL=http://127.0.0.1:8000  # web / iOS simulator
+```
 
 ---
 
@@ -374,10 +570,11 @@ so yesterday's ticked reminders do not read as today's adherence.
 returns — no one taps anything. A failed send leaves the operation queued with
 its attempt count and error, never dropped; a connection lost mid-drain stops
 the run and leaves the remainder for the next reconnect. Where the operation is
-actually *sent* is a one-method `SyncTransport`. No backend exists yet, so the
-shipped transport is a loopback that accepts after a short delay; a Firebase or
-FastAPI client implements that one method and nothing else in the app changes.
-That service will live in `backend/`.
+actually *sent* is a one-method `SyncTransport`. `HttpSyncTransport` implements
+it against the FastAPI service in `backend/`, selected by
+`--dart-define=MM_SYNC_BASE_URL=...`; without that flag the shipped transport is
+a loopback that accepts after a short delay, and the app is unaffected by the
+backend existing at all.
 
 The caregiver's "work offline" switch is a genuine offline state, not a mock —
 it forces the connectivity layer offline on a device that is online. It can
@@ -417,10 +614,19 @@ by colour alone.
 flutter test
 ```
 
-The suite covers three layers:
+The suite covers five layers:
 
 - **Domain** — the adaptive engine's decision boundaries, including level clamping
   at both ends of the scale.
+- **Assessment and monitoring** — `test/assessment_test.dart`: symptom severity
+  and functional banding, intake resumption and JSON round-trip, the baseline
+  taken from the earliest sessions, the five-point noise floor, weeks with no
+  data skipped rather than plotted as zero, the report naming no condition, and
+  the assistant's diagnosis guard against six phrasings of the question.
+- **The intake journey** — `test/intake_flow_test.dart`: every intake and health
+  screen rendered and scrolled at four device sizes, consent gating, the symptom
+  questionnaire advancing one group at a time, and the flow resuming at the
+  first unanswered step.
 - **Layout regression** — every screen of all three roles rendered at four device
   sizes (360 / 393 / 430 px phones and an 834 px tablet), plus all six activities,
   the full onboarding flow, and the patient application at extra-large text with
@@ -449,13 +655,17 @@ Output lands in `test_goldens/goldens/`.
 
 ## Roadmap
 
-- A real sync backend behind `SyncTransport` (Firebase or FastAPI)
+- Localising the intake questionnaire — the 23 symptom items and the functional
+  scale are English-only today, while the rest of the app is not
+- Per-response reaction timing inside the activities; the session currently
+  reports a mean pace derived from its own clock, and labels it as such
+- Clinician report export as PDF rather than shareable plain text
+- Caregiver invitation by link, so their observations arrive from their own
+  device rather than being entered alongside the patient
 - Speech input and text-to-speech in all eight supported regional languages
-- On-device language model for open-ended story evaluation
 - Recorded instrument audio for Melody of the Valleys
 - Caregiver photo import to replace the bundled illustration set
 - Multi-patient caregiver accounts
-- Clinician report export (PDF) for in-person review
 
 ---
 

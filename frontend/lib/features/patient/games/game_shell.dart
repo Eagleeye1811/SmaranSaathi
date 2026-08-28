@@ -34,6 +34,14 @@ class GameTracker {
   /// Memory falls with hint usage.
   double memory() => (100 - hints * 12 - mistakes * 5).clamp(35, 100).toDouble();
 
+  /// Mean seconds per response over the whole session.
+  ///
+  /// Derived from the session clock rather than timed per tap: an average pace
+  /// is what these activities can honestly report, and the profile and the
+  /// report both label it that way rather than calling it a reaction time.
+  int get responseMillis =>
+      attempts == 0 ? 0 : ((seconds / attempts) * 1000).round();
+
   GamePerformance build({required int expectedSeconds, bool completed = true}) {
     return GamePerformance(
       accuracy: accuracy,
@@ -43,6 +51,9 @@ class GameTracker {
       mistakes: mistakes,
       seconds: seconds,
       completed: completed,
+      attempts: attempts,
+      correct: correct,
+      responseMillis: responseMillis,
     );
   }
 }
