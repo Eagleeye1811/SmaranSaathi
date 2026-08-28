@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/game.dart';
+import '../models/memory_fragment.dart';
 
 /// Where an answer came from. Surfaced to the caregiver so an AI-written
 /// sentence is never mistaken for a clinical measurement.
@@ -232,8 +233,25 @@ enum AssistantIntent {
   /// A warm exchange with no informational content.
   companionship,
 
+  /// Mitra invited, or gently reoffered, a life story — the memory-companion
+  /// turn, distinct from ordinary companionship chat.
+  memoryMoment,
+
   /// Outside what the app knows about.
   outOfScope,
+}
+
+/// One earlier turn of this conversation, kept only for the length of the
+/// session (not persisted) so the assistant can refer back to something said
+/// a moment ago — "you just said her name was Ima" — without re-asking.
+/// Long-term recall across *sessions* is a different mechanism: see
+/// [SharedMemory] and `AppState.memoryFragments`.
+@immutable
+class ConversationTurn {
+  const ConversationTurn({required this.fromUser, required this.text});
+
+  final bool fromUser;
+  final String text;
 }
 
 /// One patient-facing answer.
@@ -245,6 +263,8 @@ class AssistantReply {
     required this.source,
     this.suggestedActivity,
     this.followUps = const <String>[],
+    this.sharedMemory,
+    this.resurfacedFragmentId,
   });
 
   /// Short, warm, and readable aloud. This is spoken to someone with memory
@@ -260,4 +280,14 @@ class AssistantReply {
   /// Two or three things they might ask next, offered as large tap targets
   /// rather than requiring typing.
   final List<String> followUps;
+
+  /// Set only when this turn's message contained a genuine personal story —
+  /// the app persists it as a new [MemoryFragment] via
+  /// `AppState.saveSharedMemory`. Never set from a quiz answer or small talk.
+  final SharedMemory? sharedMemory;
+
+  /// Set when this turn gently reoffered a fragment the patient shared
+  /// before — the app records the resurfacing via
+  /// `AppState.markMemoryResurfaced`.
+  final String? resurfacedFragmentId;
 }

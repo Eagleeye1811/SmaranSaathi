@@ -21,6 +21,10 @@ dependencies:
   firebase_auth: ^5.3.1
   google_sign_in: ^6.2.1
   flutter_local_notifications: ^18.0.1
+  flutter_dotenv: ^5.2.1
+  audioplayers: ^6.1.0
+  lottie: ^3.1.0
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +33,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - .env
+    - assets/audio/
+    - assets/animations/
+    - assets/videos/
+    - assets/videos/procedural_test.mp4
+    - assets/videos/washing_clothes.mp4
+    - assets/videos/splash_screen.mp4
+
+
 
   fonts:
     - family: Nunito

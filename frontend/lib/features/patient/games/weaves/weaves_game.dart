@@ -43,7 +43,7 @@ class WeavesGame extends StatefulWidget {
   State<WeavesGame> createState() => _WeavesGameState();
 }
 
-enum _Phase { preview, hidden, choose, solved }
+enum _Phase { intro, preview, hidden, choose, solved }
 
 class _WeavesGameState extends State<WeavesGame> {
   static const List<Textile> textiles = <Textile>[
@@ -68,7 +68,7 @@ class _WeavesGameState extends State<WeavesGame> {
     Textile(
       name: 'Eri weave',
       origin: 'Meghalaya',
-      palette: <Color>[Color(0xFFEFE3CE), Color(0xFF7A5680), Color(0xFF3F5B86)],
+      palette: <Color>[Color(0xFF7A5680), Color(0xFF3F5B86), Color(0xFFEFE3CE)],
       motifs: <int>[1, 3, 2],
     ),
   ];
@@ -76,11 +76,13 @@ class _WeavesGameState extends State<WeavesGame> {
   final GameTracker _tracker = GameTracker();
   final GameDefinition _game = MockData.game(GameId.weaves);
   late final AppState _state = AppScope.read(context);
-  late final int _level = _state.levelOf(GameId.weaves);
+  late final int _maxUnlockedLevel = _state.levelOf(GameId.weaves);
+  late int _selectedLevel;
 
   static const int _roundsPerSession = 3;
 
-  _Phase _phase = _Phase.preview;
+  _Phase _phase = _Phase.intro;
+
   int _round = 0;
   Timer? _previewTimer;
   int _previewLeft = 5;
@@ -94,17 +96,25 @@ class _WeavesGameState extends State<WeavesGame> {
   late List<int> _options;
   final Map<int, int> _filled = <int, int>{};
 
-  int get _gridSize => _level >= 5 ? 4 : 3;
-  int get _blankCount => _level >= 4 ? 2 : 1;
+  int get _gridSize => _selectedLevel >= 5 ? 4 : 3;
+  int get _blankCount => _selectedLevel >= 4 ? 2 : 1;
 
   /// From level 3 the pattern is hidden before the patient rebuilds it.
-  bool get _hidesPattern => _level >= 3;
-  int get _previewSeconds => _level >= 4 ? 4 : 6;
+  bool get _hidesPattern => _selectedLevel >= 2;
+  int get _previewSeconds => _selectedLevel >= 4 ? 4 : 6;
 
   @override
   void initState() {
     super.initState();
+    _selectedLevel = _state.levelOf(GameId.weaves);
     _setupRound();
+  }
+
+  void _changeLevel(int lvl) {
+    setState(() {
+      _selectedLevel = lvl;
+      _setupRound();
+    });
   }
 
   @override
@@ -114,7 +124,7 @@ class _WeavesGameState extends State<WeavesGame> {
   }
 
   void _setupRound() {
-    _textile = textiles[(_level + _round) % textiles.length];
+    _textile = textiles[(_selectedLevel + _round) % textiles.length];
     final int n = _gridSize;
     _grid = List<List<int>>.generate(n, (int r) {
       return List<int>.generate(n, (int c) {
@@ -126,7 +136,7 @@ class _WeavesGameState extends State<WeavesGame> {
     // Deterministic blank selection, avoiding the very centre so the motif
     // stays readable.
     final List<int> cells = List<int>.generate(n * n, (int i) => i);
-    int seed = (_level * 613 + _round * 271 + 41) & 0x7fffffff;
+    int seed = (_selectedLevel * 613 + _round * 271 + 41) & 0x7fffffff;
     _blanks = <int>[];
     while (_blanks.length < _blankCount) {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -238,7 +248,7 @@ class _WeavesGameState extends State<WeavesGame> {
   void _finish() {
     _previewTimer?.cancel();
     final GamePerformance p = _tracker.build(
-      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.weaves, _level),
+      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.weaves, _selectedLevel),
     );
     final AdaptiveDecision d = _state.finishGame(GameId.weaves, p);
     Navigator.of(context).pushReplacement(
@@ -247,7 +257,7 @@ class _WeavesGameState extends State<WeavesGame> {
           game: _game,
           performance: p,
           decision: d,
-          playedLevel: _level,
+          playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
             (label: 'Patterns rebuilt', value: '$_roundsPerSession'),
             (label: 'Pieces placed', value: '${_tracker.correct}'),
@@ -258,21 +268,26 @@ class _WeavesGameState extends State<WeavesGame> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
+    if (_phase == _Phase.intro) return _buildIntro();
+
     final bool showPattern = _phase != _Phase.choose || !_hidesPattern;
     final String message = switch (_phase) {
       _Phase.preview => 'Look carefully at this weave. Remember how it is made.',
       _Phase.hidden => 'Now let us rebuild it.',
       _Phase.choose => 'Which piece belongs in the empty space?',
       _Phase.solved => 'Beautiful. That is exactly the pattern.',
+      _ => '',
     };
 
     return Stack(
       children: <Widget>[
         GameShell(
           game: _game,
-          level: _level,
+          level: _selectedLevel,
+
           stepLabel: 'Pattern ${_round + 1} of $_roundsPerSession',
           progress: (_round + (_phase == _Phase.solved ? 1 : 0.45)) / _roundsPerSession,
           hintsLeft: _hidesPattern ? (3 - _tracker.hints).clamp(0, 3) : null,
@@ -429,7 +444,123 @@ class _WeavesGameState extends State<WeavesGame> {
       ],
     );
   }
+
+  Widget _buildIntro() {
+    return GameShell(
+      game: _game,
+      level: _selectedLevel,
+      companionMessage: 'Observe the traditional textile patterns and complete the weave.',
+      companionState: CompanionState.happy,
+      bottom: BigButton(
+        label: 'Start pattern',
+        icon: Icons.play_arrow_rounded,
+        color: _game.accent,
+        onPressed: () => setState(() => _phase = _Phase.preview),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            MmCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 1,
+                            title: 'Easy',
+                            subtitle: '1 blank',
+                            unlocked: 1 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 1,
+                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 2,
+                            title: 'Medium',
+                            subtitle: 'Hidden weave',
+                            unlocked: 2 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 2,
+                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 3,
+                            title: 'Hard',
+                            subtitle: '2 blanks',
+                            unlocked: 3 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 3,
+                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 4,
+                            title: 'Expert',
+                            subtitle: 'Fast weave',
+                            unlocked: 4 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 4,
+                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 5,
+                            title: 'Mastery',
+                            subtitle: '4x4 grid',
+                            unlocked: 5 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 5,
+                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+            MmCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('WEAVES & SHAPES', style: AppText.overline),
+                  const SizedBox(height: 8),
+                  Text('Visuospatial Pattern', style: AppText.h1.sized(26)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Observe traditional North-Eastern weaves and select missing motifs to restore the design.',
+                    style: AppText.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
 
 class _PatternGrid extends StatelessWidget {
   const _PatternGrid({
@@ -515,3 +646,91 @@ class _PatternGrid extends StatelessWidget {
     );
   }
 }
+
+
+class _LevelOptionChip extends StatelessWidget {
+  const _LevelOptionChip({
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Level $levelNum',
+                  style: AppText.caption.wght(800).tint(
+                        unlocked
+                            ? (selected ? AppColors.primary : AppColors.inkMuted)
+                            : AppColors.inkMuted.withValues(alpha: 0.5),
+                      ),
+                ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : 'Locked 🔒',
+              style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

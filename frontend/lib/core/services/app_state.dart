@@ -11,6 +11,7 @@ import '../models/assessment.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
+import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
 import '../models/patient.dart';
 import '../models/report.dart';
@@ -47,6 +48,7 @@ class AppState extends ChangeNotifier {
     ReminderRepository? reminders,
     DailyRepository? daily,
     AssessmentRepository? assessment,
+    MemoryFragmentRepository? memories,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -57,6 +59,7 @@ class AppState extends ChangeNotifier {
         _reminderRepo = reminders ?? MockReminderRepository(),
         _daily = daily ?? MockDailyRepository(),
         _assessment = assessment ?? MockAssessmentRepository(),
+        _memories = memories ?? MockMemoryFragmentRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()) {
@@ -73,6 +76,7 @@ class AppState extends ChangeNotifier {
   final ReminderRepository _reminderRepo;
   final DailyRepository _daily;
   final AssessmentRepository _assessment;
+  final MemoryFragmentRepository _memories;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   late final SyncManager _sync;
@@ -255,6 +259,7 @@ class AppState extends ChangeNotifier {
     _accountId = settings.lastAccountId;
     _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
     _baseline = await _assessment.baseline(_assessmentScope);
+    _memoryFragments = await _memories.all(_assessmentScope);
 
     if (_seedDemo && _intake.completedAtIso == null) {
       await loadDemoJourney();
@@ -404,6 +409,92 @@ class AppState extends ChangeNotifier {
   /// True once the person has consented, answered every questionnaire and
   /// completed the baseline run.
   bool get intakeComplete => _intake.isComplete && _baseline != null;
+
+  // ── Memory companion ───────────────────────────────────────────────────
+  //
+  // Every real life-story the patient has shared with Mitra, across every
+  // session — the substance behind "remembers what she told me last week".
+  // Saved from a genuine personal story only, never from a quiz answer; see
+  // `core/ai/gemini_ai_service.dart`'s system prompt for the rule that keeps
+  // it that way. Also what furnishes the Memory Home (`features/patient/
+  // memory_home/`): each fragment decorates the room matching its category.
+
+  List<MemoryFragment> _memoryFragments = <MemoryFragment>[];
+  List<MemoryFragment> get memoryFragments => List.unmodifiable(_memoryFragments);
+
+  /// At most two memory turns (a new story, or an old one gently reoffered)
+  /// per day — the pacing the product asks for. Counts anything touched
+  /// today, so a resurfacing counts the same as a fresh share.
+  static const int _dailyMemoryBudget = 2;
+
+  int get memoryInvitesRemainingToday {
+    final DateTime today = DateTime.now();
+    final int touchedToday =
+        _memoryFragments.where((MemoryFragment f) => f.wasTouchedOn(today)).length;
+    return (_dailyMemoryBudget - touchedToday).clamp(0, _dailyMemoryBudget);
+  }
+
+  /// The best fragment to gently reoffer today, or null when there is
+  /// nothing to resurface (no memories yet, or today's budget is spent).
+  /// Prefers whatever has gone longest without being revisited, and never
+  /// picks something created today — a memory should sit for at least a day
+  /// before it comes back as an offer.
+  MemoryFragment? get memoryResurfaceCandidate {
+    if (memoryInvitesRemainingToday <= 0) return null;
+    final DateTime today = DateTime.now();
+    final List<MemoryFragment> eligible = _memoryFragments
+        .where((MemoryFragment f) => !f.wasCreatedOn(today))
+        .toList(growable: false)
+      ..sort((MemoryFragment a, MemoryFragment b) {
+        final DateTime aTime = a.lastResurfacedAt ?? a.createdAt;
+        final DateTime bTime = b.lastResurfacedAt ?? b.createdAt;
+        return aTime.compareTo(bTime);
+      });
+    return eligible.isEmpty ? null : eligible.first;
+  }
+
+  /// How many memories furnish each room of the Memory Home.
+  Map<MemoryCategory, int> get memoriesByCategory {
+    final Map<MemoryCategory, int> counts = <MemoryCategory, int>{
+      for (final MemoryCategory c in MemoryCategory.values) c: 0,
+    };
+    for (final MemoryFragment f in _memoryFragments) {
+      counts[f.category] = (counts[f.category] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Turns a story the AI noticed in conversation into a persisted fragment.
+  /// Local-only for now — not part of the sync outbox — so this works fully
+  /// offline; syncing it to the caregiver/doctor view is a natural next step
+  /// once there is a Firestore shape for it.
+  Future<MemoryFragment> saveSharedMemory(SharedMemory shared) {
+    final MemoryFragment fragment = MemoryFragment(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      category: shared.category,
+      summary: shared.summary,
+      mentionedName: shared.mentionedName,
+      createdAt: DateTime.now(),
+    );
+    _memoryFragments = <MemoryFragment>[..._memoryFragments, fragment];
+    notifyListeners();
+    return _write(() => _memories.add(_assessmentScope, fragment)).then((_) => fragment);
+  }
+
+  /// Records that Mitra just offered [fragmentId] back to the patient, so it
+  /// moves to the back of the resurfacing queue.
+  Future<void> markMemoryResurfaced(String fragmentId) {
+    final DateTime now = DateTime.now();
+    final int i = _memoryFragments.indexWhere((MemoryFragment f) => f.id == fragmentId);
+    if (i < 0) return Future<void>.value();
+    _memoryFragments = <MemoryFragment>[..._memoryFragments]
+      ..[i] = _memoryFragments[i].copyWith(
+        lastResurfacedAt: now,
+        timesResurfaced: _memoryFragments[i].timesResurfaced + 1,
+      );
+    notifyListeners();
+    return _write(() => _memories.markResurfaced(_assessmentScope, fragmentId, now));
+  }
 
   /// Where "Continue" resumes the intake.
   IntakeStep get nextIntakeStep => _intake.nextStep;
@@ -642,6 +733,7 @@ class AppState extends ChangeNotifier {
 
     final IntakeRecord? stored = await _assessment.intake(uid);
     final CognitiveBaseline? baseline = await _assessment.baseline(uid);
+    final List<MemoryFragment> storedMemories = await _memories.all(uid);
 
     // A first sign-in adopts anything already answered anonymously on this
     // device rather than throwing it away — someone who started the
@@ -652,10 +744,14 @@ class AppState extends ChangeNotifier {
       await _write(() async {
         await _assessment.saveIntake(uid, adopted);
         if (_baseline != null) await _assessment.saveBaseline(uid, _baseline!);
+        for (final MemoryFragment f in _memoryFragments) {
+          await _memories.add(uid, f);
+        }
       });
     } else {
       _intake = stored ?? IntakeRecord.empty;
       _baseline = baseline;
+      _memoryFragments = storedMemories;
     }
     notifyListeners();
   }
@@ -668,6 +764,7 @@ class AppState extends ChangeNotifier {
     _persistSettings();
     _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
     _baseline = await _assessment.baseline(_assessmentScope);
+    _memoryFragments = await _memories.all(_assessmentScope);
     notifyListeners();
   }
 

@@ -60,6 +60,16 @@ Future<void> beat(WidgetTester tester, [int ms = 500]) async {
   await tester.pump(Duration(milliseconds: ms));
 }
 
+/// Pumps until the sync queue is actually empty, rather than guessing a fixed
+/// wait: `SyncManager` drains queued operations one at a time (~180ms each via
+/// `LoopbackTransport`), so a run with more queued operations than another
+/// needs proportionally more real time, not a fixed number of beats.
+Future<void> drainSync(WidgetTester tester, AppState state, {int maxBeats = 20}) async {
+  for (int i = 0; i < maxBeats && state.pendingSync > 0; i++) {
+    await beat(tester, 200);
+  }
+}
+
 /// Drags the screen's scrollable to the bottom so every card is laid out.
 Future<void> scrollThrough(WidgetTester tester) async {
   final Finder list = find.byType(Scrollable).first;
@@ -384,8 +394,10 @@ void main() {
     }
     await state.captureBaseline(now: DateTime(2026, 8, 29));
     // Let the queued sync drain, or the binding fails on a pending timer.
-    await beat(tester, 400);
-    await beat(tester, 400);
+    // Six activities each queue an operation, and SyncManager drains them
+    // one at a time (~180ms via LoopbackTransport) — a fixed couple of beats
+    // isn't reliably enough real time for all of them, so poll instead.
+    await drainSync(tester, state);
 
     final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
     expect(memoryBaseline, isNotNull);

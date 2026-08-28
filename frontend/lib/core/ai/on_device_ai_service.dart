@@ -247,6 +247,11 @@ class OnDeviceAiService implements AiService {
       AssistantIntent.people => _peopleReply(question, context),
       AssistantIntent.orientation => _orientationReply(context),
       AssistantIntent.companionship => _companionshipReply(context),
+      // classify() never produces this — the life-story companion turn
+      // needs a real model to judge when it fits naturally, which is not
+      // something a keyword matcher can safely attempt. Reached only if
+      // something upstream ever passes this intent through directly.
+      AssistantIntent.memoryMoment => _companionshipReply(context),
       AssistantIntent.outOfScope => _outOfScopeReply(context),
     };
   }
@@ -257,7 +262,10 @@ class OnDeviceAiService implements AiService {
   /// only a slightly-off answer that still comes from real context. English
   /// only today — the language work is a later phase.
   static AssistantIntent classify(String raw) {
-    final String q = raw.toLowerCase();
+    // Trimmed and padded with single spaces so a *word* match (' hi ') can't
+    // miss a bare "hi" the way a raw `.contains('hi ')` would — that exact
+    // bug once sent a plain "hi" straight to the out-of-scope fallback.
+    final String q = ' ${raw.toLowerCase().trim()} ';
     bool has(List<String> words) => words.any(q.contains);
 
     if (has(<String>['remind', 'medicine', 'medication', 'tablet', 'pill', 'water', 'drink'])) {
@@ -276,8 +284,8 @@ class OnDeviceAiService implements AiService {
     if (has(<String>['where am i', 'what day', 'what time', 'what year', 'where do i live'])) {
       return AssistantIntent.orientation;
     }
-    if (has(<String>['hello', 'hi ', 'how are you', 'thank you', 'good morning',
-        'good evening', 'lonely', 'scared', 'sad'])) {
+    if (has(<String>[' hi ', ' hi,', ' hi!', 'hello', 'how are you', 'thank you',
+        'good morning', 'good evening', 'lonely', 'scared', 'sad'])) {
       return AssistantIntent.companionship;
     }
     return AssistantIntent.outOfScope;

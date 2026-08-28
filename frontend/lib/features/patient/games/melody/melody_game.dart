@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text.dart';
@@ -10,7 +12,6 @@ import '../../../../core/models/game.dart';
 import '../../../../core/services/adaptive_difficulty_service.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/widgets/companion.dart';
-import '../../../../core/widgets/illustration.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
 import '../game_result_screen.dart';
@@ -90,7 +91,8 @@ class _MelodyGameState extends State<MelodyGame> {
   final GameTracker _tracker = GameTracker();
   final GameDefinition _game = MockData.game(GameId.melody);
   late final AppState _state = AppScope.read(context);
-  late final int _level = _state.levelOf(GameId.melody);
+  late final int _maxUnlockedLevel = _state.levelOf(GameId.melody);
+  late int _selectedLevel;
 
   static const int _roundsPerSession = 3;
 
@@ -102,7 +104,7 @@ class _MelodyGameState extends State<MelodyGame> {
   bool _roundCorrect = true;
   Timer? _playTimer;
 
-  int get _sequenceLength => switch (_level) {
+  int get _sequenceLength => switch (_selectedLevel) {
         1 => 2,
         2 => 3,
         3 => 4,
@@ -110,27 +112,63 @@ class _MelodyGameState extends State<MelodyGame> {
         _ => 5,
       };
 
-  Duration get _beat => _level >= 4
+  Duration get _beat => _selectedLevel >= 4
       ? const Duration(milliseconds: 460)
       : const Duration(milliseconds: 720);
+
+
+  final Map<String, AudioPlayer> _audioPlayers = <String, AudioPlayer>{};
 
   @override
   void initState() {
     super.initState();
+    _selectedLevel = _state.levelOf(GameId.melody);
     _sequence = _makeSequence(0);
+    _initAudio();
+  }
+
+  void _changeLevel(int lvl) {
+    setState(() {
+      _selectedLevel = lvl;
+      _sequence = _makeSequence(_round);
+    });
+  }
+
+
+  void _initAudio() {
+    for (final Instrument ins in instruments) {
+      final AudioPlayer player = AudioPlayer();
+      _audioPlayers[ins.id] = player;
+    }
+  }
+
+  void _playSound(Instrument ins) {
+    try {
+      final AudioPlayer? player = _audioPlayers[ins.id];
+      if (player != null) {
+        player.stop();
+        player.setVolume(1.0);
+        player.play(AssetSource('audio/${ins.id}.wav'), volume: 1.0);
+      }
+    } catch (e) {
+      debugPrint('Error playing sound for ${ins.id}: $e');
+    }
   }
 
   @override
   void dispose() {
     _playTimer?.cancel();
+    for (final AudioPlayer player in _audioPlayers.values) {
+      player.dispose();
+    }
     super.dispose();
   }
 
   List<int> _makeSequence(int round) {
     // Deterministic so the demo replays identically.
-    int seed = (_level * 977 + round * 313 + 7) & 0x7fffffff;
+    int seed = (_selectedLevel * 977 + round * 313 + 7) & 0x7fffffff;
     final List<int> out = <int>[];
-    for (int i = 0; i < _sequenceLength + (round > 1 && _level >= 3 ? 1 : 0); i++) {
+    for (int i = 0; i < _sequenceLength + (round > 1 && _selectedLevel >= 3 ? 1 : 0); i++) {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
       int next = seed % instruments.length;
       if (out.isNotEmpty && next == out.last && instruments.length > 1) {
@@ -162,6 +200,7 @@ class _MelodyGameState extends State<MelodyGame> {
       final int idx = _sequence[i];
       setState(() => _activeIndex = idx);
       _buzz(instruments[idx]);
+      _playSound(instruments[idx]);
       Future<void>.delayed(
         Duration(milliseconds: (_beat.inMilliseconds * 0.62).round()),
         () {
@@ -187,6 +226,7 @@ class _MelodyGameState extends State<MelodyGame> {
   void _tap(int index) {
     if (_phase != _Phase.listening) return;
     _buzz(instruments[index]);
+    _playSound(instruments[index]);
     setState(() {
       _activeIndex = index;
       _input.add(index);
@@ -233,7 +273,7 @@ class _MelodyGameState extends State<MelodyGame> {
   void _finish() {
     _playTimer?.cancel();
     final GamePerformance p = _tracker.build(
-      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.melody, _level),
+      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.melody, _selectedLevel),
     );
     final AdaptiveDecision d = _state.finishGame(GameId.melody, p);
     Navigator.of(context).pushReplacement(
@@ -242,7 +282,7 @@ class _MelodyGameState extends State<MelodyGame> {
           game: _game,
           performance: p,
           decision: d,
-          playedLevel: _level,
+          playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
             (label: 'Tunes played', value: '$_roundsPerSession'),
             (label: 'Notes in a tune', value: '$_sequenceLength'),
@@ -266,8 +306,9 @@ class _MelodyGameState extends State<MelodyGame> {
 
     return GameShell(
       game: _game,
-      level: _level,
+      level: _selectedLevel,
       stepLabel: 'Tune ${_round + 1} of $_roundsPerSession',
+
       progress: (_round + (_phase == _Phase.feedback ? 1 : 0.4)) / _roundsPerSession,
       companionMessage: message,
       companionState: switch (_phase) {
@@ -283,7 +324,87 @@ class _MelodyGameState extends State<MelodyGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            if (_phase == _Phase.intro) ...<Widget>[
+              MmCard(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('CHOOSE LEVEL', style: AppText.overline),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: <Widget>[
+                          SizedBox(
+                            width: 96,
+                            child: _LevelOptionChip(
+                              levelNum: 1,
+                              title: 'Easy',
+                              subtitle: '2 notes',
+                              unlocked: 1 <= _maxUnlockedLevel,
+                              selected: _selectedLevel == 1,
+                              onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 96,
+                            child: _LevelOptionChip(
+                              levelNum: 2,
+                              title: 'Medium',
+                              subtitle: '3 notes',
+                              unlocked: 2 <= _maxUnlockedLevel,
+                              selected: _selectedLevel == 2,
+                              onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 96,
+                            child: _LevelOptionChip(
+                              levelNum: 3,
+                              title: 'Hard',
+                              subtitle: '4 notes',
+                              unlocked: 3 <= _maxUnlockedLevel,
+                              selected: _selectedLevel == 3,
+                              onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 96,
+                            child: _LevelOptionChip(
+                              levelNum: 4,
+                              title: 'Expert',
+                              subtitle: '4 notes · Fast',
+                              unlocked: 4 <= _maxUnlockedLevel,
+                              selected: _selectedLevel == 4,
+                              onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            width: 96,
+                            child: _LevelOptionChip(
+                              levelNum: 5,
+                              title: 'Mastery',
+                              subtitle: '5 notes · Fast',
+                              unlocked: 5 <= _maxUnlockedLevel,
+                              selected: _selectedLevel == 5,
+                              onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Insets.md),
+            ],
             // ── the tune being played / entered ──────────────────────────
+
             MmCard(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -316,39 +437,43 @@ class _MelodyGameState extends State<MelodyGame> {
             ),
             const SizedBox(height: Insets.lg),
 
-            // ── instruments ─────────────────────────────────────────────
-            LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints c) {
-                final bool row = c.maxWidth > 520;
-                final List<Widget> tiles = <Widget>[
-                  for (int i = 0; i < instruments.length; i++)
-                    _InstrumentTile(
-                      instrument: instruments[i],
-                      active: _activeIndex == i,
-                      enabled: _phase == _Phase.listening,
-                      onTap: () => _tap(i),
-                    ),
-                ];
-                if (row) {
-                  return Row(
-                    children: <Widget>[
-                      for (int i = 0; i < tiles.length; i++)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(right: i == tiles.length - 1 ? 0 : 12),
-                            child: tiles[i],
-                          ),
-                        ),
-                    ],
-                  );
-                }
-                return Column(
+            // ── instruments (Inverted Triangle Layout) ──────────────────────
+            Column(
+              children: <Widget>[
+                Row(
                   children: <Widget>[
-                    for (final Widget t in tiles)
-                      Padding(padding: const EdgeInsets.only(bottom: 12), child: t),
+                    Expanded(
+                      child: _InstrumentTile(
+                        instrument: instruments[0],
+                        active: _activeIndex == 0,
+                        enabled: _phase == _Phase.listening,
+                        onTap: () => _tap(0),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _InstrumentTile(
+                        instrument: instruments[1],
+                        active: _activeIndex == 1,
+                        enabled: _phase == _Phase.listening,
+                        onTap: () => _tap(1),
+                      ),
+                    ),
                   ],
-                );
-              },
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: FractionallySizedBox(
+                    widthFactor: 0.58,
+                    child: _InstrumentTile(
+                      instrument: instruments[2],
+                      active: _activeIndex == 2,
+                      enabled: _phase == _Phase.listening,
+                      onTap: () => _tap(2),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             Container(
@@ -502,59 +627,62 @@ class _InstrumentTile extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
+  static const Color activeColor = AppColors.primary;
+
   @override
   Widget build(BuildContext context) {
     return Pressable(
       onTap: enabled ? onTap : null,
-      scale: 0.96,
+      scale: 0.97,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        curve: Curves.easeOut,
-        padding: const EdgeInsets.all(14),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
         decoration: BoxDecoration(
-          color: active ? instrument.color.withValues(alpha: 0.16) : Colors.white,
-          borderRadius: Corners.r(Corners.lg),
+          color: Colors.white,
+          borderRadius: Corners.r(Corners.xl),
           border: Border.all(
-            color: active ? instrument.color : AppColors.hairline,
-            width: active ? 3 : 1.4,
+            color: active ? activeColor : AppColors.hairline,
+            width: active ? 3.0 : 1.2,
           ),
           boxShadow: active
               ? <BoxShadow>[
                   BoxShadow(
-                    color: instrument.color.withValues(alpha: 0.34),
-                    blurRadius: 26,
-                    spreadRadius: 2,
+                    color: activeColor.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 3),
                   ),
                 ]
-              : AppColors.softShadow(y: 4, blur: 12, opacity: 0.05),
+              : AppColors.softShadow(y: 2, blur: 8, opacity: 0.03),
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            AnimatedScale(
-              scale: active ? 1.07 : 1,
-              duration: const Duration(milliseconds: 180),
-              child: SceneImage(
-                sceneId: instrument.sceneId,
-                size: 66,
-                radius: Corners.md,
+            Container(
+              width: 86,
+              height: 86,
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: ClipOval(
+                child: Lottie.asset(
+                  'assets/animations/${instrument.id}.json',
+                  fit: BoxFit.contain,
+                  repeat: true,
+                  animate: active || enabled,
+                ),
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(instrument.name, style: AppText.h3.wght(800)),
-                  const SizedBox(height: 2),
-                  Text(instrument.description, style: AppText.bodySmall),
-                  const SizedBox(height: 10),
-                  _Waveform(
-                    pattern: instrument.pattern,
-                    color: instrument.color,
-                    active: active,
-                  ),
-                ],
+            const SizedBox(height: 12),
+            Text(
+              instrument.name,
+              style: AppText.h3.sized(17).wght(800).tint(
+                active ? activeColor : AppColors.ink,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -563,38 +691,94 @@ class _InstrumentTile extends StatelessWidget {
   }
 }
 
-class _Waveform extends StatelessWidget {
-  const _Waveform({required this.pattern, required this.color, required this.active});
+class _LevelOptionChip extends StatelessWidget {
+  const _LevelOptionChip({
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
 
-  final List<double> pattern;
-  final Color color;
-  final bool active;
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 26,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          for (int i = 0; i < pattern.length * 3; i++)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: AnimatedContainer(
-                duration: Duration(milliseconds: 200 + i * 24),
-                curve: Curves.easeOut,
-                width: 4,
-                height: active
-                    ? 6 + pattern[i % pattern.length] * 20
-                    : 4 + pattern[i % pattern.length] * 8,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: active ? 0.95 : 0.35),
-                  borderRadius: Corners.r(3),
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Level $levelNum',
+                  style: AppText.caption.wght(800).tint(
+                        unlocked
+                            ? (selected ? AppColors.primary : AppColors.inkMuted)
+                            : AppColors.inkMuted.withValues(alpha: 0.5),
+                      ),
                 ),
-              ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
             ),
-        ],
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : 'Locked 🔒',
+              style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
+
+
+
+
+
+
