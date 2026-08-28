@@ -11,9 +11,12 @@ import '../../../../core/services/app_state.dart';
 import '../../../../core/widgets/celebration.dart';
 import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/illustration.dart';
+import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+
+
 
 /// One face in the deck.
 class CardFace {
@@ -31,6 +34,8 @@ class MemoryCardsGame extends StatefulWidget {
   @override
   State<MemoryCardsGame> createState() => _MemoryCardsGameState();
 }
+
+enum _Phase { intro, play }
 
 class _MemoryCardsGameState extends State<MemoryCardsGame> {
   static const List<CardFace> deck = <CardFace>[
@@ -51,14 +56,19 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
   final GameTracker _tracker = GameTracker();
   final GameDefinition _game = MockData.game(GameId.memoryCards);
   late final AppState _state = AppScope.read(context);
-  late final int _level = _state.levelOf(GameId.memoryCards);
+  late final int _maxUnlockedLevel = _state.levelOf(GameId.memoryCards);
+  late int _selectedLevel;
 
-  late final int _pairs = switch (_level) {
-    1 => 4,
-    2 => 6,
-    3 => 8,
-    _ => 12,
-  };
+
+  _Phase _phase = _Phase.intro;
+
+  int get _pairs => switch (_selectedLevel) {
+        1 => 4,
+        2 => 6,
+        3 => 8,
+        _ => 12,
+      };
+
 
   late List<int> _board;
   final Set<int> _matched = <int>{};
@@ -70,14 +80,31 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
   @override
   void initState() {
     super.initState();
+    _selectedLevel = _state.levelOf(GameId.memoryCards);
+    _setupBoard();
+  }
+
+  void _setupBoard() {
+    _matched.clear();
+    _flipped.clear();
+    _locked = false;
+    _done = false;
+    _lastMatchName = null;
     final List<int> cards = <int>[];
     for (int i = 0; i < _pairs; i++) {
       cards..add(i)..add(i);
     }
-    // Seeded so a demo run is reproducible but each level differs.
-    cards.shuffle(math.Random(_level * 4177 + _pairs));
+    cards.shuffle(math.Random(_selectedLevel * 4177 + _pairs));
     _board = cards;
   }
+
+  void _changeLevel(int lvl) {
+    setState(() {
+      _selectedLevel = lvl;
+      _setupBoard();
+    });
+  }
+
 
   void _tap(int index) {
     if (_locked || _matched.contains(index) || _flipped.contains(index)) return;
@@ -120,7 +147,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
 
   void _finish() {
     final GamePerformance p = _tracker.build(
-      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.memoryCards, _level),
+      expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.memoryCards, _selectedLevel),
     );
     final AdaptiveDecision d = _state.finishGame(GameId.memoryCards, p);
     Navigator.of(context).pushReplacement(
@@ -129,7 +156,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
           game: _game,
           performance: p,
           decision: d,
-          playedLevel: _level,
+          playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
             (label: 'Pairs found', value: '${_matched.length ~/ 2}/$_pairs'),
             (label: 'Tries', value: '${_tracker.attempts}'),
@@ -140,6 +167,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
     );
   }
 
+
   int _columns(double width) {
     if (_pairs <= 4) return width > 520 ? 4 : 2;
     if (_pairs <= 6) return width > 520 ? 4 : 3;
@@ -149,6 +177,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
 
   @override
   Widget build(BuildContext context) {
+    if (_phase == _Phase.intro) return _buildIntro();
+
     final double width = MediaQuery.sizeOf(context).width;
     final int cols = _columns(width);
     final int found = _matched.length ~/ 2;
@@ -157,7 +187,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
       children: <Widget>[
         GameShell(
           game: _game,
-          level: _level,
+          level: _selectedLevel,
+
           stepLabel: '$found of $_pairs pairs',
           progress: found / _pairs,
           companionMessage: _done
@@ -228,7 +259,123 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
       ],
     );
   }
+
+  Widget _buildIntro() {
+    return GameShell(
+      game: _game,
+      level: _selectedLevel,
+      companionMessage: 'Turn over cards to find matching pairs.',
+      companionState: CompanionState.happy,
+      bottom: BigButton(
+        label: 'Start game',
+        icon: Icons.play_arrow_rounded,
+        color: _game.accent,
+        onPressed: () => setState(() => _phase = _Phase.play),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            MmCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 1,
+                            title: 'Easy',
+                            subtitle: '4 pairs',
+                            unlocked: 1 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 1,
+                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 2,
+                            title: 'Medium',
+                            subtitle: '6 pairs',
+                            unlocked: 2 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 2,
+                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 3,
+                            title: 'Hard',
+                            subtitle: '8 pairs',
+                            unlocked: 3 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 3,
+                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 4,
+                            title: 'Expert',
+                            subtitle: '10 pairs',
+                            unlocked: 4 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 4,
+                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 96,
+                          child: _LevelOptionChip(
+                            levelNum: 5,
+                            title: 'Mastery',
+                            subtitle: '12 pairs',
+                            unlocked: 5 <= _maxUnlockedLevel,
+                            selected: _selectedLevel == 5,
+                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+            MmCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('MEMORY PAIRS', style: AppText.overline),
+                  const SizedBox(height: 8),
+                  Text('Visual Memory', style: AppText.h1.sized(26)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Flip cards two at a time to find matching pairs of cultural symbols.',
+                    style: AppText.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
 
 class _CountChip extends StatelessWidget {
   const _CountChip({
@@ -406,3 +553,91 @@ class _CardBackPainter extends CustomPainter {
   @override
   bool shouldRepaint(_CardBackPainter old) => false;
 }
+
+
+class _LevelOptionChip extends StatelessWidget {
+  const _LevelOptionChip({
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  'Level $levelNum',
+                  style: AppText.caption.wght(800).tint(
+                        unlocked
+                            ? (selected ? AppColors.primary : AppColors.inkMuted)
+                            : AppColors.inkMuted.withValues(alpha: 0.5),
+                      ),
+                ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : 'Locked 🔒',
+              style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -1,0 +1,42 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploys backend/ as a native Python web service (no Docker needed).
+# In the Render dashboard: New → Blueprint → connect this repo → Render
+# reads this file automatically.
+#
+# Secrets are deliberately NOT in this file:
+#   - FIREBASE_PROJECT_ID, FIREBASE_WEB_API_KEY: `sync: false` below means
+#     Render will prompt you to paste them in the dashboard at deploy time,
+#     and never stores them in this repo.
+#   - DEVICE_JWT_SECRET: `generateValue: true` makes Render generate a real
+#     random secret itself — this also satisfies the production startup
+#     guard in app/core/config.py, which refuses to boot with the local-dev
+#     placeholder value when APP_ENV=production.
+#   - The Firebase service-account JSON is a *file*, not an env var — it
+#     can't be declared here at all. Add it as a Render "Secret File" by
+#     hand (Environment → Secret Files) — see backend/README.md for the
+#     exact steps.
+
+services:
+  - type: web
+    name: memorymitra-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: APP_ENV
+        value: production
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/firebase-service-account.json
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
+      - key: DEVICE_JWT_SECRET
+        generateValue: true
