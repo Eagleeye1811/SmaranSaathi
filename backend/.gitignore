@@ -1,0 +1,18 @@
+# Belt-and-suspenders with the root .gitignore, specifically for anything
+# that could carry Firebase credentials — matched by pattern, not just by
+# living in an ignored folder, so a misplaced copy is still caught.
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+.env
+.env.*
+!.env.example
+
+secrets/
+*serviceAccountKey*.json
+*firebase-adminsdk*.json
+*-firebase-*.json
