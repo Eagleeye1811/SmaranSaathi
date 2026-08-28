@@ -1,0 +1,35 @@
+{
+    "name": "MemoryMitra",
+    "short_name": "MemoryMitra",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FBF7F1",
+    "theme_color": "#2E7D6B",
+    "description": "A gentle companion for every memory — cognitive games and memory assistance for elderly dementia patients, with caregiver and clinician views.",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

@@ -1,45 +1,51 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ─────────────────────────────────────────────────────────────────────────
+# Repository-wide ignores.
+#
+# Each project keeps its own rules as well:
+#   frontend/.gitignore  — Flutter/Dart build output
+#   backend/.gitignore   — added with the FastAPI service
+# ─────────────────────────────────────────────────────────────────────────
 
-# IntelliJ related
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors and IDEs
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.history/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Logs and scratch output
+*.log
+.env
+.env.*
+!.env.example
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ── Backend (FastAPI) — in place ahead of the service itself ─────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/.venv/
+backend/venv/
+backend/env/
+backend/build/
+backend/dist/
+backend/*.egg-info/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/htmlcov/
+backend/.coverage
+backend/.coverage.*
+backend/instance/
+backend/*.db
+backend/*.sqlite3
