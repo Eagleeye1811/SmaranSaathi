@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
-import '../../app/theme/app_theme.dart';
 
 /// The MemoryMitra mark: a woven gamosa diamond holding a small warm heart —
 /// the region's cloth wrapped around something personal.
@@ -146,35 +145,3 @@ class BrandLockup extends StatelessWidget {
   }
 }
 
-/// Small "not a diagnostic tool" note used in clinician-facing surfaces.
-class ClinicalDisclaimer extends StatelessWidget {
-  const ClinicalDisclaimer({super.key, this.compact = false});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16, vertical: compact ? 10 : 14),
-      decoration: BoxDecoration(
-        color: AppColors.clinicHairline.withValues(alpha: 0.45),
-        borderRadius: Corners.r(Corners.sm),
-        border: Border.all(color: AppColors.clinicHairline),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Icon(Icons.info_outline_rounded, size: 17, color: AppColors.clinicInkSoft),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              'This prototype provides cognitive activity and performance insights. '
-              'It is not a diagnostic tool and does not detect or diagnose dementia.',
-              style: AppText.caption.sized(compact ? 11.5 : 12.5).tint(AppColors.clinicInkSoft),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -7,7 +7,6 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
 import '../../../core/services/app_state.dart';
-import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
@@ -110,8 +109,6 @@ class DoctorAlertsScreen extends StatelessWidget {
                     const SizedBox(height: Insets.md),
                   ],
                 ],
-                const SizedBox(height: Insets.sm),
-                const ClinicalDisclaimer(),
               ],
             ),
           ),
