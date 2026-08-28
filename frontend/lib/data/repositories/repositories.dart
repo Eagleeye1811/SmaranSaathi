@@ -2,6 +2,7 @@ import '../../core/models/assessment.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
@@ -76,6 +77,16 @@ abstract class AssessmentRepository {
   Future<void> saveIntake(String patientId, IntakeRecord record);
   Future<CognitiveBaseline?> baseline(String patientId);
   Future<void> saveBaseline(String patientId, CognitiveBaseline baseline);
+}
+
+/// The "Memory Home" companion's long-term store — every real life-story
+/// fragment the patient has shared with Mitra, across every session. This is
+/// what makes the spaced-repetition recall possible at all: without it,
+/// "remember what she told me last week" has nothing to read from.
+abstract class MemoryFragmentRepository {
+  Future<List<MemoryFragment>> all(String patientId);
+  Future<MemoryFragment> add(String patientId, MemoryFragment fragment);
+  Future<void> markResurfaced(String patientId, String fragmentId, DateTime at);
 }
 
 abstract class SettingsRepository {
@@ -265,6 +276,29 @@ class MockAssessmentRepository implements AssessmentRepository {
   @override
   Future<void> saveBaseline(String patientId, CognitiveBaseline baseline) async =>
       _baseline = baseline;
+}
+
+class MockMemoryFragmentRepository implements MemoryFragmentRepository {
+  final List<MemoryFragment> _fragments = <MemoryFragment>[];
+
+  @override
+  Future<List<MemoryFragment>> all(String patientId) async => List<MemoryFragment>.of(_fragments);
+
+  @override
+  Future<MemoryFragment> add(String patientId, MemoryFragment fragment) async {
+    _fragments.add(fragment);
+    return fragment;
+  }
+
+  @override
+  Future<void> markResurfaced(String patientId, String fragmentId, DateTime at) async {
+    final int i = _fragments.indexWhere((MemoryFragment f) => f.id == fragmentId);
+    if (i < 0) return;
+    _fragments[i] = _fragments[i].copyWith(
+      lastResurfacedAt: at,
+      timesResurfaced: _fragments[i].timesResurfaced + 1,
+    );
+  }
 }
 
 class MockSettingsRepository implements SettingsRepository {
