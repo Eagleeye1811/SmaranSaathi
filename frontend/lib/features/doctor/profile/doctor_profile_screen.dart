@@ -156,7 +156,7 @@ class DoctorProfileScreen extends StatelessWidget {
                                 state.setOffline(v);
                                 if (!v) state.syncNow();
                               },
-                              activeColor: Colors.white,
+                              activeThumbColor: Colors.white,
                               activeTrackColor: AppColors.warning,
                             ),
                           ],

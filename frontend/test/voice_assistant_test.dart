@@ -623,15 +623,20 @@ void main() {
       c.dispose();
     });
 
-    testWidgets('the home-screen entry point opens the sheet',
+    testWidgets('the home-screen entry point opens the sheet — voice unavailable path',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(393, 852) * 3;
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
+      // Explicitly inject unavailable stubs to exercise the "no speech plugin"
+      // code path — now that the default is the real SpeechToTextRecognizer.
       await tester.pumpWidget(harness(
-        const AskMitraButton(),
+        const AskMitraButton(
+          recognizer: UnavailableSpeechRecognizer(),
+          synthesizer: UnavailableSpeechSynthesizer(),
+        ),
         state,
       ));
       await tester.pump();

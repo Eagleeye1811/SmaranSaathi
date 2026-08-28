@@ -49,3 +49,25 @@ backend/.coverage.*
 backend/instance/
 backend/*.db
 backend/*.sqlite3
+
+# Flutter/Dart build outputs at repository root
+/build/
+/.dart_tool/
+/.flutter-plugins
+/.flutter-plugins-dependencies
+
+# Android generated at repository root
+/android/local.properties
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/android/.gradle/
+/android/gradle/
+/android/gradlew
+/android/gradlew.bat
+
+# iOS generated at repository root
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/ephemeral/
+/ios/Flutter/flutter_export_environment.sh
+/ios/Runner/GeneratedPluginRegistrant.h
+/ios/Runner/GeneratedPluginRegistrant.m
+

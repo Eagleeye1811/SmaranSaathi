@@ -50,7 +50,7 @@ _STATUS_BY_CODE = {
     "unauthorized": status.HTTP_401_UNAUTHORIZED,
     "forbidden": status.HTTP_403_FORBIDDEN,
     "not_implemented": status.HTTP_501_NOT_IMPLEMENTED,
-    "validation_error": status.HTTP_422_UNPROCESSABLE_CONTENT,
+    "validation_error": status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 
@@ -72,7 +72,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
         return _error_response(
-            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
             "validation_error",
             "Request failed validation.",
             details=exc.errors(),

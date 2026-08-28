@@ -7,6 +7,8 @@ import '../ai/gemini_ai_service.dart';
 import '../ai/resilient_ai_service.dart';
 import '../services/app_state.dart';
 import '../services/connectivity_service.dart';
+import 'adapters/flutter_tts_synthesizer.dart';
+import 'adapters/speech_to_text_recognizer.dart';
 import 'speech_engines.dart';
 import 'voice_assistant_controller.dart';
 import 'voice_language.dart';
@@ -76,8 +78,8 @@ VoiceAssistantController buildVoiceController(
 }) {
   return VoiceAssistantController(
     assistant: assistant ?? buildPatientAssistant(state),
-    recognizer: recognizer ?? const UnavailableSpeechRecognizer(),
-    synthesizer: synthesizer ?? const UnavailableSpeechSynthesizer(),
+    recognizer: recognizer ?? SpeechToTextRecognizer(),
+    synthesizer: synthesizer ?? FlutterTtsSynthesizer(),
     // Rebuilt per turn so the assistant always sees the app as it is now.
     contextBuilder: () => state.aiContext(replyLanguage: replyLanguage),
     // The interface language wins over the profile's: a patient who switched
