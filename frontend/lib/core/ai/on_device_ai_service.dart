@@ -1,0 +1,438 @@
+import '../models/daily.dart';
+import '../models/game.dart';
+import '../models/patient.dart';
+import '../services/adaptive_difficulty_service.dart';
+import 'ai_context.dart';
+import 'ai_models.dart';
+import 'ai_service.dart';
+
+/// The AI layer with no network.
+///
+/// This is not a placeholder. Most of this app's users are on intermittent
+/// rural connections, so the offline answer is the one they will see most
+/// often, and it has to be genuinely useful rather than an apology. It reads
+/// the same signals the prompt sends to Gemini — accuracy, trend, hints,
+/// mistakes, pace, domain scores, mood, adherence — and reaches a conclusion
+/// from them directly.
+///
+/// It is also the safety net: every failure mode of the remote service ends
+/// up here, so the caregiver always gets *something* defensible.
+class OnDeviceAiService implements AiService {
+  const OnDeviceAiService();
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  void dispose() {}
+
+  // ── Cognitive insight ──────────────────────────────────────────────────
+
+  @override
+  Future<AiResult<CognitiveInsight>> cognitiveInsight(PatientAiContext context) async =>
+      AiSuccess<CognitiveInsight>(buildInsight(context));
+
+  /// Synchronous so the remote service can reuse it as a fallback body.
+  CognitiveInsight buildInsight(PatientAiContext context) {
+    final double? average = context.averageAccuracy();
+    final double? trend = context.accuracyTrend();
+    final Map<GameId, double> byGame = context.accuracyByGame();
+    final String name = context.patient.shortName;
+
+    // ── summary ─────────────────────────────────────────────────────────
+    final List<String> summary = <String>[];
+    if (average == null) {
+      summary.add('$name has not played an activity in the last two weeks, '
+          'so there is nothing to compare yet.');
+    } else {
+      final int sessions = context.recent().length;
+      summary.add('$name completed $sessions '
+          '${sessions == 1 ? 'activity' : 'activities'} in the last two weeks, '
+          'averaging ${average.round()}% accuracy.');
+      if (trend != null) {
+        summary.add(switch (trend) {
+          > 3 => 'Recent sessions are stronger than the earlier ones.',
+          < -3 => 'Recent sessions have been weaker than the earlier ones.',
+          _ => 'Performance has held steady across the period.',
+        });
+      }
+      if (context.mood != null) {
+        summary.add('Today she reported feeling ${context.mood!.label.toLowerCase()}.');
+      }
+    }
+
+    // ── strengths ───────────────────────────────────────────────────────
+    final List<String> strengths = <String>[];
+    final List<MapEntry<GameId, double>> ranked = byGame.entries.toList()
+      ..sort((MapEntry<GameId, double> a, MapEntry<GameId, double> b) =>
+          b.value.compareTo(a.value));
+
+    if (ranked.isNotEmpty && ranked.first.value >= 70) {
+      final MapEntry<GameId, double> best = ranked.first;
+      strengths.add('${_activityName(best.key)} is her strongest activity at '
+          '${best.value.round()}% — ${PatientAiContext.domainOf(best.key).label.toLowerCase()} '
+          'work is holding up well.');
+    }
+    final List<GameSession> unaided = context
+        .recent()
+        .where((GameSession s) => s.performance.hintsUsed == 0 && s.performance.completed)
+        .toList(growable: false);
+    if (unaided.isNotEmpty) {
+      strengths.add('${unaided.length} of ${context.recent().length} recent sessions '
+          'were finished with no hints at all.');
+    }
+    if (context.adherencePercent >= 80 && context.reminders.isNotEmpty) {
+      strengths.add('Reminders are being kept up with — '
+          '${context.adherencePercent}% of today\'s are done.');
+    }
+    final MapEntry<CognitiveDomain, int>? topDomain = _extremeDomain(context, best: true);
+    if (topDomain != null && strengths.length < 3) {
+      strengths.add('${topDomain.key.label} scores highest across domains '
+          'at ${topDomain.value}.');
+    }
+    if (strengths.isEmpty) {
+      strengths.add('She is still engaging with the app, which is the thing that '
+          'matters most at this stage.');
+    }
+
+    // ── areas needing attention ─────────────────────────────────────────
+    final List<String> attention = <String>[];
+    if (ranked.isNotEmpty && ranked.last.value < 60) {
+      final MapEntry<GameId, double> worst = ranked.last;
+      attention.add('${_activityName(worst.key)} is sitting at '
+          '${worst.value.round()}%, the lowest of the activities she has played.');
+    }
+    final List<GameSession> abandoned = context
+        .recent()
+        .where((GameSession s) => !s.performance.completed)
+        .toList(growable: false);
+    if (abandoned.isNotEmpty) {
+      attention.add('${abandoned.length} '
+          '${abandoned.length == 1 ? 'session was' : 'sessions were'} left unfinished.');
+    }
+    final List<GameSession> slow = context.recent().where((GameSession s) {
+      final int expected =
+          AdaptiveDifficultyService.expectedSeconds(s.gameId, s.level);
+      return s.performance.seconds > expected * 1.5;
+    }).toList(growable: false);
+    if (slow.isNotEmpty && attention.length < 3) {
+      attention.add('${slow.length} ${slow.length == 1 ? 'session took' : 'sessions took'} '
+          'noticeably longer than usual for their level.');
+    }
+    if (context.untouchedActivities.isNotEmpty && attention.length < 3) {
+      final List<String> names = context.untouchedActivities
+          .take(2)
+          .map(_activityName)
+          .toList(growable: false);
+      attention.add('${names.join(' and ')} '
+          '${names.length == 1 ? 'has' : 'have'} not been played recently.');
+    }
+    if (trend != null && trend < -3 && attention.length < 3) {
+      attention.add('The downward movement in accuracy is worth watching over '
+          'the next week.');
+    }
+    if (attention.isEmpty) {
+      attention.add('Nothing stands out as needing attention this period.');
+    }
+
+    // ── recommendation ──────────────────────────────────────────────────
+    final (GameId activity, String why) = _recommend(context, byGame);
+    final int level = context.levelOf(activity);
+
+    return CognitiveInsight(
+      summary: summary.join(' '),
+      strengths: strengths,
+      attentionAreas: attention,
+      recommendedActivity: activity,
+      recommendedDifficulty: level,
+      reason: why,
+      evidence: _evidence(context, average, trend, activity, level),
+      source: AiSource.onDevice,
+      generatedAt: context.now,
+    );
+  }
+
+  /// Prefer an activity that has not been done today, weakest domain first —
+  /// but never one she is failing badly, which would be discouraging.
+  (GameId, String) _recommend(PatientAiContext context, Map<GameId, double> byGame) {
+    final List<GameId> untouched = context.untouchedActivities
+        .where((GameId g) => !context.completedToday.contains(g) && g != context.lastPlayed)
+        .toList(growable: false);
+    if (untouched.isNotEmpty) {
+      final GameId pick = untouched.first;
+      return (
+        pick,
+        '${_activityName(pick)} has not been played in the last two weeks, so it '
+            'exercises ${PatientAiContext.domainOf(pick).label.toLowerCase()} work that '
+            'nothing else has covered recently.'
+      );
+    }
+
+    final List<MapEntry<GameId, double>> candidates = byGame.entries
+        .where((MapEntry<GameId, double> e) =>
+            !context.completedToday.contains(e.key) && e.key != context.lastPlayed)
+        .toList()
+      ..sort((MapEntry<GameId, double> a, MapEntry<GameId, double> b) =>
+          a.value.compareTo(b.value));
+
+    // Something in the 45–75% band is the useful kind of hard: challenging
+    // without being disheartening.
+    for (final MapEntry<GameId, double> e in candidates) {
+      if (e.value >= 45 && e.value <= 75) {
+        return (
+          e.key,
+          '${_activityName(e.key)} sits at ${e.value.round()}% — enough room to '
+              'improve without being discouraging, which is where practice helps most.'
+        );
+      }
+    }
+    if (candidates.isNotEmpty) {
+      final MapEntry<GameId, double> pick = candidates.first;
+      return (
+        pick.key,
+        '${_activityName(pick.key)} is the weakest recent activity at '
+            '${pick.value.round()}%, so it is where attention is most useful.'
+      );
+    }
+
+    return (
+      GameId.memoryCards,
+      'Everything else has been done today. NER Memory Cards is a gentle way to '
+          'finish without adding pressure.'
+    );
+  }
+
+  List<String> _evidence(
+    PatientAiContext context,
+    double? average,
+    double? trend,
+    GameId activity,
+    int level,
+  ) {
+    return <String>[
+      if (average != null)
+        'Average accuracy ${average.round()}% across ${context.recent().length} sessions',
+      if (trend != null)
+        'Trend ${trend > 0 ? '+' : ''}${trend.round()} points, recent half vs earlier half',
+      if (context.mood != null) 'Mood today: ${context.mood!.label}',
+      'Adherence today ${context.adherencePercent}%',
+      'Overall domain score ${context.cognitiveProfile.overall}',
+      'Level $level — ${AdaptiveDifficultyService.levelDescription(activity, level)}',
+    ];
+  }
+
+  MapEntry<CognitiveDomain, int>? _extremeDomain(PatientAiContext c, {required bool best}) {
+    if (c.cognitiveProfile.scores.isEmpty) return null;
+    final List<MapEntry<CognitiveDomain, int>> e =
+        c.cognitiveProfile.scores.entries.toList()
+          ..sort((MapEntry<CognitiveDomain, int> a, MapEntry<CognitiveDomain, int> b) =>
+              best ? b.value.compareTo(a.value) : a.value.compareTo(b.value));
+    return e.first;
+  }
+
+  // ── Memory assistant ───────────────────────────────────────────────────
+
+  @override
+  Future<AiResult<AssistantReply>> ask(String question, PatientAiContext context) async =>
+      AiSuccess<AssistantReply>(buildReply(question, context));
+
+  /// Answers from the context alone. Every branch is grounded in a fact the
+  /// app actually holds — nothing here can invent a reminder or a relative.
+  AssistantReply buildReply(String question, PatientAiContext context) {
+    final AssistantIntent intent = classify(question);
+    return switch (intent) {
+      AssistantIntent.schedule => _scheduleReply(context),
+      AssistantIntent.activity => _activityReply(context),
+      AssistantIntent.reminders => _remindersReply(context),
+      AssistantIntent.people => _peopleReply(question, context),
+      AssistantIntent.orientation => _orientationReply(context),
+      AssistantIntent.companionship => _companionshipReply(context),
+      AssistantIntent.outOfScope => _outOfScopeReply(context),
+    };
+  }
+
+  /// Keyword intent matching.
+  ///
+  /// Crude by design: it runs on-device with no model, and a wrong guess costs
+  /// only a slightly-off answer that still comes from real context. English
+  /// only today — the language work is a later phase.
+  static AssistantIntent classify(String raw) {
+    final String q = raw.toLowerCase();
+    bool has(List<String> words) => words.any(q.contains);
+
+    if (has(<String>['remind', 'medicine', 'medication', 'tablet', 'pill', 'water', 'drink'])) {
+      return AssistantIntent.reminders;
+    }
+    if (has(<String>['what should i do', 'activity', 'game', 'play', 'exercise', 'practice'])) {
+      return AssistantIntent.activity;
+    }
+    if (has(<String>['today', 'schedule', 'plan', 'routine', 'happening', 'my day'])) {
+      return AssistantIntent.schedule;
+    }
+    if (has(<String>['who is', 'who are', 'my daughter', 'my son', 'my husband',
+        'my wife', 'family', 'grandchild'])) {
+      return AssistantIntent.people;
+    }
+    if (has(<String>['where am i', 'what day', 'what time', 'what year', 'where do i live'])) {
+      return AssistantIntent.orientation;
+    }
+    if (has(<String>['hello', 'hi ', 'how are you', 'thank you', 'good morning',
+        'good evening', 'lonely', 'scared', 'sad'])) {
+      return AssistantIntent.companionship;
+    }
+    return AssistantIntent.outOfScope;
+  }
+
+  AssistantReply _scheduleReply(PatientAiContext c) {
+    final List<Reminder> due = c.dueReminders;
+    final StringBuffer b = StringBuffer();
+    if (due.isEmpty) {
+      b.write('Everything on your list for today is done. ');
+    } else {
+      final Reminder next = due.first;
+      b.write('Next is ${next.title.toLowerCase()} at ${next.time}. ');
+      if (due.length > 1) {
+        b.write('There ${due.length == 2 ? 'is' : 'are'} ${due.length - 1} more after that. ');
+      }
+    }
+    if (c.completedToday.isEmpty) {
+      b.write('You have not done an activity yet today.');
+    } else {
+      b.write('You have already done ${c.completedToday.length} '
+          '${c.completedToday.length == 1 ? 'activity' : 'activities'} today. Well done.');
+    }
+    return AssistantReply(
+      text: b.toString().trim(),
+      intent: AssistantIntent.schedule,
+      source: AiSource.onDevice,
+      followUps: const <String>['What activity should I do?', 'What are my reminders?'],
+    );
+  }
+
+  AssistantReply _activityReply(PatientAiContext c) {
+    final CognitiveInsight insight = buildInsight(c);
+    final GameId pick = insight.recommendedActivity;
+    return AssistantReply(
+      text: 'Shall we try ${_activityName(pick)}? '
+          '${_activityInvitation(pick, c.patient)}',
+      intent: AssistantIntent.activity,
+      source: AiSource.onDevice,
+      suggestedActivity: pick,
+      followUps: const <String>['What do I have today?', 'Maybe later'],
+    );
+  }
+
+  AssistantReply _remindersReply(PatientAiContext c) {
+    final List<Reminder> due = c.dueReminders;
+    if (due.isEmpty) {
+      return AssistantReply(
+        text: c.reminders.isEmpty
+            ? 'There is nothing on your list today.'
+            : 'You have done everything on your list today. Nothing is waiting.',
+        intent: AssistantIntent.reminders,
+        source: AiSource.onDevice,
+        followUps: const <String>['What activity should I do?'],
+      );
+    }
+    final List<String> lines = due
+        .take(3)
+        .map((Reminder r) => '${r.title.toLowerCase()} at ${r.time}')
+        .toList(growable: false);
+    return AssistantReply(
+      text: 'You still have ${_join(lines)}.',
+      intent: AssistantIntent.reminders,
+      source: AiSource.onDevice,
+      followUps: const <String>['What do I have today?', 'What activity should I do?'],
+    );
+  }
+
+  AssistantReply _peopleReply(String question, PatientAiContext c) {
+    final String q = question.toLowerCase();
+    for (final FamilyMember f in c.patient.family) {
+      if (q.contains(f.name.toLowerCase()) || q.contains(f.relation.toLowerCase())) {
+        return AssistantReply(
+          text: '${f.name} is your ${f.relation.toLowerCase()}.'
+              '${f.note.isEmpty ? '' : ' ${f.note}'}',
+          intent: AssistantIntent.people,
+          source: AiSource.onDevice,
+          followUps: const <String>['What do I have today?'],
+        );
+      }
+    }
+    if (c.patient.family.isEmpty) {
+      return _outOfScopeReply(c);
+    }
+    final String names = _join(
+        c.patient.family.map((FamilyMember f) => '${f.name}, your ${f.relation.toLowerCase()}')
+            .toList(growable: false));
+    return AssistantReply(
+      text: 'Your family here is $names.',
+      intent: AssistantIntent.people,
+      source: AiSource.onDevice,
+      followUps: const <String>['What do I have today?'],
+    );
+  }
+
+  AssistantReply _orientationReply(PatientAiContext c) {
+    return AssistantReply(
+      text: 'It is ${c.clockLabel} in the ${c.partOfDay}'
+          '${c.patient.location.isEmpty ? '' : ', and you are at home in ${c.patient.location}'}.',
+      intent: AssistantIntent.orientation,
+      source: AiSource.onDevice,
+      followUps: const <String>['What do I have today?', 'What are my reminders?'],
+    );
+  }
+
+  AssistantReply _companionshipReply(PatientAiContext c) {
+    final String opener = switch (c.mood) {
+      MoodLevel.low => 'I am here with you. We can take today slowly.',
+      MoodLevel.okay => 'I am glad you are here. We will go gently.',
+      MoodLevel.good => 'It is good to hear from you.',
+      null => 'It is good to hear from you.',
+    };
+    return AssistantReply(
+      text: '$opener Would you like to see what is on for today?',
+      intent: AssistantIntent.companionship,
+      source: AiSource.onDevice,
+      followUps: const <String>['What do I have today?', 'What activity should I do?'],
+    );
+  }
+
+  /// The guardrail. Anything the app does not know is declined warmly and the
+  /// patient is steered back to something it *can* answer — never a guess.
+  AssistantReply _outOfScopeReply(PatientAiContext c) => AssistantReply(
+        text: 'I am not sure about that one. I can tell you about your day, '
+            'your reminders, or an activity we could do together.',
+        intent: AssistantIntent.outOfScope,
+        source: AiSource.onDevice,
+        followUps: const <String>[
+          'What do I have today?',
+          'What are my reminders?',
+          'What activity should I do?',
+        ],
+      );
+
+  static String _join(List<String> parts) {
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts.first;
+    return '${parts.sublist(0, parts.length - 1).join(', ')} and ${parts.last}';
+  }
+
+  static String _activityName(GameId id) => switch (id) {
+        GameId.procedure => 'Procedure Reconstruction',
+        GameId.story => 'Finish the Story',
+        GameId.familiarPlace => 'Familiar Place Explorer',
+        GameId.melody => 'Melody of the Valleys',
+        GameId.weaves => 'Weaves of the Hills',
+        GameId.memoryCards => 'NER Memory Cards',
+      };
+
+  static String _activityInvitation(GameId id, Patient p) => switch (id) {
+        GameId.procedure => 'We will put the steps of something familiar back in order.',
+        GameId.story => 'I have a short story we can finish together.',
+        GameId.familiarPlace => 'We can walk through a house like yours and find a few things.',
+        GameId.melody => 'We can listen to a few sounds and play them back.',
+        GameId.weaves => 'We can finish a pattern together.',
+        GameId.memoryCards => 'We can find some matching pairs.',
+      };
+}

@@ -13,6 +13,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../widgets/patient_widgets.dart';
 import 'game_launcher.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The activity hub. Ordered by the personalisation engine, so the thing that
 /// matters most to this particular person is always first.
@@ -21,6 +22,7 @@ class GameHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
     final Recommendation rec = state.todaysRecommendation;
     final List<GameId> order = AppState.personalization.priorityOrder(state.patient);
@@ -48,7 +50,7 @@ class GameHubScreen extends StatelessWidget {
                         Text('Today\'s Cognitive Journey', style: AppText.patientTitle.sized(28)),
                         const SizedBox(height: 6),
                         Text(
-                          'Six gentle activities. Do as many or as few as you like.',
+                          l.gamesIntro,
                           style: AppText.body.tint(AppColors.inkSoft),
                         ),
                       ],
@@ -75,15 +77,15 @@ class GameHubScreen extends StatelessWidget {
                               children: <Widget>[
                                 Text(
                                   doneToday == 0
-                                      ? 'Nothing done yet today'
+                                      ? l.gamesNothingDoneYet
                                       : doneToday >= 4
-                                          ? 'A very good day so far'
-                                          : 'A good start today',
+                                          ? l.gamesVeryGoodDay
+                                          : l.gamesGoodStart,
                                   style: AppText.body.wght(800),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  'Difficulty adapts to how each session goes.',
+                                  l.gamesDifficultyNote,
                                   style: AppText.bodySmall,
                                 ),
                               ],
@@ -145,6 +147,7 @@ class _GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: EdgeInsets.zero,
       clip: true,
@@ -166,7 +169,7 @@ class _GameCard extends StatelessWidget {
                 children: <Widget>[
                   const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.white),
                   const SizedBox(width: 7),
-                  Text('CHOSEN FOR YOU TODAY',
+                  Text(l.gamesChosenForYou,
                       style: AppText.overline.sized(10.5).tint(Colors.white)),
                 ],
               ),
@@ -226,8 +229,8 @@ class _GameCard extends StatelessWidget {
                             dense: true,
                           ),
                           if (completed)
-                            const PillTag(
-                              label: 'Done today',
+                            PillTag(
+                              label: l.gamesDoneToday,
                               icon: Icons.check_circle_rounded,
                               color: AppColors.success,
                               dense: true,
@@ -277,7 +280,7 @@ class _GameCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 SoftButton(
-                  label: completed ? 'Play again' : 'Play',
+                  label: completed ? l.actionPlayAgain : 'Play',
                   icon: Icons.play_arrow_rounded,
                   color: game.accent,
                   filled: !completed,

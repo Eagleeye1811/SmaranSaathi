@@ -14,7 +14,9 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../games/game_launcher.dart';
+import '../voice/ask_mitra_button.dart';
 import '../widgets/patient_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The heart of the product: one screen, four decisions, no menus.
 class PatientHomeScreen extends StatefulWidget {
@@ -30,16 +32,17 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   late final List<DailyQuestion> _questions = MockData.dailyQuestions(AppScope.read(context).patient);
   int _questionIndex = 0;
 
-  String get _greeting {
+  String _greeting(AppLocalizations l) {
     final int h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return l.greetingMorning;
+    if (h < 17) return l.greetingAfternoon;
+    return l.greetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final Recommendation rec = state.todaysRecommendation;
     final GameDefinition game = MockData.game(rec.gameId);
 
@@ -87,7 +90,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                '$_greeting,',
+                                '${_greeting(l)},',
                                 style: AppText.patientTitle.sized(24).tint(AppColors.inkSoft),
                               ),
                               Row(
@@ -150,7 +153,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                             duration: Motion.normal,
                             child: Text(
                               state.mood == null
-                                  ? 'How are you feeling today?'
+                                  ? l.homeMoodQuestion
                                   : state.mood!.companionReply,
                               key: ValueKey<String>(state.mood?.name ?? 'ask'),
                               textAlign: TextAlign.center,
@@ -180,13 +183,20 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Ask Mitra ─────────────────────────────────────────
+                  const FadeInUp(
+                    delayMs: 150,
+                    child: AskMitraButton(),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
                   // ── Today's memory question ───────────────────────────
                   if (question != null) ...<Widget>[
                     FadeInUp(
                       delayMs: 150,
                       child: SectionHeader(
                         title: 'Today\'s memory',
-                        subtitle: 'A small question from Mitra',
+                        subtitle: l.homeSmallQuestion,
                         icon: Icons.auto_awesome_rounded,
                       ),
                     ),
@@ -233,7 +243,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                     FadeInUp(
                       delayMs: 190,
                       child: SectionHeader(
-                        title: 'Coming up',
+                        title: l.homeComingUp,
                         icon: Icons.notifications_active_rounded,
                         action: 'All',
                         onAction: () => widget.onOpenTab?.call(3),
@@ -303,6 +313,7 @@ class _RecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: EdgeInsets.zero,
       clip: true,
@@ -319,7 +330,7 @@ class _RecommendationCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'YOUR COMPANION RECOMMENDS',
+                    l.homeRecommendsLabel,
                     style: AppText.overline.tint(game.accent),
                   ),
                 ),

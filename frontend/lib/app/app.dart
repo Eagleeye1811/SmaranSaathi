@@ -2,6 +2,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../core/services/app_state.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/locale_controller.dart';
 import '../features/auth/role_selection_screen.dart';
 import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
@@ -25,6 +27,15 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   /// Only a state this widget created is ours to dispose.
   late final bool _ownsState = widget.state == null;
 
+  /// Starts in English; the language is chosen in Settings.
+  ///
+  /// Seeding this from the profile's language would be better once the Hindi
+  /// and Assamese strings have been reviewed by a native speaker — see
+  /// `lib/l10n/README.md`. Until then, opening straight into an unreviewed
+  /// translation is the riskier default, so the choice stays explicit.
+  /// `LocaleController.fromPatientLanguage` is ready for that switch.
+  late final LocaleController _locale = LocaleController();
+
   /// Lets a demo boot straight into one role, skipping the role picker:
   ///
   ///     flutter run --dart-define=MM_START=patient
@@ -46,14 +57,15 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   }
 
   Widget get _home => switch (_startRole) {
-        'patient' => const PatientShell(),
-        'caregiver' => const CaregiverShell(),
-        'doctor' => const DoctorShell(),
-        _ => const RoleSelectionScreen(),
-      };
+    'patient' => const PatientShell(),
+    'caregiver' => const CaregiverShell(),
+    'doctor' => const DoctorShell(),
+    _ => const RoleSelectionScreen(),
+  };
 
   @override
   void dispose() {
+    _locale.dispose();
     if (_ownsState) _state.dispose();
     super.dispose();
   }
@@ -62,33 +74,37 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   Widget build(BuildContext context) {
     return AppScope(
       state: _state,
-      child: AnimatedBuilder(
-        animation: _state,
-        builder: (BuildContext context, _) {
-          return MaterialApp(
-            title: 'MemoryMitra',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.warm(highContrast: _state.highContrast),
-            scrollBehavior: const _AppScrollBehavior(),
-            home: _home,
-            builder: (BuildContext context, Widget? child) {
-              // Patient-facing text scaling is a product setting, not an OS one,
-              // so the caregiver can enlarge type on the patient's behalf.
-              final double scale = _state.role == AppRole.patient
-                  ? _state.textSize.scale
-                  : 1.0;
-              final MediaQueryData mq = MediaQuery.of(context);
-              return MediaQuery(
-                data: mq.copyWith(
-                  textScaler: TextScaler.linear(
-                    scale * mq.textScaler.scale(1).clamp(0.9, 1.2),
+      child: LocaleScope(
+        controller: _locale,
+        child: AnimatedBuilder(
+          // Listens to both, so a language change and a settings change each
+          // rebuild the app in place — no restart for either.
+          animation: Listenable.merge(<Listenable>[_state, _locale]),
+          builder: (BuildContext context, _) {
+            return MaterialApp(
+              title: 'MemoryMitra',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.warm(highContrast: _state.highContrast),
+              scrollBehavior: const _AppScrollBehavior(),
+              locale: _locale.locale,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              home: _home,
+              builder: (BuildContext context, Widget? child) {
+                // Patient-facing text scaling is a product setting, not an OS one,
+                // so the caregiver can enlarge type on the patient's behalf.
+                final double scale = _state.role == AppRole.patient ? _state.textSize.scale : 1.0;
+                final MediaQueryData mq = MediaQuery.of(context);
+                return MediaQuery(
+                  data: mq.copyWith(
+                    textScaler: TextScaler.linear(scale * mq.textScaler.scale(1).clamp(0.9, 1.2)),
                   ),
-                ),
-                child: child ?? const SizedBox.shrink(),
-              );
-            },
-          );
-        },
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -103,9 +119,9 @@ class _AppScrollBehavior extends MaterialScrollBehavior {
 
   @override
   Set<PointerDeviceKind> get dragDevices => <PointerDeviceKind>{
-        PointerDeviceKind.touch,
-        PointerDeviceKind.mouse,
-        PointerDeviceKind.trackpad,
-        PointerDeviceKind.stylus,
-      };
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
 }

@@ -8,6 +8,8 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
+import '../settings/language_selector.dart';
 import '../widgets/patient_widgets.dart';
 
 /// Patient profile and accessibility settings.
@@ -21,6 +23,7 @@ class PatientProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final Patient p = state.patient;
 
     return MotifBackground(
@@ -100,11 +103,21 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Language ──────────────────────────────────────────
+                  // Above accessibility on purpose: language is the most
+                  // fundamental of these settings — the others only help
+                  // someone who can already read the screen.
+                  const FadeInUp(
+                    delayMs: 50,
+                    child: LanguageSelector(),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
                   // ── Accessibility ─────────────────────────────────────
                   FadeInUp(
                     delayMs: 60,
                     child: SectionHeader(
-                      title: 'Make it easier to use',
+                      title: l.settingsEasier,
                       icon: Icons.accessibility_new_rounded,
                       subtitle: 'These change how the app looks right away',
                     ),
@@ -132,15 +145,15 @@ class PatientProfileScreen extends StatelessWidget {
                           const SizedBox(height: 6),
                           _SwitchRow(
                             icon: Icons.contrast_rounded,
-                            label: 'High contrast',
-                            detail: 'Stronger outlines and darker text',
+                            label: l.settingsHighContrast,
+                            detail: l.settingsHighContrastNote,
                             value: state.highContrast,
                             onChanged: (bool v) => state.highContrast = v,
                           ),
                           _SwitchRow(
                             icon: Icons.animation_rounded,
-                            label: 'Reduce motion',
-                            detail: 'Fewer animations and no confetti',
+                            label: l.settingsReduceMotion,
+                            detail: l.settingsReduceMotionNote,
                             value: state.reduceMotion,
                             onChanged: (bool v) => state.reduceMotion = v,
                           ),
@@ -161,9 +174,9 @@ class PatientProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 110,
                     child: SectionHeader(
-                      title: 'Connection',
+                      title: l.settingsConnection,
                       icon: Icons.cloud_rounded,
-                      subtitle: 'Everything works without the internet',
+                      subtitle: l.settingsOfflineNote,
                     ),
                   ),
                   FadeInUp(
@@ -175,10 +188,10 @@ class PatientProfileScreen extends StatelessWidget {
                             icon: state.offline
                                 ? Icons.cloud_off_rounded
                                 : Icons.cloud_done_rounded,
-                            label: 'Offline mode',
+                            label: l.settingsOfflineMode,
                             detail: state.offline
                                 ? '${state.pendingSync} activities saved on this device'
-                                : 'Connected — activity syncs automatically',
+                                : l.settingsConnected,
                             value: state.offline,
                             onChanged: (bool v) {
                               state.setOffline(v);
@@ -204,7 +217,7 @@ class PatientProfileScreen extends StatelessWidget {
                                 const Icon(Icons.check_circle_rounded,
                                     color: AppColors.success, size: 20),
                                 const SizedBox(width: 10),
-                                Text('All activities synced',
+                                Text(l.settingsAllSynced,
                                     style: AppText.body.wght(600).tint(AppColors.success)),
                               ],
                             ),
@@ -249,7 +262,7 @@ class PatientProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 190,
                     child: BigButton(
-                      label: 'Switch to another role',
+                      label: l.actionSwitchRole,
                       icon: Icons.swap_horiz_rounded,
                       color: AppColors.inkSoft,
                       outlined: true,

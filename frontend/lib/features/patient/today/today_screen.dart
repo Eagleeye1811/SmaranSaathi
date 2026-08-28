@@ -11,6 +11,7 @@ import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../widgets/patient_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// "Today" — reminders and the memory journal in one place.
 class TodayScreen extends StatelessWidget {
@@ -18,6 +19,7 @@ class TodayScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
     final List<Reminder> reminders = state.reminders;
     final List<JournalEntry> journal = state.journal;
@@ -44,7 +46,7 @@ class TodayScreen extends StatelessWidget {
                         Text('Today', style: AppText.patientTitle.sized(28)),
                         const SizedBox(height: 6),
                         Text(
-                          'Your reminders and what you remembered.',
+                          l.todaySubtitle,
                           style: AppText.body.tint(AppColors.inkSoft),
                         ),
                       ],
@@ -83,7 +85,7 @@ class TodayScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text('Your reminders', style: AppText.h3),
+                                Text(l.todayRemindersHeading, style: AppText.h3),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Medicine ${state.medicineDone} of ${state.medicineTotal} taken today.',
@@ -104,7 +106,7 @@ class TodayScreen extends StatelessWidget {
                     child: SectionHeader(
                       title: 'Reminders',
                       icon: Icons.notifications_active_rounded,
-                      subtitle: 'Tap the circle when something is done',
+                      subtitle: l.todayRemindersHint,
                     ),
                   ),
                   for (int i = 0; i < reminders.length; i++)
@@ -126,7 +128,7 @@ class TodayScreen extends StatelessWidget {
                     child: SectionHeader(
                       title: 'Today\'s memory journal',
                       icon: Icons.menu_book_rounded,
-                      subtitle: 'What you and Mitra talked about',
+                      subtitle: l.todayTalkedAbout,
                     ),
                   ),
                   FadeInUp(
@@ -138,13 +140,13 @@ class TodayScreen extends StatelessWidget {
                                 const Companion(state: CompanionState.gentle, size: 96),
                                 const SizedBox(height: 10),
                                 Text(
-                                  'Nothing written yet today.',
+                                  l.todayNothingWritten,
                                   style: AppText.bodyLarge.wght(700),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Answer a question on the home screen and it will appear here.',
+                                  l.todayAnswerHint,
                                   style: AppText.bodySmall,
                                   textAlign: TextAlign.center,
                                 ),
@@ -214,7 +216,7 @@ class TodayScreen extends StatelessWidget {
                           CompanionSpeech(
                             message: state.journeyDone.contains('reflection')
                                 ? 'Thank you for today, ${state.patient.shortName}. Sleep well.'
-                                : 'Shall we close the day together?',
+                                : l.todayCloseTheDay,
                             state: CompanionState.gentle,
                             companionSize: 66,
                             compact: true,
@@ -222,7 +224,7 @@ class TodayScreen extends StatelessWidget {
                           const SizedBox(height: Insets.md),
                           if (!state.journeyDone.contains('reflection'))
                             BigButton(
-                              label: 'Finish the day',
+                              label: l.todayFinishTheDay,
                               icon: Icons.nightlight_round,
                               color: AppColors.plum,
                               height: 60,
@@ -234,7 +236,7 @@ class TodayScreen extends StatelessWidget {
                                 const Icon(Icons.check_circle_rounded,
                                     color: AppColors.success, size: 24),
                                 const SizedBox(width: 10),
-                                Text('Evening reflection complete',
+                                Text(l.todayReflectionComplete,
                                     style: AppText.bodyLarge.wght(700)),
                               ],
                             ),
@@ -248,7 +250,7 @@ class TodayScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 200,
                     child: SectionHeader(
-                      title: 'Your usual day',
+                      title: l.todayUsualDay,
                       icon: Icons.wb_twilight_rounded,
                     ),
                   ),

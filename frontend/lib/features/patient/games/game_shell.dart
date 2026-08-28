@@ -7,6 +7,7 @@ import '../../../core/models/game.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Tracks the signals every activity feeds to the adaptive engine.
 class GameTracker {
@@ -174,7 +175,7 @@ class _Header extends StatelessWidget {
           RoundIconButton(
             icon: Icons.close_rounded,
             size: 44,
-            tooltip: 'Leave the activity',
+            tooltip: AppLocalizations.of(context).gamesLeaveActivity,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           const SizedBox(width: 12),

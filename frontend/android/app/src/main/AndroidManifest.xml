@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Voice assistant: speech-to-text needs the microphone. Requested at
+         the moment the patient first taps "Talk to Mitra", never at launch. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <application
         android:label="memory_mitra"
         android:name="${applicationName}"
@@ -40,6 +44,17 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!-- Android 11+ package visibility. Without these the speech and TTS
+             engines are invisible to the app and both silently report as
+             unavailable, which is the single most common cause of "voice does
+             nothing on one device but works on another". -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
 </manifest>

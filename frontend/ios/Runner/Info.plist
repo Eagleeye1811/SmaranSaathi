@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Voice assistant. Both strings are shown verbatim in the iOS prompt, so
+	     they are written for the patient, not for a reviewer. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>MemoryMitra uses the microphone so you can talk to Mitra and ask about your day.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>MemoryMitra turns what you say into words so Mitra can answer your questions.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

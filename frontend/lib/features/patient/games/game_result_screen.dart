@@ -10,6 +10,7 @@ import '../../../core/widgets/celebration.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The end of every activity. Encouraging first, informative second — and
 /// never phrased like an exam result.
@@ -64,6 +65,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
     final GamePerformance p = widget.performance;
     final Color accent = widget.game.accent;
@@ -150,11 +152,11 @@ class _GameResultScreenState extends State<GameResultScreen> {
                           ),
                           const SizedBox(height: Insets.lg),
                           _MetricRow(
-                              label: 'Accuracy', value: p.accuracy.round(), color: accent),
+                              label: l.resultAccuracy, value: p.accuracy.round(), color: accent),
                           const SizedBox(height: 12),
-                          _MetricRow(label: 'Focus', value: p.focus.round(), color: accent),
+                          _MetricRow(label: l.resultFocus, value: p.focus.round(), color: accent),
                           const SizedBox(height: 12),
-                          _MetricRow(label: 'Memory', value: p.memory.round(), color: accent),
+                          _MetricRow(label: l.resultMemory, value: p.memory.round(), color: accent),
                           const SizedBox(height: Insets.md),
                           const Divider(color: AppColors.hairline),
                           const SizedBox(height: Insets.md),
@@ -163,17 +165,17 @@ class _GameResultScreenState extends State<GameResultScreen> {
                             children: <Widget>[
                               _MiniStat(
                                 icon: Icons.schedule_rounded,
-                                label: 'Time',
+                                label: l.resultTime,
                                 value: p.durationLabel,
                               ),
                               _MiniStat(
                                 icon: Icons.lightbulb_outline_rounded,
-                                label: 'Hints',
+                                label: l.resultHints,
                                 value: '${p.hintsUsed}',
                               ),
                               _MiniStat(
                                 icon: Icons.replay_rounded,
-                                label: 'Retries',
+                                label: l.resultRetries,
                                 value: '${p.mistakes}',
                               ),
                             ],
@@ -245,7 +247,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   const SizedBox(height: Insets.lg),
 
                   BigButton(
-                    label: 'Continue',
+                    label: l.actionContinue,
                     icon: Icons.arrow_forward_rounded,
                     color: accent,
                     onPressed: () => Navigator.of(context).pop(),
@@ -320,6 +322,7 @@ class _AdaptiveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = switch (decision.direction) {
       DifficultyDirection.increase => AppColors.success,
       DifficultyDirection.maintain => AppColors.secondary,
@@ -340,7 +343,7 @@ class _AdaptiveCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Your next activity has been adjusted for you',
+                    Text(l.resultAdjusted,
                         style: AppText.body.wght(800)),
                     const SizedBox(height: 3),
                     Text(decision.direction.patientMessage, style: AppText.bodySmall),
@@ -354,7 +357,7 @@ class _AdaptiveCard extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: _LevelChip(
-                  caption: 'This session',
+                  caption: l.resultThisSession,
                   level: playedLevel,
                   detail: AdaptiveDifficultyService.levelDescription(game.id, playedLevel),
                   color: AppColors.inkMuted,
@@ -366,7 +369,7 @@ class _AdaptiveCard extends StatelessWidget {
               ),
               Expanded(
                 child: _LevelChip(
-                  caption: 'Next session',
+                  caption: l.resultNextSession,
                   level: decision.nextLevel,
                   detail:
                       AdaptiveDifficultyService.levelDescription(game.id, decision.nextLevel),
@@ -377,7 +380,7 @@ class _AdaptiveCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Insets.md),
-          Text('WHAT MITRA NOTICED', style: AppText.overline),
+          Text(l.resultWhatMitraNoticed, style: AppText.overline),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
