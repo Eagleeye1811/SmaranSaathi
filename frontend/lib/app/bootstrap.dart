@@ -11,23 +11,23 @@ import '../data/local/hive_store.dart';
 import '../data/repositories/hive_repositories.dart';
 import '../firebase_options.dart';
 
-/// Override with `--dart-define=MM_SYNC_BASE_URL=...` — e.g.
-/// `http://127.0.0.1:8000` for web/desktop/a physical device (after `adb
-/// reverse tcp:8000 tcp:8000`). The same URL doubles as the backend base for
-/// [bootstrapAuth]'s `POST /api/v1/auth/role` / `GET /api/v1/auth/me` calls.
+/// Override with `--dart-define=MM_SYNC_BASE_URL=...` when you want a
+/// *different* backend than the deployed one below — e.g.
+/// `http://10.0.2.2:8000` (Android emulator) or `http://127.0.0.1:8000`
+/// (web/desktop/a physical device, after `adb reverse tcp:8000 tcp:8000`) to
+/// point at a backend running on your own machine instead. The same URL
+/// doubles as the backend base for [bootstrapAuth]'s `POST /api/v1/auth/role`
+/// / `GET /api/v1/auth/me` calls.
 const String _configuredSyncBaseUrl = String.fromEnvironment('MM_SYNC_BASE_URL');
 
-/// Resolves to a real backend URL with zero flags needed for the common
-/// case (`flutter run` on the Android emulator): `10.0.2.2` is the
-/// emulator's well-known alias for the host machine's own localhost, not a
-/// secret or anything specific to this project, so defaulting to it in
-/// debug builds is safe. A **release** build with no override still gets
-/// `''` — [AppState]'s [LoopbackTransport] default — so nothing ships
-/// pointed at a developer's own machine.
-String get _syncBaseUrl {
-  if (_configuredSyncBaseUrl.isNotEmpty) return _configuredSyncBaseUrl;
-  return kDebugMode ? 'http://10.0.2.2:8000' : '';
-}
+/// The real, deployed backend (Render) — not a secret, just a public API
+/// endpoint, so hardcoding it as the default is safe (unlike e.g.
+/// GEMINI_API_KEY). This is what a plain `flutter run`/release build talks to
+/// with zero flags; override with `MM_SYNC_BASE_URL` above for local dev
+/// against your own machine instead.
+const String _deployedSyncBaseUrl = 'https://smaransaathi-backend.onrender.com';
+
+String get _syncBaseUrl => _configuredSyncBaseUrl.isNotEmpty ? _configuredSyncBaseUrl : _deployedSyncBaseUrl;
 
 /// Builds the app's state with local persistence wired in.
 ///
