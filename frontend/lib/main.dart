@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'app/app.dart';
 import 'app/bootstrap.dart';
 import 'core/services/app_state.dart';
+import 'core/models/auth_user.dart';
 import 'core/services/auth_service.dart';
 
 Future<void> main() async {
@@ -24,5 +25,16 @@ Future<void> main() async {
   // which case MemoryMitraApp opens straight to role selection exactly as
   // it always has.
   final AuthService? auth = await bootstrapAuth();
+
+  // Firebase restores the previous session itself, so `currentUser` is already
+  // populated here for anyone who signed in before and never signed out.
+  // Binding it now — before the first frame — is what lets the app open
+  // straight onto that person's own dashboard instead of asking them to sign
+  // in and answer the questionnaire all over again.
+  final AuthUser? restored = auth?.currentUser;
+  if (restored != null) {
+    await state.signInAccount(restored.uid);
+  }
+
   runApp(MemoryMitraApp(state: state, authService: auth));
 }

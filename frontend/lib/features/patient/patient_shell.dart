@@ -6,10 +6,9 @@ import '../../core/widgets/app_nav_bar.dart';
 import 'assistant/assistant_screen.dart';
 import 'games/game_hub_screen.dart';
 import 'health/health_dashboard_screen.dart';
-import 'health/progress_screen.dart';
 import 'profile/patient_profile_screen.dart';
 
-/// The patient application: five destinations, large targets, no nesting.
+/// The patient application: four destinations, large targets, no nesting.
 ///
 /// The destinations follow the journey rather than the feature list — where am
 /// I now, what do I do today, where is it heading, who can explain it. The
@@ -29,7 +28,6 @@ class _PatientShellState extends State<PatientShell> {
   static const List<NavDestination> _destinations = <NavDestination>[
     NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
     NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
-    NavDestination('Progress', Icons.timeline_outlined, Icons.timeline_rounded),
     NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
     NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
   ];
@@ -46,7 +44,6 @@ class _PatientShellState extends State<PatientShell> {
         children: <Widget>[
           HealthDashboardScreen(onOpenTab: _go),
           const GameHubScreen(),
-          const ProgressScreen(embedded: true),
           const AssistantScreen(embedded: true),
           const PatientProfileScreen(),
         ],

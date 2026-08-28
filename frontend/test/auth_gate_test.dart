@@ -192,8 +192,11 @@ void main() {
     await tester.enterText(find.byType(TextFormField).first, 'priya@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'password123');
     await tester.tap(find.text('Sign in').last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 800));
+    // Signing in now loads the account's whole record — profile, questionnaire,
+    // baseline, history — before it navigates, so let those reads settle.
+    for (int i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 300));
+    }
 
     // Signed in, the assessment is bound to the uid, and the journey continues.
     expect(state.accountId, 'fake-uid');

@@ -14,6 +14,7 @@ import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dar
 import 'package:memory_mitra/features/patient/games/story/story_game.dart';
 import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
 import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
+import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
 
 /// Layout regression suite.
@@ -75,6 +76,8 @@ Future<void> tapChip(WidgetTester tester, Finder row, String label) async {
 }
 
 void main() {
+  dashboardScrollTests();
+
   group('patient shell renders on every size', () {
     for (final (String name, Size size) in <(String, Size)>[
       ('small phone', kPhoneSmall),
@@ -82,15 +85,16 @@ void main() {
       ('large phone', kPhoneLarge),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all five tabs · $name', (WidgetTester tester) async {
+      testWidgets('all four tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.patient);
         await tester.pumpWidget(harness(const PatientShell(), state: state));
         await beat(tester);
 
+        // Progress is no longer a destination: it lives on the home screen,
+        // under the status it explains.
         for (final String tab in <String>[
           'Activities',
-          'Progress',
           'Companion',
           'Profile',
           'Home',
@@ -380,7 +384,7 @@ void main() {
       await beat(tester);
       expect(tester.takeException(), isNull);
 
-      for (final String tab in <String>['Activities', 'Progress', 'Profile']) {
+      for (final String tab in <String>['Activities', 'Companion', 'Profile']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
         expect(tester.takeException(), isNull, reason: '$tab broke at extra-large text');
@@ -404,6 +408,72 @@ void main() {
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
       await beat(tester, 1200);
       expect(find.textContaining('Good'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+  });
+}
+
+/// The home page carries the whole record, so getting back to the top of it
+/// has to be one action rather than six flicks.
+void dashboardScrollTests() {
+  group('the home page stays navigable', () {
+    testWidgets('the progress detail is collapsed until asked for',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+      await state.loadDemoJourney(now: DateTime(2026, 8, 29));
+
+      await tester.pumpWidget(
+        harness(const HealthDashboardScreen(), state: state),
+      );
+      await beat(tester);
+
+      expect(find.text('Why did my score change?'), findsNothing,
+          reason: 'the detail is behind one tap, so the page stays short');
+      expect(find.text('By domain'), findsNothing);
+
+      final Finder more = find.textContaining('areas');
+      await tester.dragUntilVisible(
+        more,
+        find.byType(Scrollable).first,
+        const Offset(0, -200),
+      );
+      await beat(tester);
+      await tester.tap(more);
+      await beat(tester);
+
+      expect(find.text('By domain'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a back-to-top button appears once the top is far away',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+      await state.loadDemoJourney(now: DateTime(2026, 8, 29));
+
+      await tester.pumpWidget(
+        harness(const HealthDashboardScreen(), state: state),
+      );
+      await beat(tester);
+      expect(find.byType(FloatingActionButton), findsNothing);
+
+      final Finder list = find.byType(Scrollable).first;
+      await tester.fling(list, const Offset(0, -1400), 2200);
+      await beat(tester);
+      await beat(tester);
+
+      expect(find.byType(FloatingActionButton), findsOneWidget,
+          reason: 'the way back appears once scrolling back would be work');
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await beat(tester);
+      await beat(tester);
+
+      expect(find.byType(FloatingActionButton), findsNothing,
+          reason: 'and it takes you back to the top, where it is not needed');
       expect(tester.takeException(), isNull);
     });
   });

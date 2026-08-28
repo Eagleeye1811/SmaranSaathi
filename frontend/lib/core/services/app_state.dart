@@ -179,65 +179,26 @@ class AppState extends ChangeNotifier {
     _voicePrompts = settings.voicePrompts;
     _connectivity.forcedOffline = settings.offlineOverride;
 
-    final Patient? stored = await _patients.current();
+    // The role the device was last used as. Persisted but never restored
+    // until now, so every returning user was sent back to the role picker.
+    _role = _roleFromName(settings.lastRole);
+
+    // The account first: everything below is scoped to it.
+    _accountId = settings.lastAccountId;
+
+    final Patient? stored = _accountId == null
+        ? await _patients.current()
+        : await _patients.byId(_patientIdFor(_accountId!)) ?? await _patients.current();
     if (stored != null) {
       _patient = stored;
     } else {
       await _patients.save(_patient);
     }
 
-    // Activity levels and history.
-    final Map<GameId, int> levels = await _games.levels(_patient.id);
-    if (levels.isEmpty) {
-      for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
-        await _games.saveLevel(_patient.id, e.key, e.value);
-      }
-    } else {
-      _levels.addAll(levels);
-    }
-
-    final List<GameSession> history = await _games.history(_patient.id);
-    if (history.isEmpty) {
-      // Seed the demo's prior fortnight so charts and trends are not blank on
-      // a fresh install. Real sessions are appended in front of these.
-      for (final GameSession s in _sessions) {
-        await _games.recordSession(_patient.id, s);
-      }
-    } else {
-      _sessions
-        ..clear()
-        ..addAll(history);
-    }
-
-    _profile = await _analytics.profile(_patient.id);
-
-    // Reminders: the schedule is authored, the done flags are the user's.
-    await _reminderRepo.seedIfEmpty(MockData.reminders());
-    final List<Reminder> storedReminders = await _reminderRepo.today(_patient.id);
-    if (storedReminders.isNotEmpty) {
-      _reminders
-        ..clear()
-        ..addAll(storedReminders);
-    }
-
-    // Today's conversation.
-    final DailySnapshot snapshot = await _daily.load(_patient.id);
-    _mood = snapshot.mood;
-    _journal
-      ..clear()
-      ..addAll(snapshot.journal);
-    _answered.addAll(snapshot.answeredQuestions);
-    _journeyDone.addAll(snapshot.journeyDone);
-    _todayEngagement = snapshot.engagement;
-    for (final String name in snapshot.completedGameIds) {
-      for (final GameId id in GameId.values) {
-        if (id.name == name) _completedToday.add(id);
-      }
-    }
+    await _loadPatientScopedData();
 
     // The structured intake and the personal baseline, for whichever account
     // this device last worked on.
-    _accountId = settings.lastAccountId;
     _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
     _baseline = await _assessment.baseline(_assessmentScope);
 
@@ -250,12 +211,95 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Loads everything keyed by the current patient id.
+  ///
+  /// Split out of [hydrate] because signing in and out has to redo exactly
+  /// this: levels, history, reminders and today's conversation all belong to
+  /// one person, and switching accounts without reloading them would show the
+  /// previous person's day to whoever signed in next.
+  Future<void> _loadPatientScopedData() async {
+    final Map<GameId, int> levels = await _games.levels(_patient.id);
+    _levels
+      ..clear()
+      ..addAll(MockData.startingLevels);
+    if (levels.isEmpty) {
+      for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
+        await _games.saveLevel(_patient.id, e.key, e.value);
+      }
+    } else {
+      _levels.addAll(levels);
+    }
+
+    final List<GameSession> history = await _games.history(_patient.id);
+    _sessions.clear();
+    if (history.isEmpty) {
+      // Only a demo build writes the sample fortnight. A real install starts
+      // with nothing, and every number on the dashboard stays blank until the
+      // person has actually played something.
+      if (_seedDemo) {
+        _sessions.addAll(MockData.history());
+        for (final GameSession s in _sessions) {
+          await _games.recordSession(_patient.id, s);
+        }
+      }
+    } else {
+      _sessions.addAll(history);
+    }
+
+    // Computed from the sessions just loaded rather than read back, so the
+    // scores on screen always correspond to activities that were really
+    // played by this person.
+    _profile = _profileFromSessions();
+
+    // Reminders: the schedule is authored, the done flags are the user's.
+    await _reminderRepo.seedIfEmpty(MockData.reminders());
+    final List<Reminder> storedReminders = await _reminderRepo.today(_patient.id);
+    _reminders
+      ..clear()
+      ..addAll(storedReminders.isEmpty ? MockData.reminders() : storedReminders);
+
+    // Today's conversation.
+    final DailySnapshot snapshot = await _daily.load(_patient.id);
+    _mood = snapshot.mood;
+    _journal
+      ..clear()
+      ..addAll(snapshot.journal);
+    _answered
+      ..clear()
+      ..addAll(snapshot.answeredQuestions);
+    _journeyDone
+      ..clear()
+      ..addAll(snapshot.journeyDone);
+    _todayEngagement = snapshot.engagement;
+    _completedToday.clear();
+    for (final String name in snapshot.completedGameIds) {
+      for (final GameId id in GameId.values) {
+        if (id.name == name) _completedToday.add(id);
+      }
+    }
+  }
+
+  /// The local profile id an account's data is filed under.
+  static String _patientIdFor(String uid) => 'acct_$uid';
+
+  static AppRole _roleFromName(String? name) {
+    for (final AppRole role in AppRole.values) {
+      if (role.name == name) return role;
+    }
+    return AppRole.none;
+  }
+
   // ── Games ──────────────────────────────────────────────────────────────
   final Map<GameId, int> _levels = Map<GameId, int>.from(MockData.startingLevels);
   Map<GameId, int> get levels => Map<GameId, int>.unmodifiable(_levels);
   int levelOf(GameId id) => _levels[id] ?? 1;
 
-  final List<GameSession> _sessions = MockData.history();
+  // Empty on a real install. A dashboard that shows a fortnight of scores to
+  // someone who has not played anything is not a demo aid, it is a lie about
+  // that person's own record — so the sample history is now reachable only
+  // through `MM_DEMO` or the explicit "Load demonstration history" action.
+  final List<GameSession> _sessions =
+      _seedDemo ? MockData.history() : <GameSession>[];
   List<GameSession> get sessions => List<GameSession>.unmodifiable(_sessions);
 
   final Set<GameId> _completedToday = <GameId>{};
@@ -267,8 +311,44 @@ class AppState extends ChangeNotifier {
   GameId? _lastPlayed;
   GameId? get lastPlayed => _lastPlayed;
 
-  CognitiveProfile _profile = MockData.aamaProfile();
+  // Empty until the person has played something. The authored profile is a
+  // demo fixture, and showing it to a real user would put six invented domain
+  // scores on their own record.
+  CognitiveProfile _profile = _seedDemo
+      ? MockData.aamaProfile()
+      : const CognitiveProfile(
+          scores: <CognitiveDomain, int>{},
+          overall: 0,
+          updated: 'No activities yet',
+        );
   CognitiveProfile get cognitiveProfile => _profile;
+
+  /// The domain profile implied by the sessions actually recorded.
+  ///
+  /// Derived, never stored-and-trusted: a profile read back from disk can
+  /// outlive the sessions it was computed from (a reset, a demo load, a
+  /// different account), and a stale score is worse than none.
+  CognitiveProfile _profileFromSessions() {
+    if (_sessions.isEmpty) {
+      return const CognitiveProfile(
+        scores: <CognitiveDomain, int>{},
+        overall: 0,
+        updated: 'No activities yet',
+      );
+    }
+    final Map<CognitiveDomain, double> current = monitor.domainScores(_sessions);
+    return CognitiveProfile(
+      scores: <CognitiveDomain, int>{
+        for (final MapEntry<CognitiveDomain, double> e in current.entries)
+          e.key: e.value.round(),
+      },
+      overall: current.isEmpty
+          ? 0
+          : (current.values.reduce((double a, double b) => a + b) / current.length).round(),
+      updated: 'From your ${_sessions.length} '
+          '${_sessions.length == 1 ? 'activity' : 'activities'}',
+    );
+  }
 
   /// Records a finished play-through and lets it ripple through every role.
   ///
@@ -294,13 +374,11 @@ class AppState extends ChangeNotifier {
     _lastPlayed = id;
     _journeyDone.add('game');
 
-    // Nudge the domain the activity exercises, plus a smaller general effect.
-    final CognitiveDomain domain = MockData.game(id).domain;
-    final int delta = ((p.overall - 74) / 8).round().clamp(-3, 3);
-    _profile = _profile.withDelta(<CognitiveDomain, int>{
-      domain: delta + 1,
-      CognitiveDomain.attention: (delta * 0.5).round(),
-    });
+    // Recomputed from every session on record rather than nudged by a delta.
+    // A nudged score drifts away from the sessions it claims to summarise —
+    // and after a restart, where it is derived again, it would silently
+    // change. Same input, same number, always.
+    _profile = _profileFromSessions();
 
     _todayEngagement = math.min(99, _todayEngagement + math.max(2, (p.overall / 22).round()));
     _lastActiveMinutes = 0;
@@ -418,6 +496,67 @@ class AppState extends ChangeNotifier {
 
   bool get baselineRunComplete => baselineRemaining.isEmpty;
 
+  // ── The three-day baseline plan ─────────────────────────────────────────
+  //
+  // Six activities, two a day, three days. Paired so each sitting covers two
+  // different domains rather than two of the same, which keeps a single bad
+  // day from landing entirely on one part of the profile.
+  static const List<List<GameId>> baselinePlan = <List<GameId>>[
+    <GameId>[GameId.memoryCards, GameId.story],
+    <GameId>[GameId.familiarPlace, GameId.melody],
+    <GameId>[GameId.weaves, GameId.procedure],
+  ];
+
+  static String _dayKey(DateTime at) =>
+      '${at.year.toString().padLeft(4, '0')}-'
+      '${at.month.toString().padLeft(2, '0')}-'
+      '${at.day.toString().padLeft(2, '0')}';
+
+  /// 0-based index of the day being worked on, 3 once every activity is done.
+  int get baselineDayIndex {
+    for (int day = 0; day < baselinePlan.length; day++) {
+      final bool done = baselinePlan[day]
+          .every((GameId g) => _intake.baselineActivities.contains(g.name));
+      if (!done) return day;
+    }
+    return baselinePlan.length;
+  }
+
+  /// The activities for the current day, in order, unfinished ones first.
+  List<GameId> get baselineToday {
+    final int day = baselineDayIndex;
+    if (day >= baselinePlan.length) return const <GameId>[];
+    return baselinePlan[day];
+  }
+
+  List<GameId> get baselineTodayRemaining => baselineToday
+      .where((GameId g) => !_intake.baselineActivities.contains(g.name))
+      .toList(growable: false);
+
+  /// True once the profile exists — the baseline is frozen and monitoring has
+  /// something to compare against.
+  bool get baselineReady => _baseline != null;
+
+  /// A demo override for the one-day-at-a-time rule. Real use waits for
+  /// tomorrow; a fifteen-minute demonstration cannot, so the screen offers an
+  /// explicit "I have time now" that sets this for the session.
+  bool _baselineDayUnlocked = false;
+  void unlockNextBaselineDay() {
+    _baselineDayUnlocked = true;
+    notifyListeners();
+  }
+
+  /// Whether today's session can be started right now.
+  ///
+  /// Blocked only when the previous day's pair was finished *today* — spacing
+  /// is the point of the plan — and never when the day is half done.
+  bool canStartBaselineSession({DateTime? now}) {
+    if (baselineDayIndex >= baselinePlan.length) return false;
+    if (_baselineDayUnlocked) return true;
+    if (baselineTodayRemaining.length < baselineToday.length) return true;
+    return !_intake.baselineSessionDates.contains(_dayKey(now ?? DateTime.now()));
+  }
+
   void _saveIntake(IntakeRecord next, {Map<String, dynamic>? syncPayload}) {
     // Stamp the record with the account that answered it, so the answers can
     // always be attributed even after the file is copied or synced.
@@ -519,11 +658,41 @@ class AppState extends ChangeNotifier {
 
   /// Records one activity of the baseline run. Called on the result screen, so
   /// an interrupted baseline resumes rather than restarting.
-  void markBaselineActivity(GameId id) {
+  void markBaselineActivity(GameId id, {DateTime? now}) {
     if (_intake.baselineActivities.contains(id.name)) return;
+    final Set<String> activities = <String>{..._intake.baselineActivities, id.name};
+    // Stamp the day when the pair for that day is finished, so the next
+    // session waits for tomorrow rather than for the next tap.
+    final bool dayFinished = baselinePlan.any((List<GameId> pair) =>
+        pair.contains(id) && pair.every((GameId g) => activities.contains(g.name)));
     _saveIntake(_intake.copyWith(
-      baselineActivities: <String>{..._intake.baselineActivities, id.name},
+      baselineActivities: activities,
+      baselineSessionDates: dayFinished
+          ? <String>{..._intake.baselineSessionDates, _dayKey(now ?? DateTime.now())}
+          : null,
     ));
+  }
+
+  /// Closes the questionnaire without freezing a baseline.
+  ///
+  /// The two used to happen together, which meant a person could not reach
+  /// their own home screen until all six activities were done in one sitting.
+  /// The questionnaire is finished here; the baseline is built three days
+  /// later, from the sessions played from the dashboard.
+  void completeIntakeQuestionnaire({DateTime? now}) {
+    if (_intake.completedAtIso != null) return;
+    final DateTime at = now ?? DateTime.now();
+    _saveIntake(
+      _intake.copyWith(completedAtIso: at.toIso8601String()),
+      // The whole record, not just the last step: this is the snapshot the
+      // backend files under the account, and it is the one a clinician's
+      // report is later built from.
+      syncPayload: <String, dynamic>{
+        'step': 'intakeCompleted',
+        'at': at.toIso8601String(),
+        'intake': _intake.copyWith(completedAtIso: at.toIso8601String()).toJson(),
+      },
+    );
   }
 
   /// Closes the intake and freezes the personal baseline.
@@ -617,47 +786,97 @@ class AppState extends ChangeNotifier {
   /// already answered is loaded — so signing in on a second device continues
   /// the questionnaire rather than restarting it, and signing in as someone
   /// else on a shared device does not inherit the previous person's answers.
+  /// Binds the app to a signed-in account and loads everything that belongs
+  /// to it: the profile, the questionnaire, the baseline, the activity history
+  /// and today's conversation.
+  ///
+  /// Called from the sign-in screen and again at every launch for an account
+  /// Firebase has already restored — which is what stops a returning person
+  /// from being asked to do the onboarding twice.
   Future<void> signInAccount(String uid) async {
     if (_accountId == uid) return;
     // Only answers given *anonymously* can be adopted. Switching from one
     // account to another must never carry the first person's answers across.
     final bool wasAnonymous = _accountId == null;
+    final Patient anonymous = _patient;
     _accountId = uid;
-    _persistSettings();
 
     final IntakeRecord? stored = await _assessment.intake(uid);
     final CognitiveBaseline? baseline = await _assessment.baseline(uid);
+    final Patient? storedPatient = await _patients.byId(_patientIdFor(uid));
 
     // A first sign-in adopts anything already answered anonymously on this
     // device rather than throwing it away — someone who started the
     // questionnaire and only then created an account keeps their progress.
-    if (wasAnonymous && stored == null && _intake.consentGiven) {
+    final bool adopting = wasAnonymous && stored == null && _intake.consentGiven;
+
+    if (adopting) {
       final IntakeRecord adopted = _intake.copyWith(accountId: uid);
       _intake = adopted;
+      _patient = anonymous.copyWith(id: _patientIdFor(uid));
+      final Patient owned = _patient;
+      final CognitiveBaseline? keep = _baseline;
       await _write(() async {
+        await _patients.save(owned);
         await _assessment.saveIntake(uid, adopted);
-        if (_baseline != null) await _assessment.saveBaseline(uid, _baseline!);
+        if (keep != null) await _assessment.saveBaseline(uid, keep);
+        // Re-file the answers under the account remotely too. Without this the
+        // record exists on the phone under the new uid but the backend still
+        // holds it against the anonymous device id.
+        await _sync.enqueue(SyncOperationKind.assessmentUpdate, <String, dynamic>{
+          'patientId': owned.id,
+          'accountId': uid,
+          'step': 'accountLinked',
+          'intake': adopted.toJson(),
+          if (keep != null) 'baseline': keep.toJson(),
+        });
       });
     } else {
       _intake = stored ?? IntakeRecord.empty;
       _baseline = baseline;
+      // A returning account gets its own profile back; a brand-new one starts
+      // from the blank template rather than inheriting the last person's name.
+      _patient = storedPatient ??
+          MockData.emptyPatient.copyWith(id: _patientIdFor(uid));
+      if (storedPatient == null) {
+        // Brand-new account on this device: the role belongs to the person,
+        // not to the phone, so it is asked once rather than inherited from
+        // whoever used it last.
+        if (stored == null) _role = AppRole.none;
+        final Patient fresh = _patient;
+        await _write(() async => _patients.save(fresh));
+      }
+      await _loadPatientScopedData();
     }
+
+    _profileReady = true;
+    _persistSettings();
     notifyListeners();
   }
 
-  /// Unbinds the account. The stored assessment is left untouched — signing
-  /// out is not the same as deleting someone's health record.
+  /// Returns the app to its anonymous state.
+  ///
+  /// Nothing is deleted: the account's answers, baseline and history stay on
+  /// disk under its own id and come back at the next sign-in. What this does
+  /// is stop showing them, which on a shared phone is the whole point.
   Future<void> signOutAccount() async {
     if (_accountId == null) return;
     _accountId = null;
+    _patient = MockData.emptyPatient;
+    _profileReady = false;
+    _baseline = null;
+    _intake = IntakeRecord.empty;
+    _mood = null;
+    _lastDecision = null;
+    _lastPlayed = null;
     _persistSettings();
+
     _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
     _baseline = await _assessment.baseline(_assessmentScope);
+    await _loadPatientScopedData();
     notifyListeners();
   }
 
-  /// Clears the assessment so the intake can be walked from the beginning —
-  /// used between demonstrations and by "start over" in the profile.
   Future<void> resetAssessment() async {
     _intake = IntakeRecord.empty;
     _baseline = null;
@@ -680,10 +899,13 @@ class AppState extends ChangeNotifier {
   final Set<String> _journeyDone = <String>{};
   Set<String> get journeyDone => Set<String>.unmodifiable(_journeyDone);
 
-  int _todayEngagement = 78;
+  // Starts at nothing and is earned by real activity, mood check-ins and
+  // reminders. It used to open at 78 on a fresh install, which read as
+  // "you have already done most of today" before the person had done any.
+  int _todayEngagement = _seedDemo ? 78 : 0;
   int get todayEngagement => _todayEngagement;
 
-  int _lastActiveMinutes = 12;
+  int _lastActiveMinutes = _seedDemo ? 12 : 0;
   String get lastActiveLabel =>
       _lastActiveMinutes == 0 ? 'Just now' : '$_lastActiveMinutes min ago';
 

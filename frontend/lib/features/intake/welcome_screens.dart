@@ -8,62 +8,14 @@ import '../../core/models/auth_user.dart';
 import '../../core/services/app_state.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
-import '../../core/widgets/companion.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../auth/role_selection_screen.dart';
+import '../caregiver/caregiver_shell.dart';
+import '../doctor/doctor_shell.dart';
+import '../patient/patient_entry.dart';
 import '../auth/sign_in_screen.dart';
 import 'intake_kit.dart';
-
-/// The first thing anyone sees. Two seconds, then out of the way.
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key, this.next});
-
-  /// What to show once the splash finishes. Defaults to the welcome screen.
-  final Widget? next;
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 1800), () {
-      if (!mounted) return;
-      Nav.rootTo(context, widget.next ?? const WelcomeScreen());
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: MotifBackground(
-        opacity: 0.05,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Companion(state: CompanionState.idle, size: 132),
-              const SizedBox(height: Insets.lg),
-              const BrandLockup(size: 34, center: true, showTagline: false),
-              const SizedBox(height: Insets.sm),
-              Text('Understand. Track. Support.',
-                  style: AppText.body.copyWith(color: AppColors.inkSoft)),
-              const SizedBox(height: Insets.xxl),
-              const SizedBox(
-                width: 120,
-                child: MeterBar(value: 1, height: 4, color: AppColors.primarySoft),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// What the product is, before anyone signs anything.
 ///
@@ -98,7 +50,7 @@ class WelcomeScreen extends StatelessWidget {
     if (existing != null) {
       await state.signInAccount(existing.uid);
       if (!context.mounted) return;
-      Nav.rootTo(context, const RoleSelectionScreen());
+      Nav.rootTo(context, sessionHome(state));
       return;
     }
 
@@ -112,11 +64,23 @@ class WelcomeScreen extends StatelessWidget {
           // first answer is already filed under the right account.
           await state.signInAccount(user.uid);
           if (!context.mounted) return;
-          Nav.rootTo(context, const RoleSelectionScreen());
+          Nav.rootTo(context, sessionHome(state));
         },
       ),
     );
   }
+
+  /// Where a signed-in person belongs.
+  ///
+  /// A returning account already chose a role, and asking again is asking a
+  /// question the app can answer itself. Only an account with no role yet
+  /// sees the picker.
+  static Widget sessionHome(AppState state) => switch (state.role) {
+        AppRole.patient => const PatientEntry(),
+        AppRole.caregiver => const CaregiverShell(),
+        AppRole.doctor => const DoctorShell(),
+        AppRole.none => const RoleSelectionScreen(),
+      };
 
   static const List<({IconData icon, String title, String detail})> _pillars =
       <({IconData icon, String title, String detail})>[

@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/app_state.dart';
 import '../intake/intake_flow.dart';
-import 'health/cognitive_profile_screen.dart';
 import 'patient_shell.dart';
 
 /// Decides what a person sees when they open the patient app.
 ///
-/// Three states, in order: the structured intake if it has not been completed,
-/// the profile reveal immediately after the baseline is captured, and the
-/// dashboard from then on. Because the intake is written to disk step by step,
-/// someone who closes the app halfway through the questionnaire comes back to
-/// the next unanswered question rather than to the beginning.
+/// Two states: the structured intake while the questionnaire is unanswered,
+/// and the dashboard from then on. Because the intake is written to disk step
+/// by step, someone who closes the app halfway through comes back to the next
+/// unanswered question rather than to the beginning.
+///
+/// The dashboard is reached *before* a baseline exists — that is the point of
+/// the three-day plan. The companion on the home screen runs the two daily
+/// activities, and the profile reveal is opened by the last of them.
 class PatientEntry extends StatefulWidget {
   const PatientEntry({super.key});
 
@@ -19,7 +21,7 @@ class PatientEntry extends StatefulWidget {
   State<PatientEntry> createState() => _PatientEntryState();
 }
 
-enum _Phase { intake, reveal, shell }
+enum _Phase { intake, shell }
 
 class _PatientEntryState extends State<PatientEntry> {
   late _Phase _phase;
@@ -27,18 +29,17 @@ class _PatientEntryState extends State<PatientEntry> {
   @override
   void initState() {
     super.initState();
-    _phase = AppScope.read(context).intakeComplete ? _Phase.shell : _Phase.intake;
+    // The questionnaire, not the baseline: someone who has answered every
+    // question belongs on their dashboard even though the profile is still
+    // three sessions away.
+    _phase = AppScope.read(context).intake.isComplete ? _Phase.shell : _Phase.intake;
   }
 
   @override
   Widget build(BuildContext context) {
     return switch (_phase) {
       _Phase.intake => IntakeFlowScreen(
-          onFinished: () => setState(() => _phase = _Phase.reveal),
-        ),
-      _Phase.reveal => CognitiveProfileScreen(
-          firstTime: true,
-          onContinue: () => setState(() => _phase = _Phase.shell),
+          onFinished: () => setState(() => _phase = _Phase.shell),
         ),
       _Phase.shell => const PatientShell(),
     };

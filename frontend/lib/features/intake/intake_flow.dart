@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
+import '../../core/voice/voice_bootstrap.dart';
+import '../../core/voice/voice_intake_controller.dart';
+import 'intake_kit.dart';
 import 'baseline_screens.dart';
 import 'steps_consent_profile.dart';
 import 'steps_medical_caregiver.dart';
@@ -39,6 +42,13 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
 
   late int _index;
 
+  /// Owned by the flow, not by a step: saying "next" on the last question of a
+  /// screen has to move the flow on, which no single step can do for itself.
+  late final VoiceIntakeController _voice = buildVoiceIntakeController(
+    onAdvance: _advance,
+    onGoBack: _back,
+  );
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +56,12 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
     final IntakeStep next = AppScope.read(context).nextIntakeStep;
     final int found = _order.indexOf(next);
     _index = found < 0 ? 0 : found;
+  }
+
+  @override
+  void dispose() {
+    _voice.dispose();
+    super.dispose();
   }
 
   void _advance() {
@@ -64,6 +80,13 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return VoiceIntakeScope(
+      controller: _voice,
+      child: _step,
+    );
+  }
+
+  Widget get _step {
     return switch (_order[_index]) {
       IntakeStep.consent => ConsentStep(onDone: _advance, onBack: _onBack),
       IntakeStep.profile => ProfileStep(onDone: _advance, onBack: _onBack),
@@ -73,11 +96,15 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
       IntakeStep.function => FunctionStep(onDone: _advance, onBack: _onBack),
       IntakeStep.medical => MedicalStep(onDone: _advance, onBack: _onBack),
       IntakeStep.caregiver => CaregiverStep(onDone: _advance, onBack: _onBack),
+      // The questionnaire ends here. The six activities are no longer run in
+      // one sitting off the back of it: the intro closes the intake, and the
+      // three daily sessions are invited by the companion on the dashboard.
       IntakeStep.baseline || IntakeStep.done => BaselineIntroScreen(
           onBack: _onBack,
-          // The run screen pops itself once the baseline is captured; this
-          // only has to move the journey on.
-          onBegin: () => openBaselineRun(context, onComplete: widget.onFinished),
+          onBegin: () {
+            AppScope.read(context).completeIntakeQuestionnaire();
+            widget.onFinished();
+          },
         ),
     };
   }

@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../core/voice/voice_intake_controller.dart';
 import 'intake_kit.dart';
 
 /// Step 3 — why the person is here.
@@ -142,6 +143,33 @@ class _SafetyStepState extends State<SafetyStep> {
       stepIndex: 4,
       stepCount: 8,
       onBack: widget.onBack,
+      voiceQuestions: <VoiceIntakeQuestion>[
+        for (final (String prompt, bool? value, ValueChanged<bool> set)
+            in <(String, bool?, ValueChanged<bool>)>[
+          (
+            'Did these problems start suddenly, within the last few hours or days?',
+            _check.suddenOnset,
+            (bool v) => setState(() => _check = _check.copyWith(suddenOnset: v)),
+          ),
+          (
+            'Does alertness or confusion change markedly through the day?',
+            _check.fluctuatingAlertness,
+            (bool v) => setState(() => _check = _check.copyWith(fluctuatingAlertness: v)),
+          ),
+          (
+            'Any recent sudden weakness, difficulty speaking, fainting, '
+                'seizure or severe headache?',
+            _check.neurologicalRedFlag,
+            (bool v) => setState(() => _check = _check.copyWith(neurologicalRedFlag: v)),
+          ),
+        ])
+          VoiceIntakeQuestion(
+            prompt: prompt,
+            options: const <String>['Yes', 'No'],
+            answeredIndex: value == null ? null : (value ? 0 : 1),
+            onSelect: (int i) => set(i == 0),
+          ),
+      ],
       title: 'A quick safety check',
       subtitle: 'Three questions. They change what we recommend next.',
       accent: AppColors.terracotta,

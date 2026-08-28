@@ -759,6 +759,7 @@ class IntakeRecord {
     this.medical = const MedicalHistory(),
     this.caregiver,
     this.baselineActivities = const <String>{},
+    this.baselineSessionDates = const <String>{},
     this.accountId,
     this.startedAtIso = '',
     this.completedAtIso,
@@ -782,6 +783,14 @@ class IntakeRecord {
   /// Tracked here so a baseline interrupted half way — the phone locks, the
   /// person needs a break — resumes where it stopped instead of restarting.
   final Set<String> baselineActivities;
+
+  /// The calendar days (`yyyy-mm-dd`) on which a baseline session was finished.
+  ///
+  /// The baseline is deliberately spread over three days, two activities each.
+  /// One long sitting measures stamina as much as cognition; three short ones
+  /// on separate days average out a bad night's sleep, and they also teach the
+  /// daily habit the rest of the product depends on.
+  final Set<String> baselineSessionDates;
 
   /// The Firebase uid this assessment belongs to, stamped when the person
   /// signs in. Carried into the sync payload and the report so an answer can
@@ -836,6 +845,7 @@ class IntakeRecord {
     MedicalHistory? medical,
     CaregiverObservation? caregiver,
     Set<String>? baselineActivities,
+    Set<String>? baselineSessionDates,
     String? accountId,
     String? startedAtIso,
     String? completedAtIso,
@@ -850,6 +860,7 @@ class IntakeRecord {
       medical: medical ?? this.medical,
       caregiver: caregiver ?? this.caregiver,
       baselineActivities: baselineActivities ?? this.baselineActivities,
+      baselineSessionDates: baselineSessionDates ?? this.baselineSessionDates,
       accountId: accountId ?? this.accountId,
       startedAtIso: startedAtIso ?? this.startedAtIso,
       completedAtIso: completedAtIso ?? this.completedAtIso,
@@ -866,6 +877,7 @@ class IntakeRecord {
         'medical': medical.toJson(),
         'caregiver': caregiver?.toJson(),
         'baselineActivities': baselineActivities.toList(growable: false),
+        'baselineSessionDates': baselineSessionDates.toList(growable: false),
         'accountId': accountId,
         'startedAt': startedAtIso,
         'completedAt': completedAtIso,
@@ -885,6 +897,10 @@ class IntakeRecord {
       baselineActivities: <String>{
         for (final Object? a in (json['baselineActivities'] as List<dynamic>?) ?? const <dynamic>[])
           a.toString(),
+      },
+      baselineSessionDates: <String>{
+        for (final Object? d in (json['baselineSessionDates'] as List<dynamic>?) ?? const <dynamic>[])
+          d.toString(),
       },
       accountId: json['accountId'] as String?,
       startedAtIso: json['startedAt'] as String? ?? '',

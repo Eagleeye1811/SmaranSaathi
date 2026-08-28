@@ -26,6 +26,13 @@ abstract class PatientRepository {
   /// Null when no profile has ever been saved — the caller then falls back to
   /// the seeded demo patient.
   Future<Patient?> current();
+
+  /// The profile stored under exactly this id, or null.
+  ///
+  /// Distinct from [load], which falls back: two accounts sharing a device
+  /// must never inherit each other's name and age, so a caller that is
+  /// deciding "does this account have a profile yet" needs an honest null.
+  Future<Patient?> byId(String id);
 }
 
 abstract class GameRepository {
@@ -109,17 +116,22 @@ Future<T> _settle<T>(T value) =>
     Future<T>.delayed(const Duration(milliseconds: 120), () => value);
 
 class MockPatientRepository implements PatientRepository {
+  final Map<String, Patient> _byId = <String, Patient>{};
   Patient _patient = MockData.aama;
   bool _saved = false;
 
   @override
-  Future<Patient> load(String id) => _settle(_patient);
+  Future<Patient> load(String id) => _settle(_byId[id] ?? _patient);
 
   @override
   Future<Patient?> current() async => _saved ? _patient : null;
 
   @override
+  Future<Patient?> byId(String id) => _settle(_byId[id]);
+
+  @override
   Future<void> save(Patient patient) async {
+    _byId[patient.id] = patient;
     _patient = patient;
     _saved = true;
   }

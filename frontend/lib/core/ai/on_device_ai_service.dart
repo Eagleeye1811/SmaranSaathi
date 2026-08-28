@@ -1,3 +1,4 @@
+import '../models/assessment.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
 import '../models/patient.dart';
@@ -25,6 +26,115 @@ class OnDeviceAiService implements AiService {
 
   @override
   void dispose() {}
+
+  // ── Today's questions ──────────────────────────────────────────────────
+
+  @override
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext context) async =>
+      AiSuccess<List<DailyQuestion>>(buildDailyQuestions(context));
+
+  /// Personal questions with no network.
+  ///
+  /// Built from the same onboarding answers the prompt would send: the person's
+  /// name, work, family, what they still do unaided and what they came worried
+  /// about. Every question is answerable in one tap and none of them tests
+  /// anybody — a daily question that feels like an exam gets avoided, and an
+  /// avoided question measures nothing.
+  ///
+  /// Synchronous so the remote service can reuse it as a fallback body.
+  List<DailyQuestion> buildDailyQuestions(PatientAiContext context) {
+    final Patient p = context.patient;
+    final String name = p.shortName.isEmpty ? 'friend' : p.shortName;
+    final IntakeRecord? intake = context.intake;
+    final List<DailyQuestion> questions = <DailyQuestion>[];
+
+    questions.add(DailyQuestion(
+      id: 'ai_sleep',
+      text: context.partOfDay == 'morning'
+          ? 'Good morning, $name. How did you sleep?'
+          : 'How has your rest been today, $name?',
+      journalLabel: 'Rest',
+      options: const <QuestionOption>[
+        QuestionOption(
+            label: 'Well', emoji: '😊', response: 'Wonderful. A good night helps everything.'),
+        QuestionOption(
+            label: 'So-so', emoji: '😐', response: 'That happens. We will take today gently.'),
+        QuestionOption(
+            label: 'Poorly',
+            emoji: '😔',
+            positive: false,
+            response: 'Thank you for telling me. Tiredness moves these numbers, '
+                'and I will remember that when we look at today.'),
+      ],
+    ));
+
+    // Someone's work is the richest thing the profile holds: it is decades of
+    // practised skill, and asking about it is a question they can win.
+    if (p.occupation.trim().isNotEmpty) {
+      questions.add(DailyQuestion(
+        id: 'ai_work',
+        text: 'You told me you worked as a ${p.occupation.toLowerCase()}. '
+            'Have you thought about those days recently?',
+        journalLabel: 'Work and skill',
+        options: const <QuestionOption>[
+          QuestionOption(
+              label: 'Yes, often', emoji: '💭', response: 'Those years are still yours.'),
+          QuestionOption(
+              label: 'Sometimes', emoji: '🙂', response: 'They come back when something reminds you.'),
+          QuestionOption(
+              label: 'Not lately', emoji: '🌾', response: 'Perhaps today, then. Tell me one thing you were good at.'),
+        ],
+      ));
+    }
+
+    if (p.family.isNotEmpty) {
+      final FamilyMember member = p.family.first;
+      questions.add(DailyQuestion(
+        id: 'ai_family',
+        text: 'Have you spoken with ${member.name} today?',
+        journalLabel: 'Family contact',
+        sceneId: member.sceneId,
+        options: <QuestionOption>[
+          const QuestionOption(
+              label: 'Yes', emoji: '📞', response: 'That is the best medicine there is.'),
+          const QuestionOption(
+              label: 'Not yet', emoji: '🕐', response: 'There is still time today.'),
+          QuestionOption(
+              label: 'Remind me',
+              emoji: '💛',
+              positive: false,
+              response: 'I will. ${member.name} would like to hear from you.'),
+        ],
+      ));
+    }
+
+    // What they still do unaided, asked as a strength rather than a check.
+    final String? kept = intake == null
+        ? null
+        : <String?>[
+            for (final FunctionalItem item in FunctionCatalogue.items)
+              if ((intake.function.levels[item.id] ?? FunctionLevel.independent) ==
+                  FunctionLevel.independent)
+                item.label,
+          ].whereType<String>().firstOrNull;
+    if (kept != null) {
+      questions.add(DailyQuestion(
+        id: 'ai_function',
+        text: 'You manage ${kept.toLowerCase()} on your own. Did you today?',
+        journalLabel: 'Everyday living',
+        options: const <QuestionOption>[
+          QuestionOption(
+              label: 'Yes, myself', emoji: '👍', response: 'That is worth noticing. Well done.'),
+          QuestionOption(
+              label: 'With a little help', emoji: '🤝', response: 'Asking for a hand is not losing anything.'),
+          QuestionOption(
+              label: 'Not today', emoji: '🌤️', response: 'Some days are like that. Tomorrow is another one.'),
+        ],
+      ));
+    }
+
+    return questions;
+  }
 
   // ── Cognitive insight ──────────────────────────────────────────────────
 

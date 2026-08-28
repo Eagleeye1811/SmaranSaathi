@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../services/app_state.dart';
 import '../services/auth_service.dart';
 import 'ui_kit.dart';
 
@@ -34,6 +35,24 @@ class _AccountSectionState extends State<AccountSection> {
       // here — not just "the client thinks it's signed in".
       _me = service?.fetchMe();
     }
+  }
+
+  /// Signs out of both halves at once.
+  ///
+  /// The local state first: the app must end up signed out even when Firebase
+  /// is unreachable, which on a rural connection it often is. Nothing is
+  /// deleted — the account's record stays on the device and returns at the
+  /// next sign-in.
+  Future<void> _logOut(BuildContext context, AuthService service) async {
+    final AppState state = AppScope.read(context);
+    await state.signOutAccount();
+    try {
+      await service.signOut();
+    } catch (error) {
+      debugPrint('AccountSection: signing out of Firebase failed ($error)');
+    }
+    if (!context.mounted) return;
+    setState(() => _me = null);
   }
 
   @override
@@ -77,7 +96,7 @@ class _AccountSectionState extends State<AccountSection> {
                     label: 'Log out',
                     icon: Icons.logout_rounded,
                     color: AppColors.danger,
-                    onPressed: () => service.signOut(),
+                    onPressed: () => _logOut(context, service),
                   ),
                 ],
               );

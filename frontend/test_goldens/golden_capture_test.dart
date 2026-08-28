@@ -26,7 +26,6 @@ import 'package:memory_mitra/features/intake/welcome_screens.dart';
 import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
 import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
 import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
-import 'package:memory_mitra/features/patient/health/progress_screen.dart';
 import 'package:memory_mitra/features/patient/health/report_screen.dart';
 import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
@@ -345,10 +344,6 @@ void main() {
     await tester.pumpWidget(harness(const CognitiveProfileScreen(), state: s));
     await beat(tester);
     await shoot(tester, '42_cognitive_profile');
-
-    await tester.pumpWidget(harness(const ProgressScreen(), state: s));
-    await beat(tester);
-    await shoot(tester, '43_progress');
 
     await tester.pumpWidget(harness(const ReportScreen(), state: s));
     await beat(tester);

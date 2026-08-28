@@ -11,6 +11,7 @@ import 'package:memory_mitra/core/ai/ai_transport.dart';
 import 'package:memory_mitra/core/ai/gemini_ai_service.dart';
 import 'package:memory_mitra/core/ai/on_device_ai_service.dart';
 import 'package:memory_mitra/core/ai/resilient_ai_service.dart';
+import 'package:memory_mitra/core/models/assessment.dart';
 import 'package:memory_mitra/core/models/daily.dart';
 import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
@@ -22,6 +23,35 @@ final DateTime kNow = DateTime(2026, 3, 14, 9, 30);
 const AiConfig kConfigured = AiConfig(apiKey: 'test-key-not-a-real-secret');
 
 PatientAiContext contextFrom(AppState state) => state.aiContext(now: kNow);
+
+/// A state with real played sessions.
+///
+/// A fresh `AppState` no longer carries a sample fortnight — the dashboard
+/// must start blank for someone who has played nothing — so anything that
+/// needs performance data now plays for it.
+AppState playedState({int perGame = 2}) {
+  final AppState state = AppState();
+  for (int round = 0; round < perGame; round++) {
+    for (final GameId id in GameId.values) {
+      state.finishGame(
+        id,
+        GamePerformance(
+          accuracy: 72 + round * 4,
+          focus: 70 + round * 4,
+          memory: 74 + round * 3,
+          hintsUsed: 1,
+          mistakes: 2,
+          seconds: 90,
+          completed: true,
+          attempts: 10,
+          correct: 7 + round,
+          responseMillis: 12000,
+        ),
+      );
+    }
+  }
+  return state;
+}
 
 /// Wraps a model answer in Gemini's response envelope.
 String geminiEnvelope(Map<String, dynamic> answer) => jsonEncode(<String, dynamic>{
@@ -66,6 +96,8 @@ GeminiAiService geminiFailing(AiErrorKind kind, {AiConfig config = kConfigured})
     );
 
 void main() {
+  dailyQuestionTests();
+
   // ─────────────────────────────────────────────────────────────────────
   group('AiConfig', () {
     test('is unconfigured by default, so no build accidentally calls out', () {
@@ -99,10 +131,10 @@ void main() {
   group('PatientAiContext', () {
     test('derives accuracy, trend and per-activity breakdown from real sessions',
         () {
-      final AppState state = AppState();
+      final AppState state = playedState();
       final PatientAiContext c = contextFrom(state);
 
-      expect(c.recent(), isNotEmpty, reason: 'seeded history is present');
+      expect(c.recent(), isNotEmpty, reason: 'the played sessions are there');
       expect(c.averageAccuracy(), isNotNull);
       expect(c.averageAccuracy(), inInclusiveRange(0, 100));
       expect(c.accuracyByGame(), isNotEmpty);
@@ -111,7 +143,7 @@ void main() {
     });
 
     test('the prompt payload carries every signal the task requires', () {
-      final AppState state = AppState()..setMood(MoodLevel.good);
+      final AppState state = playedState()..setMood(MoodLevel.good);
       final Map<String, dynamic> json = contextFrom(state).toPromptJson();
 
       final Map<String, dynamic> performance =
@@ -134,7 +166,7 @@ void main() {
     });
 
     test('redaction removes identifying detail but keeps the analysis usable', () {
-      final AppState state = AppState();
+      final AppState state = playedState();
       final PatientAiContext c = contextFrom(state);
 
       final Map<String, dynamic> open = c.toPromptJson();
@@ -613,6 +645,73 @@ void main() {
       expect(controller.value!.summary, 'call 2',
           reason: 'the superseded response must be discarded');
       controller.dispose();
+      state.dispose();
+    });
+  });
+}
+
+void dailyQuestionTests() {
+  group('daily questions', () {
+    test('the on-device questions are built from the onboarding answers', () {
+      final AppState state = playedState()
+        ..saveIntakeProfile(
+          name: 'Anita',
+          age: 68,
+          language: 'English',
+          occupation: 'Weaver',
+          completedBy: CompletedBy.patient,
+        );
+      final List<DailyQuestion> questions =
+          const OnDeviceAiService().buildDailyQuestions(contextFrom(state));
+
+      expect(questions, isNotEmpty);
+      // Personal, not generic: the person's own work is in there.
+      expect(
+        questions.any((DailyQuestion q) => q.text.toLowerCase().contains('weaver')),
+        isTrue,
+        reason: 'the questions must come from what this person told us',
+      );
+      // Every question is answerable with taps alone.
+      for (final DailyQuestion q in questions) {
+        expect(q.options.length, greaterThanOrEqualTo(2));
+        expect(q.text, isNotEmpty);
+      }
+      state.dispose();
+    });
+
+    test('a failed model call still produces questions', () async {
+      final AppState state = playedState();
+      final ResilientAiService ai = ResilientAiService(
+        remote: geminiFailing(AiErrorKind.server),
+        connectivity: ManualConnectivityService(online: true),
+      );
+
+      final AiResult<List<DailyQuestion>> result =
+          await ai.dailyQuestions(contextFrom(state));
+
+      expect(result.isSuccess, isTrue, reason: 'the fallback must answer');
+      expect(result.valueOrNull, isNotEmpty);
+      state.dispose();
+    });
+
+    test('a malformed model response is rejected rather than shown', () async {
+      final GeminiAiService ai = geminiReturning(geminiEnvelope(<String, dynamic>{
+        'questions': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'text': 'Only one answer?',
+            'options': <Map<String, dynamic>>[
+              <String, dynamic>{'label': 'Yes', 'emoji': '🙂'},
+            ],
+          },
+        ],
+      }));
+      final AppState state = playedState();
+
+      final AiResult<List<DailyQuestion>> result =
+          await ai.dailyQuestions(contextFrom(state));
+
+      expect(result.isSuccess, isFalse,
+          reason: 'a question that cannot be tapped through is not usable');
       state.dispose();
     });
   });

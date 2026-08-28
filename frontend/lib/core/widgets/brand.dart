@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 
-/// The MemoryMitra mark: a woven gamosa diamond holding a small warm heart —
-/// the region's cloth wrapped around something personal.
+/// The MemoryMitra mark — the shipped app icon, so the logo on screen and the
+/// icon on the home screen are the same image.
+///
+/// The painted mark (a woven gamosa diamond holding a small warm heart) stays
+/// as the fallback: it needs no asset, so a build with the image missing
+/// degrades to a drawn logo rather than a grey box.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 48, this.light = false});
+
+  static const String asset = 'assets/images/app_icon.png';
 
   final double size;
   final bool light;
@@ -16,7 +22,15 @@ class BrandMark extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(painter: _MarkPainter(light: light)),
+      child: Image.asset(
+        asset,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (BuildContext context, Object error, StackTrace? stack) =>
+            CustomPaint(painter: _MarkPainter(light: light)),
+      ),
     );
   }
 }

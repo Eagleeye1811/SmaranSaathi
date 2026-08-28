@@ -10,6 +10,10 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/models/auth_user.dart';
+import '../../../core/services/auth_service.dart';
+import '../../auth/sign_in_screen.dart';
+import '../../intake/welcome_screens.dart';
 import '../health/report_screen.dart';
 import '../patient_entry.dart';
 import '../settings/language_selector.dart';
@@ -331,6 +335,10 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Account ───────────────────────────────────────────
+                  const FadeInUp(delayMs: 175, child: _AccountCard()),
+                  const SizedBox(height: Insets.lg),
+
                   FadeInUp(
                     delayMs: 190,
                     child: BigButton(
@@ -348,6 +356,126 @@ class PatientProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+/// Who is signed in, and the way out.
+///
+/// Logging out is deliberately two taps: on a shared phone it is the one
+/// action here that hides a person's own answers from them, and a stray tap
+/// on a large-target patient screen should not be able to do that. Signing
+/// out never deletes anything — the record stays on the device under the
+/// account and comes back at the next sign-in.
+class _AccountCard extends StatelessWidget {
+  const _AccountCard();
+
+  Future<void> _logOut(BuildContext context) async {
+    final bool confirmed = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('Log out?'),
+            content: const Text(
+              'Your answers and activities stay saved. You can sign back in '
+              'any time to see them again.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Stay signed in'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                child: const Text('Log out'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+
+    final AppState state = AppScope.read(context);
+    final AuthService? service = AuthScope.maybeOf(context);
+    // Local first: the app must end up signed out even if Firebase is
+    // unreachable, which on a rural connection it often is.
+    await state.signOutAccount();
+    try {
+      await service?.signOut();
+    } catch (error) {
+      debugPrint('PatientProfileScreen: signing out of Firebase failed ($error)');
+    }
+    if (!context.mounted) return;
+    Nav.rootTo(context, const WelcomeScreen());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    final AuthService? service = AuthScope.maybeOf(context);
+    final String? email = service?.currentUser?.email;
+    final bool signedIn = state.accountId != null || email != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SectionHeader(
+          title: 'Account',
+          icon: Icons.badge_outlined,
+          subtitle: signedIn
+              ? 'Your answers are filed under this account'
+              : 'Not signed in — everything is saved on this phone only',
+        ),
+        MmCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              ListRow(
+                leading: SoftIcon(
+                  icon: signedIn
+                      ? Icons.person_outline_rounded
+                      : Icons.person_off_outlined,
+                  color: signedIn ? AppColors.primary : AppColors.inkMuted,
+                  size: 48,
+                ),
+                title: signedIn ? (email ?? 'Signed in') : 'No account',
+                subtitle: signedIn
+                    ? 'Signed in'
+                    : 'Sign in to keep your record if you change phones',
+              ),
+              const SizedBox(height: Insets.md),
+              if (signedIn)
+                BigButton(
+                  label: 'Log out',
+                  icon: Icons.logout_rounded,
+                  color: AppColors.danger,
+                  outlined: true,
+                  height: 62,
+                  onPressed: () => _logOut(context),
+                )
+              else if (service != null)
+                BigButton(
+                  label: 'Sign in',
+                  icon: Icons.login_rounded,
+                  color: AppColors.primary,
+                  outlined: true,
+                  height: 62,
+                  onPressed: () => Nav.push(
+                    context,
+                    SignInScreen(
+                      authService: service,
+                      onSignedIn: (AuthUser user) {
+                        state.signInAccount(user.uid);
+                        Navigator.of(context).maybePop();
+                      },
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

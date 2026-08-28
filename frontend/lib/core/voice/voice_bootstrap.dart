@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../ai/ai_context.dart';
 import '../ai/ai_context_builder.dart';
 import '../ai/ai_service.dart';
@@ -11,6 +13,7 @@ import 'adapters/flutter_tts_synthesizer.dart';
 import 'adapters/speech_to_text_recognizer.dart';
 import 'speech_engines.dart';
 import 'voice_assistant_controller.dart';
+import 'voice_intake_controller.dart';
 import 'voice_language.dart';
 
 /// Exposes `AppState`'s connectivity to the AI layer without changing it.
@@ -60,6 +63,26 @@ AiService buildPatientAssistant(AppState state) => ResilientAiService(
       remote: GeminiAiService(),
       connectivity: AppStateConnectivity(state),
     );
+
+/// Builds the controller that reads the intake aloud and takes spoken answers.
+///
+/// Same two engines as the assistant, so a device that can talk to Mitra can
+/// answer the questionnaire — there is no second voice stack.
+VoiceIntakeController buildVoiceIntakeController({
+  required VoidCallback onAdvance,
+  VoidCallback? onGoBack,
+  SpeechRecognizer? recognizer,
+  SpeechSynthesizer? synthesizer,
+  VoiceLanguage language = VoiceLanguage.english,
+}) {
+  return VoiceIntakeController(
+    recognizer: recognizer ?? SpeechToTextRecognizer(),
+    synthesizer: synthesizer ?? FlutterTtsSynthesizer(),
+    onAdvance: onAdvance,
+    onGoBack: onGoBack,
+    language: language,
+  );
+}
 
 /// Builds the voice controller for a patient session.
 ///

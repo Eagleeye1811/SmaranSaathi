@@ -161,6 +161,7 @@ class Patient {
       assets.where((MemoryAsset a) => a.kind == kind).toList(growable: false);
 
   Patient copyWith({
+    String? id,
     String? name,
     String? shortName,
     int? age,
@@ -177,7 +178,7 @@ class Patient {
     List<RoutineItem>? routine,
   }) {
     return Patient(
-      id: id,
+      id: id ?? this.id,
       name: name ?? this.name,
       shortName: shortName ?? this.shortName,
       age: age ?? this.age,

@@ -76,11 +76,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 700));
 
     expect(find.text('How are you feeling today?'), findsOneWidget);
-    // The five patient destinations are always labelled, never icon-only.
+    // The four patient destinations are always labelled, never icon-only.
     for (final String label in <String>[
       'Home',
       'Activities',
-      'Progress',
       'Companion',
       'Profile',
     ]) {

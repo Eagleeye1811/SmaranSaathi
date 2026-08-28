@@ -30,16 +30,29 @@ class HivePatientRepository implements PatientRepository {
   HivePatientRepository(this._store);
 
   final HiveStore _store;
+
+  /// Where the most recently used profile is mirrored, so a launch with no
+  /// account still finds the last person who used the device.
   static const String _key = 'active';
 
   @override
   Future<Patient?> current() async => _store.patients.get(_key);
 
   @override
-  Future<Patient> load(String id) async => _store.patients.get(_key) ?? MockData.aama;
+  Future<Patient> load(String id) async =>
+      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.aama;
 
   @override
-  Future<void> save(Patient patient) => _store.patients.put(_key, patient);
+  Future<Patient?> byId(String id) async => _store.patients.get(id);
+
+  /// Written twice on purpose: under the profile's own id, which is what makes
+  /// two accounts on one phone two separate people, and under `active`, which
+  /// is what an anonymous launch reads.
+  @override
+  Future<void> save(Patient patient) async {
+    await _store.patients.put(patient.id, patient);
+    await _store.patients.put(_key, patient);
+  }
 
   @override
   Future<List<DailyQuestion>> dailyQuestions(Patient patient) async =>
@@ -51,6 +64,12 @@ class HiveGameRepository implements GameRepository {
 
   final HiveStore _store;
 
+  /// Every key is prefixed with the profile it belongs to, so two accounts
+  /// sharing a phone keep two separate histories. A key with no prefix is
+  /// from before accounts existed and belongs to the anonymous profile.
+  static String _scoped(String patientId, String key) => '$patientId|$key';
+  static bool _belongsTo(String patientId, String key) => key.startsWith('$patientId|');
+
   @override
   Future<List<GameDefinition>> catalogue() async => MockData.games;
 
@@ -60,26 +79,34 @@ class HiveGameRepository implements GameRepository {
     if (box.isEmpty) return <GameId, int>{};
     return <GameId, int>{
       for (final GameId id in GameId.values)
-        if (box.get(id.name) != null) id: box.get(id.name)!,
+        if (box.get(_scoped(patientId, id.name)) != null)
+          id: box.get(_scoped(patientId, id.name))!,
     };
   }
 
   @override
   Future<void> saveLevel(String patientId, GameId id, int level) =>
-      _store.levels.put(id.name, level);
+      _store.levels.put(_scoped(patientId, id.name), level);
 
   /// Sessions are keyed newest-first by a descending millisecond stamp, so
   /// `box.values` comes back in display order without a sort on every read.
   @override
   Future<void> recordSession(String patientId, GameSession session) async {
     final int stamp = DateTime.now().millisecondsSinceEpoch;
-    await _store.sessions.put('${0x7FFFFFFFFFFFF - stamp}_${session.gameId.name}', session);
-    await _store.levels.put(session.gameId.name, session.level);
+    await _store.sessions.put(
+      _scoped(patientId, '${0x7FFFFFFFFFFFF - stamp}_${session.gameId.name}'),
+      session,
+    );
+    await _store.levels.put(_scoped(patientId, session.gameId.name), session.level);
   }
 
   @override
   Future<List<GameSession>> history(String patientId) async {
-    final List<String> keys = _store.sessions.keys.cast<String>().toList()..sort();
+    final List<String> keys = _store.sessions.keys
+        .cast<String>()
+        .where((String k) => _belongsTo(patientId, k))
+        .toList()
+      ..sort();
     return <GameSession>[
       for (final String k in keys)
         if (_store.sessions.get(k) != null) _store.sessions.get(k)!,
@@ -91,15 +118,19 @@ class HiveAnalyticsRepository implements AnalyticsRepository {
   HiveAnalyticsRepository(this._store);
 
   final HiveStore _store;
-  static const String _key = 'active';
 
   @override
   Future<CognitiveProfile> profile(String patientId) async =>
-      _store.cognitiveProfile.get(_key) ?? MockData.aamaProfile();
+      _store.cognitiveProfile.get(patientId) ??
+      const CognitiveProfile(
+        scores: <CognitiveDomain, int>{},
+        overall: 0,
+        updated: 'No activities yet',
+      );
 
   @override
   Future<void> saveProfile(String patientId, CognitiveProfile profile) =>
-      _store.cognitiveProfile.put(_key, profile);
+      _store.cognitiveProfile.put(patientId, profile);
 
   // The weekly series and the clinician caseload are synthetic demo data with
   // no user-generated component, so they are not persisted.
@@ -171,24 +202,30 @@ class HiveDailyRepository implements DailyRepository {
   static const String _kCompleted = 'completed';
   static const String _kEngagement = 'engagement';
 
+  /// Today's mood, answers and journal are as personal as anything in the app,
+  /// so they are filed under the profile rather than under the device.
+  static String _scoped(String patientId, String key) => '$patientId|$key';
+
   /// Clears the day's boxes when the stored snapshot belongs to a past day.
-  Future<void> _rollOverIfNeeded() async {
+  Future<void> _rollOverIfNeeded(String patientId) async {
     final String today = dayStampFor(DateTime.now());
-    if (_store.daily.get(_kDay) == today) return;
-    await _store.journal.clear();
-    await _store.daily.delete(_kMood);
-    await _store.daily.delete(_kAnswered);
-    await _store.daily.delete(_kJourney);
-    await _store.daily.delete(_kCompleted);
-    await _store.daily.delete(_kEngagement);
-    await _store.daily.put(_kDay, today);
+    if (_store.daily.get(_scoped(patientId, _kDay)) == today) return;
+    await _store.journal.deleteAll(_store.journal.keys
+        .where((dynamic k) => k is String && k.startsWith('$patientId|'))
+        .toList(growable: false));
+    await _store.daily.delete(_scoped(patientId, _kMood));
+    await _store.daily.delete(_scoped(patientId, _kAnswered));
+    await _store.daily.delete(_scoped(patientId, _kJourney));
+    await _store.daily.delete(_scoped(patientId, _kCompleted));
+    await _store.daily.delete(_scoped(patientId, _kEngagement));
+    await _store.daily.put(_scoped(patientId, _kDay), today);
   }
 
   @override
   Future<DailySnapshot> load(String patientId) async {
-    await _rollOverIfNeeded();
+    await _rollOverIfNeeded(patientId);
     final Box<dynamic> d = _store.daily;
-    final String? moodName = d.get(_kMood) as String?;
+    final String? moodName = d.get(_scoped(patientId, _kMood)) as String?;
     return DailySnapshot(
       mood: moodName == null
           ? null
@@ -196,44 +233,55 @@ class HiveDailyRepository implements DailyRepository {
               (MoodLevel m) => m.name == moodName,
               orElse: () => MoodLevel.okay,
             ),
-      journal: _store.journal.values.toList(growable: false),
-      answeredQuestions: _stringSet(d.get(_kAnswered)),
-      journeyDone: _stringSet(d.get(_kJourney)),
-      completedGameIds: _stringSet(d.get(_kCompleted)),
-      engagement: d.get(_kEngagement) as int? ?? 78,
-      dayStamp: d.get(_kDay) as String?,
+      journal: <JournalEntry>[
+        for (final dynamic k in _store.journal.keys)
+          if (k is String && k.startsWith('$patientId|') && _store.journal.get(k) != null)
+            _store.journal.get(k)!,
+      ],
+      answeredQuestions: _stringSet(d.get(_scoped(patientId, _kAnswered))),
+      journeyDone: _stringSet(d.get(_scoped(patientId, _kJourney))),
+      completedGameIds: _stringSet(d.get(_scoped(patientId, _kCompleted))),
+      engagement: d.get(_scoped(patientId, _kEngagement)) as int? ?? 0,
+      dayStamp: d.get(_scoped(patientId, _kDay)) as String?,
     );
   }
 
   Set<String> _stringSet(dynamic raw) =>
       (raw as List<dynamic>?)?.map((dynamic e) => e.toString()).toSet() ?? <String>{};
 
-  Future<void> _addTo(String key, String value) async {
-    final Set<String> set = _stringSet(_store.daily.get(key))..add(value);
-    await _store.daily.put(key, set.toList(growable: false));
+  Future<void> _addTo(String patientId, String key, String value) async {
+    final String scoped = _scoped(patientId, key);
+    final Set<String> set = _stringSet(_store.daily.get(scoped))..add(value);
+    await _store.daily.put(scoped, set.toList(growable: false));
   }
 
   @override
   Future<void> saveMood(String patientId, MoodLevel mood) =>
-      _store.daily.put(_kMood, mood.name);
+      _store.daily.put(_scoped(patientId, _kMood), mood.name);
 
   @override
   Future<void> addJournalEntry(
       String patientId, JournalEntry entry, String questionId) async {
-    await _store.journal.add(entry);
-    await _addTo(_kAnswered, questionId);
+    // Keyed rather than appended, so one person's journal can be read and
+    // cleared without touching anyone else's.
+    await _store.journal.put(
+      _scoped(patientId, '${DateTime.now().microsecondsSinceEpoch}'),
+      entry,
+    );
+    await _addTo(patientId, _kAnswered, questionId);
   }
 
   @override
-  Future<void> markJourneyStep(String patientId, String step) => _addTo(_kJourney, step);
+  Future<void> markJourneyStep(String patientId, String step) =>
+      _addTo(patientId, _kJourney, step);
 
   @override
   Future<void> markGameCompleted(String patientId, GameId id) =>
-      _addTo(_kCompleted, id.name);
+      _addTo(patientId, _kCompleted, id.name);
 
   @override
   Future<void> saveEngagement(String patientId, int engagement) =>
-      _store.daily.put(_kEngagement, engagement);
+      _store.daily.put(_scoped(patientId, _kEngagement), engagement);
 }
 
 class HiveAssessmentRepository implements AssessmentRepository {

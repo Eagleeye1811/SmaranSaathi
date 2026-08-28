@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../services/connectivity_service.dart';
+import '../models/daily.dart';
 import 'ai_context.dart';
 import 'ai_models.dart';
 import 'ai_service.dart';
@@ -98,6 +99,29 @@ class ResilientAiService implements AiService {
         _lastFailure = failure;
         debugPrint('ResilientAiService: answer fell back to device ($failure)');
         return AiSuccess<AssistantReply>(_onDevice.buildReply(question, context));
+      },
+    );
+  }
+
+  @override
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext context) async {
+    if (!isAvailable) {
+      _lastFailure = AiFailure(
+        _connectivity.isOnline ? AiErrorKind.notConfigured : AiErrorKind.offline,
+      );
+      return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
+    }
+
+    final AiResult<List<DailyQuestion>> result = await _remote.dailyQuestions(context);
+    return result.fold(
+      onSuccess: (List<DailyQuestion> value) {
+        _lastFailure = null;
+        return AiSuccess<List<DailyQuestion>>(value);
+      },
+      onError: (AiFailure failure) {
+        _lastFailure = failure;
+        debugPrint('ResilientAiService: questions fell back to device ($failure)');
+        return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
       },
     );
   }

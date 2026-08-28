@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/assessment.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
@@ -30,6 +31,7 @@ class PatientAiContext {
     this.lastPlayed,
     this.engagementToday = 0,
     this.replyLanguage,
+    this.intake,
   });
 
   final Patient patient;
@@ -55,6 +57,13 @@ class PatientAiContext {
   /// the profile's, because the patient may have switched it deliberately.
   /// Null leaves the model to follow the profile.
   final String? replyLanguage;
+
+  /// What the person said about themselves during onboarding.
+  ///
+  /// The richest personal material the app holds — why they came, what they
+  /// still do unaided, who is around them — and the only source that makes a
+  /// daily question about *this* person rather than about people in general.
+  final IntakeRecord? intake;
 
   // ── Derived signals ────────────────────────────────────────────────────
 
@@ -140,6 +149,35 @@ class PatientAiContext {
   /// Compact on purpose — a smaller prompt is cheaper, faster and leaks less.
   /// Set [redacted] to replace the patient's name with a placeholder, for
   /// deployments that must not send identifying data to a model provider.
+  /// The onboarding answers, trimmed to what a question generator needs.
+  ///
+  /// Deliberately not the whole record: raw symptom scores invite a model to
+  /// comment on severity, and nothing in this app is allowed to do that. What
+  /// goes out is context for warmth, not material for a verdict.
+  static Map<String, dynamic> _intakeJson(IntakeRecord intake, {required bool redacted}) {
+    return <String, dynamic>{
+      'completedBy': intake.completedBy?.name,
+      'concerns': intake.reason.concerns
+          .map((PresentingConcern c) => c.label)
+          .toList(growable: false),
+      'onset': intake.reason.onset?.label,
+      'everydayIndependencePercent': intake.function.independencePercent,
+      'stillDoesUnaided': <String>[
+        for (final FunctionalItem item in FunctionCatalogue.items)
+          if ((intake.function.levels[item.id] ?? FunctionLevel.independent) ==
+              FunctionLevel.independent)
+            item.label,
+      ],
+      'needsSomeHelpWith': <String>[
+        for (final FunctionalItem item in intake.function.needingHelp) item.label,
+      ],
+      'sleepQuality': intake.medical.sleepQuality?.name,
+      'sleepHours': intake.medical.sleepHours,
+      'lowMood': intake.medical.lowMood?.name,
+      if (!redacted) 'hasCaregiver': intake.caregiver != null,
+    };
+  }
+
   Map<String, dynamic> toPromptJson({bool redacted = false, int days = 14}) {
     final String name = redacted ? 'the patient' : patient.shortName;
     final Map<GameId, double> byGame = accuracyByGame(days: days);
@@ -163,6 +201,7 @@ class PatientAiContext {
         'stageNote': patient.stageNote,
       },
       'replyLanguage': replyLanguage ?? patient.language,
+      if (intake != null) 'onboarding': _intakeJson(intake!, redacted: redacted),
       'today': <String, dynamic>{
         'partOfDay': partOfDay,
         'time': clockLabel,

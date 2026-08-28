@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../../core/voice/voice_intake_controller.dart';
 import '../../core/widgets/ui_kit.dart';
+import 'voice_intake_panel.dart';
 
 /// Shared chrome for every step of the intake.
 ///
@@ -11,11 +13,30 @@ import '../../core/widgets/ui_kit.dart';
 /// forty questions about their own memory should never have to relearn where
 /// the "continue" button is. The header states where they are, the body holds
 /// only the questions, and the action bar never moves.
+/// Publishes the intake's voice controller to every step under it.
+///
+/// An inherited scope rather than a constructor argument on nine screens: the
+/// controller has to outlive a single step — it is what moves the flow on when
+/// someone says "next" — and threading it through every step's constructor
+/// would put voice plumbing in files that have nothing else to do with it.
+class VoiceIntakeScope extends InheritedNotifier<VoiceIntakeController> {
+  const VoiceIntakeScope({
+    super.key,
+    required VoiceIntakeController controller,
+    required super.child,
+  }) : super(notifier: controller);
+
+  static VoiceIntakeController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<VoiceIntakeScope>()?.notifier;
+}
+
 class IntakeScaffold extends StatelessWidget {
   const IntakeScaffold({
     super.key,
     required this.title,
     required this.children,
+    this.voiceQuestions,
+    this.voiceKey,
     this.subtitle,
     this.eyebrow,
     this.stepIndex,
@@ -34,6 +55,14 @@ class IntakeScaffold extends StatelessWidget {
   final String? eyebrow;
   final List<Widget> children;
 
+  /// The questions on this screen, in the order they should be read aloud.
+  /// Null or empty means the screen is tap-only and no microphone is offered.
+  final List<VoiceIntakeQuestion>? voiceQuestions;
+
+  /// Changes when the screen moves to a different set of questions, so the
+  /// spoken flow restarts rather than carrying its position across.
+  final Object? voiceKey;
+
   /// 1-based position in the intake, shown as "Step 4 of 8" plus a progress
   /// line. People abandon questionnaires that do not say how long they are.
   final int? stepIndex;
@@ -50,6 +79,7 @@ class IntakeScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool hasProgress = stepIndex != null && stepCount != null;
+    final VoiceIntakeController? voice = VoiceIntakeScope.maybeOf(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -97,7 +127,15 @@ class IntakeScaffold extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
                     Insets.gutter, 0, Insets.gutter, Insets.xl),
-                children: children,
+                children: <Widget>[
+                  if (voice != null && (voiceQuestions?.isNotEmpty ?? false))
+                    VoiceIntakePanel(
+                      controller: voice,
+                      questions: voiceQuestions!,
+                      screenKey: voiceKey,
+                    ),
+                  ...children,
+                ],
               ),
             ),
             _ActionBar(

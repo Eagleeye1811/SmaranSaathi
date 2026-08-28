@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../models/daily.dart';
 import '../models/game.dart';
 import 'ai_config.dart';
 import 'ai_context.dart';
@@ -204,6 +205,112 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
       suggestedActivity: _gameIdFrom(body['suggestedActivity']),
       followUps: _stringList(body['followUps']).take(3).toList(growable: false),
     ));
+  }
+
+  // ── Today's questions ──────────────────────────────────────────────────
+
+  static const String _questionsSystem = '''
+You write the daily check-in questions for MemoryMitra, an app used by older
+adults being monitored for cognitive change, and by their families.
+
+Write 3 questions for THIS person, using their onboarding answers. Rules:
+- Warm, short, in the second person. One sentence each.
+- Grounded in their own life: their work, their family's names, what they
+  still do unaided, what they came worried about. A question that would fit
+  any stranger is a failed question.
+- Never test, quiz, grade or score them. Never ask what day, year or place it
+  is. Never mention dementia, diagnosis, risk, decline or their scores.
+- Never imply anything is wrong with them.
+- Each question has 2-3 answers of one to three words, each with one emoji and
+  a warm one-sentence reply. Answers must never be right or wrong.
+- Use their reply language.
+
+Reply with a single JSON object and nothing else — no markdown, no code fence:
+{
+  "questions": [
+    {
+      "id": "short_slug",
+      "text": "the question",
+      "journalLabel": "2-3 words naming what this is about",
+      "options": [
+        {"label": "Yes", "emoji": "😊", "positive": true, "response": "one warm sentence"}
+      ]
+    }
+  ]
+}''';
+
+  @override
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext context) async {
+    if (!config.isConfigured) {
+      return AiError<List<DailyQuestion>>.of(AiErrorKind.notConfigured,
+          detail: 'no GEMINI_API_KEY or AI_PROXY_URL for this build');
+    }
+
+    final Map<String, dynamic> full =
+        context.toPromptJson(redacted: config.redactPatientIdentity);
+    final Map<String, dynamic> data = <String, dynamic>{
+      'patient': full['patient'],
+      'replyLanguage': full['replyLanguage'],
+      'today': full['today'],
+      if (full.containsKey('onboarding')) 'onboarding': full['onboarding'],
+    };
+
+    final AiResult<Map<String, dynamic>> json = await _generate(
+      system: _questionsSystem,
+      user: 'Write today\'s questions for this person.\n\n'
+          '${const JsonEncoder().convert(data)}',
+    );
+
+    return switch (json) {
+      AiError<Map<String, dynamic>>(:final AiFailure failure) =>
+        AiError<List<DailyQuestion>>(failure),
+      AiSuccess<Map<String, dynamic>>(value: final Map<String, dynamic> body) =>
+        _parseQuestions(body),
+    };
+  }
+
+  AiResult<List<DailyQuestion>> _parseQuestions(Map<String, dynamic> body) {
+    final Object? raw = body['questions'];
+    if (raw is! List<dynamic>) {
+      return AiError<List<DailyQuestion>>.of(AiErrorKind.malformed,
+          detail: 'no questions array');
+    }
+
+    final List<DailyQuestion> questions = <DailyQuestion>[];
+    for (final Object? entry in raw) {
+      if (entry is! Map<dynamic, dynamic>) continue;
+      final String text = (entry['text'] as String? ?? '').trim();
+      final Object? rawOptions = entry['options'];
+      if (text.isEmpty || rawOptions is! List<dynamic>) continue;
+
+      final List<QuestionOption> options = <QuestionOption>[];
+      for (final Object? o in rawOptions) {
+        if (o is! Map<dynamic, dynamic>) continue;
+        final String label = (o['label'] as String? ?? '').trim();
+        if (label.isEmpty) continue;
+        options.add(QuestionOption(
+          label: label,
+          emoji: (o['emoji'] as String? ?? '🙂').trim(),
+          positive: o['positive'] as bool? ?? true,
+          response: (o['response'] as String?)?.trim(),
+        ));
+      }
+      // A question with fewer than two answers cannot be tapped through.
+      if (options.length < 2) continue;
+
+      questions.add(DailyQuestion(
+        id: 'ai_${(entry['id'] as String? ?? 'q${questions.length}').trim()}',
+        text: text,
+        journalLabel: (entry['journalLabel'] as String? ?? 'Check-in').trim(),
+        options: options.take(3).toList(growable: false),
+      ));
+    }
+
+    if (questions.isEmpty) {
+      return AiError<List<DailyQuestion>>.of(AiErrorKind.malformed,
+          detail: 'no usable question in the response');
+    }
+    return AiSuccess<List<DailyQuestion>>(questions.take(4).toList(growable: false));
   }
 
   // ── Wire format ────────────────────────────────────────────────────────

@@ -30,6 +30,9 @@ class _FailingAssistant implements AiService {
   @override
   Future<AiResult<AssistantReply>> ask(String q, PatientAiContext c) async =>
       AiError<AssistantReply>.of(AiErrorKind.server);
+  @override
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext c) async =>
+      AiError<List<DailyQuestion>>.of(AiErrorKind.server);
 }
 
 /// An assistant we can hold mid-flight, to observe the `thinking` phase.
@@ -42,6 +45,9 @@ class _GatedAssistant implements AiService {
   @override
   Future<AiResult<CognitiveInsight>> cognitiveInsight(PatientAiContext c) async =>
       AiError<CognitiveInsight>.of(AiErrorKind.unknown);
+  @override
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext c) async =>
+      AiError<List<DailyQuestion>>.of(AiErrorKind.unknown);
   @override
   Future<AiResult<AssistantReply>> ask(String q, PatientAiContext c) async {
     await gate.future;

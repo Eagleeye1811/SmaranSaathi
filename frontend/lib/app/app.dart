@@ -5,12 +5,10 @@ import '../core/services/app_state.dart';
 import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
+import '../features/caregiver/caregiver_shell.dart';
 import '../features/intake/welcome_screens.dart';
 import '../features/patient/patient_entry.dart';
-import '../features/auth/role_selection_screen.dart';
-import '../features/auth/sign_in_screen.dart';
 import '../features/auth/splash_screen.dart';
-import '../features/caregiver/caregiver_shell.dart';
 import '../features/doctor/doctor_shell.dart';
 import 'theme/app_theme.dart';
 
@@ -75,14 +73,26 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
       'patient' => const PatientEntry(),
       'caregiver' => const CaregiverShell(),
       'doctor' => const DoctorShell(),
-      // Everyone else starts at the splash, then the welcome screen — which
-      // explains what the product is, and is where sign-in is reached from
-      // (`WelcomeScreen.continueFrom`) before the role picker and the intake.
-      // `MM_START` skips straight past both, so a kiosk build and the test
-      // suite are unaffected.
-      _ => const SplashScreen(next: WelcomeScreen()),
+      // Everyone else starts at the splash. Where it goes next depends on
+      // whether there is a session to return to — `MM_START` skips both, so a
+      // kiosk build and the test suite are unaffected.
+      _ => SplashScreen(next: _afterSplash),
     };
   }
+
+  /// Where a launch lands once the splash is done.
+  ///
+  /// A signed-in person with a role already chosen goes straight to their own
+  /// app: `main` has bound their account and loaded their record before the
+  /// first frame, and `PatientEntry` then decides between the questionnaire
+  /// and the dashboard from what they have actually answered. Everyone else
+  /// gets the welcome screen, which explains the product before asking for an
+  /// email.
+  Widget get _afterSplash => _state.accountId == null
+      ? const WelcomeScreen()
+      // Signed in but never picked a role lands on the picker — one question,
+      // not the whole journey again.
+      : WelcomeScreen.sessionHome(_state);
 
   @override
   void dispose() {

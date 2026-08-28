@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../core/voice/voice_intake_controller.dart';
 import 'intake_kit.dart';
 
 /// Step 1 — consent.
@@ -58,6 +59,19 @@ class _ConsentStepState extends State<ConsentStep> {
       stepIndex: 1,
       stepCount: 8,
       onBack: widget.onBack,
+      // Voice starts here, on the first screen of the intake, so someone who
+      // cannot read the consent text can still be told it and agree to it.
+      voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion(
+          prompt: 'This app records what you tell us about your memory and '
+              'daily life, and how you do in short activities, so changes over '
+              'time can be seen. It is not a diagnosis. Do you understand and '
+              'agree to continue?',
+          options: const <String>['Yes', 'No'],
+          answeredIndex: _understood ? 0 : null,
+          onSelect: (int i) => setState(() => _understood = i == 0),
+        ),
+      ],
       title: 'Before we begin',
       subtitle: 'Here is what this app collects, and what it does with it.',
       onContinue: _understood
@@ -176,6 +190,41 @@ class _ProfileStepState extends State<ProfileStep> {
       stepIndex: 2,
       stepCount: 8,
       onBack: widget.onBack,
+      // Name and profession are dictated, age is a spoken number, and the
+      // last two are ordinary choices — so the whole screen can be completed
+      // without touching the keyboard, which for this app's users is the
+      // difference between filling it in and not.
+      voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion.dictated(
+          prompt: 'What is your name?',
+          answered: _name.text,
+          onSpeak: (String value) => setState(() => _name.text = value),
+        ),
+        VoiceIntakeQuestion.number(
+          prompt: 'How old are you?',
+          answered: _age.text,
+          onSpeak: (int value) => setState(() => _age.text = value.toString()),
+        ),
+        VoiceIntakeQuestion(
+          prompt: 'Which language would you like to use?',
+          options: _languages,
+          answeredIndex: _languages.indexOf(_language),
+          onSelect: (int i) => setState(() => _language = _languages[i]),
+        ),
+        VoiceIntakeQuestion.dictated(
+          prompt: 'What did you do for a living?',
+          answered: _profession.text,
+          onSpeak: (String value) => setState(() => _profession.text = value),
+        ),
+        VoiceIntakeQuestion(
+          prompt: 'Who is answering these questions?',
+          options: CompletedBy.values
+              .map((CompletedBy c) => c.label)
+              .toList(growable: false),
+          answeredIndex: _completedBy?.index,
+          onSelect: (int i) => setState(() => _completedBy = CompletedBy.values[i]),
+        ),
+      ],
       title: 'About you',
       subtitle: 'Age, language and profession affect how results are interpreted.',
       onContinue: _valid

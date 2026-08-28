@@ -1,3 +1,4 @@
+import '../models/daily.dart';
 import 'ai_context.dart';
 import 'ai_models.dart';
 
@@ -20,6 +21,15 @@ abstract class AiService {
   /// This is not a general chatbot: anything the context cannot support is
   /// answered with a gentle redirect rather than a guess.
   Future<AiResult<AssistantReply>> ask(String question, PatientAiContext context);
+
+  /// Today's questions for this person, written from their own onboarding
+  /// answers rather than picked from a fixed list.
+  ///
+  /// Grounded in [PatientAiContext.intake]: what they came worried about, what
+  /// they still do unaided, who is around them. Every implementation must
+  /// return something answerable with two or three large taps — the patient
+  /// never types.
+  Future<AiResult<List<DailyQuestion>>> dailyQuestions(PatientAiContext context);
 
   /// Whether this implementation can currently reach a model. Used to decide
   /// what to show while loading, not to gate the call.

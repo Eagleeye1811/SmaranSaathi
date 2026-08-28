@@ -45,6 +45,8 @@ GameSession session(GameId id, {required int dayOffset, required double score}) 
 }
 
 void main() {
+  accountTests();
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('symptom assessment', () {
@@ -505,7 +507,24 @@ void main() {
     test('a captured baseline survives a restart and anchors later readings', () async {
       var (HiveStore store, AppState state) = await launch();
 
+      // Played, not just marked: a fresh install has no seeded history, so a
+      // baseline can only come from activities that were actually done.
       for (final GameId id in GameId.values) {
+        state.finishGame(
+          id,
+          const GamePerformance(
+            accuracy: 70,
+            focus: 68,
+            memory: 72,
+            hintsUsed: 1,
+            mistakes: 2,
+            seconds: 100,
+            completed: true,
+            attempts: 10,
+            correct: 7,
+            responseMillis: 12000,
+          ),
+        );
         state.markBaselineActivity(id);
       }
       await state.captureBaseline(now: DateTime(2026, 6, 1));
@@ -710,6 +729,167 @@ void main() {
 
       await state.signInAccount('uid-priya');
       expect(state.intake.consentGiven, isTrue);
+
+      state.dispose();
+      await store.close();
+    });
+  });
+}
+
+/// Signing in, out and back in — the lifecycle a real person actually has.
+///
+/// All of it against real Hive storage, because the point of every assertion
+/// here is what survives a restart and what must not cross between accounts.
+void accountTests() {
+  group('accounts', () {
+    late Directory dir;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp('mm_accounts_test');
+    });
+
+    tearDown(() async {
+      await Hive.close();
+      if (dir.existsSync()) await dir.delete(recursive: true);
+    });
+
+    Future<(HiveStore, AppState)> launch() async {
+      final HiveStore store = await HiveStore.open(path: dir.path);
+      final AppState state = AppState(
+        patients: HivePatientRepository(store),
+        games: HiveGameRepository(store),
+        analytics: HiveAnalyticsRepository(store),
+        reminders: HiveReminderRepository(store),
+        daily: HiveDailyRepository(store),
+        assessment: HiveAssessmentRepository(store),
+        settings: HiveSettingsRepository(store),
+        sync: HiveSyncRepository(store),
+      );
+      await state.hydrate();
+      return (store, state);
+    }
+
+    Future<void> answerEverything(AppState state, {required String name}) async {
+      state.giveConsent();
+      state.saveIntakeProfile(
+        name: name,
+        age: 70,
+        language: 'English',
+        occupation: 'Teacher',
+        completedBy: CompletedBy.patient,
+      );
+      state.saveReason(const ReasonForVisit(
+        concerns: <PresentingConcern>{PresentingConcern.memoryProblems},
+        onset: OnsetWindow.sixToTwelveMonths,
+        progression: ProgressionPattern.graduallyWorse,
+      ));
+      state.saveSafetyCheck(const SafetyCheck(
+        suddenOnset: false,
+        fluctuatingAlertness: false,
+        neurologicalRedFlag: false,
+      ));
+      for (final SymptomItem item in SymptomCatalogue.items) {
+        state.answerSymptom(item.id, SymptomFrequency.sometimes);
+      }
+      for (final FunctionalItem item in FunctionCatalogue.items) {
+        state.setFunctionLevel(item.id, FunctionLevel.independent);
+      }
+      state.saveMedicalHistory(const MedicalHistory(
+        sleepQuality: SleepQuality.good,
+        lowMood: MoodFrequency.never,
+      ));
+      state.completeIntakeQuestionnaire(now: DateTime(2026, 6, 1));
+      await state.flush();
+    }
+
+    test('a returning account is not asked to do the onboarding again',
+        () async {
+      var (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      state.setRole(AppRole.patient);
+      await answerEverything(state, name: 'Anita Das');
+      await state.flush();
+
+      state.dispose();
+      await store.close();
+
+      // A relaunch: `main` restores the Firebase session and binds it before
+      // the first frame, which is exactly this call.
+      (store, state) = await launch();
+      await state.signInAccount('uid-anita');
+
+      expect(state.intake.isComplete, isTrue,
+          reason: 'the questionnaire must not be asked twice');
+      expect(state.patient.name, 'Anita Das');
+      expect(state.role, AppRole.patient,
+          reason: 'the role is restored, so no role picker either');
+      expect(state.accountId, 'uid-anita');
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('a second account on the same phone gets its own blank record',
+        () async {
+      final (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      await answerEverything(state, name: 'Anita Das');
+
+      // Someone else picks up the same phone.
+      await state.signOutAccount();
+      expect(state.intake.isComplete, isFalse);
+      expect(state.patient.name, isNot('Anita Das'));
+
+      await state.signInAccount('uid-rahul');
+      expect(state.intake.isComplete, isFalse,
+          reason: "one person's answers must never appear under another's account");
+      expect(state.role, AppRole.none,
+          reason: 'a new account picks its own role rather than inheriting one');
+      expect(state.patient.name, isNot('Anita Das'));
+      expect(state.sessions, isEmpty);
+
+      // And the first account still has everything when it comes back.
+      await state.signOutAccount();
+      await state.signInAccount('uid-anita');
+      expect(state.intake.isComplete, isTrue);
+      expect(state.patient.name, 'Anita Das');
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('activities are filed under the account that played them', () async {
+      final (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      state.finishGame(
+        GameId.memoryCards,
+        const GamePerformance(
+          accuracy: 80,
+          focus: 78,
+          memory: 82,
+          hintsUsed: 0,
+          mistakes: 1,
+          seconds: 90,
+          completed: true,
+          attempts: 10,
+          correct: 8,
+          responseMillis: 11000,
+        ),
+      );
+      await state.flush();
+      expect(state.sessions, hasLength(1));
+
+      await state.signInAccount('uid-rahul');
+      expect(state.sessions, isEmpty,
+          reason: 'a new account starts with no history of its own');
+
+      await state.signOutAccount();
+      await state.signInAccount('uid-anita');
+      expect(state.sessions, hasLength(1),
+          reason: 'and the original account gets its history back');
 
       state.dispose();
       await store.close();

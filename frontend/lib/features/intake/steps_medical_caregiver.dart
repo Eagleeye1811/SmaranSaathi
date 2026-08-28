@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../core/voice/voice_intake_controller.dart';
 import 'intake_kit.dart';
 
 /// Step 7 — medical and lifestyle context.
@@ -58,6 +59,29 @@ class _MedicalStepState extends State<MedicalStep> {
       stepIndex: 7,
       stepCount: 8,
       onBack: widget.onBack,
+      // The two questions that gate this step. The conditions and medication
+      // lists are not read aloud: picking from a long list by voice is slower
+      // than tapping it, and both are optional.
+      voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion(
+          prompt: 'How would you describe your sleep lately?',
+          options:
+              SleepQuality.values.map((SleepQuality q) => q.label).toList(growable: false),
+          answeredIndex: _history.sleepQuality?.index,
+          onSelect: (int i) => setState(
+              () => _history = _history.copyWith(sleepQuality: SleepQuality.values[i])),
+        ),
+        VoiceIntakeQuestion(
+          prompt: 'In the last few weeks, how often have you felt persistently '
+              'sad, or lost interest in things you usually enjoy?',
+          options: MoodFrequency.values
+              .map((MoodFrequency m) => m.label)
+              .toList(growable: false),
+          answeredIndex: _history.lowMood?.index,
+          onSelect: (int i) => setState(
+              () => _history = _history.copyWith(lowMood: MoodFrequency.values[i])),
+        ),
+      ],
       title: 'Health background',
       subtitle: 'Some of these can affect thinking on their own.',
       onContinue: _history.isComplete

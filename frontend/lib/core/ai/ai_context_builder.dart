@@ -31,5 +31,6 @@ extension AiContextBuilder on AppState {
         lastPlayed: lastPlayed,
         engagementToday: todayEngagement,
         replyLanguage: replyLanguage,
+        intake: intake,
       );
 }

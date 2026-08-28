@@ -3,10 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memory_mitra/app/theme/app_theme.dart';
 import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/clinical.dart';
 import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/core/widgets/ui_kit.dart';
+import 'package:memory_mitra/data/mock/mock_data.dart';
 import 'package:memory_mitra/features/intake/baseline_screens.dart';
 import 'package:memory_mitra/features/intake/intake_flow.dart';
 import 'package:memory_mitra/features/intake/steps_consent_profile.dart';
@@ -18,7 +18,6 @@ import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
 import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
 import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
 import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
-import 'package:memory_mitra/features/patient/health/progress_screen.dart';
 import 'package:memory_mitra/features/patient/health/report_screen.dart';
 import 'package:memory_mitra/l10n/app_localizations.dart';
 
@@ -129,7 +128,6 @@ void main() {
           ('dashboard', const HealthDashboardScreen()),
           ('cognitive profile', const CognitiveProfileScreen()),
           ('first-time profile', CognitiveProfileScreen(firstTime: true, onContinue: () {})),
-          ('progress', const ProgressScreen()),
           ('report', const ReportScreen()),
           ('care plan', const CarePlanScreen()),
           ('assistant', const AssistantScreen()),
@@ -179,7 +177,7 @@ void main() {
     expect(state.nextIntakeStep, IntakeStep.profile);
   });
 
-  testWidgets('the symptom questionnaire advances one group at a time',
+  testWidgets('one answer covers a group with nothing to report',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
     final AppState state = AppState()..setRole(AppRole.patient);
@@ -191,29 +189,109 @@ void main() {
     expect(find.text('Memory'), findsOneWidget);
     expect(find.text('Step 5 of 8'), findsOneWidget);
 
-    // "Next group" stays inert until every item in the group is answered.
+    // "Next group" stays inert until the group has been answered at all.
     await tester.tap(find.text('Next group'));
     await beat(tester);
     expect(find.text('Memory'), findsOneWidget);
 
-    for (final SymptomItem item in SymptomCatalogue.of(SymptomDomain.memory)) {
-      await tester.dragUntilVisible(
-        find.text(item.text),
-        find.byType(Scrollable).first,
-        const Offset(0, -120),
-      );
-      await beat(tester, 120);
-      final Finder card = find.ancestor(of: find.text(item.text), matching: find.byType(Column));
-      await tester.tap(find.descendant(of: card.first, matching: find.text('Sometimes')).first);
-      await beat(tester, 120);
-    }
-
+    // One tap on the stem question answers for everything the group lists.
+    await tester.tap(find.text('Never').first);
+    await beat(tester);
     await tester.tap(find.text('Next group'));
     await beat(tester);
 
     expect(find.text('Attention & thinking'), findsOneWidget);
     expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
+    expect(state.intake.symptoms.severity(SymptomDomain.memory), 0);
+  });
+
+  testWidgets('a group with something happening opens up for detail',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(harness(SymptomStep(onDone: () {}), state: state));
+    await beat(tester);
+
+    final SymptomItem first = SymptomCatalogue.of(SymptomDomain.memory).first;
+    // Before the stem is answered, the individual questions are not shown.
+    expect(find.text(first.text), findsNothing);
+
+    await tester.tap(find.text('Sometimes').first);
+    await beat(tester);
+
+    // Now they are, pre-filled with what was just said.
+    await tester.dragUntilVisible(
+      find.text(first.text),
+      find.byType(Scrollable).first,
+      const Offset(0, -140),
+    );
+    await beat(tester);
+    expect(find.text(first.text), findsOneWidget);
+    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isFalse,
+        reason: 'nothing is saved until the group is left');
+
+    await tester.tap(find.text('Next group'));
+    await beat(tester);
+    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
     expect(state.intake.symptoms.severity(SymptomDomain.memory), closeTo(33.3, 0.5));
+  });
+
+  testWidgets('everyday activities start ticked, so independence needs no taps',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    bool done = false;
+    await tester.pumpWidget(
+      harness(FunctionStep(onDone: () => done = true), state: state),
+    );
+    await beat(tester);
+
+    // Continue is live immediately: the person managing everything answers
+    // this screen without touching it.
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+
+    expect(done, isTrue);
+    expect(state.intake.function.isComplete, isTrue);
+    expect(state.intake.function.independencePercent, 100);
+    expect(state.intake.function.needingHelp, isEmpty);
+  });
+
+  testWidgets('unticking an activity asks how much help, and only then',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(harness(FunctionStep(onDone: () {}), state: state));
+    await beat(tester);
+
+    expect(find.text('A little'), findsNothing);
+
+    final FunctionalItem item = FunctionCatalogue.items.first;
+    await tester.tap(find.text(item.label));
+    await beat(tester);
+
+    expect(find.text('A little'), findsOneWidget);
+    await tester.dragUntilVisible(
+      find.text('A lot'),
+      find.byType(Scrollable).first,
+      const Offset(0, -120),
+    );
+    await beat(tester);
+    await tester.tap(find.text('A lot'));
+    await beat(tester);
+
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+
+    expect(state.intake.function.levels[item.id], FunctionLevel.dependent);
+    expect(state.intake.function.needingHelp, hasLength(1));
+    expect(state.intake.function.independencePercent, lessThan(100));
   });
 
   testWidgets('the flow resumes at the first unanswered step',
@@ -245,34 +323,72 @@ void main() {
     expect(find.text('Step 3 of 8'), findsOneWidget);
   });
 
-  testWidgets('the baseline run tracks progress and captures a baseline',
+  testWidgets('a daily session shows only that day\'s two activities',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 
     await tester.pumpWidget(
-      harness(BaselineRunScreen(onComplete: () {}), state: state),
+      harness(BaselineSessionScreen(onComplete: () {}), state: state),
     );
     await beat(tester);
-    expect(find.text('Activity 0 of 6'), findsOneWidget);
+    expect(find.text('Day 1 of 3'), findsOneWidget);
+    expect(find.text('0 of 6 activities across the three days'), findsOneWidget);
+    // Only the two planned for day one, not all six.
+    for (final GameId id in AppState.baselinePlan.first) {
+      expect(find.text(MockData.game(id).name), findsOneWidget);
+    }
+    for (final GameId id in AppState.baselinePlan[1]) {
+      expect(find.text(MockData.game(id).name), findsNothing);
+    }
 
-    // Marking activities is what the result screen does when a session lands.
-    for (final GameId id in GameId.values.take(3)) {
-      state.markBaselineActivity(id);
+    // Finishing the pair closes the day and stamps it, so the next session
+    // waits for tomorrow rather than for the next tap.
+    for (final GameId id in AppState.baselinePlan.first) {
+      state.markBaselineActivity(id, now: DateTime(2026, 6, 1));
     }
     await beat(tester);
-    expect(find.text('Activity 3 of 6'), findsOneWidget);
-    expect(state.baselineRunComplete, isFalse);
+    expect(state.baselineDayIndex, 1);
+    expect(state.canStartBaselineSession(now: DateTime(2026, 6, 1)), isFalse);
+    expect(state.canStartBaselineSession(now: DateTime(2026, 6, 2)), isTrue);
 
-    for (final GameId id in GameId.values) {
-      state.markBaselineActivity(id);
+    // …unless the person says they have time now, which the demo needs.
+    state.unlockNextBaselineDay();
+    expect(state.canStartBaselineSession(now: DateTime(2026, 6, 1)), isTrue);
+  });
+
+  test('the three days cover all six activities and capture the baseline',
+      () async {
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    expect(state.baselineReady, isFalse);
+    for (int day = 0; day < AppState.baselinePlan.length; day++) {
+      for (final GameId id in AppState.baselinePlan[day]) {
+        state.markBaselineActivity(id, now: DateTime(2026, 6, 1 + day));
+      }
     }
-    await state.captureBaseline(now: DateTime(2026, 6, 1));
-    await beat(tester);
+    expect(state.baselineRunComplete, isTrue);
+    expect(state.baselineDayIndex, AppState.baselinePlan.length);
 
+    await state.captureBaseline(now: DateTime(2026, 6, 3));
     expect(state.baseline, isNotNull);
+    expect(state.baselineReady, isTrue);
     expect(state.intakeComplete, isTrue);
+  });
+
+  test('finishing the questionnaire opens the app without a baseline',
+      () async {
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    expect(state.intake.isComplete, isFalse);
+    state.completeIntakeQuestionnaire(now: DateTime(2026, 6, 1));
+    // The dashboard gate is the questionnaire; the profile is three days away.
+    expect(state.intake.isComplete, isTrue);
+    expect(state.baselineReady, isFalse);
+    expect(state.baselineDayIndex, 0);
   });
 
   testWidgets('the assistant answers a quick action from the record',
@@ -346,25 +462,17 @@ void main() {
     expect(state.intake.safety.requiresUrgentReview, isTrue);
   });
 
-  testWidgets('the baseline is built from the activities just played',
-      (WidgetTester tester) async {
-    tester.setSurface(kPhone);
+  // Plain test: this exercises AppState alone, and the sync outbox keeps its
+  // own real timers, which the widget binding would flag as pending.
+  test('the baseline is built from the activities just played', () async {
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 
-    // A fresh install seeds sample history so the charts are not blank. That
-    // history must not become the person's baseline.
-    expect(state.sessions, isNotEmpty);
-    final double seededMemory = state.sessions
-        .where((GameSession s) => GameDomains.of(s.gameId) == CognitiveDomain.memory)
-        .map((GameSession s) => s.performance.overall.toDouble())
-        .reduce((double a, double b) => a + b) /
-        state.sessions
-            .where((GameSession s) => GameDomains.of(s.gameId) == CognitiveDomain.memory)
-            .length;
+    // Nothing is invented for a new person: no sample fortnight, no scores.
+    expect(state.sessions, isEmpty);
+    expect(state.cognitiveProfile.scores, isEmpty);
+    expect(state.monitoring.hasBaseline, isFalse);
 
-    // Play the six activities of the baseline run, deliberately at a level
-    // well away from the seeded history.
     for (final GameId id in GameId.values) {
       state.finishGame(
         id,
@@ -384,15 +492,12 @@ void main() {
       state.markBaselineActivity(id);
     }
     await state.captureBaseline(now: DateTime(2026, 8, 29));
-    // Let the queued sync drain, or the binding fails on a pending timer.
-    await beat(tester, 400);
-    await beat(tester, 400);
 
     final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
     expect(memoryBaseline, isNotNull);
     expect(memoryBaseline, closeTo(52, 0.5),
-        reason: 'the baseline must come from the run, not the seeded history');
-    expect((memoryBaseline! - seededMemory).abs(), greaterThan(5));
+        reason: 'the baseline must come from the activities the person played');
+    expect(state.cognitiveProfile.scores, isNotEmpty);
   });
 
   testWidgets('a failed capture leaves the button usable instead of bricking it',
@@ -406,7 +511,7 @@ void main() {
 
     bool completed = false;
     await tester.pumpWidget(
-      harness(BaselineRunScreen(onComplete: () => completed = true), state: state),
+      harness(BaselineSessionScreen(onComplete: () => completed = true), state: state),
     );
     await beat(tester);
 

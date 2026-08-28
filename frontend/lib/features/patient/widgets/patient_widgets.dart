@@ -6,47 +6,147 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
-import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 
 /// Header used on every patient screen: identity on the left, the two controls
 /// an elderly user might need on the right, and nothing else.
+/// The bar across the top of every patient screen.
+///
+/// Wordmark on the left, where a name belongs and where the eye starts; a
+/// status pill and the connection state on the right, where the things that
+/// change belong. The app icon used to sit beside the wordmark — it is on the
+/// home screen of the phone and in the launcher already, and repeating it
+/// inside the app spent the most valuable pixels on the screen saying
+/// something the person already knew.
 class PatientTopBar extends StatelessWidget {
-  const PatientTopBar({super.key, this.trailing, this.onExit});
+  const PatientTopBar({super.key, this.trailing, this.onExit, this.showStatus = true});
 
   final Widget? trailing;
   final VoidCallback? onExit;
 
+  /// The progress pill. Off on screens that are already about one thing.
+  final bool showStatus;
+
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, 10),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(Insets.gutter, 6, Insets.gutter, 10),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
+      ),
       child: Row(
         children: <Widget>[
-          const BrandMark(size: 34),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text('MemoryMitra', style: AppText.h3.wght(800)),
-          ),
+          // A pushed screen needs a way back. The bar used to end in a
+          // switch-role icon that doubled as one; now that the right side
+          // carries status instead, the back arrow is explicit and only
+          // appears where there is something to go back to.
+          if (Navigator.of(context).canPop()) ...<Widget>[
+            RoundIconButton(
+              icon: Icons.arrow_back_rounded,
+              size: 40,
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+            const SizedBox(width: 10),
+          ],
+          const Expanded(child: _Wordmark()),
           if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 8)],
-          ConnectivityChip(
-            offline: state.offline,
-            pending: state.pendingSync,
-            syncing: state.syncing,
-            onTap: () {
-              final bool goingOnline = state.offline;
-              state.setOffline(!state.offline);
-              if (goingOnline) state.syncNow();
-            },
+          if (showStatus) const _StatusPill(),
+          // Only when there is something to say. "Online" is the normal state
+          // and a badge announcing it every second of every day is noise; a
+          // dropped connection or a queue that has not drained is not.
+          if (state.offline || state.pendingSync > 0 || state.syncing) ...<Widget>[
+            const SizedBox(width: 8),
+            ConnectivityChip(
+              offline: state.offline,
+              pending: state.pendingSync,
+              syncing: state.syncing,
+              onTap: () {
+                final bool goingOnline = state.offline;
+                state.setOffline(!state.offline);
+                if (goingOnline) state.syncNow();
+              },
+            ),
+          ],
+          if (onExit != null) ...<Widget>[
+            const SizedBox(width: 8),
+            RoundIconButton(
+              icon: Icons.logout_rounded,
+              size: 40,
+              tooltip: 'Switch role',
+              onPressed: onExit!,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The name, set in two weights so it reads as a mark rather than as a label.
+class _Wordmark extends StatelessWidget {
+  const _Wordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(text: 'Memory', style: AppText.h3.wght(800).tint(AppColors.ink)),
+          TextSpan(text: 'Mitra', style: AppText.h3.wght(800).tint(AppColors.primary)),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+/// What the person has actually done — the one number worth carrying on every
+/// screen. Before the baseline exists it counts the three-day journey; after
+/// it, today's activities.
+class _StatusPill extends StatelessWidget {
+  const _StatusPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+
+    final bool building = !state.baselineReady;
+    final int day = state.baselineDayIndex;
+    final String label = building
+        ? 'Day ${day >= AppState.baselinePlan.length ? AppState.baselinePlan.length : day + 1}'
+            '/${AppState.baselinePlan.length}'
+        : '${state.completedToday.length} today';
+    final IconData icon = building ? Icons.flag_rounded : Icons.check_circle_rounded;
+    final Color color = building ? AppColors.accent : AppColors.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: Corners.r(Corners.pill),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: color.withValues(alpha: 0.30),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          const SizedBox(width: 8),
-          RoundIconButton(
-            icon: Icons.logout_rounded,
-            size: 40,
-            tooltip: 'Switch role',
-            onPressed: onExit ?? () => Navigator.of(context).maybePop(),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 15, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: AppText.caption.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
