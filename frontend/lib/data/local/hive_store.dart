@@ -33,6 +33,12 @@ class HiveStore {
   /// where a fixed adapter would need a new type id every time.
   static const String assessmentBox = 'mm_assessment';
 
+  /// Every shared memory the patient has told Mitra, across every session —
+  /// the Memory Home companion's long-term store. Also a JSON-map box, for
+  /// the same reason as [assessmentBox]: this is expected to gain fields
+  /// (sentiment, richer categorisation) as the feature grows.
+  static const String memoriesBox = 'mm_memories';
+
   static bool _adaptersRegistered = false;
   static HiveStore? _instance;
 
@@ -102,6 +108,7 @@ class HiveStore {
       Hive.openBox<dynamic>(settingsBox),
       Hive.openBox<PendingOperation>(syncQueueBox),
       Hive.openBox<dynamic>(assessmentBox),
+      Hive.openBox<dynamic>(memoriesBox),
     ]);
     store._open = true;
     _instance = store;
@@ -131,6 +138,7 @@ class HiveStore {
   Box<dynamic> get settings => Hive.box<dynamic>(settingsBox);
   Box<PendingOperation> get syncQueue => Hive.box<PendingOperation>(syncQueueBox);
   Box<dynamic> get assessment => Hive.box<dynamic>(assessmentBox);
+  Box<dynamic> get memories => Hive.box<dynamic>(memoriesBox);
 
   Future<void> close() async {
     _open = false;
@@ -151,6 +159,7 @@ class HiveStore {
       settings.clear(),
       syncQueue.clear(),
       assessment.clear(),
+      memories.clear(),
     ]);
   }
 }

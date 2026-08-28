@@ -4,8 +4,10 @@ import '../models/assessment.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
+import '../models/memory_fragment.dart';
 import '../models/patient.dart';
 import '../services/adaptive_difficulty_service.dart';
+import 'ai_models.dart';
 
 /// Everything the AI layer is allowed to know.
 ///
@@ -32,6 +34,11 @@ class PatientAiContext {
     this.engagementToday = 0,
     this.replyLanguage,
     this.intake,
+    this.recentTurns = const <ConversationTurn>[],
+    this.memoryInvitesRemainingToday = 0,
+    this.memoryResurfaceCandidate,
+    this.totalSharedMemories = 0,
+    this.knownMemories = const <MemoryFragment>[],
   });
 
   final Patient patient;
@@ -64,6 +71,43 @@ class PatientAiContext {
   /// still do unaided, who is around them — and the only source that makes a
   /// daily question about *this* person rather than about people in general.
   final IntakeRecord? intake;
+  // ── Memory companion ────────────────────────────────────────────────────
+  //
+  // This session's own turns, oldest first, so a reply can stay coherent
+  // ("you just said...") without a persisted store. Capped by the caller —
+  // see `AiContextBuilder` — to keep the prompt small.
+  final List<ConversationTurn> recentTurns;
+
+  /// How many new-story invitations or resurfacings Mitra may still offer
+  /// today (0, 1 or 2) — computed by `AppState.memoryInvitesRemainingToday`,
+  /// not here, since the pacing decision belongs with the durable store.
+  final int memoryInvitesRemainingToday;
+
+  /// The one fragment `AppState` has picked as best to gently reoffer today,
+  /// if any and if the budget allows it. The model decides *whether* and
+  /// *how* to bring it up — never a quiz, an offer — this is only ever a
+  /// candidate, not an instruction. This is the *only* fragment the model is
+  /// ever told it may proactively raise; see [knownMemories] for the rest.
+  final MemoryFragment? memoryResurfaceCandidate;
+
+  /// How many memories have been shared in total, ever.
+  final int totalSharedMemories;
+
+  /// Every story this person has shared with Mitra before, across every past
+  /// session — not just today's resurface candidate. Capped by the caller
+  /// (see `AiContextBuilder`) to keep the prompt bounded as the store grows.
+  ///
+  /// This exists so recognition works both ways: if the patient brings up
+  /// something she has mentioned before, or asks "did I tell you about my
+  /// sister?", Mitra can actually know — without it, every fact she has ever
+  /// shared is invisible the instant it stops being today's one candidate.
+  /// The distinction from [memoryResurfaceCandidate] is proactive vs.
+  /// reactive: the system prompt is explicit that Mitra may *recognise* or
+  /// *answer from* anything here, but may only *proactively bring up*
+  /// [memoryResurfaceCandidate] — otherwise this list would reopen the same
+  /// "never turn a memory into a quiz" risk the resurfacing budget exists to
+  /// prevent.
+  final List<MemoryFragment> knownMemories;
 
   // ── Derived signals ────────────────────────────────────────────────────
 
@@ -269,6 +313,39 @@ class PatientAiContext {
           e.key.name: e.value,
       },
       'overallScore': cognitiveProfile.overall,
+      'conversation': <String, dynamic>{
+        'recentTurns': <Map<String, String>>[
+          for (final ConversationTurn t in recentTurns)
+            <String, String>{'from': t.fromUser ? 'patient' : 'mitra', 'text': t.text},
+        ],
+      },
+      'memoryCompanion': <String, dynamic>{
+        'totalSharedMemories': totalSharedMemories,
+        'invitesRemainingToday': memoryInvitesRemainingToday,
+        'resurfaceCandidate': memoryResurfaceCandidate == null || redacted
+            ? null
+            : <String, dynamic>{
+                'category': memoryResurfaceCandidate!.category.name,
+                'summary': memoryResurfaceCandidate!.summary,
+                'mentionedName': memoryResurfaceCandidate!.mentionedName,
+                'timesResurfacedBefore': memoryResurfaceCandidate!.timesResurfaced,
+              },
+        // Everything shared before, not just today's candidate — see the
+        // field doc on `knownMemories` for why. Gated by `redacted` the same
+        // way `patient.family` is above: this is exactly the kind of
+        // personally-identifying content that flag exists to strip.
+        'sharedMemories': redacted
+            ? const <Map<String, dynamic>>[]
+            : <Map<String, dynamic>>[
+                for (final MemoryFragment f in knownMemories)
+                  <String, dynamic>{
+                    'category': f.category.name,
+                    'summary': f.summary,
+                    'mentionedName': f.mentionedName,
+                    'daysAgo': now.difference(f.createdAt).inDays,
+                  },
+              ],
+      },
     };
   }
 

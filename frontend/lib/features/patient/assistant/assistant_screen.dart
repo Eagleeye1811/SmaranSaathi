@@ -7,13 +7,16 @@ import '../../../core/ai/ai_context_builder.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/health_assistant.dart';
+import '../../../core/models/memory_fragment.dart';
 import '../../../core/models/monitoring.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/voice/voice_bootstrap.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/locale_controller.dart';
 import '../../intake/intake_kit.dart';
 import '../health/report_screen.dart';
+import '../memory_home/memory_home_screen.dart';
 
 /// The cognitive companion.
 ///
@@ -88,6 +91,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
     _append(_Message.assistant(answer));
   }
 
+  /// The transcript so far, oldest first — exactly what `aiContext()` expects.
+  List<ConversationTurn> get _turns => <ConversationTurn>[
+        for (final _Message m in _messages)
+          ConversationTurn(fromUser: m.fromUser, text: m.fromUser ? m.text : m.answer!.text),
+      ];
+
   Future<void> _ask(String question) async {
     final String text = question.trim();
     if (text.isEmpty || _thinking) return;
@@ -106,16 +115,47 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
     setState(() => _thinking = true);
     _ai ??= buildPatientAssistant(state);
-    final AiResult<AssistantReply> result = await _ai!.ask(text, state.aiContext());
+
+    // Falls back to the patient's profile language when this screen is
+    // mounted outside a LocaleScope (some tests do that deliberately) —
+    // matches the voice assistant's own precedent in ask_mitra_button.dart.
+    final LocaleController? locale = LocaleScope.maybeRead(context);
+    final Stopwatch watch = Stopwatch()..start();
+    final AiResult<AssistantReply> result = await _ai!.ask(
+      text,
+      state.aiContext(turns: _turns, replyLanguage: locale?.locale.languageCode),
+    );
+    // The on-device fallback answers in under a millisecond, which reads as
+    // suspiciously instant for something meant to feel like a companion
+    // thinking it over. A short floor keeps the pacing steady no matter which
+    // path actually answered.
+    final int remaining = 500 - watch.elapsedMilliseconds;
+    if (remaining > 0) {
+      await Future<void>.delayed(Duration(milliseconds: remaining));
+    }
     if (!mounted) return;
     setState(() => _thinking = false);
 
     switch (result) {
       case AiSuccess<AssistantReply>(:final AssistantReply value):
-        _append(_Message.assistant(HealthAnswer(
-          text: value.text,
-          grounded: value.source == AiSource.onDevice,
-        )));
+        bool captured = false;
+        if (value.sharedMemory != null) {
+          await state.saveSharedMemory(value.sharedMemory!);
+          captured = true;
+        }
+        if (value.resurfacedFragmentId != null) {
+          await state.markMemoryResurfaced(value.resurfacedFragmentId!);
+        }
+        _append(_Message.assistant(
+          // Both the Gemini and on-device paths are grounded by design —
+          // each answers only from PatientAiContext and refuses to invent
+          // facts (see gemini_ai_service.dart's system prompt). `grounded:
+          // false` is reserved for HealthAssistant's general-education
+          // replies (e.g. "what is dementia"), not for which AI backend
+          // happened to answer.
+          HealthAnswer(text: value.text),
+          memoryCaptured: captured,
+        ));
       case AiError<AssistantReply>():
         _append(_Message.assistant(const HealthAnswer(
           text: 'I could not work that one out just now. The buttons above always '
@@ -147,6 +187,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         icon: Icons.arrow_back_rounded,
                         onPressed: () => Navigator.of(context).maybePop(),
                       ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.sm),
+              child: _MemoryHomeEntry(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const MemoryHomeScreen()),
+                ),
               ),
             ),
             _QuickActions(onSelected: _run),
@@ -183,14 +231,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
 class _Message {
   const _Message.user(this.text)
       : fromUser = true,
-        answer = null;
-  const _Message.assistant(HealthAnswer this.answer)
+        answer = null,
+        memoryCaptured = false;
+  const _Message.assistant(HealthAnswer this.answer, {this.memoryCaptured = false})
       : fromUser = false,
         text = '';
 
   final bool fromUser;
   final String text;
   final HealthAnswer? answer;
+
+  /// True when this reply is the one that captured a shared story into the
+  /// patient's Memory Home — surfaced as a small chip on the bubble.
+  final bool memoryCaptured;
 }
 
 class _QuickActions extends StatelessWidget {
@@ -230,6 +283,58 @@ class _QuickActions extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A card that opens the Memory Home — the room-by-room reward for sharing a
+/// life story with Mitra. Shows how many rooms have at least one memory in
+/// them, out of the six [MemoryCategory] values, so the invitation is
+/// concrete rather than abstract.
+class _MemoryHomeEntry extends StatelessWidget {
+  const _MemoryHomeEntry({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    final Map<MemoryCategory, int> byCategory = state.memoriesByCategory;
+    final int furnished = byCategory.values.where((int n) => n > 0).length;
+    final int total = MemoryCategory.values.length;
+
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.accentTint,
+          borderRadius: Corners.r(Corners.lg),
+          border: Border.all(color: AppColors.accentSoft),
+        ),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.home_rounded, size: 22, color: AppColors.accent),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Your Memory Home',
+                      style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    furnished == 0
+                        ? 'Share a story with Mitra to start filling it in'
+                        : '$furnished of $total rooms furnished',
+                    style: AppText.caption,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.accent),
+          ],
+        ),
       ),
     );
   }
@@ -300,6 +405,21 @@ class _Bubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(answer.text, style: AppText.body.copyWith(height: 1.5)),
+            if (message.memoryCaptured) ...<Widget>[
+              const SizedBox(height: Insets.sm),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
+                  const SizedBox(width: 6),
+                  Text('Saved to your Memory Home',
+                      style: AppText.caption.copyWith(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w700,
+                      )),
+                ],
+              ),
+            ],
             if (answer.bullets.isNotEmpty) ...<Widget>[
               const SizedBox(height: Insets.md),
               for (final String b in answer.bullets)

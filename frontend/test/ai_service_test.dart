@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memory_mitra/core/ai/ai_config.dart';
@@ -14,6 +15,7 @@ import 'package:memory_mitra/core/ai/resilient_ai_service.dart';
 import 'package:memory_mitra/core/models/assessment.dart';
 import 'package:memory_mitra/core/models/daily.dart';
 import 'package:memory_mitra/core/models/game.dart';
+import 'package:memory_mitra/core/models/memory_fragment.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/core/services/connectivity_service.dart';
 
@@ -125,6 +127,18 @@ void main() {
     test('reads nothing from the environment in a plain test build', () {
       expect(AiConfig.fromEnvironment().isConfigured, isFalse);
     });
+
+    // dotenv is a process-wide singleton with no "uninitialize" — this must
+    // stay the last AiConfig test in the file so the one above still sees an
+    // unloaded dotenv.
+    test('falls back to .env when no --dart-define is set — this is what '
+        'lets a plain `flutter run` work with no launch script', () {
+      dotenv.testLoad(fileInput: 'GEMINI_API_KEY=from-dotenv\nGEMINI_MODEL=gemini-test-model');
+      final AiConfig config = AiConfig.fromEnvironment();
+      expect(config.apiKey, 'from-dotenv');
+      expect(config.model, 'gemini-test-model');
+      expect(config.isConfigured, isTrue);
+    });
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -181,6 +195,50 @@ void main() {
       // Still analysable.
       expect(shut['performance'], isNotEmpty);
       expect(shut['cognitiveDomains'], isNotEmpty);
+      state.dispose();
+    });
+
+    test('carries every past shared memory, not just today\'s resurface candidate',
+        () {
+      final AppState state = AppState();
+      final PatientAiContext c = PatientAiContext(
+        patient: state.patient,
+        sessions: state.sessions,
+        levels: state.levels,
+        cognitiveProfile: state.cognitiveProfile,
+        reminders: state.reminders,
+        now: kNow,
+        knownMemories: <MemoryFragment>[
+          MemoryFragment(
+            id: 'a',
+            category: MemoryCategory.childhood,
+            summary: 'Bamboo grove walk.',
+            mentionedName: 'Ima',
+            createdAt: kNow.subtract(const Duration(days: 5)),
+          ),
+          MemoryFragment(
+            id: 'b',
+            category: MemoryCategory.festivals,
+            summary: 'Bihu dance in the courtyard.',
+            createdAt: kNow.subtract(const Duration(days: 1)),
+          ),
+        ],
+      );
+
+      final List<dynamic> shared =
+          (c.toPromptJson()['memoryCompanion'] as Map<String, dynamic>)['sharedMemories']
+              as List<dynamic>;
+      expect(shared, hasLength(2));
+      expect(shared[0], containsPair('summary', 'Bamboo grove walk.'));
+      expect(shared[0], containsPair('mentionedName', 'Ima'));
+      expect(shared[0], containsPair('daysAgo', 5));
+      expect(shared[1], containsPair('summary', 'Bihu dance in the courtyard.'));
+
+      // Redaction strips these the same way it strips family.
+      final List<dynamic> redactedShared =
+          (c.toPromptJson(redacted: true)['memoryCompanion'] as Map<String, dynamic>)
+              ['sharedMemories'] as List<dynamic>;
+      expect(redactedShared, isEmpty);
       state.dispose();
     });
   });
@@ -405,6 +463,37 @@ void main() {
       expect(sent, contains('averageAccuracy'), reason: 'the performance data');
       expect(sent.toLowerCase(), contains('never diagnose'),
           reason: 'the safety instruction travels with every request');
+      state.dispose();
+    });
+
+    test('a conversational ask() request carries every past shared memory, '
+        'not just the resurface candidate', () async {
+      final AppState state = AppState();
+      final FakeAiTransport transport =
+          FakeAiTransport((_) async => AiSuccess<String>(geminiEnvelope(kValidReply)));
+      final PatientAiContext withMemories = PatientAiContext(
+        patient: state.patient,
+        sessions: state.sessions,
+        levels: state.levels,
+        cognitiveProfile: state.cognitiveProfile,
+        reminders: state.reminders,
+        now: kNow,
+        knownMemories: <MemoryFragment>[
+          MemoryFragment(
+            id: 'x',
+            category: MemoryCategory.childhood,
+            summary: 'Bamboo grove walk with Ima.',
+            createdAt: kNow.subtract(const Duration(days: 5)),
+          ),
+        ],
+      );
+
+      await GeminiAiService(config: kConfigured, transport: transport)
+          .ask('hello', withMemories);
+
+      expect(transport.requests, hasLength(1));
+      expect(transport.requests.single, contains('Bamboo grove walk with Ima.'),
+          reason: 'the model cannot recognise a story it was never shown');
       state.dispose();
     });
   });
@@ -645,6 +734,176 @@ void main() {
       expect(controller.value!.summary, 'call 2',
           reason: 'the superseded response must be discarded');
       controller.dispose();
+      state.dispose();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  group('OnDeviceAiService.classify — regression', () {
+    test('a bare "hi" is recognised as companionship, not out-of-scope', () {
+      // Once matched via a bare `.contains('hi ')`, which a plain "hi" with
+      // no trailing character could never satisfy.
+      expect(OnDeviceAiService.classify('hi'), AssistantIntent.companionship);
+      expect(OnDeviceAiService.classify('Hi!'), AssistantIntent.companionship);
+      expect(OnDeviceAiService.classify('hi,'), AssistantIntent.companionship);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  group('AppState — memory companion', () {
+    test('a shared memory is persisted and furnishes its room', () async {
+      final AppState state = AppState();
+      expect(state.memoryFragments, isEmpty);
+      expect(state.memoriesByCategory[MemoryCategory.childhood], 0);
+
+      final MemoryFragment saved = await state.saveSharedMemory(const SharedMemory(
+        category: MemoryCategory.childhood,
+        summary: 'Walking to school through a bamboo grove.',
+        mentionedName: 'Ima',
+      ));
+
+      expect(state.memoryFragments, hasLength(1));
+      expect(state.memoriesByCategory[MemoryCategory.childhood], 1);
+      expect(saved.summary, contains('bamboo grove'));
+      expect(saved.mentionedName, 'Ima');
+      state.dispose();
+    });
+
+    test('the daily budget counts today\'s activity and clamps at zero', () async {
+      final AppState state = AppState();
+      expect(state.memoryInvitesRemainingToday, 2);
+
+      await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.family, summary: 'First story.'));
+      expect(state.memoryInvitesRemainingToday, 1);
+
+      await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.food, summary: 'Second story.'));
+      expect(state.memoryInvitesRemainingToday, 0);
+      state.dispose();
+    });
+
+    test('a memory created today is never offered back as a resurface candidate',
+        () async {
+      final AppState state = AppState();
+      await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.village, summary: 'Fresh story.'));
+
+      // Still today, and the budget is not yet spent, but nothing is old
+      // enough to sit for a day before being reoffered.
+      expect(state.memoryInvitesRemainingToday, greaterThan(0));
+      expect(state.memoryResurfaceCandidate, isNull);
+      state.dispose();
+    });
+
+    test('resurfacing moves a fragment to the back of the queue', () async {
+      final AppState state = AppState();
+      final MemoryFragment fragment = await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.work, summary: 'Weaving story.'));
+
+      await state.markMemoryResurfaced(fragment.id);
+      final MemoryFragment updated =
+          state.memoryFragments.firstWhere((MemoryFragment f) => f.id == fragment.id);
+      expect(updated.timesResurfaced, 1);
+      expect(updated.lastResurfacedAt, isNotNull);
+      state.dispose();
+    });
+
+    test('aiContext() carries every shared memory, most recent first, not just '
+        'the resurface candidate', () async {
+      final AppState state = AppState();
+      await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.childhood, summary: 'First story.'));
+      await state.saveSharedMemory(
+          const SharedMemory(category: MemoryCategory.festivals, summary: 'Second story.'));
+
+      final PatientAiContext c = state.aiContext();
+      expect(c.knownMemories, hasLength(2));
+      expect(c.knownMemories.first.summary, 'Second story.',
+          reason: 'most recently shared first');
+      expect(c.knownMemories.last.summary, 'First story.');
+      state.dispose();
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────────
+  group('GeminiAiService — memory companion parsing', () {
+    test('a shared story in the reply is captured as a SharedMemory', () async {
+      final AppState state = AppState();
+      final GeminiAiService service = geminiReturning(geminiEnvelope(<String, dynamic>{
+        'text': 'That sounds like a wonderful walk.',
+        'intent': 'memoryMoment',
+        'followUps': <String>[],
+        'memorySharedCategory': 'childhood',
+        'memorySharedSummary': 'Walking to school through a bamboo grove.',
+        'memorySharedName': 'Ima',
+      }));
+
+      final AssistantReply reply = (await service.ask(
+              'I used to walk to school through a bamboo grove with my sister Ima',
+              contextFrom(state)))
+          .valueOrNull!;
+
+      expect(reply.intent, AssistantIntent.memoryMoment);
+      expect(reply.sharedMemory, isNotNull);
+      expect(reply.sharedMemory!.category, MemoryCategory.childhood);
+      expect(reply.sharedMemory!.summary, contains('bamboo grove'));
+      expect(reply.sharedMemory!.mentionedName, 'Ima');
+      expect(reply.resurfacedFragmentId, isNull);
+      state.dispose();
+    });
+
+    test('no memorySharedCategory means no memory was captured', () async {
+      final AppState state = AppState();
+      final AssistantReply reply =
+          (await geminiReturning(geminiEnvelope(kValidReply)).ask(
+                  'What are my reminders?', contextFrom(state)))
+              .valueOrNull!;
+      expect(reply.sharedMemory, isNull);
+      state.dispose();
+    });
+
+    test('resurfacedMemory ties back to the context\'s own candidate id, never invented',
+        () async {
+      final AppState state = AppState();
+      final MemoryFragment yesterday = MemoryFragment(
+        id: 'frag-bihu-1',
+        category: MemoryCategory.festivals,
+        summary: 'Dancing Bihu in the courtyard as a girl.',
+        createdAt: kNow.subtract(const Duration(days: 3)),
+      );
+      final PatientAiContext withCandidate = PatientAiContext(
+        patient: state.patient,
+        sessions: state.sessions,
+        levels: state.levels,
+        cognitiveProfile: state.cognitiveProfile,
+        reminders: state.reminders,
+        now: kNow,
+        memoryInvitesRemainingToday: 2,
+        memoryResurfaceCandidate: yesterday,
+        totalSharedMemories: 1,
+      );
+
+      final AssistantReply reply = (await geminiReturning(geminiEnvelope(<String, dynamic>{
+        'text': 'You told me once about dancing Bihu in the courtyard. Tell me again?',
+        'intent': 'memoryMoment',
+        'followUps': <String>[],
+        'resurfacedMemory': true,
+      })).ask('hello', withCandidate))
+          .valueOrNull!;
+
+      expect(reply.resurfacedFragmentId, 'frag-bihu-1');
+
+      // And when the model does not actually resurface anything this turn,
+      // the id is never attached even though a candidate was available.
+      final AssistantReply notResurfaced = (await geminiReturning(geminiEnvelope(<String, dynamic>{
+        'text': 'It is good to hear from you.',
+        'intent': 'companionship',
+        'followUps': <String>[],
+        'resurfacedMemory': false,
+      })).ask('hello', withCandidate))
+          .valueOrNull!;
+      expect(notResurfaced.resurfacedFragmentId, isNull);
       state.dispose();
     });
   });

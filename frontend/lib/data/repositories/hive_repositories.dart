@@ -4,6 +4,7 @@ import '../../core/models/assessment.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
@@ -313,6 +314,50 @@ class HiveAssessmentRepository implements AssessmentRepository {
   @override
   Future<void> saveBaseline(String patientId, CognitiveBaseline baseline) =>
       _store.assessment.put(_baselineKey(patientId), baseline.toJson());
+}
+
+class HiveMemoryFragmentRepository implements MemoryFragmentRepository {
+  HiveMemoryFragmentRepository(this._store);
+
+  final HiveStore _store;
+
+  String _key(String patientId, String fragmentId) => 'memory:$patientId:$fragmentId';
+  String _prefix(String patientId) => 'memory:$patientId:';
+
+  @override
+  Future<List<MemoryFragment>> all(String patientId) async {
+    final String prefix = _prefix(patientId);
+    final List<MemoryFragment> out = <MemoryFragment>[];
+    for (final dynamic key in _store.memories.keys) {
+      if (key is! String || !key.startsWith(prefix)) continue;
+      final Object? raw = _store.memories.get(key);
+      if (raw is! Map) continue;
+      final MemoryFragment? fragment = MemoryFragment.fromJson(raw);
+      if (fragment != null) out.add(fragment);
+    }
+    out.sort((MemoryFragment a, MemoryFragment b) => a.createdAt.compareTo(b.createdAt));
+    return out;
+  }
+
+  @override
+  Future<MemoryFragment> add(String patientId, MemoryFragment fragment) async {
+    await _store.memories.put(_key(patientId, fragment.id), fragment.toJson());
+    return fragment;
+  }
+
+  @override
+  Future<void> markResurfaced(String patientId, String fragmentId, DateTime at) async {
+    final String key = _key(patientId, fragmentId);
+    final Object? raw = _store.memories.get(key);
+    if (raw is! Map) return;
+    final MemoryFragment? existing = MemoryFragment.fromJson(raw);
+    if (existing == null) return;
+    final MemoryFragment updated = existing.copyWith(
+      lastResurfacedAt: at,
+      timesResurfaced: existing.timesResurfaced + 1,
+    );
+    await _store.memories.put(key, updated.toJson());
+  }
 }
 
 class HiveSettingsRepository implements SettingsRepository {

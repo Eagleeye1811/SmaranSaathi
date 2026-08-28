@@ -1,5 +1,6 @@
 import '../services/app_state.dart';
 import 'ai_context.dart';
+import 'ai_models.dart';
 
 /// Assembles a [PatientAiContext] from the running app.
 ///
@@ -16,8 +17,14 @@ extension AiContextBuilder on AppState {
   /// [now] is injectable so a test can pin the clock and assert on the
   /// resulting prompt. [replyLanguage] is the *interface* language, so the
   /// assistant answers in whatever the patient last selected rather than in
-  /// whatever the profile was created with.
-  PatientAiContext aiContext({DateTime? now, String? replyLanguage}) =>
+  /// whatever the profile was created with. [turns] is this session's own
+  /// transcript, newest last — the caller (the chat screen) owns it, since
+  /// `AppState` only holds what survives a restart.
+  PatientAiContext aiContext({
+    DateTime? now,
+    String? replyLanguage,
+    List<ConversationTurn> turns = const <ConversationTurn>[],
+  }) =>
       PatientAiContext(
         patient: patient,
         sessions: sessions,
@@ -32,5 +39,18 @@ extension AiContextBuilder on AppState {
         engagementToday: todayEngagement,
         replyLanguage: replyLanguage,
         intake: intake,
+        // Capped: enough for the model to stay coherent within the session
+        // without the prompt growing unbounded across a long conversation.
+        recentTurns: turns.length <= 8 ? turns : turns.sublist(turns.length - 8),
+        memoryInvitesRemainingToday: memoryInvitesRemainingToday,
+        memoryResurfaceCandidate: memoryResurfaceCandidate,
+        totalSharedMemories: memoryFragments.length,
+        // Most-recently-shared first, capped: the model should know the
+        // whole backlog exists, but an unbounded list would grow the prompt
+        // without limit over months of use — recent stories are also simply
+        // more likely to come up again in conversation than old ones.
+        knownMemories: memoryFragments.length <= 20
+            ? memoryFragments.reversed.toList(growable: false)
+            : memoryFragments.reversed.take(20).toList(growable: false),
       );
 }
