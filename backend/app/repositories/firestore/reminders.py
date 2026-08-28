@@ -42,3 +42,27 @@ class FirestoreReminderRepository(ReminderRepository):
             return Reminder.model_validate(data)
 
         return await run_in_threadpool(_set)
+
+    async def list_all_due_now(
+        self, hour: int, minute: int
+    ) -> List[tuple[str, Optional[str], Reminder]]:
+        target_minutes = hour * 60 + minute
+
+        def _query() -> List[tuple[str, Optional[str], Reminder]]:
+            results = []
+            patients = self._db.collection("patients").stream()
+            for p_doc in patients:
+                p_data = p_doc.to_dict()
+                phone = p_data.get("phone_number")
+                patient_id = p_doc.id
+
+                reminders_ref = self._db.collection("patients").document(patient_id).collection("reminders")
+                for r_doc in reminders_ref.stream():
+                    r_data = r_doc.to_dict()
+                    r = Reminder.model_validate(r_data)
+                    if not r.done and r.sms_enabled and r.minutes_from_midnight == target_minutes:
+                        results.append((patient_id, phone, r))
+            return results
+
+        return await run_in_threadpool(_query)
+

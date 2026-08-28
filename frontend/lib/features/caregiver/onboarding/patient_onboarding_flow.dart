@@ -35,6 +35,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
   final TextEditingController _name = TextEditingController(text: 'Aama Devi');
   final TextEditingController _short = TextEditingController(text: 'Aama');
   final TextEditingController _location = TextEditingController(text: 'Jorhat, Assam');
+  final TextEditingController _phone = TextEditingController(text: '+919876543210');
   int _age = 72;
   String _language = 'Assamese';
   String _portrait = 'portrait_aama';
@@ -69,6 +70,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     _name.dispose();
     _short.dispose();
     _location.dispose();
+    _phone.dispose();
     for (final TextEditingController c in _memories.values) {
       c.dispose();
     }
@@ -138,6 +140,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
           .toList(growable: false),
       routine: _routine,
       joinedOn: 'Profile created today',
+      phoneNumber: _phone.text.trim(),
     );
     state.updateDraft(p);
     state.commitDraft();
@@ -346,6 +349,8 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                 controller: _short,
                 hint: 'Aama',
               ),
+              const SizedBox(height: 14),
+              _Field(label: 'Mobile Phone Number (for SMS alerts)', controller: _phone, hint: '+919876543210'),
               const SizedBox(height: 14),
               Text('AGE', style: AppText.overline),
               const SizedBox(height: 8),

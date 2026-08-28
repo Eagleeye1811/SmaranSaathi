@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,10 +8,23 @@ from app.core.errors import register_exception_handlers
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions
+    from app.services.scheduler import start_scheduler
+    start_scheduler()
+    yield
+    # Shutdown actions
+    from app.services.scheduler import stop_scheduler
+    stop_scheduler()
+
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
     description="MemoryMitra sync backend — SIH 2026 PS 26003.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

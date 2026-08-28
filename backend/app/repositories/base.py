@@ -87,6 +87,15 @@ class ReminderRepository(ABC):
     @abstractmethod
     async def set_done(self, patient_id: str, reminder_id: str, done: bool) -> Optional[Reminder]: ...
 
+    @abstractmethod
+    async def list_all_due_now(
+        self, hour: int, minute: int
+    ) -> List[tuple[str, Optional[str], Reminder]]:
+        """Return (patient_id, patient_phone_number, reminder) tuples for every
+        undone, sms_enabled reminder scheduled at the given hour:minute across
+        ALL patients. Used exclusively by the SMS scheduler."""
+        ...
+
 
 class CaregiverLinkRepository(ABC):
     @abstractmethod

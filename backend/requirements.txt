@@ -14,3 +14,7 @@ firebase-admin>=6.5
 
 # ── Phase 3 (device sync tokens) ───────────────────────────────────────────
 pyjwt>=2.9
+
+# ── Phase 4 (SMS notifications) ─────────────────────────────────────────────
+twilio>=9.0
+apscheduler>=3.10

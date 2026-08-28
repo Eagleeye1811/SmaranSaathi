@@ -256,7 +256,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 onTap: () => Nav.push(context, const CarePlanScreen()),
               ),
               const SizedBox(height: Insets.lg),
-              _RemindersStrip(state: state),
+              _RemindersStrip(state: state, onOpenTab: onOpenTab),
               const SizedBox(height: Insets.md),
               // The warm parts of the app the monitoring journey sits on top
               // of. Kept one tap away rather than in the navigation bar: they
@@ -279,7 +279,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       label: 'Today',
                       detail: 'Check-in and reminders',
                       color: AppColors.plum,
-                      onTap: () => Nav.push(context, const TodayScreen()),
+                      onTap: () => onOpenTab != null ? onOpenTab!(1) : Nav.push(context, const TodayScreen()),
                     ),
                   ),
                 ],
@@ -810,14 +810,16 @@ class _ActionCard extends StatelessWidget {
 }
 
 class _RemindersStrip extends StatelessWidget {
-  const _RemindersStrip({required this.state});
+  const _RemindersStrip({required this.state, this.onOpenTab});
 
   final AppState state;
+  final ValueChanged<int>? onOpenTab;
 
   @override
   Widget build(BuildContext context) {
     if (state.remindersTotal == 0) return const SizedBox.shrink();
     return MmCard(
+      onTap: () => onOpenTab != null ? onOpenTab!(1) : null,
       padding: const EdgeInsets.all(Insets.md),
       child: Row(
         children: <Widget>[

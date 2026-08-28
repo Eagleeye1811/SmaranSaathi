@@ -24,6 +24,7 @@ class PatientTopBar extends StatelessWidget {
 
   final Widget? trailing;
   final VoidCallback? onExit;
+  final bool showExit;
 
   /// The progress pill. Off on screens that are already about one thing.
   final bool showStatus;
@@ -397,6 +398,7 @@ class ReminderRow extends StatelessWidget {
       ReminderKind.cognitive => AppColors.primary,
       ReminderKind.appointment => AppColors.plum,
       ReminderKind.routine => AppColors.accent,
+      ReminderKind.social => AppColors.indigo,
     };
 
     return AnimatedContainer(

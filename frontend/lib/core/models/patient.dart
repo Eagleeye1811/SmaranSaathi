@@ -124,6 +124,7 @@ class Patient {
     required this.routine,
     this.stageNote = 'Early-stage memory changes',
     this.joinedOn = 'Profile created today',
+    this.phoneNumber = '',
   });
 
   final String id;
@@ -145,6 +146,7 @@ class Patient {
 
   final String stageNote;
   final String joinedOn;
+  final String phoneNumber;
 
   FamilyMember? get primaryRelative => family.isEmpty ? null : family.first;
 
@@ -176,6 +178,7 @@ class Patient {
     List<LifeMemory>? memories,
     List<MemoryAsset>? assets,
     List<RoutineItem>? routine,
+    String? phoneNumber,
   }) {
     return Patient(
       id: id ?? this.id,
@@ -195,6 +198,7 @@ class Patient {
       routine: routine ?? this.routine,
       stageNote: stageNote,
       joinedOn: joinedOn,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
     );
   }
 }

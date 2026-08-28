@@ -19,6 +19,7 @@ import '../models/settings.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
+import 'notification_service.dart';
 import 'personalization_service.dart';
 import 'sync_manager.dart';
 
@@ -164,6 +165,20 @@ class AppState extends ChangeNotifier {
       await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
         'patientId': _patient.id,
         'name': _patient.name,
+      });
+    });
+  }
+
+  /// Updates the patient's phone number for real-time SMS notifications.
+  void updatePatientPhoneNumber(String phoneNumber) {
+    _patient = _patient.copyWith(phoneNumber: phoneNumber);
+    notifyListeners();
+    _write(() async {
+      await _patients.save(_patient);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
+        'patientId': _patient.id,
+        'name': _patient.name,
+        'phoneNumber': phoneNumber,
       });
     });
   }
@@ -1084,6 +1099,39 @@ class AppState extends ChangeNotifier {
         'patientId': _patient.id,
         'reminderId': id,
         'done': done,
+        'at': _clockLabel(),
+      });
+    });
+    notifyListeners();
+  }
+
+  void addReminder(String title, String timeStr, int minutesFromMidnight, ReminderKind kind, {String detail = '', bool smsEnabled = true}) {
+    final reminder = Reminder(
+      id: 'rem_${DateTime.now().millisecondsSinceEpoch}',
+      time: timeStr,
+      minutesFromMidnight: minutesFromMidnight,
+      title: title,
+      kind: kind,
+      detail: detail,
+      done: false,
+      smsEnabled: smsEnabled,
+    );
+    _reminders.add(reminder);
+    _reminders.sort((a, b) => a.minutesFromMidnight.compareTo(b.minutesFromMidnight));
+    LocalNotificationService.instance.scheduleReminderNotification(reminder);
+    _write(() async {
+      await _reminderRepo.save(reminder);
+      await _sync.enqueue(SyncOperationKind.reminderCreate, <String, dynamic>{
+        'patientId': _patient.id,
+        'reminder': <String, dynamic>{
+          'id': reminder.id,
+          'time': reminder.time,
+          'minutes_from_midnight': reminder.minutesFromMidnight,
+          'title': reminder.title,
+          'kind': reminder.kind.name,
+          'detail': reminder.detail,
+          'sms_enabled': reminder.smsEnabled,
+        },
         'at': _clockLabel(),
       });
     });
