@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_nav_bar.dart';
+import '../../l10n/app_localizations.dart';
 import 'activity/caregiver_activity_screen.dart';
 import 'dashboard/caregiver_dashboard_screen.dart';
 import 'memory_profile/memory_profile_screen.dart';
@@ -19,18 +20,22 @@ class CaregiverShell extends StatefulWidget {
 class _CaregiverShellState extends State<CaregiverShell> {
   int _index = 0;
 
-  static const List<NavDestination> _destinations = <NavDestination>[
-    NavDestination('Dashboard', Icons.space_dashboard_outlined, Icons.space_dashboard_rounded),
-    NavDestination('Patient', Icons.elderly_woman_outlined, Icons.elderly_woman_rounded),
-    NavDestination('Activity', Icons.insights_outlined, Icons.insights_rounded),
-    NavDestination('Reminders', Icons.notifications_none_rounded, Icons.notifications_rounded),
-    NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
-  ];
+  List<NavDestination> _destinations(AppLocalizations l) => <NavDestination>[
+        NavDestination(
+            l.caregiverNavDashboard, Icons.space_dashboard_outlined, Icons.space_dashboard_rounded),
+        NavDestination(
+            l.caregiverNavPatient, Icons.elderly_woman_outlined, Icons.elderly_woman_rounded),
+        NavDestination(l.caregiverNavActivity, Icons.insights_outlined, Icons.insights_rounded),
+        NavDestination(l.caregiverNavReminders, Icons.notifications_none_rounded,
+            Icons.notifications_rounded),
+        NavDestination(l.caregiverNavProfile, Icons.person_outline_rounded, Icons.person_rounded),
+      ];
 
   void _go(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: IndexedStack(
@@ -44,7 +49,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
         ],
       ),
       bottomNavigationBar: AppNavBar(
-        destinations: _destinations,
+        destinations: _destinations(l),
         index: _index,
         onChanged: _go,
         accent: AppColors.primary,

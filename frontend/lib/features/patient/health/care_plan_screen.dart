@@ -7,6 +7,7 @@ import '../../../core/models/assessment.dart';
 import '../../../core/models/monitoring.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../intake/intake_kit.dart';
 
 /// What happens next.
@@ -22,6 +23,7 @@ class CarePlanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final MonitoringSnapshot snapshot = state.monitoring;
     final IntakeRecord intake = state.intake;
     final DateTime nextReview = DateTime.now().add(const Duration(days: 28));
@@ -30,42 +32,39 @@ class CarePlanScreen extends StatelessWidget {
         <({IconData icon, String title, String detail, bool done})>[
       (
         icon: Icons.event_repeat_rounded,
-        title: 'Weekly assessment',
-        detail: 'Six activities once a week keeps the trend meaningful. '
-            '${snapshot.assessmentsCompleted} of ${snapshot.assessmentsExpected} weeks completed so far.',
+        title: l.carePlanWeeklyAssessmentTitle,
+        detail: l.carePlanWeeklyAssessmentDetail(
+            snapshot.assessmentsCompleted, snapshot.assessmentsExpected),
         done: snapshot.adherencePercent >= 70,
       ),
       (
         icon: Icons.extension_rounded,
-        title: 'Daily activity',
-        detail: 'One short activity a day, chosen for you.',
+        title: l.carePlanDailyActivityTitle,
+        detail: l.carePlanDailyActivityDetail,
         done: state.completedToday.isNotEmpty,
       ),
       if (state.medicineTotal > 0)
         (
           icon: Icons.medication_outlined,
-          title: 'Medication reminders',
-          detail: '${state.medicineDone} of ${state.medicineTotal} taken today.',
+          title: l.carePlanMedicationTitle,
+          detail: l.carePlanMedicationDetail(state.medicineDone, state.medicineTotal),
           done: state.medicineDone == state.medicineTotal,
         ),
       if (intake.caregiver != null)
         (
           icon: Icons.people_alt_outlined,
-          title: 'Caregiver check-in',
-          detail: '${intake.caregiver!.caregiverName} has added observations. '
-              'Refresh them each month.',
+          title: l.carePlanCaregiverCheckInTitle,
+          detail: l.carePlanCaregiverCheckInDetail(intake.caregiver!.caregiverName),
           done: true,
         ),
       (
         icon: Icons.medical_information_outlined,
         title: snapshot.suggestsClinicalDiscussion
-            ? 'Discuss the summary with a doctor'
-            : 'Keep the summary ready',
+            ? l.carePlanDiscussWithDoctor
+            : l.carePlanKeepSummaryReady,
         detail: snapshot.suggestsClinicalDiscussion
-            ? 'Change was observed in more than one area alongside reported '
-                'difficulty with daily activities.'
-            : 'Nothing here needs urgent action. Take the summary along at your '
-                'next routine appointment.',
+            ? l.carePlanDiscussDetail
+            : l.carePlanKeepReadyDetail,
         done: false,
       ),
     ];
@@ -78,9 +77,9 @@ class CarePlanScreen extends StatelessWidget {
               Insets.gutter, Insets.md, Insets.gutter, Insets.xl),
           children: <Widget>[
             ScreenHeader(
-              eyebrow: 'Monitoring plan',
-              title: 'Your care plan',
-              subtitle: 'Built from your own record',
+              eyebrow: l.carePlanEyebrow,
+              title: l.carePlanTitle,
+              subtitle: l.carePlanSubtitle,
               leading: RoundIconButton(
                 icon: Icons.arrow_back_rounded,
                 onPressed: () => Navigator.of(context).maybePop(),
@@ -134,10 +133,10 @@ class CarePlanScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Next review', style: AppText.label),
+                        Text(l.carePlanNextReview, style: AppText.label),
                         Text(
                           '${nextReview.day} '
-                          '${_month(nextReview.month)} ${nextReview.year}',
+                          '${_month(l, nextReview.month)} ${nextReview.year}',
                           style: AppText.h3,
                         ),
                       ],
@@ -147,11 +146,8 @@ class CarePlanScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Insets.md),
-            const NotADiagnosisNote(
-              message:
-                  'This plan is generated from your answers and your activity '
-                  'history. It is a monitoring routine, not a treatment plan — a '
-                  'clinician decides what care you need.',
+            NotADiagnosisNote(
+              message: l.carePlanDisclaimer,
             ),
           ],
         ),
@@ -159,8 +155,18 @@ class CarePlanScreen extends StatelessWidget {
     );
   }
 
-  static String _month(int m) => const <String>[
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December',
+  static String _month(AppLocalizations l, int m) => <String>[
+        l.todayMonthJanuary,
+        l.todayMonthFebruary,
+        l.todayMonthMarch,
+        l.todayMonthApril,
+        l.todayMonthMay,
+        l.todayMonthJune,
+        l.todayMonthJuly,
+        l.todayMonthAugust,
+        l.todayMonthSeptember,
+        l.todayMonthOctober,
+        l.todayMonthNovember,
+        l.todayMonthDecember,
       ][m - 1];
 }

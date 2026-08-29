@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/models/memory_fragment.dart';
 import '../../../core/models/patient.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/companion.dart';
@@ -10,6 +11,8 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../widgets/patient_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// "My Memories" — the memory wallet.
 ///
@@ -27,18 +30,19 @@ enum _Tab { family, places, stories, favourites, all }
 class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
   _Tab _tab = _Tab.family;
 
-  static const Map<_Tab, ({String label, IconData icon})> _tabs =
+  static Map<_Tab, ({String label, IconData icon})> _tabsFor(AppLocalizations l) =>
       <_Tab, ({String label, IconData icon})>{
-    _Tab.family: (label: 'My Family', icon: Icons.favorite_rounded),
-    _Tab.places: (label: 'My Places', icon: Icons.place_rounded),
-    _Tab.stories: (label: 'My Stories', icon: Icons.auto_stories_rounded),
-    _Tab.favourites: (label: 'My Favourites', icon: Icons.star_rounded),
-    _Tab.all: (label: 'My Memories', icon: Icons.photo_library_rounded),
-  };
+        _Tab.family: (label: l.walletTabFamily, icon: Icons.favorite_rounded),
+        _Tab.places: (label: l.walletTabPlaces, icon: Icons.place_rounded),
+        _Tab.stories: (label: l.walletTabStories, icon: Icons.auto_stories_rounded),
+        _Tab.favourites: (label: l.walletTabFavourites, icon: Icons.star_rounded),
+        _Tab.all: (label: l.walletTabAll, icon: Icons.photo_library_rounded),
+      };
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final Patient p = state.patient;
 
     return MotifBackground(
@@ -134,9 +138,10 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
 
   Widget _family(Patient p) {
     if (p.family.isEmpty) {
-      return const EmptyState(
-        title: 'No family added yet',
-        message: 'Your caregiver can add the people who matter to you.',
+      final AppLocalizations l = AppLocalizations.of(context);
+      return EmptyState(
+        title: l.walletNoFamilyTitle,
+        message: l.walletNoFamilyMessage,
         icon: Icons.favorite_rounded,
       );
     }
@@ -192,19 +197,30 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
     );
   }
 
+  /// Two real sources feed this gallery: [MemoryFragment]s the patient has
+  /// actually shared with Mitra (dated, so they lead, newest first) and the
+  /// [LifeMemory] background a caregiver filled in during onboarding.
+  /// Neither is demo filler — this is what recollecting looks like.
   Widget _stories(Patient p) {
-    if (p.memories.isEmpty) {
-      return const EmptyState(
-        title: 'No stories yet',
-        message: 'Your caregiver can add the stories you like to tell.',
+    final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<MemoryFragment> fragments = List<MemoryFragment>.of(state.memoryFragments)
+      ..sort((MemoryFragment a, MemoryFragment b) => b.createdAt.compareTo(a.createdAt));
+
+    if (fragments.isEmpty && p.memories.isEmpty) {
+      return EmptyState(
+        title: l.walletNoStoriesTitle,
+        message: l.walletNoStoriesMessage,
         icon: Icons.auto_stories_rounded,
       );
     }
+
+    int delay = 0;
     return Column(
       children: <Widget>[
-        for (int i = 0; i < p.memories.length; i++)
+        for (final MemoryFragment f in fragments)
           FadeInUp(
-            delayMs: i * 50,
+            delayMs: (delay++) * 50,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: MmCard(
@@ -214,16 +230,60 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                     Row(
                       children: <Widget>[
                         SoftIcon(
-                          icon: _storyIcon(p.memories[i].category),
-                          color: AppColors.chartSeries[i % AppColors.chartSeries.length],
+                          icon: f.category.icon,
+                          color: AppColors.chartSeries[delay % AppColors.chartSeries.length],
                           size: 38,
                         ),
                         const SizedBox(width: 12),
-                        Text(p.memories[i].category, style: AppText.h3),
+                        Expanded(
+                            child: Text(f.category.localizedLabel(l), style: AppText.h3)),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Text(p.memories[i].answer, style: AppText.patientBody.sized(18)),
+                    Text(f.summary, style: AppText.patientBody.sized(18)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: <Widget>[
+                        Text(l.memoryHomeSharedOn(_shortDate(f.createdAt, l)),
+                            style: AppText.caption),
+                        if (f.mentionedName != null)
+                          Text('· ${f.mentionedName}', style: AppText.caption),
+                        if (f.timesResurfaced > 0)
+                          Text(l.memoryHomeRevisitedCount(f.timesResurfaced),
+                              style: AppText.caption),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        for (final LifeMemory m in p.memories)
+          FadeInUp(
+            delayMs: (delay++) * 50,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: MmCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Row(
+                      children: <Widget>[
+                        SoftIcon(
+                          icon: _storyIcon(m.category),
+                          color: AppColors.chartSeries[delay % AppColors.chartSeries.length],
+                          size: 38,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(m.category, style: AppText.h3),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(m.prompt, style: AppText.caption.wght(700)),
+                    const SizedBox(height: 4),
+                    Text(m.answer, style: AppText.patientBody.sized(18)),
                   ],
                 ),
               ),
@@ -231,6 +291,15 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
           ),
       ],
     );
+  }
+
+  static String _shortDate(DateTime d, AppLocalizations l) {
+    final List<String> months = <String>[
+      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
+      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
+      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
+    ];
+    return '${d.day} ${months[d.month - 1]}';
   }
 
   IconData _storyIcon(String category) => switch (category.toLowerCase()) {
@@ -244,33 +313,46 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
       };
 
   Widget _favourites(Patient p) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<({String label, String value, String scene, Color color})> items =
         <({String label, String value, String scene, Color color})>[
-      (
-        label: 'Favourite activity',
-        value: p.favouriteActivity.isEmpty ? 'Weaving' : p.favouriteActivity,
-        scene: 'weaving',
-        color: AppColors.terracotta
-      ),
-      (
-        label: 'Favourite food',
-        value: p.favouriteFood.isEmpty ? 'Pitha' : p.favouriteFood,
-        scene: 'pitha',
-        color: AppColors.accent
-      ),
-      (
-        label: 'Favourite tradition',
-        value: p.tradition.isEmpty ? 'Magh Bihu' : p.tradition,
-        scene: 'bihu',
-        color: AppColors.primary
-      ),
-      (
-        label: 'Her work',
-        value: p.occupation.isEmpty ? 'Weaver' : p.occupation,
-        scene: 'gamosa',
-        color: AppColors.plum
-      ),
+      if (p.favouriteActivity.isNotEmpty)
+        (
+          label: l.walletFavouriteActivity,
+          value: p.favouriteActivity,
+          scene: 'weaving',
+          color: AppColors.terracotta
+        ),
+      if (p.favouriteFood.isNotEmpty)
+        (
+          label: l.walletFavouriteFood,
+          value: p.favouriteFood,
+          scene: 'pitha',
+          color: AppColors.accent
+        ),
+      if (p.tradition.isNotEmpty)
+        (
+          label: l.walletFavouriteTradition,
+          value: p.tradition,
+          scene: 'bihu',
+          color: AppColors.primary
+        ),
+      if (p.occupation.isNotEmpty)
+        (
+          label: l.walletHerWork,
+          value: p.occupation,
+          scene: 'gamosa',
+          color: AppColors.plum
+        ),
     ];
+
+    if (items.isEmpty) {
+      return EmptyState(
+        title: l.walletNoFavouritesTitle,
+        message: l.walletNoFavouritesMessage,
+        icon: Icons.star_rounded,
+      );
+    }
 
     return Column(
       children: <Widget>[
@@ -314,9 +396,10 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
 
   Widget _grid(List<MemoryAsset> assets) {
     if (assets.isEmpty) {
-      return const EmptyState(
-        title: 'Nothing here yet',
-        message: 'Your caregiver can add photographs of the places you love.',
+      final AppLocalizations l = AppLocalizations.of(context);
+      return EmptyState(
+        title: l.walletNothingHereTitle,
+        message: l.walletNothingHereMessage,
         icon: Icons.photo_library_rounded,
       );
     }
@@ -446,6 +529,7 @@ class _AssetSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(Insets.lg),
@@ -484,15 +568,15 @@ class _AssetSheet extends StatelessWidget {
                 textAlign: TextAlign.center, style: AppText.patientBody.sized(18)),
           ],
           const SizedBox(height: Insets.lg),
-          const CompanionSpeech(
-            message: 'Would you like to tell me about this one?',
+          CompanionSpeech(
+            message: l.walletTellMeAboutThis,
             state: CompanionState.listening,
             companionSize: 60,
             compact: true,
           ),
           const SizedBox(height: Insets.lg),
           BigButton(
-            label: 'Close',
+            label: l.actionClose,
             color: AppColors.terracotta,
             outlined: true,
             height: 60,

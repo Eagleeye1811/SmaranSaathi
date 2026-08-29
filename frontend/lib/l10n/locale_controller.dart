@@ -24,6 +24,7 @@ class LocaleController extends ChangeNotifier {
   VoiceLanguage get voiceLanguage => switch (_locale.languageCode) {
         'hi' => VoiceLanguage.hindi,
         'as' => VoiceLanguage.assamese,
+        'mr' => VoiceLanguage.marathi,
         _ => VoiceLanguage.english,
       };
 
@@ -36,6 +37,7 @@ class LocaleController extends ChangeNotifier {
   void setVoiceLanguage(VoiceLanguage language) => setLocale(Locale(switch (language) {
         VoiceLanguage.hindi => 'hi',
         VoiceLanguage.assamese => 'as',
+        VoiceLanguage.marathi => 'mr',
         VoiceLanguage.english => 'en',
       }));
 
@@ -46,6 +48,7 @@ class LocaleController extends ChangeNotifier {
       Locale(switch (VoiceLanguageX.fromPatientLanguage(raw)) {
         VoiceLanguage.hindi => 'hi',
         VoiceLanguage.assamese => 'as',
+        VoiceLanguage.marathi => 'mr',
         VoiceLanguage.english => 'en',
       });
 }

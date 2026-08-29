@@ -226,7 +226,8 @@ void main() {
     state
       ..textSize = TextSizePreference.extraLarge
       ..highContrast = true
-      ..voicePrompts = false;
+      ..voicePrompts = false
+      ..localeCode = 'mr';
     final String reminderId = state.reminders.firstWhere((Reminder r) => !r.done).id;
     state.toggleReminder(reminderId);
     final int doneAfterToggle = state.remindersDone;
@@ -238,6 +239,8 @@ void main() {
     expect(state.textSize, TextSizePreference.extraLarge);
     expect(state.highContrast, isTrue);
     expect(state.voicePrompts, isFalse);
+    expect(state.localeCode, 'mr',
+        reason: 'the interface language must survive a restart, not just a live switch');
     expect(state.remindersDone, doneAfterToggle);
     expect(state.reminders.firstWhere((Reminder r) => r.id == reminderId).done, isTrue);
 

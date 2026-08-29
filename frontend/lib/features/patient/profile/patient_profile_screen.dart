@@ -10,12 +10,11 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../core/models/auth_user.dart';
 import '../../../core/services/auth_service.dart';
 import '../../auth/sign_in_screen.dart';
 import '../../intake/welcome_screens.dart';
-import '../health/report_screen.dart';
-import '../patient_entry.dart';
 import '../settings/language_selector.dart';
 import '../widgets/patient_widgets.dart';
 
@@ -76,7 +75,10 @@ class PatientProfileScreen extends StatelessWidget {
                             spacing: 8,
                             runSpacing: 8,
                             children: <Widget>[
-                              PillTag(label: '${p.age} years', color: AppColors.primary, dense: true),
+                              PillTag(
+                                  label: l.reportAgeYears(p.age),
+                                  color: AppColors.primary,
+                                  dense: true),
                               PillTag(
                                   label: p.location.isEmpty ? 'Assam' : p.location,
                                   icon: Icons.place_rounded,
@@ -97,13 +99,17 @@ class PatientProfileScreen extends StatelessWidget {
                             spacing: 10,
                             runSpacing: 14,
                             children: <Widget>[
-                              _Fact(label: 'Her work', value: p.occupation.isEmpty ? 'Weaver' : p.occupation),
                               _Fact(
-                                  label: 'She loves',
+                                  label: l.walletHerWork,
+                                  value: p.occupation.isEmpty ? 'Weaver' : p.occupation),
+                              _Fact(
+                                  label: l.profileSheLoves,
                                   value: p.favouriteFood.isEmpty ? 'Pitha' : p.favouriteFood),
-                              _Fact(label: 'Family', value: '${p.family.length} people'),
+                              _Fact(
+                                  label: l.profileFamily,
+                                  value: l.profileFamilyCount(p.family.length)),
                               if (p.phoneNumber.isNotEmpty)
-                                _Fact(label: 'Phone number', value: p.phoneNumber),
+                                _Fact(label: l.profilePhoneNumber, value: p.phoneNumber),
                             ],
                           ),
                         ],
@@ -135,7 +141,7 @@ class PatientProfileScreen extends StatelessWidget {
                     child: SectionHeader(
                       title: l.settingsEasier,
                       icon: Icons.accessibility_new_rounded,
-                      subtitle: 'These change how the app looks right away',
+                      subtitle: l.profileChangesApplyRightAway,
                     ),
                   ),
                   FadeInUp(
@@ -144,13 +150,13 @@ class PatientProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('TEXT SIZE', style: AppText.overline),
+                          Text(l.settingsTextSize.toUpperCase(), style: AppText.overline),
                           const SizedBox(height: 12),
                           for (final TextSizePreference t in TextSizePreference.values)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 9),
                               child: _RadioRow(
-                                label: t.label,
+                                label: t.localizedLabel(l),
                                 selected: state.textSize == t,
                                 sampleScale: t.scale,
                                 onTap: () => state.textSize = t,
@@ -175,8 +181,8 @@ class PatientProfileScreen extends StatelessWidget {
                           ),
                           _SwitchRow(
                             icon: Icons.record_voice_over_rounded,
-                            label: 'Voice prompts',
-                            detail: 'Mitra reads questions aloud in ${p.language}',
+                            label: l.settingsVoicePromptsLabel,
+                            detail: l.settingsVoicePrompts(p.language),
                             value: state.voicePrompts,
                             onChanged: (bool v) => state.voicePrompts = v,
                           ),
@@ -244,75 +250,6 @@ class PatientProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
-                  // ── Assessment ────────────────────────────────────────
-                  FadeInUp(
-                    delayMs: 140,
-                    child: SectionHeader(
-                      title: 'Assessment',
-                      icon: Icons.fact_check_outlined,
-                      subtitle: state.intakeComplete
-                          ? 'Baseline captured · ${state.monitoring.totalSessions} sessions recorded'
-                          : 'Not completed yet',
-                    ),
-                  ),
-                  FadeInUp(
-                    delayMs: 150,
-                    child: MmCard(
-                      child: Column(
-                        children: <Widget>[
-                          ListRow(
-                            leading: const SoftIcon(icon: Icons.description_outlined),
-                            title: 'Doctor summary',
-                            subtitle: 'Symptoms, function and trends in one page',
-                            trailing: const Icon(Icons.chevron_right_rounded,
-                                color: AppColors.inkMuted),
-                            onTap: () => Nav.push(context, const ReportScreen()),
-                          ),
-                          const Divider(color: AppColors.hairline),
-                          ListRow(
-                            leading: const SoftIcon(
-                              icon: Icons.science_outlined,
-                              color: AppColors.secondary,
-                            ),
-                            title: 'Load demonstration history',
-                            subtitle:
-                                'Twelve weeks of weekly assessments, for showing how '
-                                'monitoring works. Replaces the current history.',
-                            trailing: const Icon(Icons.chevron_right_rounded,
-                                color: AppColors.inkMuted),
-                            onTap: () async {
-                              await state.loadDemoJourney();
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Twelve weeks of history loaded'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                          ),
-                          const Divider(color: AppColors.hairline),
-                          ListRow(
-                            leading: const SoftIcon(
-                              icon: Icons.restart_alt_rounded,
-                              color: AppColors.terracotta,
-                            ),
-                            title: 'Start the assessment over',
-                            subtitle: 'Clears the questionnaire and the baseline',
-                            trailing: const Icon(Icons.chevron_right_rounded,
-                                color: AppColors.inkMuted),
-                            onTap: () async {
-                              await state.resetAssessment();
-                              if (!context.mounted) return;
-                              Nav.rootTo(context, const PatientEntry());
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: Insets.lg),
-
                   FadeInUp(
                     delayMs: 160,
                     child: MmCard(
@@ -320,23 +257,23 @@ class PatientProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Care team', style: AppText.h3),
+                          Text(l.profileCareTeam, style: AppText.h3),
                           const SizedBox(height: 12),
                           ListRow(
                             leading: const SceneImage(
                                 sceneId: 'portrait_priya', size: 48, circle: true),
                             title: p.family.isEmpty ? 'Priya' : p.family.first.name,
-                            subtitle: 'Caregiver · calls every evening',
+                            subtitle: l.profileCaregiverCallsEvening,
                           ),
                           const Divider(color: AppColors.hairline),
-                          const ListRow(
-                            leading: SoftIcon(
+                          ListRow(
+                            leading: const SoftIcon(
                               icon: Icons.medical_information_rounded,
                               color: AppColors.secondary,
                               size: 48,
                             ),
                             title: 'Dr. Neha Sharma',
-                            subtitle: 'Memory clinic · Thursdays, 11:00 AM',
+                            subtitle: l.profileMemoryClinicSchedule,
                           ),
                         ],
                       ),
@@ -381,23 +318,21 @@ class _AccountCard extends StatelessWidget {
   const _AccountCard();
 
   Future<void> _logOut(BuildContext context) async {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Log out?'),
-            content: const Text(
-              'Your answers and activities stay saved. You can sign back in '
-              'any time to see them again.',
-            ),
+            title: Text(l.profileLogOutQuestion),
+            content: Text(l.profileLogOutBody),
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Stay signed in'),
+                child: Text(l.profileStaySignedIn),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Log out'),
+                child: Text(l.profileLogOut),
               ),
             ],
           ),
@@ -422,6 +357,7 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final AuthService? service = AuthScope.maybeOf(context);
     final String? email = service?.currentUser?.email;
     final bool signedIn = state.accountId != null || email != null;
@@ -430,11 +366,11 @@ class _AccountCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'Account',
+          title: l.profileAccount,
           icon: Icons.badge_outlined,
           subtitle: signedIn
-              ? 'Your answers are filed under this account'
-              : 'Not signed in — everything is saved on this phone only',
+              ? l.profileAnswersFiledUnderAccount
+              : l.profileNotSignedIn,
         ),
         MmCard(
           child: Column(
@@ -448,15 +384,15 @@ class _AccountCard extends StatelessWidget {
                   color: signedIn ? AppColors.primary : AppColors.inkMuted,
                   size: 48,
                 ),
-                title: signedIn ? (email ?? 'Signed in') : 'No account',
+                title: signedIn ? (email ?? l.profileSignedIn) : l.profileNoAccount,
                 subtitle: signedIn
-                    ? 'Signed in'
-                    : 'Sign in to keep your record if you change phones',
+                    ? l.profileSignedIn
+                    : l.profileSignInToKeepRecord,
               ),
               const SizedBox(height: Insets.md),
               if (signedIn)
                 BigButton(
-                  label: 'Log out',
+                  label: l.profileLogOut,
                   icon: Icons.logout_rounded,
                   color: AppColors.danger,
                   outlined: true,
@@ -465,7 +401,7 @@ class _AccountCard extends StatelessWidget {
                 )
               else if (service != null)
                 BigButton(
-                  label: 'Sign in',
+                  label: l.profileSignIn,
                   icon: Icons.login_rounded,
                   color: AppColors.primary,
                   outlined: true,
@@ -658,6 +594,7 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
   }
 
   void _save(AppState state) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final String newPhone = _phoneController.text.trim();
     state.updatePatientPhoneNumber(newPhone);
     setState(() => _isEditing = false);
@@ -665,8 +602,8 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
       SnackBar(
         content: Text(
           newPhone.isEmpty
-              ? 'Phone number removed'
-              : 'Phone number updated for real-time SMS notifications!',
+              ? l.profilePhoneNumberRemoved
+              : l.profilePhoneNumberUpdated,
         ),
         backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
@@ -677,6 +614,7 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final String currentPhone = widget.patient.phoneNumber;
 
     return MmCard(
@@ -704,12 +642,12 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      'SMS Alerts Mobile Number',
+                      l.profileSmsAlertsMobileNumber,
                       style: AppText.bodyLarge.wght(800),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'For real-time reminder notifications on phone',
+                      l.profileSmsAlertsSubtitle,
                       style: AppText.caption.sized(12).tint(AppColors.inkSoft),
                     ),
                   ],
@@ -737,8 +675,8 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
               keyboardType: TextInputType.phone,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'e.g., +919876543210',
-                labelText: 'Mobile Number with country code',
+                hintText: l.profilePhoneHint,
+                labelText: l.profilePhoneLabel,
                 fillColor: Colors.white,
                 filled: true,
                 prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary),
@@ -764,7 +702,7 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
                       _isEditing = false;
                     });
                   },
-                  child: Text('Cancel', style: AppText.body.tint(AppColors.inkMuted)),
+                  child: Text(l.actionCancel, style: AppText.body.tint(AppColors.inkMuted)),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -776,7 +714,7 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
                   icon: const Icon(Icons.check_rounded, size: 18),
-                  label: const Text('Save Number', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: Text(l.profileSaveNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -808,7 +746,7 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        currentPhone.isNotEmpty ? currentPhone : 'No mobile number added yet',
+                        currentPhone.isNotEmpty ? currentPhone : l.profileNoMobileNumberYet,
                         style: AppText.bodyLarge
                             .wght(700)
                             .tint(currentPhone.isNotEmpty ? AppColors.primaryDeep : AppColors.inkMuted),

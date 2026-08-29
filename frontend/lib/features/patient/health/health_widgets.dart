@@ -8,6 +8,7 @@ import '../../../core/models/game.dart';
 import '../../../core/models/monitoring.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Colour for a direction of change.
 ///
@@ -35,6 +36,7 @@ class DomainRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = trendColor(reading.trend);
     return Padding(
       padding: const EdgeInsets.only(bottom: Insets.sm),
@@ -60,7 +62,7 @@ class DomainRow extends StatelessWidget {
                           style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 2),
                       Text(
-                        reading.hasReading ? reading.deltaLabel : 'Not yet assessed',
+                        reading.hasReading ? reading.deltaLabel : l.healthNotYetAssessed,
                         style: AppText.caption.copyWith(color: color),
                       ),
                     ],
@@ -135,6 +137,7 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = trendColor(snapshot.statusTrend);
     return MmCard(
       padding: const EdgeInsets.all(Insets.lg),
@@ -151,7 +154,7 @@ class StatusCard extends StatelessWidget {
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
-              Text('Cognitive health', style: AppText.overline),
+              Text(l.healthCognitiveHealthLabel, style: AppText.overline),
               PillTag(
                 label: snapshot.statusLabel,
                 color: color,
@@ -176,8 +179,8 @@ class StatusCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     snapshot.overallBaseline == null
-                        ? 'first result'
-                        : 'vs baseline ${snapshot.overallBaseline!.round()}',
+                        ? l.healthFirstResult
+                        : l.healthVsBaseline(snapshot.overallBaseline!.round()),
                     style: AppText.bodySmall,
                   ),
                 ),
@@ -189,7 +192,7 @@ class StatusCard extends StatelessWidget {
           if (onViewProfile != null) ...<Widget>[
             const SizedBox(height: Insets.md),
             SoftButton(
-              label: 'View cognitive profile',
+              label: l.healthViewCognitiveProfile,
               icon: Icons.insights_rounded,
               onPressed: onViewProfile,
             ),

@@ -7,6 +7,8 @@ import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/voice/voice_intake_controller.dart';
+import '../../l10n/app_localizations.dart';
+import 'assessment_l10n.dart';
 import 'intake_kit.dart';
 
 /// Step 3 — why the person is here.
@@ -45,12 +47,13 @@ class _ReasonStepState extends State<ReasonStep> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return IntakeScaffold(
       stepIndex: 3,
       stepCount: 8,
       onBack: widget.onBack,
-      title: 'What brings you here?',
-      subtitle: 'Select everything that applies.',
+      title: l.intakeReasonTitle,
+      subtitle: l.intakeReasonSubtitle,
       onContinue: _valid
           ? () {
               state.saveReason(ReasonForVisit(
@@ -61,11 +64,11 @@ class _ReasonStepState extends State<ReasonStep> {
               widget.onDone();
             }
           : null,
-      footnote: _valid ? null : 'Answer all three questions to continue.',
+      footnote: _valid ? null : l.intakeReasonFootnote,
       children: <Widget>[
         for (final PresentingConcern c in PresentingConcern.values)
           ChoiceTile(
-            label: c.label,
+            label: presentingConcernLabel(l, c),
             selected: _concerns.contains(c),
             multiple: true,
             onTap: () => setState(() {
@@ -73,20 +76,20 @@ class _ReasonStepState extends State<ReasonStep> {
             }),
           ),
         const SizedBox(height: Insets.lg),
-        Text('When did you first notice these changes?', style: AppText.h3),
+        Text(l.intakeReasonOnsetLabel, style: AppText.h3),
         const SizedBox(height: Insets.md),
         for (final OnsetWindow o in OnsetWindow.values)
           ChoiceTile(
-            label: o.label,
+            label: onsetWindowLabel(l, o),
             selected: _onset == o,
             onTap: () => setState(() => _onset = o),
           ),
         const SizedBox(height: Insets.lg),
-        Text('How have they changed since then?', style: AppText.h3),
+        Text(l.intakeReasonProgressionLabel, style: AppText.h3),
         const SizedBox(height: Insets.md),
         for (final ProgressionPattern p in ProgressionPattern.values)
           ChoiceTile(
-            label: p.label,
+            label: progressionPatternLabel(l, p),
             selected: _progression == p,
             onTap: () => setState(() => _progression = p),
           ),
@@ -137,6 +140,7 @@ class _SafetyStepState extends State<SafetyStep> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool urgent = _check.requiresUrgentReview;
 
     return IntakeScaffold(
@@ -147,33 +151,32 @@ class _SafetyStepState extends State<SafetyStep> {
         for (final (String prompt, bool? value, ValueChanged<bool> set)
             in <(String, bool?, ValueChanged<bool>)>[
           (
-            'Did these problems start suddenly, within the last few hours or days?',
+            l.intakeSafetyQuestionSuddenOnset,
             _check.suddenOnset,
             (bool v) => setState(() => _check = _check.copyWith(suddenOnset: v)),
           ),
           (
-            'Does alertness or confusion change markedly through the day?',
+            l.intakeSafetyQuestionAlertness,
             _check.fluctuatingAlertness,
             (bool v) => setState(() => _check = _check.copyWith(fluctuatingAlertness: v)),
           ),
           (
-            'Any recent sudden weakness, difficulty speaking, fainting, '
-                'seizure or severe headache?',
+            l.intakeSafetyQuestionNeuroRedFlag,
             _check.neurologicalRedFlag,
             (bool v) => setState(() => _check = _check.copyWith(neurologicalRedFlag: v)),
           ),
         ])
           VoiceIntakeQuestion(
             prompt: prompt,
-            options: const <String>['Yes', 'No'],
+            options: <String>[l.intakeYes, l.intakeNo],
             answeredIndex: value == null ? null : (value ? 0 : 1),
             onSelect: (int i) => set(i == 0),
           ),
       ],
-      title: 'A quick safety check',
-      subtitle: 'Three questions. They change what we recommend next.',
+      title: l.intakeSafetyTitle,
+      subtitle: l.intakeSafetySubtitle,
       accent: AppColors.terracotta,
-      footnote: urgent ? 'Monitoring is not a substitute for urgent assessment.' : null,
+      footnote: urgent ? l.intakeSafetyFootnote : null,
       onContinue: _check.isComplete
           ? () {
               state.saveSafetyCheck(_check);
@@ -186,20 +189,18 @@ class _SafetyStepState extends State<SafetyStep> {
           const SizedBox(height: Insets.md),
         ],
         _YesNo(
-          question: 'Did these problems start suddenly, within the last few hours or days?',
+          question: l.intakeSafetyQuestionSuddenOnset,
           value: _check.suddenOnset,
           onChanged: (bool v) => setState(() => _check = _check.copyWith(suddenOnset: v)),
         ),
         _YesNo(
-          question:
-              'Does alertness or confusion change markedly through the day — clear at times, very confused at others?',
+          question: l.intakeSafetyQuestionAlertnessDetailed,
           value: _check.fluctuatingAlertness,
           onChanged: (bool v) =>
               setState(() => _check = _check.copyWith(fluctuatingAlertness: v)),
         ),
         _YesNo(
-          question:
-              'Any recent sudden weakness, difficulty speaking, fainting, seizure or severe headache?',
+          question: l.intakeSafetyQuestionNeuroRedFlag,
           value: _check.neurologicalRedFlag,
           onChanged: (bool v) =>
               setState(() => _check = _check.copyWith(neurologicalRedFlag: v)),
@@ -218,6 +219,7 @@ class _YesNo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: Insets.md),
       child: MmCard(
@@ -231,7 +233,7 @@ class _YesNo extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: BigButton(
-                    label: 'No',
+                    label: l.intakeNo,
                     height: 52,
                     outlined: value != false,
                     color: value == false ? AppColors.primary : AppColors.inkMuted,
@@ -241,7 +243,7 @@ class _YesNo extends StatelessWidget {
                 const SizedBox(width: Insets.sm),
                 Expanded(
                   child: BigButton(
-                    label: 'Yes',
+                    label: l.intakeYes,
                     height: 52,
                     outlined: value != true,
                     color: value == true ? AppColors.terracotta : AppColors.inkMuted,
@@ -265,6 +267,7 @@ class _UrgentNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       color: AppColors.dangerTint,
       padding: const EdgeInsets.all(Insets.md),
@@ -280,7 +283,7 @@ class _UrgentNote extends StatelessWidget {
               // Expanded, or a long translation runs off the right edge.
               Expanded(
                 child: Text(
-                  'This may need a doctor, not an app',
+                  l.intakeSafetyUrgentTitle,
                   style: AppText.body.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -288,13 +291,12 @@ class _UrgentNote extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'What you have described can have causes that are treatable and '
-            'time-critical.',
+            l.intakeSafetyUrgentBody,
             style: AppText.bodySmall.copyWith(height: 1.45, color: AppColors.ink),
           ),
           const SizedBox(height: Insets.sm),
           SoftButton(
-            label: 'Consult a doctor',
+            label: l.intakeSafetyConsultDoctor,
             icon: Icons.local_hospital_outlined,
             color: AppColors.danger,
             filled: true,
@@ -312,6 +314,7 @@ class _UrgentAdviceDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return AlertDialog(
       backgroundColor: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: Corners.r(Corners.lg)),
@@ -320,7 +323,7 @@ class _UrgentAdviceDialog extends StatelessWidget {
         children: <Widget>[
           const Icon(Icons.warning_amber_rounded, color: AppColors.danger),
           const SizedBox(width: Insets.sm),
-          Expanded(child: Text('Please seek medical attention', style: AppText.h3)),
+          Expanded(child: Text(l.intakeSafetyDialogTitle, style: AppText.h3)),
         ],
       ),
       content: SingleChildScrollView(
@@ -329,23 +332,18 @@ class _UrgentAdviceDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Text(
-              'Cognitive changes that begin suddenly, or that come with weakness, '
-              'speech difficulty, fainting, seizure or a severe headache, can have '
-              'many causes. Some of them are treatable and time-critical.',
+              l.intakeSafetyDialogBody1,
               style: AppText.body.copyWith(height: 1.5),
             ),
             const SizedBox(height: Insets.md),
             Text(
-              'Please contact a doctor or emergency services now rather than '
-              'waiting for a monitoring result.',
+              l.intakeSafetyDialogBody2,
               style: AppText.body.copyWith(fontWeight: FontWeight.w700, height: 1.5),
             ),
             const SizedBox(height: Insets.md),
-            const NotADiagnosisNote(
+            NotADiagnosisNote(
               compact: true,
-              message:
-                  'This app cannot assess an emergency. It is showing this because '
-                  'of what was reported, not because of any measurement.',
+              message: l.intakeSafetyDialogDisclaimer,
             ),
           ],
         ),
@@ -353,7 +351,7 @@ class _UrgentAdviceDialog extends StatelessWidget {
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Close', style: AppText.body.copyWith(color: AppColors.primary)),
+          child: Text(l.actionClose, style: AppText.body.copyWith(color: AppColors.primary)),
         ),
       ],
     );

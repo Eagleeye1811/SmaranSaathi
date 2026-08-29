@@ -11,6 +11,7 @@ import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/illustration.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 
@@ -330,13 +331,14 @@ class _StoryGameState extends State<StoryGame> {
   }
 
   Widget _buildIntro() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: 'Let us listen to a story together and explore what happens next.',
+      companionMessage: l.gameStoryIntroMessage,
       companionState: CompanionState.happy,
       bottom: BigButton(
-        label: 'Start story',
+        label: l.gameStoryStartButton,
         icon: Icons.play_arrow_rounded,
         color: _game.accent,
         onPressed: () => setState(() => _phase = _Phase.story),
@@ -351,7 +353,7 @@ class _StoryGameState extends State<StoryGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -361,8 +363,8 @@ class _StoryGameState extends State<StoryGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 1,
-                            title: 'Simple',
-                            subtitle: 'Story recall',
+                            title: l.gameStoryLevelSimple,
+                            subtitle: l.gameStorySubtitleStoryRecall,
                             unlocked: 1 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 1,
                             onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
@@ -373,8 +375,8 @@ class _StoryGameState extends State<StoryGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 2,
-                            title: 'Guided',
-                            subtitle: 'Story recall',
+                            title: l.gameStoryLevelGuided,
+                            subtitle: l.gameStorySubtitleStoryRecall,
                             unlocked: 2 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 2,
                             onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
@@ -385,8 +387,8 @@ class _StoryGameState extends State<StoryGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 3,
-                            title: 'Advanced',
-                            subtitle: 'Open story',
+                            title: l.gameStoryLevelAdvanced,
+                            subtitle: l.gameStorySubtitleOpenStory,
                             unlocked: 3 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 3,
                             onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
@@ -397,8 +399,8 @@ class _StoryGameState extends State<StoryGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 4,
-                            title: 'Open',
-                            subtitle: 'Free memory',
+                            title: l.gameStoryLevelOpen,
+                            subtitle: l.gameStorySubtitleFreeMemory,
                             unlocked: 4 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 4,
                             onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
@@ -409,8 +411,8 @@ class _StoryGameState extends State<StoryGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 5,
-                            title: 'Deep Memory',
-                            subtitle: 'Full recall',
+                            title: l.gameStoryLevelDeepMemory,
+                            subtitle: l.gameStorySubtitleFullRecall,
                             unlocked: 5 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 5,
                             onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
@@ -427,12 +429,12 @@ class _StoryGameState extends State<StoryGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('ECHOES OF ASSAM', style: AppText.overline),
+                  Text(l.gameStoryCategoryLabel, style: AppText.overline),
                   const SizedBox(height: 8),
-                  Text('Story & Memory Recall', style: AppText.h1.sized(26)),
+                  Text(l.gameStoryTitle, style: AppText.h1.sized(26)),
                   const SizedBox(height: 8),
                   Text(
-                    'Listen to warm everyday stories set in your homeland, and choose what happens next.',
+                    l.gameStoryInstructions,
                     style: AppText.bodySmall,
                   ),
                 ],
@@ -445,22 +447,23 @@ class _StoryGameState extends State<StoryGame> {
   }
 
   Widget _buildStoryRound(StoryRound round) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final int total = _rounds.length + 1;
     return GameShell(
       game: _game,
       level: _selectedLevel,
 
-      stepLabel: 'Part ${_index + 1} of $total',
+      stepLabel: l.gameStoryPartOfTotal(_index + 1, total),
       progress: (_index + (_chosen != null ? 0.6 : 0)) / total,
       companionMessage: _chosen == null
           ? round.question
-          : (_analysing ? 'Let me think about your answer…' : _chosen!.reply),
+          : (_analysing ? l.gameStoryThinkingAboutAnswer : _chosen!.reply),
       companionState: _chosen == null
           ? CompanionState.listening
           : (_analysing ? CompanionState.thinking : CompanionState.happy),
       bottom: _chosen != null && !_analysing
           ? BigButton(
-              label: _index == _rounds.length - 1 ? 'One last thing' : 'Next story',
+              label: _index == _rounds.length - 1 ? l.gameStoryOneLastThing : l.gameStoryNextStory,
               icon: Icons.arrow_forward_rounded,
               color: _game.accent,
               onPressed: _next,
@@ -502,7 +505,7 @@ class _StoryGameState extends State<StoryGame> {
             ),
             const SizedBox(height: Insets.lg),
             if (_chosen == null) ...<Widget>[
-              Text('CHOOSE WHAT HAPPENS NEXT', style: AppText.overline),
+              Text(l.gameStoryChooseWhatHappensNext, style: AppText.overline),
               const SizedBox(height: 10),
               for (final StoryChoice c in round.choices)
                 Padding(
@@ -528,12 +531,13 @@ class _StoryGameState extends State<StoryGame> {
   }
 
   Widget _buildPhotoRound() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Patient p = _state.patient;
     final MemoryAsset asset = p.assets.isNotEmpty
         ? p.assets.first
-        : const MemoryAsset(
+        : MemoryAsset(
             id: 'x',
-            title: 'A photograph',
+            title: l.gameStoryDefaultPhotoTitle,
             sceneId: 'portrait_priya',
             kind: MemoryAssetKind.person,
           );
@@ -543,19 +547,19 @@ class _StoryGameState extends State<StoryGame> {
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      stepLabel: 'Part $total of $total',
+      stepLabel: l.gameStoryPartOfTotal(total, total),
       progress: _storyEvaluated ? 1 : 0.86,
       companionMessage: _storyEvaluated
-          ? 'Thank you for telling me. I will keep that story safe.'
+          ? l.gameStoryThankYouKeepSafe
           : (_analysing
-              ? 'What a lovely story. Let me listen to all of it…'
-              : 'Tell me a small story about this picture. Tap the parts you remember.'),
+              ? l.gameStoryLovelyStoryListening
+              : l.gameStoryTellSmallStory),
       companionState: _storyEvaluated
           ? CompanionState.celebrating
           : (_analysing ? CompanionState.thinking : CompanionState.listening),
       bottom: _storyEvaluated
           ? BigButton(
-              label: 'Finish',
+              label: l.gameStoryFinish,
               icon: Icons.check_rounded,
               color: _game.accent,
               onPressed: _finish,
@@ -563,7 +567,7 @@ class _StoryGameState extends State<StoryGame> {
           : (_analysing
               ? null
               : BigButton(
-                  label: _fragments.isEmpty ? 'Tap a few parts first' : 'That is my story',
+                  label: _fragments.isEmpty ? l.gameStoryTapFewPartsFirst : l.gameStoryThatIsMyStory,
                   icon: Icons.auto_awesome_rounded,
                   color: _game.accent,
                   onPressed: _fragments.isEmpty ? null : _evaluateStory,
@@ -587,14 +591,14 @@ class _StoryGameState extends State<StoryGame> {
                   Text(asset.title, style: AppText.h3),
                   if (asset.year != null) ...<Widget>[
                     const SizedBox(height: 4),
-                    Text('From your memories · ${asset.year}', style: AppText.caption),
+                    Text(l.gameStoryFromYourMemories(asset.year!), style: AppText.caption),
                   ],
                 ],
               ),
             ),
             const SizedBox(height: Insets.lg),
             if (!_storyEvaluated) ...<Widget>[
-              Text('TAP WHAT YOU REMEMBER', style: AppText.overline),
+              Text(l.gameStoryTapWhatYouRemember, style: AppText.overline),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 9,
@@ -639,7 +643,7 @@ class _StoryGameState extends State<StoryGame> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('YOUR STORY', style: AppText.overline.tint(_game.accent)),
+                      Text(l.gameStoryYourStory, style: AppText.overline.tint(_game.accent)),
                       const SizedBox(height: 8),
                       Text(
                         '${(_fragments.toList()..sort()).map((int i) => options[i]).join('. ')}.',
@@ -709,6 +713,7 @@ class _AnalysingStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Row(
       children: <Widget>[
         const Companion(state: CompanionState.thinking, size: 54),
@@ -717,7 +722,7 @@ class _AnalysingStrip extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Mitra is listening…', style: AppText.body.wght(700)),
+              Text(l.gameStoryMitraListening, style: AppText.body.wght(700)),
               const SizedBox(height: 8),
               const _ShimmerLine(width: double.infinity),
               const SizedBox(height: 6),
@@ -793,11 +798,12 @@ class _EvaluationPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('YOUR ANSWER', style: AppText.overline),
+          Text(l.gameStoryYourAnswer, style: AppText.overline),
           const SizedBox(height: 8),
           Text('“$answer”', style: AppText.patientBody.wght(600).sized(18)),
           const SizedBox(height: Insets.md),
@@ -807,7 +813,7 @@ class _EvaluationPanel extends StatelessWidget {
             children: <Widget>[
               Icon(Icons.auto_awesome_rounded, size: 16, color: accent),
               const SizedBox(width: 7),
-              Text('HOW MITRA READ IT', style: AppText.overline.tint(accent)),
+              Text(l.gameStoryHowMitraReadIt, style: AppText.overline.tint(accent)),
             ],
           ),
           const SizedBox(height: 12),
@@ -857,6 +863,7 @@ class _StoryScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -865,15 +872,15 @@ class _StoryScoreCard extends StatelessWidget {
             children: <Widget>[
               Icon(Icons.auto_awesome_rounded, size: 17, color: accent),
               const SizedBox(width: 7),
-              Text('HOW MITRA READ YOUR STORY', style: AppText.overline.tint(accent)),
+              Text(l.gameStoryHowMitraReadYourStory, style: AppText.overline.tint(accent)),
             ],
           ),
           const SizedBox(height: 14),
-          _ScoreRow(label: 'Story coherence', value: coherence, color: accent),
+          _ScoreRow(label: l.gameStoryCoherence, value: coherence, color: accent),
           const SizedBox(height: 12),
-          _ScoreRow(label: 'Relevant details', value: details, color: accent),
+          _ScoreRow(label: l.gameStoryRelevantDetails, value: details, color: accent),
           const SizedBox(height: 12),
-          _ScoreRow(label: 'Memory association', value: association, color: accent),
+          _ScoreRow(label: l.gameStoryMemoryAssociation, value: association, color: accent),
           const SizedBox(height: Insets.md),
           Container(
             padding: const EdgeInsets.all(12),
@@ -882,8 +889,7 @@ class _StoryScoreCard extends StatelessWidget {
               borderRadius: Corners.r(Corners.sm),
             ),
             child: Text(
-              'Simulated for this prototype. In the full product a language model scores '
-              'the spoken story on device, in the patient\'s own language.',
+              l.gameStorySimulatedCaption,
               style: AppText.caption,
             ),
           ),
@@ -938,6 +944,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -961,7 +968,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -992,7 +999,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

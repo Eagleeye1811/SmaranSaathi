@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class NavDestination {
   const NavDestination(this.label, this.icon, this.activeIcon);
@@ -205,6 +206,7 @@ class OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return AnimatedSize(
       duration: Motion.normal,
       curve: Curves.easeOutCubic,
@@ -225,13 +227,13 @@ class OfflineBanner extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Offline mode',
+                        Text(l.offlineBannerTitle,
                             style: AppText.body.wght(800).tint(const Color(0xFF8A5D08))),
                         const SizedBox(height: 2),
                         Text(
                           pending > 0
-                              ? 'Everything still works. $pending activities are waiting to sync.'
-                              : 'Everything still works. All activities are saved on this device.',
+                              ? l.offlineBannerBodyPending(pending)
+                              : l.offlineBannerBodyAllSynced,
                           style: AppText.bodySmall.tint(const Color(0xFF8A5D08)),
                         ),
                       ],

@@ -11,6 +11,7 @@ import '../../../../core/widgets/celebration.dart';
 import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 
@@ -183,7 +184,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
   void _startWatching() => setState(() => _phase = _Phase.watch);
 
   void _place(int stepIndex) {
-
+    final AppLocalizations l = AppLocalizations.of(context);
     if (_placed.contains(stepIndex)) return;
     final int expected = _placed.length;
     _tracker.attempts++;
@@ -194,13 +195,14 @@ class _ProcedureGameState extends State<ProcedureGame> {
         _placed.add(stepIndex);
         _feedbackPositive = true;
         _feedback = _placed.length == _procedure.steps.length
-            ? 'That is the whole sequence. Beautifully done.'
-            : 'Yes — "${_procedure.steps[stepIndex].label}" comes next.';
+            ? l.gameProcedureCompleteSequence
+            : l.gameProcedureCorrectNext(_procedure.steps[stepIndex].label);
       } else {
         _tracker.mistakes++;
         _feedbackPositive = false;
-        _feedback = 'Not quite. Think about what happens right after '
-            '"${_placed.isEmpty ? 'the very beginning' : _procedure.steps[_placed.last].label}".';
+        _feedback = l.gameProcedureNotQuite(_placed.isEmpty
+            ? l.gameProcedureVeryBeginning
+            : _procedure.steps[_placed.last].label);
       }
     });
 
@@ -213,12 +215,13 @@ class _ProcedureGameState extends State<ProcedureGame> {
 
   void _useHint() {
     if (_hintsLeft <= 0) return;
+    final AppLocalizations l = AppLocalizations.of(context);
     setState(() {
       _hintsLeft--;
       _tracker.hints++;
       _hintedIndex = _placed.length;
       _feedbackPositive = true;
-      _feedback = 'The next step is "${_procedure.steps[_placed.length].label}".';
+      _feedback = l.gameProcedureHintNextStep(_procedure.steps[_placed.length].label);
     });
   }
 
@@ -252,13 +255,14 @@ class _ProcedureGameState extends State<ProcedureGame> {
   }
 
   Widget _buildIntro() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
       companionMessage: _procedure.intro,
       companionState: CompanionState.happy,
       bottom: BigButton(
-        label: 'Show me the steps',
+        label: l.gameProcedureShowSteps,
         icon: Icons.visibility_rounded,
         color: _game.accent,
         onPressed: _startWatching,
@@ -274,7 +278,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -353,7 +357,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('SELECTED PROCEDURE', style: AppText.overline),
+                  Text(l.gameProcedureSelectedLabel, style: AppText.overline),
                   const SizedBox(height: 8),
                   Text(_procedure.title, style: AppText.h1.sized(28)),
                   const SizedBox(height: 10),
@@ -362,13 +366,13 @@ class _ProcedureGameState extends State<ProcedureGame> {
                     runSpacing: 8,
                     children: <Widget>[
                       PillTag(
-                        label: '${_procedure.steps.length} steps',
+                        label: l.gameProcedureStepsCount(_procedure.steps.length),
                         color: _game.accent,
                         icon: Icons.format_list_numbered_rounded,
                       ),
                       if (_procedure.videoPath != null)
-                        const PillTag(
-                          label: 'Video available',
+                        PillTag(
+                          label: l.gameProcedureVideoAvailable,
                           color: AppColors.secondary,
                           icon: Icons.play_circle_rounded,
                         ),
@@ -385,18 +389,19 @@ class _ProcedureGameState extends State<ProcedureGame> {
 
 
   Widget _buildWatch() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool hasVideo = _procedure.videoPath != null;
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      stepLabel: hasVideo ? 'Watch Procedure Video' : 'Study Procedure Steps',
+      stepLabel: hasVideo ? l.gameProcedureWatchVideoLabel : l.gameProcedureStudyStepsLabel,
       progress: 0.5,
       companionMessage: hasVideo
-          ? 'Watch the video carefully. You will put these steps back in order in a moment.'
-          : 'Read through the steps of ${_procedure.title.toLowerCase()} carefully.',
+          ? l.gameProcedureWatchVideoMessage
+          : l.gameProcedureReadThroughSteps(_procedure.title.toLowerCase()),
       companionState: CompanionState.thinking,
       bottom: BigButton(
-        label: 'I am ready to build',
+        label: l.gameProcedureReadyToBuild,
         icon: Icons.check_rounded,
         color: _game.accent,
         onPressed: () => setState(() => _phase = _Phase.build),
@@ -438,6 +443,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
 
 
   Widget _buildRebuild() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<int> remaining =
         _shuffled.where((int i) => !_placed.contains(i)).toList(growable: false);
     final bool done = _placed.length == _procedure.steps.length;
@@ -446,16 +452,16 @@ class _ProcedureGameState extends State<ProcedureGame> {
       game: _game,
       level: _selectedLevel,
 
-      stepLabel: '${_placed.length} of ${_procedure.steps.length} placed',
+      stepLabel: l.gameProcedurePlacedOfTotal(_placed.length, _procedure.steps.length),
       progress: _placed.length / _procedure.steps.length,
       hintsLeft: _hintsLeft,
       hintsTotal: 3,
       onHint: done ? null : _useHint,
       companionMessage: done
-          ? 'That is the whole sequence, ${_state.patient.shortName}.'
+          ? l.gameProcedureWholeSequence(_state.patient.shortName)
           : _placed.isEmpty
-              ? 'What comes first?'
-              : 'And what comes after "${_procedure.steps[_placed.last].label}"?',
+              ? l.gameProcedureWhatComesFirst
+              : l.gameProcedureWhatComesAfter(_procedure.steps[_placed.last].label),
       companionState: done ? CompanionState.celebrating : CompanionState.encouraging,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
@@ -473,7 +479,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('THE SEQUENCE SO FAR', style: AppText.overline),
+                  Text(l.gameProcedureSequenceSoFar, style: AppText.overline),
                   const SizedBox(height: 10),
                   for (int slot = 0; slot < _procedure.steps.length; slot++)
                     Padding(
@@ -498,7 +504,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                 ),
               ),
             if (!done) ...<Widget>[
-              Text('TAP THE STEP THAT COMES NEXT', style: AppText.overline),
+              Text(l.gameProcedureTapNextStep, style: AppText.overline),
               const SizedBox(height: 10),
               for (final int i in remaining)
                 Padding(
@@ -594,6 +600,7 @@ class _Slot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool filled = step != null;
     return AnimatedContainer(
       duration: Motion.normal,
@@ -627,7 +634,7 @@ class _Slot extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              step?.label ?? (highlight ? 'Choose this step below' : '—'),
+              step?.label ?? (highlight ? l.gameProcedureChooseStepBelow : '—'),
               style: filled
                   ? AppText.body.wght(700)
                   : AppText.body.tint(highlight ? accent : AppColors.inkMuted),
@@ -684,6 +691,7 @@ class _ProcedureVideoWidgetState extends State<_ProcedureVideoWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     if (_hasError) {
       return Container(
         height: 240,
@@ -691,8 +699,8 @@ class _ProcedureVideoWidgetState extends State<_ProcedureVideoWidget> {
           color: AppColors.surfaceMuted,
           borderRadius: Corners.r(Corners.lg),
         ),
-        child: const Center(
-          child: Text('Video could not be loaded.'),
+        child: Center(
+          child: Text(l.gameProcedureVideoLoadError),
         ),
       );
     }
@@ -772,7 +780,7 @@ class _ProcedureVideoWidgetState extends State<_ProcedureVideoWidget> {
                   setState(() {});
                 },
                 icon: const Icon(Icons.replay_rounded, size: 18),
-                label: const Text('Replay video'),
+                label: Text(l.gameProcedureReplayVideo),
               ),
             ],
           ),
@@ -801,6 +809,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -824,7 +833,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -855,7 +864,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

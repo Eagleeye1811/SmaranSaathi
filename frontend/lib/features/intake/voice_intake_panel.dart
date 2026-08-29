@@ -6,6 +6,8 @@ import '../../app/theme/app_theme.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import '../../core/voice/voice_models.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/content_labels.dart';
 
 /// The voice layer over one intake screen.
 ///
@@ -70,6 +72,7 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
   @override
   Widget build(BuildContext context) {
     final VoiceIntakeController voice = widget.controller;
+    final AppLocalizations l = AppLocalizations.of(context);
     return AnimatedBuilder(
       animation: voice,
       builder: (BuildContext context, _) {
@@ -102,20 +105,18 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
                       children: <Widget>[
                         Text(
                           voice.error == null
-                              ? 'Answer by speaking'
-                              : 'I could not hear you',
+                              ? l.intakeVoiceAnswerBySpeaking
+                              : l.intakeVoiceCouldNotHear,
                           style: AppText.body.wght(700),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          voice.error?.message ??
-                              'I will read each question aloud. Say your answer, '
-                                  'then say "next".',
+                          voice.error?.localizedMessage(l) ?? l.intakeVoiceInstructions,
                           style: AppText.bodySmall,
                         ),
                         if (voice.error != null) ...<Widget>[
                           const SizedBox(height: 2),
-                          Text('Tap to try again.', style: AppText.caption),
+                          Text(l.intakeVoiceTapToRetry, style: AppText.caption),
                         ],
                       ],
                     ),
@@ -141,7 +142,7 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _statusFor(voice),
+                        _statusFor(voice, l),
                         style: AppText.body.wght(700).tint(AppColors.primaryDeep),
                       ),
                     ),
@@ -159,7 +160,7 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
                 ],
                 if (voice.error != null) ...<Widget>[
                   const SizedBox(height: Insets.sm),
-                  Text(voice.error!.message, style: AppText.bodySmall),
+                  Text(voice.error!.localizedMessage(l), style: AppText.bodySmall),
                 ],
                 const SizedBox(height: Insets.sm),
                 Wrap(
@@ -171,18 +172,18 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
                     // engine to notice the silence at the end of a sentence.
                     if (voice.isListening)
                       SoftButton(
-                        label: 'Done speaking',
+                        label: l.intakeVoiceDoneSpeaking,
                         icon: Icons.check_rounded,
                         filled: true,
                         onPressed: voice.stopListening,
                       ),
                     SoftButton(
-                      label: 'Say it again',
+                      label: l.voiceSayItAgain,
                       icon: Icons.replay_rounded,
                       onPressed: voice.repeat,
                     ),
                     SoftButton(
-                      label: 'Turn off voice',
+                      label: l.intakeVoiceTurnOff,
                       icon: Icons.mic_off_rounded,
                       color: AppColors.inkSoft,
                       onPressed: voice.stop,
@@ -197,13 +198,13 @@ class _VoiceIntakePanelState extends State<VoiceIntakePanel> {
     );
   }
 
-  String _statusFor(VoiceIntakeController voice) => switch (voice.phase) {
-        VoicePhase.listening => 'Listening…',
-        VoicePhase.speaking => 'Asking…',
-        VoicePhase.thinking => 'One moment…',
-        VoicePhase.requestingPermission => 'Waiting for the microphone…',
-        VoicePhase.error => 'Voice stopped',
-        VoicePhase.idle => 'Ready',
+  String _statusFor(VoiceIntakeController voice, AppLocalizations l) => switch (voice.phase) {
+        VoicePhase.listening => l.intakeVoicePhaseListening,
+        VoicePhase.speaking => l.intakeVoicePhaseAsking,
+        VoicePhase.thinking => l.voiceOneMoment,
+        VoicePhase.requestingPermission => l.intakeVoicePhaseWaitingMic,
+        VoicePhase.error => l.intakeVoicePhaseStopped,
+        VoicePhase.idle => l.intakeVoicePhaseReady,
       };
 }
 

@@ -13,6 +13,7 @@ import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/illustration.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 
@@ -146,6 +147,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
   }
 
   void _finish() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final GamePerformance p = _tracker.build(
       expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.memoryCards, _selectedLevel),
     );
@@ -158,9 +160,9 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
           decision: d,
           playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
-            (label: 'Pairs found', value: '${_matched.length ~/ 2}/$_pairs'),
-            (label: 'Tries', value: '${_tracker.attempts}'),
-            (label: 'Wrong turns', value: '${_tracker.mistakes}'),
+            (label: l.gameMemoryCardsPairsFound, value: '${_matched.length ~/ 2}/$_pairs'),
+            (label: l.gameMemoryCardsTries, value: '${_tracker.attempts}'),
+            (label: l.gameMemoryCardsWrongTurns, value: '${_tracker.mistakes}'),
           ],
         ),
       ),
@@ -179,6 +181,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
   Widget build(BuildContext context) {
     if (_phase == _Phase.intro) return _buildIntro();
 
+    final AppLocalizations l = AppLocalizations.of(context);
     final double width = MediaQuery.sizeOf(context).width;
     final int cols = _columns(width);
     final int found = _matched.length ~/ 2;
@@ -189,13 +192,13 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
           game: _game,
           level: _selectedLevel,
 
-          stepLabel: '$found of $_pairs pairs',
+          stepLabel: l.gameMemoryCardsStepLabel(found, _pairs),
           progress: found / _pairs,
           companionMessage: _done
-              ? 'Every pair found. Wonderful, ${_state.patient.shortName}.'
+              ? l.gameMemoryCardsAllFound(_state.patient.shortName)
               : (_lastMatchName != null && _flipped.isEmpty
-                  ? 'You found the $_lastMatchName. Keep going.'
-                  : 'Turn over two cards and see if they match.'),
+                  ? l.gameMemoryCardsFoundMatch(_lastMatchName!)
+                  : l.gameMemoryCardsTurnOverTwo),
           companionState: _done
               ? CompanionState.celebrating
               : (_lastMatchName != null && _flipped.isEmpty
@@ -210,7 +213,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                   children: <Widget>[
                     Expanded(
                       child: _CountChip(
-                        label: 'Pairs found',
+                        label: l.gameMemoryCardsPairsFound,
                         value: '$found / $_pairs',
                         color: AppColors.success,
                         icon: Icons.check_circle_rounded,
@@ -219,7 +222,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _CountChip(
-                        label: 'Tries',
+                        label: l.gameMemoryCardsTries,
                         value: '${_tracker.attempts}',
                         color: _game.accent,
                         icon: Icons.touch_app_rounded,
@@ -261,13 +264,14 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
   }
 
   Widget _buildIntro() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: 'Turn over cards to find matching pairs.',
+      companionMessage: l.gameMemoryCardsIntroMessage,
       companionState: CompanionState.happy,
       bottom: BigButton(
-        label: 'Start game',
+        label: l.gameStartGame,
         icon: Icons.play_arrow_rounded,
         color: _game.accent,
         onPressed: () => setState(() => _phase = _Phase.play),
@@ -282,7 +286,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -292,8 +296,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 1,
-                            title: 'Easy',
-                            subtitle: '4 pairs',
+                            title: l.gameLevelEasy,
+                            subtitle: l.gameMemoryCardsPairsCount(4),
                             unlocked: 1 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 1,
                             onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
@@ -304,8 +308,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 2,
-                            title: 'Medium',
-                            subtitle: '6 pairs',
+                            title: l.gameLevelMedium,
+                            subtitle: l.gameMemoryCardsPairsCount(6),
                             unlocked: 2 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 2,
                             onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
@@ -316,8 +320,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 3,
-                            title: 'Hard',
-                            subtitle: '8 pairs',
+                            title: l.gameLevelHard,
+                            subtitle: l.gameMemoryCardsPairsCount(8),
                             unlocked: 3 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 3,
                             onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
@@ -328,8 +332,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 4,
-                            title: 'Expert',
-                            subtitle: '10 pairs',
+                            title: l.gameLevelExpert,
+                            subtitle: l.gameMemoryCardsPairsCount(10),
                             unlocked: 4 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 4,
                             onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
@@ -340,8 +344,8 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 5,
-                            title: 'Mastery',
-                            subtitle: '12 pairs',
+                            title: l.gameLevelMastery,
+                            subtitle: l.gameMemoryCardsPairsCount(12),
                             unlocked: 5 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 5,
                             onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
@@ -358,12 +362,12 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('MEMORY PAIRS', style: AppText.overline),
+                  Text(l.gameMemoryCardsCategoryLabel, style: AppText.overline),
                   const SizedBox(height: 8),
-                  Text('Visual Memory', style: AppText.h1.sized(26)),
+                  Text(l.gameMemoryCardsTitle, style: AppText.h1.sized(26)),
                   const SizedBox(height: 8),
                   Text(
-                    'Flip cards two at a time to find matching pairs of cultural symbols.',
+                    l.gameMemoryCardsInstructions,
                     style: AppText.bodySmall,
                   ),
                 ],
@@ -574,6 +578,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -597,7 +602,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -628,7 +633,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

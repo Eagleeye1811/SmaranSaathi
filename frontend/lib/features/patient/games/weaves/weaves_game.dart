@@ -14,6 +14,7 @@ import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/motifs.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 
@@ -184,6 +185,7 @@ class _WeavesGameState extends State<WeavesGame> {
   }
 
   void _choose(int seedOption) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final int? blank = _activeBlank;
     if (blank == null) return;
     _tracker.attempts++;
@@ -193,7 +195,7 @@ class _WeavesGameState extends State<WeavesGame> {
         _tracker.correct++;
         _filled[blank] = seedOption;
         _feedbackPositive = true;
-        _feedback = 'Yes — that is the piece. The pattern is whole again.';
+        _feedback = l.gameWeavesFeedbackCorrect;
         if (_activeBlank == null) {
           _phase = _Phase.solved;
           _justSolved = true;
@@ -211,7 +213,7 @@ class _WeavesGameState extends State<WeavesGame> {
       } else {
         _tracker.mistakes++;
         _feedbackPositive = false;
-        _feedback = 'Not that one. Look at the piece just above it.';
+        _feedback = l.gameWeavesFeedbackWrong;
       }
     });
   }
@@ -246,6 +248,7 @@ class _WeavesGameState extends State<WeavesGame> {
   }
 
   void _finish() {
+    final AppLocalizations l = AppLocalizations.of(context);
     _previewTimer?.cancel();
     final GamePerformance p = _tracker.build(
       expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.weaves, _selectedLevel),
@@ -259,9 +262,9 @@ class _WeavesGameState extends State<WeavesGame> {
           decision: d,
           playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
-            (label: 'Patterns rebuilt', value: '$_roundsPerSession'),
-            (label: 'Pieces placed', value: '${_tracker.correct}'),
-            (label: 'Second looks', value: '${_tracker.hints}'),
+            (label: l.gameWeavesPatternsRebuilt, value: '$_roundsPerSession'),
+            (label: l.gameWeavesPiecesPlaced, value: '${_tracker.correct}'),
+            (label: l.gameWeavesSecondLooks, value: '${_tracker.hints}'),
           ],
         ),
       ),
@@ -273,12 +276,13 @@ class _WeavesGameState extends State<WeavesGame> {
   Widget build(BuildContext context) {
     if (_phase == _Phase.intro) return _buildIntro();
 
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool showPattern = _phase != _Phase.choose || !_hidesPattern;
     final String message = switch (_phase) {
-      _Phase.preview => 'Look carefully at this weave. Remember how it is made.',
-      _Phase.hidden => 'Now let us rebuild it.',
-      _Phase.choose => 'Which piece belongs in the empty space?',
-      _Phase.solved => 'Beautiful. That is exactly the pattern.',
+      _Phase.preview => l.gameWeavesLookCarefully,
+      _Phase.hidden => l.gameWeavesNowRebuild,
+      _Phase.choose => l.gameWeavesWhichPiece,
+      _Phase.solved => l.gameWeavesBeautiful,
       _ => '',
     };
 
@@ -288,7 +292,7 @@ class _WeavesGameState extends State<WeavesGame> {
           game: _game,
           level: _selectedLevel,
 
-          stepLabel: 'Pattern ${_round + 1} of $_roundsPerSession',
+          stepLabel: l.gameWeavesPatternOfTotal(_round + 1, _roundsPerSession),
           progress: (_round + (_phase == _Phase.solved ? 1 : 0.45)) / _roundsPerSession,
           hintsLeft: _hidesPattern ? (3 - _tracker.hints).clamp(0, 3) : null,
           hintsTotal: _hidesPattern ? 3 : null,
@@ -301,14 +305,16 @@ class _WeavesGameState extends State<WeavesGame> {
           },
           bottom: _phase == _Phase.solved
               ? BigButton(
-                  label: _round + 1 >= _roundsPerSession ? 'Finish' : 'Next pattern',
+                  label: _round + 1 >= _roundsPerSession
+                      ? l.gameWeavesFinish
+                      : l.gameWeavesNextPattern,
                   icon: Icons.arrow_forward_rounded,
                   color: _game.accent,
                   onPressed: _nextRound,
                 )
               : (_phase == _Phase.preview && _hidesPattern
                   ? BigButton(
-                      label: 'Hiding in $_previewLeft…',
+                      label: l.gameWeavesHidingIn(_previewLeft),
                       icon: Icons.visibility_rounded,
                       color: _game.accent,
                       onPressed: null,
@@ -339,14 +345,14 @@ class _WeavesGameState extends State<WeavesGame> {
                           ),
                           if (_phase == _Phase.preview)
                             PillTag(
-                              label: 'Memorise · $_previewLeft s',
+                              label: l.gameWeavesMemorise(_previewLeft),
                               color: AppColors.accent,
                               icon: Icons.visibility_rounded,
                               dense: true,
                             )
                           else
                             PillTag(
-                              label: '${_filled.length}/${_blanks.length} placed',
+                              label: l.gameWeavesPlacedCount(_filled.length, _blanks.length),
                               color: _game.accent,
                               dense: true,
                             ),
@@ -376,8 +382,7 @@ class _WeavesGameState extends State<WeavesGame> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'The pattern is covered. Tap the lightbulb above for '
-                                'another look at it.',
+                                l.gameWeavesCoveredHint,
                                 style: AppText.caption,
                               ),
                             ),
@@ -399,7 +404,7 @@ class _WeavesGameState extends State<WeavesGame> {
 
                 // ── candidate pieces ─────────────────────────────────────
                 if (_phase == _Phase.choose) ...<Widget>[
-                  Text('CHOOSE THE MISSING PIECE', style: AppText.overline),
+                  Text(l.gameWeavesChooseMissingPiece, style: AppText.overline),
                   const SizedBox(height: 12),
                   Row(
                     children: <Widget>[
@@ -446,13 +451,14 @@ class _WeavesGameState extends State<WeavesGame> {
   }
 
   Widget _buildIntro() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: 'Observe the traditional textile patterns and complete the weave.',
+      companionMessage: l.gameWeavesIntroMessage,
       companionState: CompanionState.happy,
       bottom: BigButton(
-        label: 'Start pattern',
+        label: l.gameWeavesStartPattern,
         icon: Icons.play_arrow_rounded,
         color: _game.accent,
         onPressed: () => setState(() => _phase = _Phase.preview),
@@ -467,7 +473,7 @@ class _WeavesGameState extends State<WeavesGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -477,8 +483,8 @@ class _WeavesGameState extends State<WeavesGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 1,
-                            title: 'Easy',
-                            subtitle: '1 blank',
+                            title: l.gameLevelEasy,
+                            subtitle: l.gameWeavesSubtitle1Blank,
                             unlocked: 1 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 1,
                             onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
@@ -489,8 +495,8 @@ class _WeavesGameState extends State<WeavesGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 2,
-                            title: 'Medium',
-                            subtitle: 'Hidden weave',
+                            title: l.gameLevelMedium,
+                            subtitle: l.gameWeavesSubtitleHiddenWeave,
                             unlocked: 2 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 2,
                             onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
@@ -501,8 +507,8 @@ class _WeavesGameState extends State<WeavesGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 3,
-                            title: 'Hard',
-                            subtitle: '2 blanks',
+                            title: l.gameLevelHard,
+                            subtitle: l.gameWeavesSubtitle2Blanks,
                             unlocked: 3 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 3,
                             onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
@@ -513,8 +519,8 @@ class _WeavesGameState extends State<WeavesGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 4,
-                            title: 'Expert',
-                            subtitle: 'Fast weave',
+                            title: l.gameLevelExpert,
+                            subtitle: l.gameWeavesSubtitleFastWeave,
                             unlocked: 4 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 4,
                             onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
@@ -525,8 +531,8 @@ class _WeavesGameState extends State<WeavesGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 5,
-                            title: 'Mastery',
-                            subtitle: '4x4 grid',
+                            title: l.gameLevelMastery,
+                            subtitle: l.gameWeavesSubtitle4x4Grid,
                             unlocked: 5 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 5,
                             onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
@@ -543,12 +549,12 @@ class _WeavesGameState extends State<WeavesGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('WEAVES & SHAPES', style: AppText.overline),
+                  Text(l.gameWeavesCategoryLabel, style: AppText.overline),
                   const SizedBox(height: 8),
-                  Text('Visuospatial Pattern', style: AppText.h1.sized(26)),
+                  Text(l.gameWeavesTitle, style: AppText.h1.sized(26)),
                   const SizedBox(height: 8),
                   Text(
-                    'Observe traditional North-Eastern weaves and select missing motifs to restore the design.',
+                    l.gameWeavesInstructions,
                     style: AppText.bodySmall,
                   ),
                 ],
@@ -667,6 +673,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -690,7 +697,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -721,7 +728,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

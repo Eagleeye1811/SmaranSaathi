@@ -4,13 +4,13 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/game.dart';
-import '../../../core/services/adaptive_difficulty_service.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/celebration.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// The end of every activity. Encouraging first, informative second — and
 /// never phrased like an exam result.
@@ -47,20 +47,20 @@ class _GameResultScreenState extends State<GameResultScreen> {
     });
   }
 
-  String get _headline {
+  String _headline(AppLocalizations l) {
     final int s = widget.performance.overall;
-    if (s >= 85) return 'Wonderful';
-    if (s >= 70) return 'Very well done';
-    if (s >= 55) return 'Nicely done';
-    return 'Thank you for trying';
+    if (s >= 85) return l.resultWonderful;
+    if (s >= 70) return l.resultVeryWellDone;
+    if (s >= 55) return l.resultNicelyDone;
+    return l.resultThankYouForTrying;
   }
 
-  String get _closing {
+  String _closing(AppLocalizations l) {
     final int s = widget.performance.overall;
-    if (s >= 85) return 'You did very well today. I enjoyed that.';
-    if (s >= 70) return 'That was a good session. You stayed with it.';
-    if (s >= 55) return 'You worked steadily. That is what matters.';
-    return 'Finishing is the important part. We will try again together.';
+    if (s >= 85) return l.resultPraiseHigh;
+    if (s >= 70) return l.resultPraiseMid;
+    if (s >= 55) return l.resultPraiseSteady;
+    return l.resultPraiseIncomplete;
   }
 
   @override
@@ -102,7 +102,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     delayMs: 60,
                     child: Text(
-                      '$_headline, ${state.patient.shortName}!',
+                      '${_headline(l)}, ${state.patient.shortName}!',
                       textAlign: TextAlign.center,
                       style: AppText.hero.sized(29),
                     ),
@@ -111,7 +111,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     delayMs: 90,
                     child: Text(
-                      'You completed ${widget.game.name}.',
+                      l.resultCompleted(widget.game.localizedName(l)),
                       textAlign: TextAlign.center,
                       style: AppText.bodyLarge.tint(AppColors.inkSoft),
                     ),
@@ -145,7 +145,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                Text('Cognitive\nperformance',
+                                Text(l.resultCognitivePerformance,
                                     textAlign: TextAlign.center, style: AppText.caption),
                               ],
                             ),
@@ -221,7 +221,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     delayMs: 170,
                     child: CompanionSpeech(
-                      message: _closing,
+                      message: _closing(l),
                       state: CompanionState.happy,
                       companionSize: 68,
                       compact: true,
@@ -346,7 +346,7 @@ class _AdaptiveCard extends StatelessWidget {
                     Text(l.resultAdjusted,
                         style: AppText.body.wght(800)),
                     const SizedBox(height: 3),
-                    Text(decision.direction.patientMessage, style: AppText.bodySmall),
+                    Text(decision.direction.localizedMessage(l), style: AppText.bodySmall),
                   ],
                 ),
               ),
@@ -359,7 +359,7 @@ class _AdaptiveCard extends StatelessWidget {
                 child: _LevelChip(
                   caption: l.resultThisSession,
                   level: playedLevel,
-                  detail: AdaptiveDifficultyService.levelDescription(game.id, playedLevel),
+                  detail: localizedLevelDescription(l, game.id, playedLevel),
                   color: AppColors.inkMuted,
                 ),
               ),
@@ -372,7 +372,7 @@ class _AdaptiveCard extends StatelessWidget {
                   caption: l.resultNextSession,
                   level: decision.nextLevel,
                   detail:
-                      AdaptiveDifficultyService.levelDescription(game.id, decision.nextLevel),
+                      localizedLevelDescription(l, game.id, decision.nextLevel),
                   color: color,
                   emphasised: true,
                 ),
@@ -431,7 +431,7 @@ class _LevelChip extends StatelessWidget {
           Text(caption.toUpperCase(),
               style: AppText.overline.sized(10), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 5),
-          Text('Level $level',
+          Text(AppLocalizations.of(context).gamesLevel(level),
               style: AppText.body.wght(800).tint(color),
               maxLines: 1,
               overflow: TextOverflow.ellipsis),

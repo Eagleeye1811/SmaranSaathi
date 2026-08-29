@@ -28,9 +28,9 @@ class _PatientShellState extends State<PatientShell> {
 
   static const List<NavDestination> _destinations = <NavDestination>[
     NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
-    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
     NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
     NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
+    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
     NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
@@ -45,9 +45,9 @@ class _PatientShellState extends State<PatientShell> {
         index: _index,
         children: <Widget>[
           HealthDashboardScreen(onOpenTab: _go),
-          const TodayScreen(),
           const GameHubScreen(),
           const AssistantScreen(embedded: true),
+          const TodayScreen(),
           const PatientProfileScreen(),
         ],
       ),

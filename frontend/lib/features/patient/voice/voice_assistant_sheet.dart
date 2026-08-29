@@ -9,6 +9,7 @@ import '../../../core/voice/voice_models.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// "Ask Mitra" — the voice conversation, as a sheet over the patient app.
 ///
@@ -241,7 +242,9 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
             color: soft ? AppColors.secondary : AppColors.danger,
           ),
           const SizedBox(width: Insets.sm),
-          Expanded(child: Text(error.message, style: AppText.body)),
+          Expanded(
+              child: Text(error.localizedMessage(AppLocalizations.of(context)),
+                  style: AppText.body)),
         ],
       ),
     );
@@ -254,6 +257,7 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
         VoiceLanguage.english => l.languageEnglish,
         VoiceLanguage.hindi => l.languageHindi,
         VoiceLanguage.assamese => l.languageAssamese,
+        VoiceLanguage.marathi => l.languageMarathi,
       };
 
   Widget _primaryControl() {

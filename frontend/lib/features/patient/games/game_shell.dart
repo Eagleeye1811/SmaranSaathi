@@ -8,6 +8,7 @@ import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// Tracks the signals every activity feeds to the adaptive engine.
 class GameTracker {
@@ -179,6 +180,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 6, Insets.gutter, 6),
       child: Row(
@@ -186,7 +188,7 @@ class _Header extends StatelessWidget {
           RoundIconButton(
             icon: Icons.close_rounded,
             size: 44,
-            tooltip: AppLocalizations.of(context).gamesLeaveActivity,
+            tooltip: l.gamesLeaveActivity,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
           const SizedBox(width: 12),
@@ -195,7 +197,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
-                  game.name,
+                  game.localizedName(l),
                   style: AppText.h3.wght(800),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -203,7 +205,8 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 3),
                 Row(
                   children: <Widget>[
-                    Text('Level $level', style: AppText.caption.wght(700).tint(game.accent)),
+                    Text(l.gamesLevel(level),
+                        style: AppText.caption.wght(700).tint(game.accent)),
                     const SizedBox(width: 7),
                     DifficultyDots(level: level, color: game.accent, size: 7),
                     if (stepLabel != null) ...<Widget>[

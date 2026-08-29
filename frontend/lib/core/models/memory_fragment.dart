@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 /// A room of the patient's "Memory Home" — the theme a shared life-story
 /// belongs to. Deliberately broad rather than granular: the point is a small,
@@ -23,6 +23,15 @@ extension MemoryCategoryX on MemoryCategory {
         MemoryCategory.festivals => 'An undecorated hall, waiting for a celebration.',
         MemoryCategory.food => 'An empty kitchen, waiting for a taste you remember.',
         MemoryCategory.village => 'An open yard, waiting for a place you once knew.',
+      };
+
+  IconData get icon => switch (this) {
+        MemoryCategory.family => Icons.groups_rounded,
+        MemoryCategory.childhood => Icons.child_care_rounded,
+        MemoryCategory.work => Icons.handyman_rounded,
+        MemoryCategory.festivals => Icons.celebration_rounded,
+        MemoryCategory.food => Icons.restaurant_rounded,
+        MemoryCategory.village => Icons.holiday_village_rounded,
       };
 }
 
