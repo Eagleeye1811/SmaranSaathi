@@ -49,66 +49,69 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
       ],
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: <Widget>[
-            const PatientTopBar(),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
-                children: <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-                    child: FadeInUp(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Column(
+            children: <Widget>[
+              const PatientTopBar(),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
+                      child: FadeInUp(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text('My Memories', style: AppText.patientTitle.sized(28)),
+                            const SizedBox(height: 6),
+                            Text(
+                              'The people, places and things that are yours.',
+                              style: AppText.body.tint(AppColors.inkSoft),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.md),
+                    SizedBox(
+                      height: 46,
+                      child: ListView(
+                        key: const Key('wallet-tabs'),
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                         children: <Widget>[
-                          Text('My Memories', style: AppText.patientTitle.sized(28)),
-                          const SizedBox(height: 6),
-                          Text(
-                            'The people, places and things that are yours.',
-                            style: AppText.body.tint(AppColors.inkSoft),
-                          ),
+                          for (final MapEntry<_Tab, ({String label, IconData icon})> e
+                              in _tabs.entries)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 9),
+                              child: _TabChip(
+                                label: e.value.label,
+                                icon: e.value.icon,
+                                selected: _tab == e.key,
+                                onTap: () => setState(() => _tab = e.key),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: Insets.md),
-                  SizedBox(
-                    height: 46,
-                    child: ListView(
-                      key: const Key('wallet-tabs'),
-                      scrollDirection: Axis.horizontal,
+                    const SizedBox(height: Insets.lg),
+                    Padding(
                       padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-                      children: <Widget>[
-                        for (final MapEntry<_Tab, ({String label, IconData icon})> e
-                            in _tabs.entries)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 9),
-                            child: _TabChip(
-                              label: e.value.label,
-                              icon: e.value.icon,
-                              selected: _tab == e.key,
-                              onTap: () => setState(() => _tab = e.key),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: Insets.lg),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-                    child: AnimatedSwitcher(
-                      duration: Motion.normal,
-                      child: KeyedSubtree(
-                        key: ValueKey<_Tab>(_tab),
-                        child: _body(p),
+                      child: AnimatedSwitcher(
+                        duration: Motion.normal,
+                        child: KeyedSubtree(
+                          key: ValueKey<_Tab>(_tab),
+                          child: _body(p),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

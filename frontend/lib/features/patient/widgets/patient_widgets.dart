@@ -20,7 +20,7 @@ import '../../../core/widgets/ui_kit.dart';
 /// inside the app spent the most valuable pixels on the screen saying
 /// something the person already knew.
 class PatientTopBar extends StatelessWidget {
-  const PatientTopBar({super.key, this.trailing, this.onExit, this.showStatus = true});
+  const PatientTopBar({super.key, this.trailing, this.onExit, this.showStatus = true, this.showExit = true});
 
   final Widget? trailing;
   final VoidCallback? onExit;

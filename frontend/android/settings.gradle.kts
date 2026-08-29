@@ -21,8 +21,8 @@ plugins {
     // firebase_core/firebase_auth pull in androidx.core:core(-ktx):1.18.0,
     // which requires AGP 8.9.1+ (was 8.7.3). Gradle 8.12 (gradle-wrapper.properties)
     // supports this AGP version.
-    id("com.android.application") version "8.9.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    id("com.android.application") version "8.11.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
 }
 
 include(":app")
