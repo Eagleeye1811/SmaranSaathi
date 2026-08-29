@@ -7,6 +7,8 @@ import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/voice/voice_intake_controller.dart';
+import '../../l10n/app_localizations.dart';
+import 'assessment_l10n.dart';
 import 'intake_kit.dart';
 
 /// Step 7 — medical and lifestyle context.
@@ -55,6 +57,7 @@ class _MedicalStepState extends State<MedicalStep> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return IntakeScaffold(
       stepIndex: 7,
       stepCount: 8,
@@ -64,39 +67,39 @@ class _MedicalStepState extends State<MedicalStep> {
       // than tapping it, and both are optional.
       voiceQuestions: <VoiceIntakeQuestion>[
         VoiceIntakeQuestion(
-          prompt: 'How would you describe your sleep lately?',
-          options:
-              SleepQuality.values.map((SleepQuality q) => q.label).toList(growable: false),
+          prompt: l.intakeMedicalSleepPrompt,
+          options: SleepQuality.values
+              .map((SleepQuality q) => sleepQualityLabel(l, q))
+              .toList(growable: false),
           answeredIndex: _history.sleepQuality?.index,
           onSelect: (int i) => setState(
               () => _history = _history.copyWith(sleepQuality: SleepQuality.values[i])),
         ),
         VoiceIntakeQuestion(
-          prompt: 'In the last few weeks, how often have you felt persistently '
-              'sad, or lost interest in things you usually enjoy?',
+          prompt: l.intakeMedicalMoodPrompt,
           options: MoodFrequency.values
-              .map((MoodFrequency m) => m.label)
+              .map((MoodFrequency m) => moodFrequencyLabel(l, m))
               .toList(growable: false),
           answeredIndex: _history.lowMood?.index,
           onSelect: (int i) => setState(
               () => _history = _history.copyWith(lowMood: MoodFrequency.values[i])),
         ),
       ],
-      title: 'Health background',
-      subtitle: 'Some of these can affect thinking on their own.',
+      title: l.intakeMedicalTitle,
+      subtitle: l.intakeMedicalSubtitle,
       onContinue: _history.isComplete
           ? () {
               state.saveMedicalHistory(_history);
               widget.onDone();
             }
           : null,
-      footnote: _history.isComplete ? null : 'Sleep quality and mood are needed to continue.',
+      footnote: _history.isComplete ? null : l.intakeMedicalFootnote,
       children: <Widget>[
-        Text('Do you have any of these?', style: AppText.label),
+        Text(l.intakeMedicalConditionsLabel, style: AppText.label),
         const SizedBox(height: Insets.sm),
         for (final MedicalCondition c in MedicalCondition.values)
           ChoiceTile(
-            label: c.label,
+            label: medicalConditionLabel(l, c),
             selected: _history.conditions.contains(c),
             multiple: true,
             onTap: () => setState(() {
@@ -107,7 +110,7 @@ class _MedicalStepState extends State<MedicalStep> {
             }),
           ),
         const SizedBox(height: Insets.lg),
-        Text('Sleep', style: AppText.h3),
+        Text(l.intakeMedicalSleepSectionTitle, style: AppText.h3),
         const SizedBox(height: Insets.sm),
         MmCard(
           padding: const EdgeInsets.all(Insets.md),
@@ -116,7 +119,7 @@ class _MedicalStepState extends State<MedicalStep> {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  Expanded(child: Text('Average hours a night', style: AppText.body)),
+                  Expanded(child: Text(l.intakeMedicalSleepHoursLabel, style: AppText.body)),
                   const SizedBox(width: Insets.sm),
                   Text('${_history.sleepHours.toStringAsFixed(1)} h',
                       style: AppText.stat.copyWith(color: AppColors.secondary)),
@@ -136,25 +139,28 @@ class _MedicalStepState extends State<MedicalStep> {
         ),
         const SizedBox(height: Insets.md),
         ScaleQuestion(
-          question: 'Sleep quality',
-          options: SleepQuality.values.map((SleepQuality q) => q.label).toList(growable: false),
+          question: l.intakeMedicalSleepQualityLabel,
+          options: SleepQuality.values
+              .map((SleepQuality q) => sleepQualityLabel(l, q))
+              .toList(growable: false),
           selectedIndex: _history.sleepQuality?.index,
           onSelect: (int i) => setState(
               () => _history = _history.copyWith(sleepQuality: SleepQuality.values[i])),
         ),
         const SizedBox(height: Insets.md),
-        Text('Mood', style: AppText.h3),
+        Text(l.intakeMedicalMoodSectionTitle, style: AppText.h3),
         const SizedBox(height: Insets.sm),
         ScaleQuestion(
-          question:
-              'In the last few weeks, how often have you felt persistently sad, or lost interest in things you usually enjoy?',
-          options: MoodFrequency.values.map((MoodFrequency m) => m.label).toList(growable: false),
+          question: l.intakeMedicalMoodPrompt,
+          options: MoodFrequency.values
+              .map((MoodFrequency m) => moodFrequencyLabel(l, m))
+              .toList(growable: false),
           selectedIndex: _history.lowMood?.index,
           onSelect: (int i) =>
               setState(() => _history = _history.copyWith(lowMood: MoodFrequency.values[i])),
         ),
         const SizedBox(height: Insets.md),
-        Text('Medication', style: AppText.h3),
+        Text(l.intakeMedicalMedicationSectionTitle, style: AppText.h3),
         const SizedBox(height: Insets.sm),
         for (final String m in _history.medications)
           Padding(
@@ -169,7 +175,7 @@ class _MedicalStepState extends State<MedicalStep> {
                   RoundIconButton(
                     icon: Icons.close_rounded,
                     size: 36,
-                    tooltip: 'Remove',
+                    tooltip: l.intakeMedicalRemoveMedication,
                     onPressed: () => setState(() {
                       _history = _history.copyWith(
                         medications: _history.medications
@@ -190,7 +196,7 @@ class _MedicalStepState extends State<MedicalStep> {
                 style: AppText.body,
                 onSubmitted: (_) => _addMedication(),
                 decoration: InputDecoration(
-                  hintText: 'Add a medication',
+                  hintText: l.intakeMedicalAddMedicationHint,
                   filled: true,
                   fillColor: AppColors.surface,
                   contentPadding:
@@ -261,8 +267,10 @@ class _CaregiverStepState extends State<CaregiverStep> {
 
   void _save() {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     state.saveCaregiverObservation(CaregiverObservation(
-      caregiverName: _name.text.trim().isEmpty ? 'Family member' : _name.text.trim(),
+      caregiverName:
+          _name.text.trim().isEmpty ? l.intakeCaregiverDefaultName : _name.text.trim(),
       relation: _relation.text.trim(),
       observations: Map<String, bool>.from(_observations),
       note: _note.text.trim(),
@@ -273,17 +281,17 @@ class _CaregiverStepState extends State<CaregiverStep> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     if (!_invited) {
       return IntakeScaffold(
         stepIndex: 8,
         stepCount: 8,
         onBack: widget.onBack,
-        title: 'One more perspective',
-        subtitle:
-            'Would someone who knows you well add what they have noticed over the last three months?',
-        continueLabel: 'Add their observations',
+        title: l.intakeCaregiverInviteTitle,
+        subtitle: l.intakeCaregiverInviteSubtitle,
+        continueLabel: l.intakeCaregiverAddObservations,
         onContinue: () => setState(() => _invited = true),
-        secondaryLabel: 'Skip this step',
+        secondaryLabel: l.intakeCaregiverSkip,
         onSecondary: widget.onDone,
         children: <Widget>[
           MmCard(
@@ -298,12 +306,10 @@ class _CaregiverStepState extends State<CaregiverStep> {
                   size: 52,
                 ),
                 const SizedBox(height: Insets.md),
-                Text('Why this helps', style: AppText.h3),
+                Text(l.intakeCaregiverWhyHelpsTitle, style: AppText.h3),
                 const SizedBox(height: Insets.xs),
                 Text(
-                  'Changes in memory and daily habits are often clearer to the '
-                  'people around us than to ourselves. Their account is recorded '
-                  'separately from yours and shown side by side, never merged.',
+                  l.intakeCaregiverWhyHelpsBody,
                   style: AppText.body.copyWith(color: AppColors.inkSoft, height: 1.5),
                 ),
               ],
@@ -317,19 +323,20 @@ class _CaregiverStepState extends State<CaregiverStep> {
       stepIndex: 8,
       stepCount: 8,
       onBack: () => setState(() => _invited = false),
-      title: 'Caregiver observations',
-      subtitle: 'Over the last three months, have they noticed any of these?',
+      title: l.intakeCaregiverObservationsTitle,
+      subtitle: l.intakeCaregiverObservationsSubtitle,
       accent: AppColors.secondary,
       onContinue: _observations.isEmpty ? null : _save,
-      secondaryLabel: 'Skip this step',
+      secondaryLabel: l.intakeCaregiverSkip,
       onSecondary: widget.onDone,
-      footnote: _observations.isEmpty ? 'Mark at least one observation, or skip.' : null,
+      footnote: _observations.isEmpty ? l.intakeCaregiverObservationsFootnote : null,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Expanded(child: _MiniField(label: 'Their name', controller: _name)),
+            Expanded(child: _MiniField(label: l.intakeCaregiverNameLabel, controller: _name)),
             const SizedBox(width: Insets.sm),
-            Expanded(child: _MiniField(label: 'Relationship', controller: _relation)),
+            Expanded(
+                child: _MiniField(label: l.intakeCaregiverRelationLabel, controller: _relation)),
           ],
         ),
         const SizedBox(height: Insets.md),
@@ -340,7 +347,7 @@ class _CaregiverStepState extends State<CaregiverStep> {
               padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 12),
               child: Row(
                 children: <Widget>[
-                  Expanded(child: Text(o.label, style: AppText.body)),
+                  Expanded(child: Text(caregiverObservationLabel(l, o.id, o.label), style: AppText.body)),
                   _TinyToggle(
                     value: _observations[o.id],
                     onChanged: (bool v) => setState(() => _observations[o.id] = v),
@@ -350,7 +357,7 @@ class _CaregiverStepState extends State<CaregiverStep> {
             ),
           ),
         const SizedBox(height: Insets.sm),
-        _MiniField(label: 'Anything else they want to add', controller: _note, lines: 3),
+        _MiniField(label: l.intakeCaregiverNoteLabel, controller: _note, lines: 3),
       ],
     );
   }
@@ -401,12 +408,13 @@ class _TinyToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _Opt(label: 'No', selected: value == false, color: AppColors.inkMuted, onTap: () => onChanged(false)),
+        _Opt(label: l.intakeNo, selected: value == false, color: AppColors.inkMuted, onTap: () => onChanged(false)),
         const SizedBox(width: Insets.xs),
-        _Opt(label: 'Yes', selected: value == true, color: AppColors.secondary, onTap: () => onChanged(true)),
+        _Opt(label: l.intakeYes, selected: value == true, color: AppColors.secondary, onTap: () => onChanged(true)),
       ],
     );
   }

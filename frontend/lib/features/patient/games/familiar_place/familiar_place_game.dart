@@ -12,6 +12,7 @@ import '../../../../core/services/app_state.dart';
 import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 import 'house_map.dart';
@@ -319,6 +320,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
   void _tapObject(RoomObject o) {
     if (_found.contains(o.id) || _wrongTaps.contains(o.id)) return;
+    final AppLocalizations l = AppLocalizations.of(context);
     _tracker.attempts++;
     final bool isTarget = _targets.any((RoomObject t) => t.id == o.id);
     setState(() {
@@ -327,13 +329,13 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
         _tracker.correct++;
         _found.add(o.id);
         _feedbackPositive = true;
-        _feedback = 'Excellent! You found the ${o.name.toLowerCase()}.';
+        _feedback = l.gameFamiliarPlaceExcellentFound(o.name.toLowerCase());
         _revealedHints.clear();
       } else {
         _tracker.mistakes++;
         _wrongTaps.add(o.id);
         _feedbackPositive = false;
-        _feedback = 'That is not one of the things we are looking for. Keep going.';
+        _feedback = l.gameFamiliarPlaceNotWhatWeAreLookingFor;
       }
     });
 
@@ -368,6 +370,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   }
 
   void _finish({required bool completed}) {
+    final AppLocalizations l = AppLocalizations.of(context);
     _timer?.cancel();
     final GamePerformance p = _tracker.build(
       expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.familiarPlace, _selectedLevel),
@@ -382,10 +385,10 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
           decision: d,
           playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
-            (label: 'Objects to find', value: '${_targets.length}'),
-            (label: 'Objects found', value: '${_found.length}'),
-            (label: 'Rooms visited', value: '${_visited.length}'),
-            (label: 'Hints used', value: '${_tracker.hints}/$_hintBudget'),
+            (label: l.gameFamiliarPlaceObjectsToFind, value: '${_targets.length}'),
+            (label: l.gameFamiliarPlaceObjectsFound, value: '${_found.length}'),
+            (label: l.gameFamiliarPlaceRoomsVisited, value: '${_visited.length}'),
+            (label: l.gameFamiliarPlaceHintsUsed, value: '${_tracker.hints}/$_hintBudget'),
           ],
         ),
       ),
@@ -402,13 +405,14 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   }
 
   Widget _buildIntro() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: 'Let us walk through the house together and find familiar items.',
+      companionMessage: l.gameFamiliarPlaceIntroMessage,
       companionState: CompanionState.happy,
       bottom: BigButton(
-        label: 'Start exploring',
+        label: l.gameFamiliarPlaceStartExploring,
         icon: Icons.explore_rounded,
         color: _game.accent,
         onPressed: () => setState(() => _phase = _Phase.memorise),
@@ -423,7 +427,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('CHOOSE LEVEL', style: AppText.overline),
+                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -433,8 +437,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 1,
-                            title: 'Easy',
-                            subtitle: '3 rooms',
+                            title: l.gameLevelEasy,
+                            subtitle: l.gameFamiliarPlaceRoomsCount(3),
                             unlocked: 1 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 1,
                             onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
@@ -445,8 +449,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 2,
-                            title: 'Medium',
-                            subtitle: '4 rooms',
+                            title: l.gameLevelMedium,
+                            subtitle: l.gameFamiliarPlaceRoomsCount(4),
                             unlocked: 2 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 2,
                             onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
@@ -457,8 +461,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 3,
-                            title: 'Hard',
-                            subtitle: '5 rooms',
+                            title: l.gameLevelHard,
+                            subtitle: l.gameFamiliarPlaceRoomsCount(5),
                             unlocked: 3 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 3,
                             onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
@@ -469,8 +473,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 4,
-                            title: 'Expert',
-                            subtitle: '5 rooms · 1 hint',
+                            title: l.gameLevelExpert,
+                            subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
                             unlocked: 4 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 4,
                             onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
@@ -481,8 +485,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           width: 96,
                           child: _LevelOptionChip(
                             levelNum: 5,
-                            title: 'Mastery',
-                            subtitle: '5 rooms · Fast',
+                            title: l.gameLevelMastery,
+                            subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,
                             unlocked: 5 <= _maxUnlockedLevel,
                             selected: _selectedLevel == 5,
                             onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
@@ -499,12 +503,12 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('FAMILIAR PLACES', style: AppText.overline),
+                  Text(l.gameFamiliarPlaceCategoryLabel, style: AppText.overline),
                   const SizedBox(height: 8),
-                  Text('Spatial Orientation', style: AppText.h1.sized(26)),
+                  Text(l.gameFamiliarPlaceTitle, style: AppText.h1.sized(26)),
                   const SizedBox(height: 8),
                   Text(
-                    'Explore your virtual home map and recall where key items are kept.',
+                    l.gameFamiliarPlaceInstructions,
                     style: AppText.bodySmall,
                   ),
                 ],
@@ -517,15 +521,15 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   }
 
   Widget _buildMemorise() {
+    final AppLocalizations l = AppLocalizations.of(context);
     return GameShell(
       game: _game,
       level: _selectedLevel,
 
-      companionMessage:
-          'Before we walk through the house, remember these ${_targets.length} things.',
+      companionMessage: l.gameFamiliarPlaceRememberThese(_targets.length),
       companionState: CompanionState.thinking,
       bottom: BigButton(
-        label: 'I will remember them',
+        label: l.gameFamiliarPlaceIWillRemember,
         icon: Icons.arrow_forward_rounded,
         color: _game.accent,
         onPressed: _startExploring,
@@ -539,7 +543,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               shadow: AppColors.liftShadow(),
               child: Column(
                 children: <Widget>[
-                  Text('REMEMBER THESE', style: AppText.overline),
+                  Text(l.gameFamiliarPlaceRememberTheseLabel, style: AppText.overline),
                   const SizedBox(height: Insets.md),
                   for (int i = 0; i < _targets.length; i++)
                     FadeInUp(
@@ -594,8 +598,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'You will walk through $_roomCount rooms. Tap a thing when you '
-                      'think it is one of these.',
+                      l.gameFamiliarPlaceWalkThroughRooms(_roomCount),
                       style: AppText.bodySmall.tint(AppColors.ink),
                     ),
                   ),
@@ -609,6 +612,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   }
 
   Widget _buildExplore() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool wide = MediaQuery.sizeOf(context).width >= 720;
     final Room room = _rooms[_roomIndex];
     final RoomObject? target = _nextTarget;
@@ -616,7 +620,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      stepLabel: '${_found.length}/${_targets.length} found',
+      stepLabel: l.gameFamiliarPlaceFoundOfTotal(_found.length, _targets.length),
       progress: _found.length / _targets.length,
       hintsLeft: _hintBudget - _tracker.hints,
       hintsTotal: _hintBudget,
@@ -626,7 +630,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
         children: <Widget>[
           Expanded(
             child: BigButton(
-              label: 'Next room',
+              label: l.gameFamiliarPlaceNextRoom,
               icon: Icons.arrow_forward_rounded,
               color: _game.accent,
               height: 62,
@@ -717,6 +721,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
 
   Widget _roomPanel(Room room, {required double mapHeight}) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -730,14 +735,14 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('YOU ARE IN', style: AppText.overline),
+                    Text(l.gameFamiliarPlaceYouAreIn, style: AppText.overline),
                     const SizedBox(height: 2),
                     Text(room.name, style: AppText.h2.sized(21)),
                   ],
                 ),
               ),
               PillTag(
-                label: 'Room ${_roomIndex + 1} of ${_rooms.length}',
+                label: l.gameFamiliarPlaceRoomOfTotal(_roomIndex + 1, _rooms.length),
                 color: _game.accent,
                 dense: true,
               ),
@@ -757,6 +762,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
 
   Widget _hintPanel({bool alwaysShow = false}) {
     if (_revealedHints.isEmpty && !alwaysShow) return const SizedBox.shrink();
+    final AppLocalizations l = AppLocalizations.of(context);
     final int left = _hintBudget - _tracker.hints;
     return MmCard(
       padding: const EdgeInsets.all(14),
@@ -770,7 +776,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
               const Icon(Icons.lightbulb_rounded, size: 18, color: AppColors.accent),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('HINTS  ·  $left LEFT',
+                child: Text(l.gameFamiliarPlaceHintsLeft(left),
                     style: AppText.overline.tint(AppColors.accent)),
               ),
             ],
@@ -778,7 +784,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
           const SizedBox(height: 10),
           if (_revealedHints.isEmpty)
             Text(
-              'Tap the lightbulb at the top if you would like a clue.',
+              l.gameFamiliarPlaceTapLightbulb,
               style: AppText.bodySmall.tint(AppColors.ink),
             )
           else
@@ -818,14 +824,15 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
   }
 
   Widget _objectPanel(Room room, {required int columns}) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('THINGS IN THIS ROOM', style: AppText.overline),
+          Text(l.gameFamiliarPlaceThingsInRoom, style: AppText.overline),
           const SizedBox(height: 4),
-          Text('Tap one if you think it is something we are looking for.',
+          Text(l.gameFamiliarPlaceTapOneIfYouThink,
               style: AppText.caption),
           const SizedBox(height: 12),
           GridView.builder(
@@ -908,6 +915,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -931,7 +939,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -962,7 +970,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

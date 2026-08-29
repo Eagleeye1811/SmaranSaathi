@@ -7,6 +7,8 @@ import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/voice/voice_intake_controller.dart';
+import '../../l10n/app_localizations.dart';
+import 'assessment_l10n.dart';
 import 'intake_kit.dart';
 
 /// Step 1 — consent.
@@ -28,33 +30,34 @@ class ConsentStep extends StatefulWidget {
 class _ConsentStepState extends State<ConsentStep> {
   bool _understood = false;
 
-  static const List<({IconData icon, String label, String detail})> _collected =
+  static List<({IconData icon, String label, String detail})> _collected(AppLocalizations l) =>
       <({IconData icon, String label, String detail})>[
     (
       icon: Icons.psychology_alt_rounded,
-      label: 'Your symptoms',
-      detail: 'What you have noticed, and for how long'
+      label: l.intakeConsentSymptomsLabel,
+      detail: l.intakeConsentSymptomsDetail,
     ),
     (
       icon: Icons.home_work_outlined,
-      label: 'Daily activities',
-      detail: 'How independently you manage day to day'
+      label: l.intakeConsentDailyActivitiesLabel,
+      detail: l.intakeConsentDailyActivitiesDetail,
     ),
     (
       icon: Icons.insights_rounded,
-      label: 'Activity performance',
-      detail: 'How you do in the cognitive activities'
+      label: l.intakeConsentActivityPerformanceLabel,
+      detail: l.intakeConsentActivityPerformanceDetail,
     ),
     (
       icon: Icons.medical_information_outlined,
-      label: 'Health history',
-      detail: 'Conditions, sleep, mood and medication'
+      label: l.intakeConsentHealthHistoryLabel,
+      detail: l.intakeConsentHealthHistoryDetail,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return IntakeScaffold(
       stepIndex: 1,
       stepCount: 8,
@@ -63,26 +66,23 @@ class _ConsentStepState extends State<ConsentStep> {
       // cannot read the consent text can still be told it and agree to it.
       voiceQuestions: <VoiceIntakeQuestion>[
         VoiceIntakeQuestion(
-          prompt: 'This app records what you tell us about your memory and '
-              'daily life, and how you do in short activities, so changes over '
-              'time can be seen. It is not a diagnosis. Do you understand and '
-              'agree to continue?',
-          options: const <String>['Yes', 'No'],
+          prompt: l.intakeConsentVoicePrompt,
+          options: <String>[l.intakeYes, l.intakeNo],
           answeredIndex: _understood ? 0 : null,
           onSelect: (int i) => setState(() => _understood = i == 0),
         ),
       ],
-      title: 'Before we begin',
-      subtitle: 'Here is what this app collects, and what it does with it.',
+      title: l.intakeConsentTitle,
+      subtitle: l.intakeConsentSubtitle,
       onContinue: _understood
           ? () {
               state.giveConsent();
               widget.onDone();
             }
           : null,
-      footnote: _understood ? null : 'Please confirm the statement to continue.',
+      footnote: _understood ? null : l.intakeConsentFootnote,
       children: <Widget>[
-        for (final ({IconData icon, String label, String detail}) c in _collected)
+        for (final ({IconData icon, String label, String detail}) c in _collected(l))
           Padding(
             padding: const EdgeInsets.only(bottom: Insets.sm),
             child: MmCard(
@@ -101,13 +101,10 @@ class _ConsentStepState extends State<ConsentStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('What we do with it', style: AppText.label),
+              Text(l.intakeConsentUsageTitle, style: AppText.label),
               const SizedBox(height: Insets.xs),
               Text(
-                'This information builds a personal cognitive health profile: '
-                'your own baseline, and how it changes over time. It also '
-                'produces a summary you can take to a doctor. Everything stays '
-                'on this device unless you choose to share it.',
+                l.intakeConsentUsageBody,
                 style: AppText.bodySmall.copyWith(color: AppColors.ink),
               ),
             ],
@@ -115,9 +112,8 @@ class _ConsentStepState extends State<ConsentStep> {
         ),
         const SizedBox(height: Insets.md),
         ChoiceTile(
-          label: 'I understand this is not a medical diagnosis',
-          description:
-              'This app monitors and summarises. It does not detect, diagnose or rule out any condition.',
+          label: l.intakeConsentDiagnosisAck,
+          description: l.intakeConsentDiagnosisAckDetail,
           selected: _understood,
           multiple: true,
           onTap: () => setState(() => _understood = !_understood),
@@ -186,6 +182,7 @@ class _ProfileStepState extends State<ProfileStep> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return IntakeScaffold(
       stepIndex: 2,
       stepCount: 8,
@@ -196,37 +193,37 @@ class _ProfileStepState extends State<ProfileStep> {
       // difference between filling it in and not.
       voiceQuestions: <VoiceIntakeQuestion>[
         VoiceIntakeQuestion.dictated(
-          prompt: 'What is your name?',
+          prompt: l.intakeProfileNamePrompt,
           answered: _name.text,
           onSpeak: (String value) => setState(() => _name.text = value),
         ),
         VoiceIntakeQuestion.number(
-          prompt: 'How old are you?',
+          prompt: l.intakeProfileAgePrompt,
           answered: _age.text,
           onSpeak: (int value) => setState(() => _age.text = value.toString()),
         ),
         VoiceIntakeQuestion(
-          prompt: 'Which language would you like to use?',
+          prompt: l.intakeProfileLanguagePrompt,
           options: _languages,
           answeredIndex: _languages.indexOf(_language),
           onSelect: (int i) => setState(() => _language = _languages[i]),
         ),
         VoiceIntakeQuestion.dictated(
-          prompt: 'What did you do for a living?',
+          prompt: l.intakeProfileProfessionPrompt,
           answered: _profession.text,
           onSpeak: (String value) => setState(() => _profession.text = value),
         ),
         VoiceIntakeQuestion(
-          prompt: 'Who is answering these questions?',
+          prompt: l.intakeProfileCompletedByPrompt,
           options: CompletedBy.values
-              .map((CompletedBy c) => c.label)
+              .map((CompletedBy c) => completedByLabel(l, c))
               .toList(growable: false),
           answeredIndex: _completedBy?.index,
           onSelect: (int i) => setState(() => _completedBy = CompletedBy.values[i]),
         ),
       ],
-      title: 'About you',
-      subtitle: 'Age, language and profession affect how results are interpreted.',
+      title: l.intakeProfileTitle,
+      subtitle: l.intakeProfileSubtitle,
       onContinue: _valid
           ? () {
               state.saveIntakeProfile(
@@ -240,15 +237,15 @@ class _ProfileStepState extends State<ProfileStep> {
             }
           : null,
       children: <Widget>[
-        _Field(label: 'Name', controller: _name, onChanged: () => setState(() {})),
+        _Field(label: l.intakeProfileNameLabel, controller: _name, onChanged: () => setState(() {})),
         _Field(
-          label: 'Age',
+          label: l.intakeProfileAgeLabel,
           controller: _age,
           keyboardType: TextInputType.number,
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: Insets.sm),
-        Text('Preferred language', style: AppText.label),
+        Text(l.intakeProfileLanguageLabel, style: AppText.label),
         const SizedBox(height: Insets.sm),
         Wrap(
           spacing: Insets.xs,
@@ -276,10 +273,10 @@ class _ProfileStepState extends State<ProfileStep> {
         ),
         const SizedBox(height: Insets.lg),
         _Field(
-          label: 'Profession',
+          label: l.intakeProfileProfessionLabel,
           controller: _profession,
           onChanged: () => setState(() {}),
-          hint: 'What they did for a living',
+          hint: l.intakeProfileProfessionHint,
         ),
         // Quick picks rather than a fixed list: one tap for the common cases,
         // free text for everything else.
@@ -317,11 +314,11 @@ class _ProfileStepState extends State<ProfileStep> {
           ],
         ),
         const SizedBox(height: Insets.lg),
-        Text('Who is completing this?', style: AppText.label),
+        Text(l.intakeProfileCompletedByLabel, style: AppText.label),
         const SizedBox(height: Insets.sm),
         for (final CompletedBy c in CompletedBy.values)
           ChoiceTile(
-            label: c.label,
+            label: completedByLabel(l, c),
             selected: _completedBy == c,
             onTap: () => setState(() => _completedBy = c),
           ),

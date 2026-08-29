@@ -15,6 +15,7 @@ import '../caregiver/caregiver_shell.dart';
 import '../doctor/doctor_shell.dart';
 import '../patient/patient_entry.dart';
 import '../auth/sign_in_screen.dart';
+import '../../l10n/app_localizations.dart';
 import 'intake_kit.dart';
 
 /// What the product is, before anyone signs anything.
@@ -82,27 +83,28 @@ class WelcomeScreen extends StatelessWidget {
         AppRole.none => const RoleSelectionScreen(),
       };
 
-  static const List<({IconData icon, String title, String detail})> _pillars =
+  static List<({IconData icon, String title, String detail})> _pillars(AppLocalizations l) =>
       <({IconData icon, String title, String detail})>[
     (
       icon: Icons.fact_check_outlined,
-      title: 'Understand',
-      detail: 'Structured questions about symptoms, daily life and health history',
+      title: l.intakePillarUnderstandTitle,
+      detail: l.intakePillarUnderstandDetail,
     ),
     (
       icon: Icons.timeline_rounded,
-      title: 'Track',
-      detail: 'Six cognitive activities, measured against your own baseline over time',
+      title: l.intakePillarTrackTitle,
+      detail: l.intakePillarTrackDetail,
     ),
     (
       icon: Icons.medical_information_outlined,
-      title: 'Support',
-      detail: 'A plain-language explanation, and a summary you can take to a doctor',
+      title: l.intakePillarSupportTitle,
+      detail: l.intakePillarSupportDetail,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: MotifBackground(
@@ -117,15 +119,14 @@ class WelcomeScreen extends StatelessWidget {
                   children: <Widget>[
                     const BrandLockup(),
                     const SizedBox(height: Insets.xl),
-                    Text('Understand your\ncognitive health.', style: AppText.display),
+                    Text(l.intakeWelcomeHeadline, style: AppText.display),
                     const SizedBox(height: Insets.md),
                     Text(
-                      'Notice a change, track what it does over time, and take '
-                      'something useful to your doctor.',
+                      l.intakeWelcomeSubtitle,
                       style: AppText.bodyLarge.copyWith(color: AppColors.inkSoft),
                     ),
                     const SizedBox(height: Insets.xl),
-                    for (final ({IconData icon, String title, String detail}) p in _pillars)
+                    for (final ({IconData icon, String title, String detail}) p in _pillars(l))
                       Padding(
                         padding: const EdgeInsets.only(bottom: Insets.sm),
                         child: MmCard(
@@ -138,12 +139,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: Insets.md),
-                    const NotADiagnosisNote(
-                      message:
-                          'MemoryMitra supports monitoring and understanding. It does '
-                          'not detect, diagnose or treat dementia, and it does not '
-                          'replace a professional assessment.',
-                    ),
+                    NotADiagnosisNote(message: l.intakeWelcomeDisclaimer),
                   ],
                 ),
               ),
@@ -153,14 +149,14 @@ class WelcomeScreen extends StatelessWidget {
                 child: Column(
                   children: <Widget>[
                     BigButton(
-                      label: 'Get started',
+                      label: l.intakeGetStarted,
                       icon: Icons.arrow_forward_rounded,
                       onPressed: onGetStarted ?? () => continueFrom(context),
                     ),
                     const SizedBox(height: Insets.xs),
                     TextButton(
                       onPressed: () => continueFrom(context),
-                      child: Text('I already have an account',
+                      child: Text(l.intakeAlreadyHaveAccount,
                           style: AppText.body.copyWith(color: AppColors.primary)),
                     ),
                   ],

@@ -9,6 +9,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// Cohort-level analytics across the clinic's caseload.
@@ -18,6 +19,7 @@ class DoctorAnalyticsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
 
     // Domain averages across the cohort.
@@ -41,9 +43,9 @@ class DoctorAnalyticsScreen extends StatelessWidget {
       bottom: false,
       child: Column(
         children: <Widget>[
-          const ClinicTopBar(
-            title: 'Analytics',
-            subtitle: 'Cohort view · last 30 days',
+          ClinicTopBar(
+            title: l.doctorTabAnalytics,
+            subtitle: l.doctorAnalyticsSubtitle,
           ),
           Expanded(
             child: ListView(
@@ -56,25 +58,25 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                       children: <Widget>[
                         Expanded(
                           child: ClinicStat(
-                            label: 'Mean score',
+                            label: l.doctorAnalyticsMeanScoreLabel,
                             value: '${_mean(caseload)}',
-                            caption: 'Across the caseload',
+                            caption: l.doctorAnalyticsAcrossCaseload,
                             color: AppColors.seriesTeal,
                           ),
                         ),
                         Expanded(
                           child: ClinicStat(
-                            label: 'Mean adherence',
+                            label: l.doctorAnalyticsMeanAdherenceLabel,
                             value: '${_meanAdherence(caseload)}%',
-                            caption: 'Reminders completed',
+                            caption: l.doctorAnalyticsRemindersCompleted,
                             color: AppColors.seriesBlue,
                           ),
                         ),
                         Expanded(
                           child: ClinicStat(
-                            label: 'Declining',
+                            label: l.doctorPatientsLegendDeclining,
                             value: '${caseload.where((ClinicPatient c) => c.trend == TrendDirection.down).length}',
-                            caption: 'Patients trending down',
+                            caption: l.doctorAnalyticsPatientsTrendingDown,
                             color: AppColors.danger,
                           ),
                         ),
@@ -87,8 +89,8 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 50,
                   child: _Card(
-                    title: 'Cognitive score distribution',
-                    caption: 'Number of patients in each score band.',
+                    title: l.doctorAnalyticsScoreDistTitle,
+                    caption: l.doctorAnalyticsScoreDistCaption,
                     child: BarSeriesChart(
                       points: distribution,
                       color: AppColors.seriesTeal,
@@ -106,8 +108,8 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 80,
                   child: _Card(
-                    title: 'Mean performance by cognitive domain',
-                    caption: 'Where the cohort is strongest and weakest.',
+                    title: l.doctorAnalyticsDomainTitle,
+                    caption: l.doctorAnalyticsDomainCaption,
                     child: Center(
                       child: RadarChart(
                         values: domainAverages,
@@ -122,13 +124,13 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 110,
                   child: _Card(
-                    title: 'Engagement by activity',
-                    caption: 'Share of sessions each activity accounts for.',
+                    title: l.doctorAnalyticsEngagementTitle,
+                    caption: l.doctorAnalyticsEngagementCaption,
                     child: BarSeriesChart(
                       points: <SeriesPoint>[
                         for (int i = 0; i < MockData.games.length; i++)
                           SeriesPoint(
-                            _short(MockData.games[i].name),
+                            _short(l, MockData.games[i].name),
                             const <double>[24, 17, 14, 19, 15, 11][i],
                           ),
                       ],
@@ -144,8 +146,8 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 140,
                   child: _Card(
-                    title: 'Sessions completed per week',
-                    caption: 'Across the whole caseload.',
+                    title: l.doctorAnalyticsSessionsTitle,
+                    caption: l.doctorAnalyticsSessionsCaption,
                     child: TrendLineChart(
                       points: MockData.series(
                         const <double>[142, 151, 149, 163, 158, 174, 186],
@@ -163,18 +165,18 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 170,
                   child: _Card(
-                    title: 'Patients by district',
-                    caption: 'Reach across the North Eastern Region.',
+                    title: l.doctorAnalyticsDistrictTitle,
+                    caption: l.doctorAnalyticsDistrictCaption,
                     child: Column(
                       children: <Widget>[
                         for (final ({String label, int value, Color color}) row
-                            in const <({String label, int value, Color color})>[
-                          (label: 'Assam', value: 11, color: AppColors.seriesTeal),
-                          (label: 'Manipur', value: 4, color: AppColors.seriesOchre),
-                          (label: 'Meghalaya', value: 3, color: AppColors.seriesBlue),
-                          (label: 'Nagaland', value: 3, color: AppColors.seriesClay),
-                          (label: 'Mizoram', value: 2, color: AppColors.seriesPlum),
-                          (label: 'Tripura', value: 1, color: AppColors.seriesLeaf),
+                            in <({String label, int value, Color color})>[
+                          (label: l.doctorAnalyticsDistrictAssam, value: 11, color: AppColors.seriesTeal),
+                          (label: l.doctorAnalyticsDistrictManipur, value: 4, color: AppColors.seriesOchre),
+                          (label: l.doctorAnalyticsDistrictMeghalaya, value: 3, color: AppColors.seriesBlue),
+                          (label: l.doctorAnalyticsDistrictNagaland, value: 3, color: AppColors.seriesClay),
+                          (label: l.doctorAnalyticsDistrictMizoram, value: 2, color: AppColors.seriesPlum),
+                          (label: l.doctorAnalyticsDistrictTripura, value: 1, color: AppColors.seriesLeaf),
                         ])
                           Padding(
                             padding: const EdgeInsets.only(bottom: 11),
@@ -222,13 +224,17 @@ class DoctorAnalyticsScreen extends StatelessWidget {
   static int _meanAdherence(List<ClinicPatient> list) =>
       (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
 
-  static String _short(String name) => switch (name) {
-        'Procedure Reconstruction' => 'Procedure',
-        'Finish the Story' => 'Story',
-        'Familiar Place Explorer' => 'Place',
-        'Melody of the Valleys' => 'Melody',
-        'Weaves of the Hills' => 'Weaves',
-        'NER Memory Cards' => 'Cards',
+  // Matches against MockData.games' own (English) GameDefinition.name values —
+  // that model layer is out of this screen's scope, so the match keys stay
+  // English. Only the short chart label shown to the user is translated;
+  // reuses the same keys patient_detail_screen.dart's identical helper does.
+  static String _short(AppLocalizations l, String name) => switch (name) {
+        'Procedure Reconstruction' => l.doctorDetailChartProcedure,
+        'Finish the Story' => l.doctorDetailChartStory,
+        'Familiar Place Explorer' => l.doctorDetailChartPlace,
+        'Melody of the Valleys' => l.doctorDetailChartMelody,
+        'Weaves of the Hills' => l.doctorDetailChartWeaves,
+        'NER Memory Cards' => l.doctorDetailChartCards,
         _ => name,
       };
 }

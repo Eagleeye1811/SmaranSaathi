@@ -33,12 +33,18 @@ class AppSettings {
     this.lastRole,
     this.lastAccountId,
     this.safeZoneJson,
+    this.localeCode,
   });
 
   final TextSizePreference textSize;
   final bool highContrast;
   final bool reduceMotion;
   final bool voicePrompts;
+
+  /// The interface language, as an `en`/`hi`/`as`/`mr` code — whatever was
+  /// last picked in `LanguageSelector`. Null means it has never been changed
+  /// from the default (English), not that a choice was lost.
+  final String? localeCode;
 
   /// The caregiver's manual "work offline" switch, distinct from the device
   /// actually having no connection.
@@ -73,6 +79,7 @@ class AppSettings {
     String? lastAccountId,
     String? safeZoneJson,
     bool clearSafeZone = false,
+    String? localeCode,
   }) {
     return AppSettings(
       textSize: textSize ?? this.textSize,
@@ -84,6 +91,7 @@ class AppSettings {
       lastAccountId: lastAccountId ?? this.lastAccountId,
       safeZoneJson:
           clearSafeZone ? null : (safeZoneJson ?? this.safeZoneJson),
+      localeCode: localeCode ?? this.localeCode,
     );
   }
 }

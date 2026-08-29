@@ -8,9 +8,8 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
-/// Header used on every patient screen: identity on the left, the two controls
-/// an elderly user might need on the right, and nothing else.
 /// The bar across the top of every patient screen.
 ///
 /// Wordmark on the left, where a name belongs and where the eye starts; a
@@ -41,6 +40,7 @@ class PatientTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 6, Insets.gutter, 10),
       decoration: const BoxDecoration(
@@ -56,7 +56,7 @@ class PatientTopBar extends StatelessWidget {
             RoundIconButton(
               icon: Icons.arrow_back_rounded,
               size: 40,
-              tooltip: 'Back',
+              tooltip: l.actionBack,
               onPressed: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(width: 10),
@@ -85,7 +85,7 @@ class PatientTopBar extends StatelessWidget {
             RoundIconButton(
               icon: Icons.logout_rounded,
               size: 40,
-              tooltip: 'Switch role',
+              tooltip: l.actionSwitchRole,
               onPressed: onExit!,
             ),
           ],
@@ -123,13 +123,16 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     final bool building = !state.baselineReady;
     final int day = state.baselineDayIndex;
     final String label = building
-        ? 'Day ${day >= AppState.baselinePlan.length ? AppState.baselinePlan.length : day + 1}'
-            '/${AppState.baselinePlan.length}'
-        : '${state.completedToday.length} today';
+        ? l.statusPillDay(
+            day >= AppState.baselinePlan.length ? AppState.baselinePlan.length : day + 1,
+            AppState.baselinePlan.length,
+          )
+        : l.statusPillCountToday(state.completedToday.length);
     final IconData icon = building ? Icons.flag_rounded : Icons.check_circle_rounded;
     final Color color = building ? AppColors.accent : AppColors.primary;
 

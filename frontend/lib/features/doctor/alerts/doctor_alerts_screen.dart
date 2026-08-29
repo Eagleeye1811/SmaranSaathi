@@ -8,6 +8,7 @@ import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -18,6 +19,7 @@ class DoctorAlertsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<DoctorAlert> alerts = state.alerts;
 
     final Map<AlertSeverity, List<DoctorAlert>> grouped =
@@ -36,8 +38,8 @@ class DoctorAlertsScreen extends StatelessWidget {
       child: Column(
         children: <Widget>[
           ClinicTopBar(
-            title: 'Alerts',
-            subtitle: '${alerts.length} open across the caseload',
+            title: l.doctorDetailAlertsTitle,
+            subtitle: l.doctorAlertsSubtitle(alerts.length),
           ),
           Expanded(
             child: ListView(
@@ -52,10 +54,10 @@ class DoctorAlertsScreen extends StatelessWidget {
                           Expanded(
                             child: ClinicStat(
                               label: s == AlertSeverity.urgent
-                                  ? 'Assessment'
+                                  ? l.doctorAlertsSeverityAssessment
                                   : s == AlertSeverity.watch
-                                      ? 'Attention'
-                                      : 'Informational',
+                                      ? l.doctorAlertsSeverityAttention
+                                      : l.doctorAlertsSeverityInformational,
                               value: '${grouped[s]!.length}',
                               color: severityColor(s),
                             ),
@@ -126,6 +128,7 @@ class _AlertCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color c = severityColor(alert.severity);
+    final AppLocalizations l = AppLocalizations.of(context);
     return ClinicCard(
       padding: const EdgeInsets.all(Insets.md),
       accentEdge: c,
@@ -163,7 +166,8 @@ class _AlertCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10),
-              Text('Open record', style: CT.caption.wght(700).tint(AppColors.clinicAccent)),
+              Text(l.doctorAlertsOpenRecord,
+                  style: CT.caption.wght(700).tint(AppColors.clinicAccent)),
               const Icon(Icons.chevron_right_rounded,
                   size: 17, color: AppColors.clinicAccent),
             ],

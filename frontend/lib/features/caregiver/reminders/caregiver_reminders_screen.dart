@@ -9,6 +9,7 @@ import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// Reminder management for the caregiver, grouped by category.
@@ -28,6 +29,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final List<Reminder> reminders = state.reminders;
+    final AppLocalizations l = AppLocalizations.of(context);
 
     return MotifBackground(
       opacity: 0.04,
@@ -39,7 +41,10 @@ class CaregiverRemindersScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const CaregiverTopBar(title: 'Reminders', subtitle: 'Aama Devi · today'),
+            CaregiverTopBar(
+              title: l.caregiverRemindersTitle,
+              subtitle: l.caregiverSubtitleToday(state.patient.shortName),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -67,7 +72,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
                                   children: <Widget>[
                                     Text('${state.adherencePercent}%',
                                         style: AppText.body.wght(800)),
-                                    Text('today', style: AppText.caption.sized(10)),
+                                    Text(l.caregiverAdherenceToday, style: AppText.caption.sized(10)),
                                   ],
                                 ),
                               ),
@@ -76,11 +81,11 @@ class CaregiverRemindersScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    Text('Adherence', style: AppText.h3),
+                                    Text(l.caregiverAdherenceTitle, style: AppText.h3),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${state.remindersDone} of ${state.remindersTotal} reminders done. '
-                                      'Medicine ${state.medicineDone}/${state.medicineTotal}.',
+                                      l.caregiverAdherenceSummary(state.remindersDone,
+                                          state.remindersTotal, state.medicineDone, state.medicineTotal),
                                       style: AppText.bodySmall,
                                     ),
                                   ],
@@ -89,7 +94,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: Insets.lg),
-                          Text('ADHERENCE THIS WEEK', style: AppText.overline),
+                          Text(l.caregiverAdherenceWeekLabel, style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
                             points: state.adherenceWeek,
@@ -127,13 +132,11 @@ class CaregiverRemindersScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('Reminders reach her three ways',
+                              Text(l.caregiverReminderChannelsTitle,
                                   style: AppText.body.wght(800)),
                               const SizedBox(height: 4),
                               Text(
-                                'A large full-screen card on her phone, a spoken prompt from '
-                                'Mitra in ${state.patient.language}, and a note to you if '
-                                'something is missed twice.',
+                                l.caregiverReminderChannelsBody(state.patient.language),
                                 style: AppText.bodySmall,
                               ),
                             ],

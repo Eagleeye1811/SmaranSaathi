@@ -31,17 +31,17 @@ class _TodayScreenState extends State<TodayScreen> {
   double _companionScale = 1.0;
 
   // List of motivational interactive greetings / tips (shortened to prevent wrapping)
-  final List<String> _companionTips = <String>[
-    'You are doing great today!',
-    'Remember to drink water!',
-    'Mitra is here with you.',
-    'Take your meds on time!'
-  ];
+  List<String> _companionTips(AppLocalizations l) => <String>[
+        l.todayTipDoingGreat,
+        l.todayTipDrinkWater,
+        l.todayTipMitraHere,
+        l.todayTipTakeMeds,
+      ];
 
   void _interactWithCompanion() {
     setState(() {
       _companionScale = 1.15;
-      _activeMessageIndex = (_activeMessageIndex + 1) % _companionTips.length;
+      _activeMessageIndex = (_activeMessageIndex + 1) % 4;
     });
     Future<void>.delayed(const Duration(milliseconds: 150), () {
       if (mounted) {
@@ -58,10 +58,12 @@ class _TodayScreenState extends State<TodayScreen> {
     final AppState state = AppScope.of(context);
     final List<Reminder> reminders = state.reminders;
 
-    final String dateLabel = _formattedDate();
+    final String dateLabel = _formattedDate(l);
+    final List<String> companionTips = _companionTips(l);
 
-    final String notificationHeadline = 'TODAY\'S STATUS';
-    final String notificationDetail = '${state.remindersDone} of ${state.remindersTotal} completed';
+    final String notificationHeadline = l.todayStatusLabel;
+    final String notificationDetail =
+        l.todayCompletedCount(state.remindersDone, state.remindersTotal);
     const IconData notificationIcon = Icons.today_rounded;
     const Color notificationColor = AppColors.primary;
 
@@ -159,7 +161,7 @@ class _TodayScreenState extends State<TodayScreen> {
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
                                 child: Text(
-                                  _companionTips[_activeMessageIndex],
+                                  companionTips[_activeMessageIndex],
                                   key: ValueKey<int>(_activeMessageIndex),
                                   style: AppText.caption.sized(12.5),
                                   maxLines: 2,
@@ -185,7 +187,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'Reminders',
+                          l.todayRemindersTitle,
                           style: AppText.patientTitle.sized(24),
                         ),
                         const SizedBox(height: 2),
@@ -196,7 +198,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       ],
                     ),
                     Text(
-                      '${state.remindersDone}/${state.remindersTotal} Done',
+                      l.todayDoneCount(state.remindersDone, state.remindersTotal),
                       style: AppText.body.wght(700).tint(AppColors.primary),
                     ),
                   ],
@@ -242,7 +244,8 @@ class _TodayScreenState extends State<TodayScreen> {
             foregroundColor: Colors.white,
             elevation: 6,
             icon: const Icon(Icons.add_alarm_rounded, size: 24),
-            label: Text('Create Reminder', style: AppText.body.wght(800).tint(Colors.white)),
+            label: Text(l.todayCreateReminderButton,
+                style: AppText.body.wght(800).tint(Colors.white)),
           ),
         ),
       ),
@@ -265,14 +268,30 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  static String _formattedDate() {
+  static String _formattedDate(AppLocalizations l) {
     final DateTime now = DateTime.now();
-    const List<String> days = <String>[
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    final List<String> days = <String>[
+      l.todayWeekdayMonday,
+      l.todayWeekdayTuesday,
+      l.todayWeekdayWednesday,
+      l.todayWeekdayThursday,
+      l.todayWeekdayFriday,
+      l.todayWeekdaySaturday,
+      l.todayWeekdaySunday,
     ];
-    const List<String> months = <String>[
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+    final List<String> months = <String>[
+      l.todayMonthJanuary,
+      l.todayMonthFebruary,
+      l.todayMonthMarch,
+      l.todayMonthApril,
+      l.todayMonthMay,
+      l.todayMonthJune,
+      l.todayMonthJuly,
+      l.todayMonthAugust,
+      l.todayMonthSeptember,
+      l.todayMonthOctober,
+      l.todayMonthNovember,
+      l.todayMonthDecember,
     ];
     return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]}';
   }
@@ -299,9 +318,9 @@ class _EmptyRemindersCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('All clear!', style: AppText.bodyLarge.wght(800).tint(AppColors.primaryDeep)),
+                Text(l.todayAllClear, style: AppText.bodyLarge.wght(800).tint(AppColors.primaryDeep)),
                 const SizedBox(height: 4),
-                Text('No reminders for now. Enjoy your time.', style: AppText.bodySmall.tint(AppColors.inkSoft)),
+                Text(l.todayNoRemindersEnjoy, style: AppText.bodySmall.tint(AppColors.inkSoft)),
               ],
             ),
           ),
@@ -395,7 +414,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
     final String title = _nameController.text.trim();
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a reminder name')),
+        SnackBar(content: Text(AppLocalizations.of(context).todayReminderNameRequired)),
       );
       return;
     }
@@ -411,25 +430,27 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
   }
 
   String _getCompanionReaction() {
+    final AppLocalizations l = AppLocalizations.of(context);
     final int hour = _pickedTime.hour;
-    String timeOfDay = 'morning';
+    String timeOfDay = l.todayTimeOfDayMorning;
     if (hour >= 18) {
-      timeOfDay = 'evening';
+      timeOfDay = l.todayTimeOfDayEvening;
     } else if (hour >= 12) {
-      timeOfDay = 'afternoon';
+      timeOfDay = l.todayTimeOfDayAfternoon;
     }
     return switch (_selectedKind) {
-      ReminderKind.medicine   => "I'll remind you about your medicine in the $timeOfDay!",
-      ReminderKind.hydration  => 'Staying hydrated in the $timeOfDay keeps you energised!',
-      ReminderKind.cognitive  => 'A $timeOfDay brain activity — great idea!',
-      ReminderKind.appointment => 'Medical visit set for the $timeOfDay. I\'ll note it!',
-      ReminderKind.routine    => 'A $timeOfDay routine keeps you feeling great!',
-      ReminderKind.social     => 'Connecting with loved ones in the $timeOfDay is wonderful!',
+      ReminderKind.medicine => l.todayReactionMedicine(timeOfDay),
+      ReminderKind.hydration => l.todayReactionHydration(timeOfDay),
+      ReminderKind.cognitive => l.todayReactionCognitive(timeOfDay),
+      ReminderKind.appointment => l.todayReactionAppointment(timeOfDay),
+      ReminderKind.routine => l.todayReactionRoutine(timeOfDay),
+      ReminderKind.social => l.todayReactionSocial(timeOfDay),
     };
   }
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool isDayTime = _pickedTime.hour >= 6 && _pickedTime.hour < 18;
 
     return Container(
@@ -462,16 +483,16 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Create New Reminder', style: AppText.patientTitle.sized(24)),
+            Text(l.todayCreateNewReminderTitle, style: AppText.patientTitle.sized(24)),
             const SizedBox(height: 20),
 
             // ── Reminder Name ──────────────────────────────────────────
-            Text('Reminder Name', style: AppText.body.wght(800)),
+            Text(l.todayReminderNameLabel, style: AppText.body.wght(800)),
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
-                hintText: 'e.g., Blood Pressure Medicine',
+                hintText: l.todayReminderNameHint,
                 fillColor: Colors.white,
                 filled: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -492,7 +513,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
             const SizedBox(height: 20),
 
             // ── Category Chips ─────────────────────────────────────────
-            Text('Select Category', style: AppText.body.wght(800)),
+            Text(l.todayCategoryLabel, style: AppText.body.wght(800)),
             const SizedBox(height: 10),
             GridView.count(
               crossAxisCount: 2,
@@ -502,18 +523,18 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
               children: <Widget>[
-                _categoryCard(ReminderKind.medicine, 'Medicines', '💊'),
-                _categoryCard(ReminderKind.hydration, 'Hydration', '💧'),
-                _categoryCard(ReminderKind.cognitive, 'Daily Activity', '🧠'),
-                _categoryCard(ReminderKind.appointment, 'Appointment', '📅'),
-                _categoryCard(ReminderKind.routine, 'Daily Routine', '🛌'),
-                _categoryCard(ReminderKind.social, 'Social Activity', '🤝'),
+                _categoryCard(ReminderKind.medicine, l.todayCategoryMedicines, '💊'),
+                _categoryCard(ReminderKind.hydration, l.todayCategoryHydration, '💧'),
+                _categoryCard(ReminderKind.cognitive, l.todayCategoryDailyActivity, '🧠'),
+                _categoryCard(ReminderKind.appointment, l.todayCategoryAppointment, '📅'),
+                _categoryCard(ReminderKind.routine, l.todayCategoryDailyRoutine, '🛌'),
+                _categoryCard(ReminderKind.social, l.todayCategorySocialActivity, '🤝'),
               ],
             ),
             const SizedBox(height: 24),
 
             // ── Clock Time Picker ─────────────────────────────────────
-            Text('Set Time', style: AppText.body.wght(800)),
+            Text(l.todaySetTimeLabel, style: AppText.body.wght(800)),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickTime,
@@ -563,7 +584,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Tap to change time',
+                            l.todayTapToChangeTime,
                             style: AppText.caption
                                 .tint(AppColors.inkSoft)
                                 .sized(11),
@@ -583,7 +604,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                           const Icon(Icons.schedule_rounded, color: Colors.white, size: 14),
                           const SizedBox(width: 4),
                           Text(
-                            'Edit',
+                            l.actionEdit,
                             style: AppText.caption.wght(800).tint(Colors.white).sized(12),
                           ),
                         ],
@@ -599,10 +620,10 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               spacing: 8,
               runSpacing: 8,
               children: <Widget>[
-                _presetChip('🌅 8:00 AM', const TimeOfDay(hour: 8, minute: 0)),
-                _presetChip('☀️ 12:30 PM', const TimeOfDay(hour: 12, minute: 30)),
-                _presetChip('🌆 5:00 PM', const TimeOfDay(hour: 17, minute: 0)),
-                _presetChip('🌙 9:00 PM', const TimeOfDay(hour: 21, minute: 0)),
+                _presetChip('🌅 ${l.todayPreset8am}', const TimeOfDay(hour: 8, minute: 0)),
+                _presetChip('☀️ ${l.todayPreset1230pm}', const TimeOfDay(hour: 12, minute: 30)),
+                _presetChip('🌆 ${l.todayPreset5pm}', const TimeOfDay(hour: 17, minute: 0)),
+                _presetChip('🌙 ${l.todayPreset9pm}', const TimeOfDay(hour: 21, minute: 0)),
               ],
             ),
             const SizedBox(height: 20),
@@ -634,12 +655,12 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
             const SizedBox(height: 20),
 
             // ── Notes ─────────────────────────────────────────────────
-            Text('Notes (Optional)', style: AppText.body.wght(800)),
+            Text(l.todayNotesLabel, style: AppText.body.wght(800)),
             const SizedBox(height: 8),
             TextField(
               controller: _detailController,
               decoration: InputDecoration(
-                hintText: 'e.g., Take with a full glass of water',
+                hintText: l.todayNotesHint,
                 fillColor: Colors.white,
                 filled: true,
                 contentPadding:
@@ -694,11 +715,11 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'SMS Alert',
+                          l.todaySmsAlertLabel,
                           style: AppText.body.wght(800).sized(14),
                         ),
                         Text(
-                          'Send SMS to registered phone',
+                          l.todaySmsAlertNote,
                           style: AppText.caption
                               .tint(AppColors.inkSoft)
                               .sized(11),
@@ -721,7 +742,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               children: <Widget>[
                 Expanded(
                   child: BigButton(
-                    label: 'Cancel',
+                    label: l.actionCancel,
                     outlined: true,
                     height: 56,
                     color: AppColors.inkMuted,
@@ -731,7 +752,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: BigButton(
-                    label: 'Save Reminder',
+                    label: l.todaySaveReminderButton,
                     height: 56,
                     color: AppColors.primary,
                     onPressed: _submit,

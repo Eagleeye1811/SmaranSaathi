@@ -5,7 +5,7 @@ import '../core/services/app_state.dart';
 import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
-import '../features/intake/welcome_screens.dart' hide SplashScreen;
+import '../features/intake/welcome_screens.dart';
 import '../features/patient/patient_entry.dart';
 import '../features/auth/splash_screen.dart';
 
@@ -40,14 +40,19 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   /// Only a state this widget created is ours to dispose.
   late final bool _ownsState = widget.state == null;
 
-  /// Starts in English; the language is chosen in Settings.
+  /// Restores whatever language was last explicitly picked in `Settings`
+  /// (`AppState.localeCode`, persisted via `HiveSettingsRepository`) —
+  /// starts in English only the first time, when there is no saved choice.
   ///
-  /// Seeding this from the profile's language would be better once the Hindi
-  /// and Assamese strings have been reviewed by a native speaker — see
-  /// `lib/l10n/README.md`. Until then, opening straight into an unreviewed
-  /// translation is the riskier default, so the choice stays explicit.
-  /// `LocaleController.fromPatientLanguage` is ready for that switch.
-  late final LocaleController _locale = LocaleController();
+  /// This is different from auto-seeding straight from the profile's free-text
+  /// `Patient.language` field (`LocaleController.fromPatientLanguage`): that
+  /// would open a first-time patient directly into an unreviewed Hindi/
+  /// Assamese/Marathi translation with no chance to opt in — see
+  /// `lib/l10n/README.md`'s translation-review caveat — so that path is still
+  /// deliberately not wired up. Restoring a choice the person already made
+  /// themselves carries none of that risk.
+  late final LocaleController _locale =
+      LocaleController(initial: _state.localeCode == null ? null : Locale(_state.localeCode!));
 
   /// Lets a demo boot straight into one role, skipping the role picker:
   ///

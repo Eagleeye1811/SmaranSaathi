@@ -10,6 +10,7 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
 
@@ -24,12 +25,20 @@ class MemoryProfileScreen extends StatefulWidget {
 
 class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
   int _tab = 0;
-  static const List<String> _tabs = <String>['People', 'Memories', 'Photographs', 'Routine'];
+
+  List<String> _tabs(AppLocalizations l) => <String>[
+        l.caregiverTabPeople,
+        l.caregiverTabMemories,
+        l.caregiverTabPhotographs,
+        l.caregiverTabRoutine,
+      ];
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final Patient p = state.patient;
+    final List<String> tabs = _tabs(l);
 
     return MotifBackground(
       opacity: 0.04,
@@ -41,14 +50,15 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const CaregiverTopBar(title: 'Memory profile', subtitle: 'What Mitra knows'),
+            CaregiverTopBar(
+                title: l.caregiverMemoryProfileTitle, subtitle: l.caregiverMemoryProfileSubtitle),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
                 children: <Widget>[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-                    child: FadeInUp(child: _profileHeader(p, state)),
+                    child: FadeInUp(child: _profileHeader(p, state, l)),
                   ),
                   const SizedBox(height: Insets.lg),
                   SizedBox(
@@ -58,7 +68,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                       children: <Widget>[
-                        for (int i = 0; i < _tabs.length; i++)
+                        for (int i = 0; i < tabs.length; i++)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
                             child: Pressable(
@@ -75,7 +85,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  _tabs[i],
+                                  tabs[i],
                                   style: AppText.body
                                       .wght(_tab == i ? 800 : 600)
                                       .tint(_tab == i ? Colors.white : AppColors.ink),
@@ -94,10 +104,10 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                       child: KeyedSubtree(
                         key: ValueKey<int>(_tab),
                         child: switch (_tab) {
-                          0 => _people(p, state),
-                          1 => _memories(p, state),
-                          2 => _assets(p),
-                          _ => _routine(p),
+                          0 => _people(p, state, l),
+                          1 => _memories(p, state, l),
+                          2 => _assets(p, l),
+                          _ => _routine(p, l),
                         },
                       ),
                     ),
@@ -111,7 +121,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
     );
   }
 
-  Widget _profileHeader(Patient p, AppState state) {
+  Widget _profileHeader(Patient p, AppState state, AppLocalizations l) {
     return MmCard(
       shadow: AppColors.liftShadow(),
       child: Column(
@@ -132,7 +142,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                   children: <Widget>[
                     Text(p.name, style: AppText.h2.sized(22)),
                     const SizedBox(height: 4),
-                    Text('${p.age} years · ${p.location}', style: AppText.bodySmall),
+                    Text(l.caregiverAgeLocation(p.age, p.location), style: AppText.bodySmall),
                     const SizedBox(height: 6),
                     Text(p.joinedOn, style: AppText.caption),
                   ],
@@ -160,7 +170,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
             children: <Widget>[
               Expanded(
                 child: SoftButton(
-                  label: 'Re-run onboarding',
+                  label: l.caregiverRerunOnboardingButton,
                   icon: Icons.tune_rounded,
                   onPressed: () => Nav.open(context, const PatientOnboardingFlow()),
                 ),
@@ -174,7 +184,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
   // ── people ─────────────────────────────────────────────────────────────
 
-  Widget _people(Patient p, AppState state) {
+  Widget _people(Patient p, AppState state, AppLocalizations l) {
     final List<FamilyMember> available = MockData.family
         .where((FamilyMember m) => !p.family.any((FamilyMember f) => f.id == m.id))
         .toList();
@@ -183,8 +193,8 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'People in her life',
-          subtitle: 'Mitra asks after them by name',
+          title: l.caregiverPeopleTitle,
+          subtitle: l.caregiverPeopleSubtitle,
           dense: true,
         ),
         for (final FamilyMember f in p.family)
@@ -214,7 +224,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                     icon: Icons.delete_outline_rounded,
                     size: 38,
                     color: AppColors.inkMuted,
-                    tooltip: 'Remove',
+                    tooltip: l.caregiverRemoveTooltip,
                     onPressed: () {
                       state.updateDraft(p);
                       final List<FamilyMember> next = List<FamilyMember>.from(p.family)
@@ -229,7 +239,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
           ),
         if (available.isNotEmpty) ...<Widget>[
           const SizedBox(height: 6),
-          Text('SUGGESTED TO ADD', style: AppText.overline),
+          Text(l.caregiverSuggestedToAddLabel, style: AppText.overline),
           const SizedBox(height: 10),
           for (final FamilyMember f in available)
             Padding(
@@ -262,20 +272,20 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
   // ── memories ───────────────────────────────────────────────────────────
 
-  Widget _memories(Patient p, AppState state) {
+  Widget _memories(Patient p, AppState state, AppLocalizations l) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'Life & memories',
-          subtitle: 'Tap any answer to edit it',
+          title: l.caregiverMemoriesTitle,
+          subtitle: l.caregiverMemoriesSubtitle,
           dense: true,
         ),
         for (final LifeMemory m in p.memories)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: MmCard(
-              onTap: () => _editMemory(m, p, state),
+              onTap: () => _editMemory(m, p, state, l),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -303,7 +313,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
     );
   }
 
-  Future<void> _editMemory(LifeMemory m, Patient p, AppState state) async {
+  Future<void> _editMemory(LifeMemory m, Patient p, AppState state, AppLocalizations l) async {
     final TextEditingController c = TextEditingController(text: m.answer);
     final String? result = await showDialog<String>(
       context: context,
@@ -322,11 +332,11 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(l.actionCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(c.text),
-            child: const Text('Save'),
+            child: Text(l.caregiverSaveButton),
           ),
         ],
       ),
@@ -342,11 +352,11 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
   // ── assets ─────────────────────────────────────────────────────────────
 
-  Widget _assets(Patient p) {
+  Widget _assets(Patient p, AppLocalizations l) {
     if (p.assets.isEmpty) {
-      return const EmptyState(
-        title: 'No photographs yet',
-        message: 'Add photographs during onboarding so Mitra can use them in activities.',
+      return EmptyState(
+        title: l.caregiverNoPhotographsTitle,
+        message: l.caregiverNoPhotographsBody,
         icon: Icons.photo_library_rounded,
       );
     }
@@ -354,8 +364,8 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'Memory photographs',
-          subtitle: '${p.assets.length} images used in stories and games',
+          title: l.caregiverPhotographsTitle,
+          subtitle: l.caregiverPhotographsSubtitle(p.assets.length),
           dense: true,
         ),
         GridView.builder(
@@ -397,13 +407,13 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
   // ── routine ────────────────────────────────────────────────────────────
 
-  Widget _routine(Patient p) {
+  Widget _routine(Patient p, AppLocalizations l) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'Daily routine',
-          subtitle: 'Reminders and activities are scheduled around this',
+          title: l.caregiverDailyRoutineTitle,
+          subtitle: l.caregiverDailyRoutineSubtitle,
           dense: true,
         ),
         MmCard(

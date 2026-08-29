@@ -12,6 +12,8 @@ import '../../core/widgets/charts.dart';
 import '../../core/widgets/companion.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../data/mock/mock_data.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/content_labels.dart';
 import '../patient/games/game_launcher.dart';
 import 'intake_kit.dart';
 
@@ -32,8 +34,10 @@ class BaselineIntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final IntakeRecord intake = state.intake;
-    final String name = state.patient.shortName.isEmpty ? 'friend' : state.patient.shortName;
+    final String name =
+        state.patient.shortName.isEmpty ? l.intakeBaselineFriendFallback : state.patient.shortName;
 
     // Everything below is phrased as a strength, because every one of these
     // numbers *is* one: they are the parts of daily life the person told us
@@ -48,24 +52,23 @@ class BaselineIntroScreen extends StatelessWidget {
     final int health = (100 - intake.medical.vascularRiskCount * 12).clamp(40, 100).round();
 
     final List<SeriesPoint> strengths = <SeriesPoint>[
-      SeriesPoint('Daily living', independence.toDouble()),
-      SeriesPoint('Steady days', steadyDays.toDouble()),
-      SeriesPoint('Support', support.toDouble()),
-      SeriesPoint('Health basics', health.toDouble()),
+      SeriesPoint(l.intakeBaselineChartDailyLiving, independence.toDouble()),
+      SeriesPoint(l.intakeBaselineChartSteadyDays, steadyDays.toDouble()),
+      SeriesPoint(l.intakeBaselineChartSupport, support.toDouble()),
+      SeriesPoint(l.intakeBaselineChartHealthBasics, health.toDouble()),
     ];
 
     return IntakeScaffold(
-      eyebrow: 'Your starting point',
+      eyebrow: l.intakeBaselineEyebrow,
       onBack: onBack,
-      title: 'A good place to begin',
-      subtitle: 'Here is what your answers already show, $name.',
-      continueLabel: 'Start my journey',
+      title: l.intakeBaselineTitle,
+      subtitle: l.intakeBaselineSubtitle(name),
+      continueLabel: l.intakeBaselineStartJourney,
       onContinue: onBegin,
-      footnote: 'Your answers are saved on this phone and to your account.',
+      footnote: l.intakeBaselineFootnote,
       children: <Widget>[
         CompanionSpeech(
-          message: 'Thank you for telling me all of that, $name. '
-              'There is a lot here that is going well — let us build on it.',
+          message: l.intakeBaselineCompanionThanks(name),
           state: CompanionState.encouraging,
         ),
         const SizedBox(height: Insets.lg),
@@ -75,11 +78,10 @@ class BaselineIntroScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('What is going well', style: AppText.h3),
+              Text(l.intakeBaselineStrengthsTitle, style: AppText.h3),
               const SizedBox(height: 4),
               Text(
-                'From your own answers. Higher is more of daily life still '
-                'firmly in your hands.',
+                l.intakeBaselineStrengthsSubtitle,
                 style: AppText.bodySmall,
               ),
               const SizedBox(height: Insets.md),
@@ -100,18 +102,12 @@ class BaselineIntroScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('What the activities do for you', style: AppText.h3),
+              Text(l.intakeBaselineBenefitsTitle, style: AppText.h3),
               const SizedBox(height: Insets.sm),
               for (final (IconData icon, String line) benefit in <(IconData, String)>[
-                (Icons.timeline_rounded,
-                    'They measure your own starting point, so any change later '
-                    'is measured against you and nobody else.'),
-                (Icons.self_improvement_rounded,
-                    'Regular mental activity is one of the few things shown to '
-                    'support day-to-day thinking as we age.'),
-                (Icons.medical_information_outlined,
-                    'They turn "I think I am more forgetful" into something a '
-                    'doctor can actually read.'),
+                (Icons.timeline_rounded, l.intakeBaselineBenefit1),
+                (Icons.self_improvement_rounded, l.intakeBaselineBenefit2),
+                (Icons.medical_information_outlined, l.intakeBaselineBenefit3),
               ])
                 Padding(
                   padding: const EdgeInsets.only(bottom: Insets.sm),
@@ -130,11 +126,10 @@ class BaselineIntroScreen extends StatelessWidget {
         const SizedBox(height: Insets.md),
 
         // ── The three-day plan ────────────────────────────────────────────
-        Text('Your first three days', style: AppText.h3),
+        Text(l.intakeBaselinePlanTitle, style: AppText.h3),
         const SizedBox(height: 4),
         Text(
-          'Two short activities a day, about three minutes each. Three days '
-          'gives a truer picture than one long sitting.',
+          l.intakeBaselinePlanSubtitle,
           style: AppText.bodySmall,
         ),
         const SizedBox(height: Insets.md),
@@ -156,7 +151,7 @@ class BaselineIntroScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Day ${day + 1}', style: AppText.bodyLarge.wght(700)),
+                        Text(l.intakeBaselineDayN(day + 1), style: AppText.bodyLarge.wght(700)),
                         const SizedBox(height: 2),
                         Text(
                           AppState.baselinePlan[day]
@@ -167,18 +162,14 @@ class BaselineIntroScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const PillTag(label: '2 activities', dense: true),
+                  PillTag(label: l.intakeBaselineTwoActivities, dense: true),
                 ],
               ),
             ),
           ),
         const SizedBox(height: Insets.sm),
-        const NotADiagnosisNote(
-          message:
-              'These activities are not a clinical test battery, and nothing '
-              'here is a diagnosis. Your first three days become your personal '
-              'reference point, and everything afterwards is compared with it '
-              'rather than with other people.',
+        NotADiagnosisNote(
+          message: l.intakeBaselineDisclaimer,
         ),
       ],
     );
@@ -238,8 +229,7 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
       if (!mounted) return;
       setState(() {
         _capturing = false;
-        _error = 'Your results are saved, but the profile could not be built '
-            'just now. Tap again to retry.';
+        _error = AppLocalizations.of(context).intakeBaselineCaptureError;
       });
       return;
     }
@@ -251,6 +241,7 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final int day = state.baselineDayIndex;
     final bool allDone = state.baselineRunComplete;
     final List<GameId> today = allDone
@@ -261,17 +252,15 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
     final int totalDone = GameId.values.length - state.baselineRemaining.length;
 
     return IntakeScaffold(
-      eyebrow: 'Day ${(allDone ? AppState.baselinePlan.length : day + 1)} '
-          'of ${AppState.baselinePlan.length}',
-      title: allDone ? 'That is all six' : "Today's session",
-      subtitle: allDone
-          ? 'Building your cognitive profile from what you have done.'
-          : 'Two activities, about six minutes. Take them at your own pace.',
+      eyebrow: l.intakeBaselineDayOfTotal(
+          allDone ? AppState.baselinePlan.length : day + 1, AppState.baselinePlan.length),
+      title: allDone ? l.intakeBaselineAllSixDone : l.intakeBaselineTodaysSession,
+      subtitle: allDone ? l.intakeBaselineBuildingProfile : l.intakeBaselineTodaySubtitle,
       continueLabel: allDone
-          ? 'See my profile'
+          ? l.intakeBaselineSeeProfile
           : remaining.isEmpty
-              ? 'Done for today'
-              : 'Start ${MockData.game(remaining.first).name}',
+              ? l.intakeBaselineDoneForToday
+              : l.intakeBaselineStartGame(MockData.game(remaining.first).name),
       onContinue: _capturing
           ? null
           : allDone && !state.baselineReady
@@ -282,16 +271,16 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
       children: <Widget>[
         CompanionSpeech(
           message: allDone
-              ? 'You did all six. Let me put your profile together.'
+              ? l.intakeBaselineCompanionAllDone
               : done == 0
-                  ? 'Let us do these two together. There is no pass or fail here.'
-                  : 'One done, one to go. You are doing well.',
+                  ? l.intakeBaselineCompanionStart
+                  : l.intakeBaselineCompanionOneToGo,
           state: done == 0 ? CompanionState.encouraging : CompanionState.celebrating,
         ),
         const SizedBox(height: Insets.lg),
         MeterBar(value: totalDone / GameId.values.length, height: 10),
         const SizedBox(height: 6),
-        Text('$totalDone of ${GameId.values.length} activities across the three days',
+        Text(l.intakeBaselineTotalProgress(totalDone, GameId.values.length),
             style: AppText.caption),
         if (_error != null) ...<Widget>[
           const SizedBox(height: Insets.md),
@@ -327,9 +316,7 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    "Today's session is complete. Come back tomorrow for day "
-                    '${day + 1} — the rest between sessions is part of the '
-                    'measurement.',
+                    l.intakeBaselineSessionComplete(day + 1),
                     style: AppText.bodySmall,
                   ),
                 ),
@@ -351,6 +338,7 @@ class _ActivityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       onTap: onTap,
       padding: const EdgeInsets.all(Insets.md),
@@ -361,10 +349,10 @@ class _ActivityRow extends StatelessWidget {
           color: done ? AppColors.success : game.accent,
           background: done ? AppColors.successTint : game.tint,
         ),
-        title: game.name,
-        subtitle: '${game.domain.clinicalLabel} · ${game.estimatedMinutes} min',
+        title: game.localizedName(l),
+        subtitle: l.intakeBaselineActivityMinutes(game.domain.clinicalLabel, game.estimatedMinutes),
         trailing: done
-            ? const PillTag(label: 'Done', color: AppColors.success, dense: true)
+            ? PillTag(label: l.intakeBaselineDone, color: AppColors.success, dense: true)
             : const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
       ),
     );

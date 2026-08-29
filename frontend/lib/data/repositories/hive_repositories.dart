@@ -386,6 +386,7 @@ class HiveSettingsRepository implements SettingsRepository {
       lastRole: b.get('lastRole') as String?,
       lastAccountId: b.get('lastAccountId') as String?,
       safeZoneJson: b.get('safeZone') as String?,
+      localeCode: b.get('localeCode') as String?,
     );
   }
 
@@ -400,6 +401,7 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.lastRole != null) 'lastRole': settings.lastRole,
       if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
       if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
+      if (settings.localeCode != null) 'localeCode': settings.localeCode,
     });
     // A null account means "signed out", which has to *remove* the key —
     // skipping the write would leave the previous uid in the box and reopen

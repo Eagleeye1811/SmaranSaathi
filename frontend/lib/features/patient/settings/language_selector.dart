@@ -3,16 +3,22 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/locale_controller.dart';
 
 /// The language picker.
 ///
-/// Three large targets, each showing its language in its own script — someone
-/// who cannot read English cannot read the word "Assamese" either. Selecting
-/// one rebuilds the app immediately: the patient stays where they are and the
+/// Large targets, each showing its language in its own script — someone who
+/// cannot read English cannot read the word "Assamese" either. Selecting one
+/// rebuilds the app immediately: the patient stays where they are and the
 /// screen changes language around them.
+///
+/// Laid out two-per-row rather than one row of four: at four options, a
+/// single row would shrink every tap target and risk wrapping a script-heavy
+/// label like "অসমীয়া" — a two-row grid keeps each chip exactly the size the
+/// three-language version had, and scales if a fifth language is ever added.
 class LanguageSelector extends StatelessWidget {
   const LanguageSelector({super.key});
 
@@ -20,6 +26,7 @@ class LanguageSelector extends StatelessWidget {
     _LanguageOption(Locale('en'), 'English'),
     _LanguageOption(Locale('hi'), 'हिन्दी'),
     _LanguageOption(Locale('as'), 'অসমীয়া'),
+    _LanguageOption(Locale('mr'), 'मराठी'),
   ];
 
   @override
@@ -31,6 +38,15 @@ class LanguageSelector extends StatelessWidget {
     final LocaleController? controller = LocaleScope.maybeOf(context);
     if (controller == null) return const SizedBox.shrink();
     final String current = controller.locale.languageCode;
+    final AppState state = AppScope.read(context);
+
+    void select(Locale locale) {
+      controller.setLocale(locale);
+      // Persisted separately from the live controller (see AppState.localeCode)
+      // so the choice survives a restart — LocaleController itself is
+      // deliberately not Hive-backed.
+      state.localeCode = locale.languageCode;
+    }
 
     return MmCard(
       child: Column(
@@ -53,20 +69,23 @@ class LanguageSelector extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Insets.md),
-          Row(
-            children: <Widget>[
-              for (int i = 0; i < _languages.length; i++) ...<Widget>[
-                Expanded(
-                  child: _LanguageChip(
-                    label: _languages[i].native,
-                    selected: _languages[i].locale.languageCode == current,
-                    onTap: () => controller.setLocale(_languages[i].locale),
+          for (int row = 0; row * 2 < _languages.length; row++) ...<Widget>[
+            if (row > 0) const SizedBox(height: Insets.sm),
+            Row(
+              children: <Widget>[
+                for (int i = row * 2; i < (row * 2) + 2 && i < _languages.length; i++) ...<Widget>[
+                  Expanded(
+                    child: _LanguageChip(
+                      label: _languages[i].native,
+                      selected: _languages[i].locale.languageCode == current,
+                      onTap: () => select(_languages[i].locale),
+                    ),
                   ),
-                ),
-                if (i < _languages.length - 1) const SizedBox(width: Insets.sm),
+                  if (i == row * 2) const SizedBox(width: Insets.sm),
+                ],
               ],
-            ],
-          ),
+            ),
+          ],
         ],
       ),
     );

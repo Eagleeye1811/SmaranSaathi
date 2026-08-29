@@ -11,6 +11,8 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../patient/patient_shell.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
@@ -23,6 +25,7 @@ class CaregiverProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     return MotifBackground(
       opacity: 0.04,
@@ -34,7 +37,7 @@ class CaregiverProfileScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const CaregiverTopBar(title: 'Profile'),
+            CaregiverTopBar(title: l.caregiverNavProfile),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -58,11 +61,11 @@ class CaregiverProfileScreen extends StatelessWidget {
                               children: <Widget>[
                                 Text(MockData.caregiverName, style: AppText.h2.sized(22)),
                                 const SizedBox(height: 3),
-                                Text('Daughter · primary caregiver',
+                                Text(l.caregiverRelationLabel,
                                     style: AppText.bodySmall),
                                 const SizedBox(height: 8),
-                                const PillTag(
-                                  label: 'Caring for Aama Devi',
+                                PillTag(
+                                  label: l.caregiverCaringForLabel(state.patient.name),
                                   color: AppColors.primary,
                                   dense: true,
                                 ),
@@ -78,9 +81,9 @@ class CaregiverProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 50,
                     child: SectionHeader(
-                      title: 'Patient experience',
+                      title: l.caregiverPatientExperienceTitle,
                       icon: Icons.accessibility_new_rounded,
-                      subtitle: 'Set these on her behalf',
+                      subtitle: l.caregiverPatientExperienceSubtitle,
                     ),
                   ),
                   FadeInUp(
@@ -89,7 +92,7 @@ class CaregiverProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('TEXT SIZE IN PATIENT MODE', style: AppText.overline),
+                          Text(l.caregiverTextSizeLabel, style: AppText.overline),
                           const SizedBox(height: 10),
                           Row(
                             children: <Widget>[
@@ -125,7 +128,7 @@ class CaregiverProfileScreen extends StatelessWidget {
                                                         ? Colors.white
                                                         : AppColors.inkSoft)),
                                             const SizedBox(height: 3),
-                                            Text(t.label,
+                                            Text(t.localizedLabel(l),
                                                 textAlign: TextAlign.center,
                                                 style: AppText.caption.sized(11).tint(
                                                       state.textSize == t
@@ -143,19 +146,19 @@ class CaregiverProfileScreen extends StatelessWidget {
                           const SizedBox(height: Insets.md),
                           _Toggle(
                             icon: Icons.contrast_rounded,
-                            label: 'High contrast',
+                            label: l.settingsHighContrast,
                             value: state.highContrast,
                             onChanged: (bool v) => state.highContrast = v,
                           ),
                           _Toggle(
                             icon: Icons.animation_rounded,
-                            label: 'Reduce motion',
+                            label: l.settingsReduceMotion,
                             value: state.reduceMotion,
                             onChanged: (bool v) => state.reduceMotion = v,
                           ),
                           _Toggle(
                             icon: Icons.record_voice_over_rounded,
-                            label: 'Voice prompts in ${state.patient.language}',
+                            label: l.caregiverVoicePromptsToggle(state.patient.language),
                             value: state.voicePrompts,
                             onChanged: (bool v) => state.voicePrompts = v,
                           ),
@@ -168,9 +171,9 @@ class CaregiverProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 100,
                     child: SectionHeader(
-                      title: 'Offline-first',
+                      title: l.caregiverOfflineFirstTitle,
                       icon: Icons.cloud_off_rounded,
-                      subtitle: 'Built for patchy connectivity across the region',
+                      subtitle: l.caregiverOfflineFirstSubtitle,
                     ),
                   ),
                   FadeInUp(
@@ -183,7 +186,7 @@ class CaregiverProfileScreen extends StatelessWidget {
                             icon: state.offline
                                 ? Icons.cloud_off_rounded
                                 : Icons.cloud_done_rounded,
-                            label: 'Simulate offline mode',
+                            label: l.caregiverSimulateOfflineLabel,
                             value: state.offline,
                             onChanged: (bool v) {
                               state.setOffline(v);
@@ -213,11 +216,10 @@ class CaregiverProfileScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     state.offline
-                                        ? 'All games and content are on the device. '
-                                            '${state.pendingSync} activities are waiting to sync.'
+                                        ? l.caregiverOfflineAllOnDevice(state.pendingSync)
                                         : state.pendingSync > 0
-                                            ? '${state.pendingSync} activities ready to sync.'
-                                            : 'All activities synced.',
+                                            ? l.caregiverActivitiesReadyToSync(state.pendingSync)
+                                            : l.caregiverAllActivitiesSynced,
                                     style: AppText.bodySmall.tint(AppColors.ink),
                                   ),
                                 ),
@@ -227,7 +229,7 @@ class CaregiverProfileScreen extends StatelessWidget {
                           if (!state.offline && state.pendingSync > 0) ...<Widget>[
                             const SizedBox(height: 12),
                             SoftButton(
-                              label: state.syncing ? 'Syncing…' : 'Sync now',
+                              label: state.syncing ? l.caregiverSyncing : l.caregiverSyncNow,
                               icon: Icons.cloud_upload_rounded,
                               filled: true,
                               color: AppColors.secondary,
@@ -251,8 +253,8 @@ class CaregiverProfileScreen extends StatelessWidget {
                               color: AppColors.plum,
                               size: 46,
                             ),
-                            title: 'Set up a patient profile',
-                            subtitle: 'Run the six-step onboarding again',
+                            title: l.caregiverSetupPatientProfileTitle,
+                            subtitle: l.caregiverSetupPatientProfileSubtitle,
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
                             onTap: () => Nav.open(context, const PatientOnboardingFlow()),
@@ -264,8 +266,8 @@ class CaregiverProfileScreen extends StatelessWidget {
                               color: AppColors.terracotta,
                               size: 46,
                             ),
-                            title: 'Open her experience',
-                            subtitle: 'See exactly what Aama sees',
+                            title: l.caregiverOpenHerExperienceTitle,
+                            subtitle: l.caregiverOpenHerExperienceSubtitle(state.patient.shortName),
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
                             onTap: () {
@@ -274,14 +276,15 @@ class CaregiverProfileScreen extends StatelessWidget {
                             },
                           ),
                           const Divider(color: AppColors.hairline),
-                          const ListRow(
-                            leading: SoftIcon(
+                          ListRow(
+                            leading: const SoftIcon(
                               icon: Icons.medical_information_rounded,
                               color: AppColors.secondary,
                               size: 46,
                             ),
+                            // Demo doctor's name — a proper name, not translated content.
                             title: 'Dr. Neha Sharma',
-                            subtitle: 'Memory clinic · next visit Thursday, 11:00 AM',
+                            subtitle: l.caregiverDoctorAppointmentSubtitle,
                           ),
                         ],
                       ),
@@ -294,7 +297,7 @@ class CaregiverProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 180,
                     child: BigButton(
-                      label: 'Switch to another role',
+                      label: l.caregiverSwitchRoleButton,
                       icon: Icons.swap_horiz_rounded,
                       color: AppColors.inkSoft,
                       outlined: true,

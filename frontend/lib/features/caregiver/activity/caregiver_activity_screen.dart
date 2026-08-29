@@ -5,13 +5,14 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
-import '../../../core/services/adaptive_difficulty_service.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// Caregiver analytics — the week at a glance, then activity by activity.
@@ -21,10 +22,11 @@ class CaregiverActivityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     final List<SeriesPoint> perGame = <SeriesPoint>[
       for (final GameDefinition g in MockData.games)
-        SeriesPoint(_shortName(g.name), _averageFor(state, g.id)),
+        SeriesPoint(_shortName(l, g.name), _averageFor(state, g.id)),
     ];
 
     return MotifBackground(
@@ -37,7 +39,10 @@ class CaregiverActivityScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const CaregiverTopBar(title: 'Activity', subtitle: 'Aama Devi · last 7 days'),
+            CaregiverTopBar(
+              title: l.caregiverActivityTitle,
+              subtitle: l.caregiverSubtitleLast7Days(state.patient.shortName),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -53,7 +58,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                             children: <Widget>[
                               Expanded(
                                 child: StatTile(
-                                  label: 'Cognitive engagement',
+                                  label: l.caregiverStatEngagement,
                                   value: '${state.todayEngagement}',
                                   suffix: '%',
                                   meter: state.todayEngagement / 100,
@@ -63,7 +68,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                               const SizedBox(width: 18),
                               Expanded(
                                 child: StatTile(
-                                  label: 'Average accuracy',
+                                  label: l.caregiverStatAccuracy,
                                   value: state.averageAccuracy().round().toString(),
                                   suffix: '%',
                                   meter: state.averageAccuracy() / 100,
@@ -78,7 +83,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                             children: <Widget>[
                               Expanded(
                                 child: StatTile(
-                                  label: 'Activities completed',
+                                  label: l.caregiverStatActivitiesCompleted,
                                   value: '${state.gamesCompletedTotal()}',
                                   color: AppColors.seriesBlue,
                                   compact: true,
@@ -87,7 +92,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                               const SizedBox(width: 18),
                               Expanded(
                                 child: StatTile(
-                                  label: 'Reminder adherence',
+                                  label: l.caregiverStatReminderAdherence,
                                   value: '${state.adherencePercent}',
                                   suffix: '%',
                                   meter: state.adherencePercent / 100,
@@ -107,8 +112,8 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 50,
                     child: _ChartCard(
-                      title: 'Daily cognitive engagement',
-                      caption: 'Share of the day\'s planned activity she took part in.',
+                      title: l.caregiverChartEngagementTitle,
+                      caption: l.caregiverChartEngagementCaption,
                       child: TrendLineChart(
                         points: state.engagementWeek,
                         color: AppColors.seriesTeal,
@@ -124,8 +129,8 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 80,
                     child: _ChartCard(
-                      title: 'Activities completed each day',
-                      caption: 'Out of four planned activities per day.',
+                      title: l.caregiverChartActivitiesTitle,
+                      caption: l.caregiverChartActivitiesCaption,
                       child: Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: WeekStrip(
@@ -144,8 +149,8 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 110,
                     child: _ChartCard(
-                      title: 'Average score by activity',
-                      caption: 'Where she is strongest, and where she needs support.',
+                      title: l.caregiverChartScoreTitle,
+                      caption: l.caregiverChartScoreCaption,
                       child: BarSeriesChart(
                         points: perGame,
                         color: AppColors.seriesTeal,
@@ -160,8 +165,8 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 140,
                     child: _ChartCard(
-                      title: 'Memory activity',
-                      caption: 'Questions she remembered and answered each day.',
+                      title: l.caregiverChartMemoryTitle,
+                      caption: l.caregiverChartMemoryCaption,
                       child: BarSeriesChart(
                         points: state.memoryActivityWeek,
                         color: AppColors.seriesPlum,
@@ -175,8 +180,8 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 170,
                     child: _ChartCard(
-                      title: 'Reminder adherence',
-                      caption: 'Medicine, hydration and routine reminders marked done.',
+                      title: l.caregiverStatReminderAdherence,
+                      caption: l.caregiverChartAdherenceCaption,
                       child: TrendLineChart(
                         points: state.adherenceWeek,
                         color: AppColors.seriesClay,
@@ -192,9 +197,9 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 200,
                     child: SectionHeader(
-                      title: 'Adaptive difficulty',
+                      title: l.caregiverAdaptiveDifficultyTitle,
                       icon: Icons.tune_rounded,
-                      subtitle: 'Set automatically from her recent performance',
+                      subtitle: l.caregiverAdaptiveDifficultySubtitle,
                     ),
                   ),
                   FadeInUp(
@@ -218,13 +223,14 @@ class CaregiverActivityScreen extends StatelessWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: <Widget>[
-                                        Text(MockData.games[i].name,
+                                        Text(MockData.games[i].localizedName(l),
                                             style: AppText.body.wght(700),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis),
                                         const SizedBox(height: 3),
                                         Text(
-                                          AdaptiveDifficultyService.levelDescription(
+                                          localizedLevelDescription(
+                                            l,
                                             MockData.games[i].id,
                                             state.levelOf(MockData.games[i].id),
                                           ),
@@ -239,7 +245,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: <Widget>[
-                                      Text('Level ${state.levelOf(MockData.games[i].id)}',
+                                      Text(l.gamesLevel(state.levelOf(MockData.games[i].id)),
                                           style: AppText.caption.wght(800)),
                                       const SizedBox(height: 5),
                                       DifficultyDots(
@@ -262,7 +268,7 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 240,
                     child: SectionHeader(
-                      title: 'Recent sessions',
+                      title: l.caregiverRecentSessionsTitle,
                       icon: Icons.history_rounded,
                     ),
                   ),
@@ -289,13 +295,13 @@ class CaregiverActivityScreen extends StatelessWidget {
     );
   }
 
-  static String _shortName(String name) => switch (name) {
-        'Procedure Reconstruction' => 'Procedure',
-        'Finish the Story' => 'Story',
-        'Familiar Place Explorer' => 'Place',
-        'Melody of the Valleys' => 'Melody',
-        'Weaves of the Hills' => 'Weaves',
-        'NER Memory Cards' => 'Cards',
+  static String _shortName(AppLocalizations l, String name) => switch (name) {
+        'Procedure Reconstruction' => l.caregiverChartLabelProcedure,
+        'Finish the Story' => l.caregiverChartLabelStory,
+        'Familiar Place Explorer' => l.caregiverChartLabelPlace,
+        'Melody of the Valleys' => l.caregiverChartLabelMelody,
+        'Weaves of the Hills' => l.caregiverChartLabelWeaves,
+        'NER Memory Cards' => l.caregiverChartLabelCards,
         _ => name,
       };
 
@@ -337,12 +343,13 @@ class _HistoryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final GameDefinition g = MockData.game(session.gameId);
     final String when = session.dayOffset == 0
-        ? 'Today'
+        ? l.todayTitle
         : session.dayOffset == 1
-            ? 'Yesterday'
-            : '${session.dayOffset} days ago';
+            ? l.caregiverYesterday
+            : l.caregiverDaysAgo(session.dayOffset);
     return Padding(
       padding: EdgeInsets.only(bottom: last ? 0 : 14),
       child: Row(
@@ -363,8 +370,14 @@ class _HistoryRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text(
-                  '$when · ${session.timeLabel} · Level ${session.level} · '
-                  '${session.performance.hintsUsed} hint${session.performance.hintsUsed == 1 ? '' : 's'}',
+                  l.caregiverSessionMeta(
+                    when,
+                    session.timeLabel,
+                    l.gamesLevel(session.level),
+                    session.performance.hintsUsed == 1
+                        ? l.caregiverHintsUsedOne(session.performance.hintsUsed)
+                        : l.caregiverHintsUsedMany(session.performance.hintsUsed),
+                  ),
                   style: AppText.caption,
                 ),
               ],

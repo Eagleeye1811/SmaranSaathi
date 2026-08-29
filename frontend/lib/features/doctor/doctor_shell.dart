@@ -5,6 +5,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/voice/voice_nav_intent.dart';
 import '../../core/widgets/app_nav_bar.dart';
 import '../../core/widgets/voice_nav_host.dart';
+import '../../l10n/app_localizations.dart';
 import 'alerts/doctor_alerts_screen.dart';
 import 'analytics/doctor_analytics_screen.dart';
 import 'overview/doctor_overview_screen.dart';
@@ -22,15 +23,6 @@ class DoctorShell extends StatefulWidget {
 
 class _DoctorShellState extends State<DoctorShell> {
   int _index = 0;
-
-  static const List<NavDestination> _destinations = <NavDestination>[
-    NavDestination('Overview', Icons.dashboard_outlined, Icons.dashboard_rounded),
-    NavDestination('Patients', Icons.groups_outlined, Icons.groups_rounded),
-    NavDestination('Analytics', Icons.query_stats_outlined, Icons.query_stats_rounded),
-    NavDestination('Alerts', Icons.notification_important_outlined,
-        Icons.notification_important_rounded),
-    NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
-  ];
 
   void _go(int i) => setState(() => _index = i);
 
@@ -66,6 +58,16 @@ class _DoctorShellState extends State<DoctorShell> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<NavDestination> destinations = <NavDestination>[
+      NavDestination(l.doctorTabOverview, Icons.dashboard_outlined, Icons.dashboard_rounded),
+      NavDestination(l.doctorTabPatients, Icons.groups_outlined, Icons.groups_rounded),
+      NavDestination(
+          l.doctorTabAnalytics, Icons.query_stats_outlined, Icons.query_stats_rounded),
+      NavDestination(l.doctorTabAlerts, Icons.notification_important_outlined,
+          Icons.notification_important_rounded),
+      NavDestination(l.doctorTabProfile, Icons.person_outline_rounded, Icons.person_rounded),
+    ];
     return Theme(
       data: AppTheme.clinic(),
       child: Scaffold(
@@ -86,7 +88,7 @@ class _DoctorShellState extends State<DoctorShell> {
           ),
         ),
         bottomNavigationBar: AppNavBar(
-          destinations: _destinations,
+          destinations: destinations,
           index: _index,
           onChanged: _go,
           accent: AppColors.clinicAccent,

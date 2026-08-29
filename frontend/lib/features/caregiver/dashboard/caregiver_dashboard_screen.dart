@@ -14,6 +14,7 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../core/models/safety.dart';
+import '../../../l10n/app_localizations.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
@@ -24,16 +25,17 @@ class CaregiverDashboardScreen extends StatelessWidget {
 
   final ValueChanged<int>? onOpenTab;
 
-  String get _greeting {
+  String _greeting(AppLocalizations l) {
     final int h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return l.greetingMorning;
+    if (h < 17) return l.greetingAfternoon;
+    return l.greetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<GameSession> today =
         state.sessions.where((GameSession s) => s.dayOffset == 0).toList();
 
@@ -47,7 +49,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const CaregiverTopBar(subtitle: 'Caregiver'),
+            CaregiverTopBar(subtitle: l.caregiverRoleLabel),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -65,10 +67,10 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('$_greeting, ${MockData.caregiverName}',
+                              Text('${_greeting(l)}, ${MockData.caregiverName}',
                                   style: AppText.h1.sized(26)),
                               const SizedBox(height: 4),
-                              Text(_dateLabel(), style: AppText.bodySmall),
+                              Text(_dateLabel(l), style: AppText.bodySmall),
                             ],
                           ),
                         ),
@@ -106,7 +108,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 90,
                     child: SectionHeader(
-                        title: 'Today\'s overview', icon: Icons.insights_rounded),
+                        title: l.caregiverTodaysOverviewTitle, icon: Icons.insights_rounded),
                   ),
                   FadeInUp(
                     delayMs: 110,
@@ -114,14 +116,14 @@ class CaregiverDashboardScreen extends StatelessWidget {
                       child: Column(
                         children: <Widget>[
                           OverviewRow(
-                            label: 'Cognitive engagement',
+                            label: l.caregiverStatEngagement,
                             value: '${state.todayEngagement}%',
                             meter: state.todayEngagement / 100,
                             icon: Icons.psychology_alt_rounded,
                           ),
                           const Divider(color: AppColors.hairline),
                           OverviewRow(
-                            label: 'Activities completed',
+                            label: l.caregiverStatActivitiesCompleted,
                             value: '${state.completedToday.length}/4',
                             meter: state.completedToday.length / 4,
                             color: AppColors.secondary,
@@ -129,7 +131,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           ),
                           const Divider(color: AppColors.hairline),
                           OverviewRow(
-                            label: 'Medication reminders',
+                            label: l.caregiverMedicationRemindersLabel,
                             value: '${state.medicineDone}/${state.medicineTotal}',
                             meter: state.medicineTotal == 0
                                 ? 0
@@ -139,15 +141,15 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           ),
                           const Divider(color: AppColors.hairline),
                           OverviewRow(
-                            label: 'Mood',
-                            value: state.mood?.label ?? 'Not recorded',
+                            label: l.caregiverMoodLabel,
+                            value: state.mood?.label ?? l.caregiverNotRecorded,
                             color: state.mood == MoodLevel.low
                                 ? AppColors.secondary
                                 : AppColors.success,
                             icon: Icons.sentiment_satisfied_alt_rounded,
                             badge: state.mood == null
-                                ? const PillTag(
-                                    label: 'Not recorded',
+                                ? PillTag(
+                                    label: l.caregiverNotRecorded,
                                     color: AppColors.inkMuted,
                                     dense: true)
                                 : PillTag(
@@ -160,7 +162,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           ),
                           const Divider(color: AppColors.hairline),
                           OverviewRow(
-                            label: 'Last active',
+                            label: l.caregiverLastActiveLabel,
                             value: state.lastActiveLabel,
                             color: AppColors.inkSoft,
                             icon: Icons.schedule_rounded,
@@ -175,9 +177,9 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 140,
                     child: SectionHeader(
-                      title: 'Cognitive progress',
+                      title: l.caregiverCognitiveProgressTitle,
                       icon: Icons.show_chart_rounded,
-                      action: 'Details',
+                      action: l.caregiverDetailsAction,
                       onAction: () => onOpenTab?.call(2),
                     ),
                   ),
@@ -192,7 +194,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                             children: <Widget>[
                               Expanded(
                                 child: StatTile(
-                                  label: 'Engagement this week',
+                                  label: l.caregiverEngagementThisWeek,
                                   value: '${state.todayEngagement}',
                                   suffix: '%',
                                   color: AppColors.seriesTeal,
@@ -200,7 +202,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                               ),
                               Expanded(
                                 child: StatTile(
-                                  label: 'Average accuracy',
+                                  label: l.caregiverStatAccuracy,
                                   value: state.averageAccuracy().round().toString(),
                                   suffix: '%',
                                   color: AppColors.seriesOchre,
@@ -209,7 +211,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: Insets.md),
-                          Text('DAILY COGNITIVE ENGAGEMENT · LAST 7 DAYS',
+                          Text(l.caregiverDailyEngagementWeekLabel,
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
@@ -229,7 +231,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 190,
                     child: SectionHeader(
-                        title: 'Today\'s activities', icon: Icons.today_rounded),
+                        title: l.caregiverTodaysActivitiesTitle, icon: Icons.today_rounded),
                   ),
                   FadeInUp(
                     delayMs: 200,
@@ -243,11 +245,11 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                   size: 54,
                                 ),
                                 const SizedBox(height: 12),
-                                Text('Nothing completed yet today',
+                                Text(l.caregiverNothingCompletedTitle,
                                     style: AppText.body.wght(700)),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Sessions appear here as soon as she finishes one.',
+                                  l.caregiverNothingCompletedBody,
                                   textAlign: TextAlign.center,
                                   style: AppText.bodySmall,
                                 ),
@@ -270,9 +272,9 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 220,
                     child: SectionHeader(
-                      title: 'Reminders',
+                      title: l.caregiverRemindersTitle,
                       icon: Icons.notifications_active_rounded,
-                      action: 'Manage',
+                      action: l.caregiverManageAction,
                       onAction: () => onOpenTab?.call(3),
                     ),
                   ),
@@ -296,10 +298,11 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    Text('Adherence today', style: AppText.body.wght(800)),
+                                    Text(l.caregiverAdherenceTodayLabel, style: AppText.body.wght(800)),
                                     const SizedBox(height: 3),
                                     Text(
-                                      '${state.remindersDone} of ${state.remindersTotal} reminders marked done.',
+                                      l.caregiverRemindersMarkedDone(
+                                          state.remindersDone, state.remindersTotal),
                                       style: AppText.bodySmall,
                                     ),
                                   ],
@@ -322,7 +325,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                 title: r.title,
                                 subtitle: '${r.time} · ${r.kind.label}',
                                 trailing: SoftButton(
-                                  label: 'Done',
+                                  label: l.caregiverDoneButton,
                                   color: AppColors.success,
                                   onPressed: () => state.toggleReminder(r.id),
                                 ),
@@ -338,7 +341,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 250,
                     child: SectionHeader(
-                        title: 'Notes for you', icon: Icons.campaign_rounded),
+                        title: l.caregiverNotesForYouTitle, icon: Icons.campaign_rounded),
                   ),
                   FadeInUp(
                     delayMs: 260,
@@ -347,29 +350,23 @@ class CaregiverDashboardScreen extends StatelessWidget {
                         _AlertCard(
                           color: AppColors.success,
                           icon: Icons.trending_up_rounded,
-                          title: 'Procedural activities are improving',
-                          body:
-                              'Accuracy rose from 74% to ${state.averageAccuracy().round()}% across recent sessions. '
-                              'MemoryMitra increased the difficulty twice this week.',
+                          title: l.caregiverAlertProceduralTitle,
+                          body: l.caregiverAlertProceduralBody(state.averageAccuracy().round()),
                         ),
                         const SizedBox(height: 10),
                         _AlertCard(
                           color: AppColors.accent,
                           icon: Icons.wb_twilight_rounded,
-                          title: 'Evening sessions work best',
-                          body:
-                              'Aama engages most between 5 and 7 PM. Consider keeping the '
-                              'cognitive activity in that window.',
+                          title: l.caregiverAlertEveningTitle,
+                          body: l.caregiverAlertEveningBody(state.patient.shortName),
                         ),
                         if (state.mood == MoodLevel.low) ...<Widget>[
                           const SizedBox(height: 10),
-                          const _AlertCard(
+                          _AlertCard(
                             color: AppColors.secondary,
                             icon: Icons.favorite_rounded,
-                            title: 'She said she is not feeling good today',
-                            body:
-                                'Mitra has switched to gentler, more familiar activities. '
-                                'A phone call may help.',
+                            title: l.caregiverAlertMoodTitle,
+                            body: l.caregiverAlertMoodBody,
                           ),
                         ],
                       ],
@@ -381,9 +378,9 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 280,
                     child: SectionHeader(
-                      title: 'How Mitra personalises for her',
+                      title: l.caregiverPersonalisationTitle,
                       icon: Icons.auto_awesome_rounded,
-                      subtitle: 'Straight from the memory profile you built',
+                      subtitle: l.caregiverPersonalisationSubtitle,
                     ),
                   ),
                   FadeInUp(
@@ -434,11 +431,11 @@ class CaregiverDashboardScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text('Set up a patient profile',
+                                Text(l.caregiverSetupPatientProfileTitle,
                                     style: AppText.body.wght(800)),
                                 const SizedBox(height: 3),
                                 Text(
-                                  'Six steps: who she is, her family, her memories, her photographs and her routine.',
+                                  l.caregiverSetupPatientProfileDetail,
                                   style: AppText.bodySmall,
                                 ),
                               ],
@@ -458,13 +455,15 @@ class CaregiverDashboardScreen extends StatelessWidget {
     );
   }
 
-  String _dateLabel() {
-    const List<String> months = <String>[
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  String _dateLabel(AppLocalizations l) {
+    final List<String> months = <String>[
+      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
+      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
+      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
     ];
-    const List<String> days = <String>[
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    final List<String> days = <String>[
+      l.caregiverWeekdayMon, l.caregiverWeekdayTue, l.caregiverWeekdayWed, l.caregiverWeekdayThu,
+      l.caregiverWeekdayFri, l.caregiverWeekdaySat, l.caregiverWeekdaySun,
     ];
     final DateTime n = DateTime.now();
     return '${days[n.weekday - 1]}, ${n.day} ${months[n.month - 1]} ${n.year}';
@@ -478,6 +477,7 @@ class _PatientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: EdgeInsets.zero,
       clip: true,
@@ -489,7 +489,7 @@ class _PatientCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(Insets.lg, Insets.md, Insets.lg, 6),
             width: double.infinity,
             color: AppColors.primaryTint.withValues(alpha: 0.5),
-            child: Text('YOUR PATIENT', style: AppText.overline),
+            child: Text(l.caregiverYourPatientLabel, style: AppText.overline),
           ),
           Padding(
             padding: const EdgeInsets.all(Insets.lg),
@@ -518,7 +518,7 @@ class _PatientCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
-                      Text('${state.patient.age} years · ${state.patient.location}',
+                      Text(l.caregiverAgeLocation(state.patient.age, state.patient.location),
                           style: AppText.bodySmall,
                           maxLines: 2),
                       const SizedBox(height: 8),
@@ -543,7 +543,7 @@ class _PatientCard extends StatelessWidget {
                     children: <Widget>[
                       Text('${state.todayEngagement}',
                           style: AppText.body.wght(800).tint(AppColors.primary)),
-                      Text('engaged', style: AppText.caption.sized(9)),
+                      Text(l.caregiverEngagedLabel, style: AppText.caption.sized(9)),
                     ],
                   ),
                 ),
@@ -561,10 +561,11 @@ class _PatientCard extends StatelessWidget {
                 const Icon(Icons.schedule_rounded, size: 16, color: AppColors.inkMuted),
                 const SizedBox(width: 7),
                 Expanded(
-                  child: Text('Last active ${state.lastActiveLabel.toLowerCase()}',
+                  child: Text(l.caregiverLastActiveInline(state.lastActiveLabel.toLowerCase()),
                       style: AppText.caption),
                 ),
-                Text('Open profile', style: AppText.caption.wght(800).tint(AppColors.primary)),
+                Text(l.caregiverOpenProfileLabel,
+                    style: AppText.caption.wght(800).tint(AppColors.primary)),
                 const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.primary),
               ],
             ),
@@ -582,6 +583,7 @@ class _SessionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final GameDefinition g = MockData.game(session.gameId);
     final int score = session.performance.overall;
     return Padding(
@@ -599,7 +601,9 @@ class _SessionRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 3),
-                Text('${session.timeLabel} · Level ${session.level} · ${session.performance.durationLabel}',
+                Text(
+                    l.caregiverSessionLine(session.timeLabel, l.gamesLevel(session.level),
+                        session.performance.durationLabel),
                     style: AppText.caption),
               ],
             ),

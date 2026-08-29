@@ -10,6 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -22,6 +23,7 @@ class DoctorOverviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
     final List<DoctorAlert> alerts = state.alerts;
 
@@ -33,8 +35,8 @@ class DoctorOverviewScreen extends StatelessWidget {
       bottom: false,
       child: Column(
         children: <Widget>[
-          const ClinicTopBar(
-            title: 'Clinical overview',
+          ClinicTopBar(
+            title: l.doctorOverviewTitle,
             subtitle: MockData.clinicName,
           ),
           Expanded(
@@ -48,9 +50,9 @@ class DoctorOverviewScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Good morning, ${MockData.doctorName}', style: CT.h2),
+                            Text(l.doctorOverviewGreeting(MockData.doctorName), style: CT.h2),
                             const SizedBox(height: 3),
-                            Text(_dateLabel(), style: CT.caption),
+                            Text(_dateLabel(l), style: CT.caption),
                           ],
                         ),
                       ),
@@ -81,17 +83,17 @@ class DoctorOverviewScreen extends StatelessWidget {
                           children: <Widget>[
                             Expanded(
                               child: ClinicStat(
-                                label: 'Patients',
+                                label: l.doctorTabPatients,
                                 value: '${MockData.caseloadTotal}',
-                                caption: 'Active on MemoryMitra',
+                                caption: l.doctorOverviewActiveCaption,
                                 icon: Icons.groups_rounded,
                               ),
                             ),
                             Expanded(
                               child: ClinicStat(
-                                label: 'Sessions this week',
+                                label: l.doctorOverviewSessionsWeekLabel,
                                 value: '186',
-                                caption: '↑ 12% on last week',
+                                caption: l.doctorOverviewSessionsWeekCaption,
                                 color: AppColors.seriesTeal,
                                 icon: Icons.play_circle_outline_rounded,
                               ),
@@ -101,7 +103,7 @@ class DoctorOverviewScreen extends StatelessWidget {
                         const SizedBox(height: Insets.lg),
                         const Divider(color: AppColors.clinicHairline),
                         const SizedBox(height: Insets.md),
-                        Text('CASELOAD STATUS', style: CT.overline),
+                        Text(l.doctorOverviewCaseloadStatusLabel, style: CT.overline),
                         const SizedBox(height: 12),
                         _StatusBar(
                           stable: MockData.caseloadStable,
@@ -109,11 +111,21 @@ class DoctorOverviewScreen extends StatelessWidget {
                           followUp: MockData.caseloadFollowUp,
                         ),
                         const SizedBox(height: 14),
-                        const ChartLegend(
+                        ChartLegend(
                           entries: <({String label, Color color})>[
-                            (label: 'Stable · 18', color: AppColors.success),
-                            (label: 'Needs attention · 4', color: AppColors.danger),
-                            (label: 'Follow-up · 2', color: AppColors.warning),
+                            (
+                              label: l.doctorOverviewLegendStable(MockData.caseloadStable),
+                              color: AppColors.success
+                            ),
+                            (
+                              label:
+                                  l.doctorOverviewLegendNeedsAttention(MockData.caseloadAttention),
+                              color: AppColors.danger
+                            ),
+                            (
+                              label: l.doctorOverviewLegendFollowUp(MockData.caseloadFollowUp),
+                              color: AppColors.warning
+                            ),
                           ],
                         ),
                       ],
@@ -130,10 +142,9 @@ class DoctorOverviewScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Mean cognitive performance trend', style: CT.h3),
+                        Text(l.doctorOverviewTrendTitle, style: CT.h3),
                         const SizedBox(height: 3),
-                        Text('Across all active patients, last 7 days.',
-                            style: CT.caption),
+                        Text(l.doctorOverviewTrendCaption, style: CT.caption),
                         const SizedBox(height: Insets.md),
                         TrendLineChart(
                           points: MockData.series(const <double>[68, 69, 67, 70, 71, 70, 72]),
@@ -153,10 +164,10 @@ class DoctorOverviewScreen extends StatelessWidget {
                   delayMs: 100,
                   child: Row(
                     children: <Widget>[
-                      Expanded(child: Text('Needs review', style: CT.h3)),
+                      Expanded(child: Text(l.doctorOverviewNeedsReviewTitle, style: CT.h3)),
                       TextButton(
                         onPressed: () => onOpenTab?.call(1),
-                        child: const Text('All patients'),
+                        child: Text(l.doctorOverviewAllPatients),
                       ),
                     ],
                   ),
@@ -183,10 +194,10 @@ class DoctorOverviewScreen extends StatelessWidget {
                   delayMs: 180,
                   child: Row(
                     children: <Widget>[
-                      Expanded(child: Text('Recent alerts', style: CT.h3)),
+                      Expanded(child: Text(l.doctorOverviewRecentAlertsTitle, style: CT.h3)),
                       TextButton(
                         onPressed: () => onOpenTab?.call(3),
-                        child: const Text('All alerts'),
+                        child: Text(l.doctorOverviewAllAlerts),
                       ),
                     ],
                   ),
@@ -208,10 +219,20 @@ class DoctorOverviewScreen extends StatelessWidget {
     );
   }
 
-  String _dateLabel() {
-    const List<String> months = <String>[
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+  String _dateLabel(AppLocalizations l) {
+    final List<String> months = <String>[
+      l.doctorOverviewMonthJanuary,
+      l.doctorOverviewMonthFebruary,
+      l.doctorOverviewMonthMarch,
+      l.doctorOverviewMonthApril,
+      l.doctorOverviewMonthMay,
+      l.doctorOverviewMonthJune,
+      l.doctorOverviewMonthJuly,
+      l.doctorOverviewMonthAugust,
+      l.doctorOverviewMonthSeptember,
+      l.doctorOverviewMonthOctober,
+      l.doctorOverviewMonthNovember,
+      l.doctorOverviewMonthDecember,
     ];
     final DateTime n = DateTime.now();
     return '${n.day} ${months[n.month - 1]} ${n.year}';

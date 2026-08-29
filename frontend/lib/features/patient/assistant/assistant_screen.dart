@@ -13,6 +13,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/voice/voice_bootstrap.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../l10n/locale_controller.dart';
 import '../../intake/intake_kit.dart';
 import '../health/report_screen.dart';
@@ -157,10 +158,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
           memoryCaptured: captured,
         ));
       case AiError<AssistantReply>():
-        _append(_Message.assistant(const HealthAnswer(
-          text: 'I could not work that one out just now. The buttons above always '
-              'work, even with no connection — they read straight from your own '
-              'record.',
+        _append(_Message.assistant(HealthAnswer(
+          text: AppLocalizations.of(context).assistantErrorFallback,
           grounded: true,
         )));
     }
@@ -169,6 +168,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -178,9 +178,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
               padding: const EdgeInsets.fromLTRB(
                   Insets.gutter, Insets.md, Insets.gutter, Insets.sm),
               child: ScreenHeader(
-                eyebrow: 'Cognitive companion',
-                title: 'Ask about your health',
-                subtitle: 'Answers come from your own record.',
+                eyebrow: l.assistantEyebrow,
+                title: l.assistantScreenTitle,
+                subtitle: l.assistantScreenSubtitle,
                 leading: widget.embedded
                     ? null
                     : RoundIconButton(
@@ -300,6 +300,7 @@ class _MemoryHomeEntry extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final Map<MemoryCategory, int> byCategory = state.memoriesByCategory;
     final int furnished = byCategory.values.where((int n) => n > 0).length;
     final int total = MemoryCategory.values.length;
@@ -321,12 +322,12 @@ class _MemoryHomeEntry extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('Your Memory Home',
+                  Text(l.memoryHomeEntryTitle,
                       style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
                   Text(
                     furnished == 0
-                        ? 'Share a story with Mitra to start filling it in'
-                        : '$furnished of $total rooms furnished',
+                        ? l.memoryHomeEntryEmpty
+                        : l.memoryHomeEntryProgress(furnished, total),
                     style: AppText.caption,
                   ),
                 ],
@@ -347,20 +348,17 @@ class _Intro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.lg, Insets.gutter, Insets.md),
       children: <Widget>[
         CompanionSpeech(
-          message: 'Hello $name. Ask me about your results, or tap one of the '
-              'buttons above.',
+          message: l.assistantIntroGreeting(name),
           state: CompanionState.happy,
         ),
         const SizedBox(height: Insets.lg),
-        const NotADiagnosisNote(
-          message:
-              'I can explain what your own results show and help you prepare for '
-              'an appointment. I cannot diagnose any condition — only a clinician '
-              'can do that.',
+        NotADiagnosisNote(
+          message: l.assistantIntroDisclaimer,
         ),
       ],
     );
@@ -380,6 +378,7 @@ class _Bubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     if (message.fromUser) {
       return Align(
         alignment: Alignment.centerRight,
@@ -412,7 +411,7 @@ class _Bubble extends StatelessWidget {
                 children: <Widget>[
                   const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
                   const SizedBox(width: 6),
-                  Text('Saved to your Memory Home',
+                  Text(l.assistantMemorySavedChip,
                       style: AppText.caption.copyWith(
                         color: AppColors.accent,
                         fontWeight: FontWeight.w700,
@@ -442,8 +441,7 @@ class _Bubble extends StatelessWidget {
             ],
             if (!answer.grounded) ...<Widget>[
               const SizedBox(height: Insets.sm),
-              Text('General information — not based on your own record.',
-                  style: AppText.caption),
+              Text(l.assistantGeneralInfoNote, style: AppText.caption),
             ],
             if (answer.followUps.isNotEmpty) ...<Widget>[
               const SizedBox(height: Insets.md),
@@ -475,7 +473,7 @@ class _Bubble extends StatelessWidget {
                         color: AppColors.accentTint,
                         borderRadius: Corners.r(Corners.pill),
                       ),
-                      child: Text('Open my summary',
+                      child: Text(l.assistantOpenSummary,
                           style: AppText.bodySmall.copyWith(
                             color: AppColors.ink,
                             fontWeight: FontWeight.w700,
@@ -497,13 +495,13 @@ class _Thinking extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(bottom: Insets.md),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.md),
       child: Row(
         children: <Widget>[
-          Companion(state: CompanionState.thinking, size: 46),
-          SizedBox(width: Insets.sm),
-          Text('Thinking…'),
+          const Companion(state: CompanionState.thinking, size: 46),
+          const SizedBox(width: Insets.sm),
+          Text(AppLocalizations.of(context).voiceThinkingButton),
         ],
       ),
     );
@@ -539,7 +537,7 @@ class _Composer extends StatelessWidget {
               textInputAction: TextInputAction.send,
               onSubmitted: onSubmit,
               decoration: InputDecoration(
-                hintText: 'Ask a question…',
+                hintText: AppLocalizations.of(context).assistantAskQuestionHint,
                 filled: true,
                 fillColor: AppColors.surfaceMuted,
                 contentPadding:

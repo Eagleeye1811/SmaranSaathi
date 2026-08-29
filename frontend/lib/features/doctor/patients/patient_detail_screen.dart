@@ -11,6 +11,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../patient/health/report_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -24,6 +25,7 @@ class PatientDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final ClinicPatient patient = state.caseload.firstWhere(
       (ClinicPatient c) => c.id == patientId,
       orElse: () => state.caseload.first,
@@ -52,7 +54,7 @@ class PatientDetailScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(context).maybePop(),
                     ),
                     const SizedBox(width: 12),
-                    Expanded(child: Text('Patient record', style: CT.h3.wght(800))),
+                    Expanded(child: Text(l.doctorDetailTitle, style: CT.h3.wght(800))),
                     StatusChip(status: patient.status),
                   ],
                 ),
@@ -81,12 +83,11 @@ class PatientDetailScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
-                                    Text('Cognitive health summary',
+                                    Text(l.doctorDetailReportCardTitle,
                                         style: CT.h2.sized(17)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Symptoms, caregiver observations, function and '
-                                      'trends, as submitted by the patient',
+                                      l.doctorDetailReportCardSubtitle,
                                       style: CT.caption,
                                     ),
                                   ],
@@ -94,7 +95,7 @@ class PatientDetailScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 12),
                               SoftButton(
-                                label: 'Open',
+                                label: l.doctorDetailOpenReport,
                                 icon: Icons.open_in_new_rounded,
                                 color: AppColors.clinicAccent,
                                 onPressed: () => Nav.push(context, const ReportScreen()),
@@ -129,11 +130,12 @@ class PatientDetailScreen extends StatelessWidget {
                                       Text(patient.name, style: CT.h2.sized(22)),
                                       const SizedBox(height: 3),
                                       Text(
-                                        '${patient.age} years · ${patient.district}',
+                                        l.doctorDetailAgeDistrict(
+                                            patient.age, patient.district),
                                         style: CT.caption,
                                       ),
                                       const SizedBox(height: 3),
-                                      Text('Language: ${patient.language}',
+                                      Text(l.doctorDetailLanguageLine(patient.language),
                                           style: CT.caption),
                                     ],
                                   ),
@@ -144,7 +146,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     Text('${patient.score}',
                                         style: CT.statLarge
                                             .tint(trendColor(patient.trend))),
-                                    Text('overall', style: CT.caption.sized(10.5)),
+                                    Text(l.doctorDetailOverallLabel, style: CT.caption.sized(10.5)),
                                   ],
                                 ),
                               ],
@@ -156,21 +158,21 @@ class PatientDetailScreen extends StatelessWidget {
                               children: <Widget>[
                                 Expanded(
                                   child: ClinicStat(
-                                    label: 'Engagement',
+                                    label: l.doctorDetailEngagementLabel,
                                     value: '${patient.engagement}%',
                                     color: AppColors.seriesTeal,
                                   ),
                                 ),
                                 Expanded(
                                   child: ClinicStat(
-                                    label: 'Adherence',
+                                    label: l.doctorDetailAdherenceLabel,
                                     value: '${patient.adherence}%',
                                     color: AppColors.seriesBlue,
                                   ),
                                 ),
                                 Expanded(
                                   child: ClinicStat(
-                                    label: 'Last session',
+                                    label: l.doctorDetailLastSessionLabel,
                                     value: patient.lastSession.split(',').first,
                                     color: AppColors.clinicInkSoft,
                                   ),
@@ -191,7 +193,7 @@ class PatientDetailScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Cognitive profile', style: CT.h3),
+                            Text(l.doctorDetailCognitiveProfileTitle, style: CT.h3),
                             const SizedBox(height: 3),
                             Text(patient.profile.updated, style: CT.caption),
                             const SizedBox(height: Insets.md),
@@ -247,7 +249,7 @@ class PatientDetailScreen extends StatelessWidget {
                               ),
                               child: Row(
                                 children: <Widget>[
-                                  Text('Overall', style: CT.body.wght(700)),
+                                  Text(l.doctorDetailOverallStat, style: CT.body.wght(700)),
                                   const Spacer(),
                                   Text('${patient.profile.overall}',
                                       style: CT.stat.tint(AppColors.clinicAccent)),
@@ -271,7 +273,7 @@ class PatientDetailScreen extends StatelessWidget {
                             Row(
                               children: <Widget>[
                                 Expanded(
-                                  child: Text('Cognitive performance trend', style: CT.h3),
+                                  child: Text(l.doctorDetailTrendTitle, style: CT.h3),
                                 ),
                                 Row(
                                   children: <Widget>[
@@ -287,17 +289,16 @@ class PatientDetailScreen extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 3),
-                            Text('Last 30 days. Shaded band is this patient\'s typical range.',
-                                style: CT.caption),
+                            Text(l.doctorDetailTrendCaption, style: CT.caption),
                             const SizedBox(height: Insets.md),
                             TrendLineChart(
                               points: <SeriesPoint>[
                                 for (int i = 0; i < patient.thirtyDay.length; i++)
                                   SeriesPoint(
                                     i == 0
-                                        ? '30d ago'
+                                        ? l.doctorDetailTrendAgo
                                         : i == patient.thirtyDay.length - 1
-                                            ? 'Today'
+                                            ? l.doctorDetailToday
                                             : '${patient.thirtyDay.length - i}',
                                     patient.thirtyDay[i],
                                   ),
@@ -327,15 +328,14 @@ class PatientDetailScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('Performance by activity', style: CT.h3),
+                              Text(l.doctorDetailActivityBreakdownTitle, style: CT.h3),
                               const SizedBox(height: 3),
-                              Text('Mean session score across recorded sessions.',
-                                  style: CT.caption),
+                              Text(l.doctorDetailActivityBreakdownCaption, style: CT.caption),
                               const SizedBox(height: Insets.md),
                               BarSeriesChart(
                                 points: <SeriesPoint>[
                                   for (final GameDefinition g in MockData.games)
-                                    SeriesPoint(_short(g.name), _avg(state, g.id)),
+                                    SeriesPoint(_short(l, g.name), _avg(state, g.id)),
                                 ],
                                 color: AppColors.seriesBlue,
                                 showValues: true,
@@ -353,7 +353,7 @@ class PatientDetailScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('Session log', style: CT.h3),
+                              Text(l.doctorDetailSessionLogTitle, style: CT.h3),
                               const SizedBox(height: Insets.md),
                               for (int i = 0; i < state.sessions.take(8).length; i++)
                                 Padding(
@@ -364,10 +364,11 @@ class PatientDetailScreen extends StatelessWidget {
                                         width: 66,
                                         child: Text(
                                           state.sessions[i].dayOffset == 0
-                                              ? 'Today'
+                                              ? l.doctorDetailToday
                                               : state.sessions[i].dayOffset == 1
-                                                  ? 'Yesterday'
-                                                  : '−${state.sessions[i].dayOffset}d',
+                                                  ? l.doctorDetailYesterday
+                                                  : l.doctorDetailDaysAgo(
+                                                      state.sessions[i].dayOffset),
                                           style: CT.caption.wght(700),
                                         ),
                                       ),
@@ -404,7 +405,7 @@ class PatientDetailScreen extends StatelessWidget {
                     if (alerts.isNotEmpty) ...<Widget>[
                       FadeInUp(
                         delayMs: 170,
-                        child: Text('Alerts', style: CT.h3),
+                        child: Text(l.doctorDetailAlertsTitle, style: CT.h3),
                       ),
                       const SizedBox(height: 10),
                       for (final DoctorAlert a in alerts)
@@ -445,9 +446,9 @@ class PatientDetailScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Considerations', style: CT.h3),
+                            Text(l.doctorDetailConsiderationsTitle, style: CT.h3),
                             const SizedBox(height: 10),
-                            for (final String s in _considerations(patient))
+                            for (final String s in _considerations(l, patient))
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 9),
                                 child: Row(
@@ -481,13 +482,17 @@ class PatientDetailScreen extends StatelessWidget {
     return AppColors.danger;
   }
 
-  static String _short(String name) => switch (name) {
-        'Procedure Reconstruction' => 'Procedure',
-        'Finish the Story' => 'Story',
-        'Familiar Place Explorer' => 'Place',
-        'Melody of the Valleys' => 'Melody',
-        'Weaves of the Hills' => 'Weaves',
-        'NER Memory Cards' => 'Cards',
+  // Matches against MockData.games' own (English) GameDefinition.name values —
+  // that model layer is out of this screen's scope, so the match keys stay
+  // English regardless of interface language. Only the short chart label
+  // shown to the user is translated.
+  static String _short(AppLocalizations l, String name) => switch (name) {
+        'Procedure Reconstruction' => l.doctorDetailChartProcedure,
+        'Finish the Story' => l.doctorDetailChartStory,
+        'Familiar Place Explorer' => l.doctorDetailChartPlace,
+        'Melody of the Valleys' => l.doctorDetailChartMelody,
+        'Weaves of the Hills' => l.doctorDetailChartWeaves,
+        'NER Memory Cards' => l.doctorDetailChartCards,
         _ => name,
       };
 
@@ -498,19 +503,14 @@ class PatientDetailScreen extends StatelessWidget {
         list.length;
   }
 
-  static List<String> _considerations(ClinicPatient p) {
+  static List<String> _considerations(AppLocalizations l, ClinicPatient p) {
     return <String>[
-      if (p.trend == TrendDirection.down)
-        'Cognitive activity performance has decreased over the last 7 days. Consider further clinical assessment.',
-      if (p.adherence < 80)
-        'Reminder adherence is ${p.adherence}%. Worth reviewing the medication schedule with the caregiver.',
-      if (p.engagement < 55)
-        'Engagement is low. Consider adjusting the activity mix or the time of day sessions are scheduled.',
-      if (p.trend == TrendDirection.up)
-        'Performance is improving; the adaptive engine has raised difficulty. No change suggested.',
-      if (p.status == ClinicalStatus.followUp)
-        'A scheduled review is due this cycle.',
-      'These figures describe in-app activity performance only and should be read alongside clinical assessment.',
+      if (p.trend == TrendDirection.down) l.doctorDetailConsiderationDecreased,
+      if (p.adherence < 80) l.doctorDetailConsiderationLowAdherence(p.adherence),
+      if (p.engagement < 55) l.doctorDetailConsiderationLowEngagement,
+      if (p.trend == TrendDirection.up) l.doctorDetailConsiderationImproving,
+      if (p.status == ClinicalStatus.followUp) l.doctorDetailConsiderationReviewDue,
+      l.doctorDetailConsiderationFooter,
     ];
   }
 }

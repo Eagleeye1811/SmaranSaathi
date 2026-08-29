@@ -27,6 +27,7 @@ class AppLocalizations {
     Locale('en'),
     Locale('hi'),
     Locale('as'),
+    Locale('mr'),
   ];
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
@@ -223,11 +224,1173 @@ class AppLocalizations {
   String get offlineBannerTitle => _s('offlineBannerTitle');
   String offlineBannerPending(int count) =>
       _f('offlineBannerPending', <String, Object?>{'count': count});
+  String offlineBannerBodyPending(int count) =>
+      _f('offlineBannerBodyPending', <String, Object?>{'count': count});
+  String get offlineBannerBodyAllSynced => _s('offlineBannerBodyAllSynced');
+
+
+  // ── Doctor — nav ─────────────────────────────────────────────────
+  String get doctorTabOverview => _s('doctorTabOverview');
+  String get doctorTabPatients => _s('doctorTabPatients');
+  String get doctorTabAnalytics => _s('doctorTabAnalytics');
+  String get doctorTabAlerts => _s('doctorTabAlerts');
+  String get doctorTabProfile => _s('doctorTabProfile');
+
+  // ── Doctor — profile ─────────────────────────────────────────────
+  String get doctorProfileRoleLine => _s('doctorProfileRoleLine');
+  String doctorProfilePatientCount(int count) => _f('doctorProfilePatientCount', <String, Object?>{'count': count});
+  String get doctorProfilePracticeHeading => _s('doctorProfilePracticeHeading');
+  String get doctorProfileClinicLabel => _s('doctorProfileClinicLabel');
+  String get doctorProfileRegionLabel => _s('doctorProfileRegionLabel');
+  String get doctorProfileRegionValue => _s('doctorProfileRegionValue');
+  String get doctorProfileLanguagesLabel => _s('doctorProfileLanguagesLabel');
+  String get doctorProfileLanguagesValue => _s('doctorProfileLanguagesValue');
+  String get doctorProfileClinicDaysLabel => _s('doctorProfileClinicDaysLabel');
+  String get doctorProfileClinicDaysValue => _s('doctorProfileClinicDaysValue');
+  String get doctorProfileFiguresHeading => _s('doctorProfileFiguresHeading');
+  String get doctorProfileFiguresBulletActivity => _s('doctorProfileFiguresBulletActivity');
+  String get doctorProfileFiguresBulletDomains => _s('doctorProfileFiguresBulletDomains');
+  String get doctorProfileFiguresBulletAdaptive => _s('doctorProfileFiguresBulletAdaptive');
+  String get doctorProfileFiguresBulletOffline => _s('doctorProfileFiguresBulletOffline');
+  String get doctorProfileConnected => _s('doctorProfileConnected');
+  String doctorProfileRecordsWaitingSync(int count) => _f('doctorProfileRecordsWaitingSync', <String, Object?>{'count': count});
+  String get doctorProfileRecordsUpToDate => _s('doctorProfileRecordsUpToDate');
+  String get doctorProfileSwitchRole => _s('doctorProfileSwitchRole');
+  String get doctorProfileSignedInAs => _s('doctorProfileSignedInAs');
+  String doctorProfileRoleValue(String role) => _f('doctorProfileRoleValue', <String, Object?>{'role': role});
+  String get doctorProfileLogOut => _s('doctorProfileLogOut');
+
+  // ── Doctor — patient detail ──────────────────────────────────────
+  String get doctorDetailTitle => _s('doctorDetailTitle');
+  String get doctorDetailReportCardTitle => _s('doctorDetailReportCardTitle');
+  String get doctorDetailReportCardSubtitle => _s('doctorDetailReportCardSubtitle');
+  String get doctorDetailOpenReport => _s('doctorDetailOpenReport');
+  String doctorDetailAgeDistrict(int age, String district) => _f('doctorDetailAgeDistrict', <String, Object?>{'age': age, 'district': district});
+  String doctorDetailLanguageLine(String language) => _f('doctorDetailLanguageLine', <String, Object?>{'language': language});
+  String get doctorDetailOverallLabel => _s('doctorDetailOverallLabel');
+  String get doctorDetailOverallStat => _s('doctorDetailOverallStat');
+  String get doctorDetailEngagementLabel => _s('doctorDetailEngagementLabel');
+  String get doctorDetailAdherenceLabel => _s('doctorDetailAdherenceLabel');
+  String get doctorDetailLastSessionLabel => _s('doctorDetailLastSessionLabel');
+  String get doctorDetailCognitiveProfileTitle => _s('doctorDetailCognitiveProfileTitle');
+  String get doctorDetailTrendTitle => _s('doctorDetailTrendTitle');
+  String get doctorDetailTrendCaption => _s('doctorDetailTrendCaption');
+  String get doctorDetailTrendAgo => _s('doctorDetailTrendAgo');
+  String get doctorDetailToday => _s('doctorDetailToday');
+  String get doctorDetailYesterday => _s('doctorDetailYesterday');
+  String doctorDetailDaysAgo(int days) => _f('doctorDetailDaysAgo', <String, Object?>{'days': days});
+  String get doctorDetailActivityBreakdownTitle => _s('doctorDetailActivityBreakdownTitle');
+  String get doctorDetailActivityBreakdownCaption => _s('doctorDetailActivityBreakdownCaption');
+  String get doctorDetailSessionLogTitle => _s('doctorDetailSessionLogTitle');
+  String get doctorDetailAlertsTitle => _s('doctorDetailAlertsTitle');
+  String get doctorDetailConsiderationsTitle => _s('doctorDetailConsiderationsTitle');
+  String get doctorDetailConsiderationDecreased => _s('doctorDetailConsiderationDecreased');
+  String doctorDetailConsiderationLowAdherence(int percent) => _f('doctorDetailConsiderationLowAdherence', <String, Object?>{'percent': percent});
+  String get doctorDetailConsiderationLowEngagement => _s('doctorDetailConsiderationLowEngagement');
+  String get doctorDetailConsiderationImproving => _s('doctorDetailConsiderationImproving');
+  String get doctorDetailConsiderationReviewDue => _s('doctorDetailConsiderationReviewDue');
+  String get doctorDetailConsiderationFooter => _s('doctorDetailConsiderationFooter');
+  String get doctorDetailChartProcedure => _s('doctorDetailChartProcedure');
+  String get doctorDetailChartStory => _s('doctorDetailChartStory');
+  String get doctorDetailChartPlace => _s('doctorDetailChartPlace');
+  String get doctorDetailChartMelody => _s('doctorDetailChartMelody');
+  String get doctorDetailChartWeaves => _s('doctorDetailChartWeaves');
+  String get doctorDetailChartCards => _s('doctorDetailChartCards');
+
+  // ── Doctor — patients list ───────────────────────────────────────
+  String doctorPatientsSubtitle(int shown, int total) => _f('doctorPatientsSubtitle', <String, Object?>{'shown': shown, 'total': total});
+  String get doctorPatientsSearchHint => _s('doctorPatientsSearchHint');
+  String get doctorPatientsFilterAll => _s('doctorPatientsFilterAll');
+  String get doctorPatientsEmptyTitle => _s('doctorPatientsEmptyTitle');
+  String get doctorPatientsEmptyMessage => _s('doctorPatientsEmptyMessage');
+  String get doctorPatientsColumnKeyTitle => _s('doctorPatientsColumnKeyTitle');
+  String get doctorPatientsColumnKeyBody => _s('doctorPatientsColumnKeyBody');
+  String get doctorPatientsLegendImproving => _s('doctorPatientsLegendImproving');
+  String get doctorPatientsLegendStable => _s('doctorPatientsLegendStable');
+  String get doctorPatientsLegendDeclining => _s('doctorPatientsLegendDeclining');
+
+  // ── Doctor — alerts ──────────────────────────────────────────────
+  String doctorAlertsSubtitle(int count) => _f('doctorAlertsSubtitle', <String, Object?>{'count': count});
+  String get doctorAlertsSeverityAssessment => _s('doctorAlertsSeverityAssessment');
+  String get doctorAlertsSeverityAttention => _s('doctorAlertsSeverityAttention');
+  String get doctorAlertsSeverityInformational => _s('doctorAlertsSeverityInformational');
+  String get doctorAlertsOpenRecord => _s('doctorAlertsOpenRecord');
+
+  // ── Doctor — analytics ───────────────────────────────────────────
+  String get doctorAnalyticsSubtitle => _s('doctorAnalyticsSubtitle');
+  String get doctorAnalyticsMeanScoreLabel => _s('doctorAnalyticsMeanScoreLabel');
+  String get doctorAnalyticsAcrossCaseload => _s('doctorAnalyticsAcrossCaseload');
+  String get doctorAnalyticsMeanAdherenceLabel => _s('doctorAnalyticsMeanAdherenceLabel');
+  String get doctorAnalyticsRemindersCompleted => _s('doctorAnalyticsRemindersCompleted');
+  String get doctorAnalyticsPatientsTrendingDown => _s('doctorAnalyticsPatientsTrendingDown');
+  String get doctorAnalyticsScoreDistTitle => _s('doctorAnalyticsScoreDistTitle');
+  String get doctorAnalyticsScoreDistCaption => _s('doctorAnalyticsScoreDistCaption');
+  String get doctorAnalyticsDomainTitle => _s('doctorAnalyticsDomainTitle');
+  String get doctorAnalyticsDomainCaption => _s('doctorAnalyticsDomainCaption');
+  String get doctorAnalyticsEngagementTitle => _s('doctorAnalyticsEngagementTitle');
+  String get doctorAnalyticsEngagementCaption => _s('doctorAnalyticsEngagementCaption');
+  String get doctorAnalyticsSessionsTitle => _s('doctorAnalyticsSessionsTitle');
+  String get doctorAnalyticsSessionsCaption => _s('doctorAnalyticsSessionsCaption');
+  String get doctorAnalyticsDistrictTitle => _s('doctorAnalyticsDistrictTitle');
+  String get doctorAnalyticsDistrictCaption => _s('doctorAnalyticsDistrictCaption');
+  String get doctorAnalyticsDistrictAssam => _s('doctorAnalyticsDistrictAssam');
+  String get doctorAnalyticsDistrictManipur => _s('doctorAnalyticsDistrictManipur');
+  String get doctorAnalyticsDistrictMeghalaya => _s('doctorAnalyticsDistrictMeghalaya');
+  String get doctorAnalyticsDistrictNagaland => _s('doctorAnalyticsDistrictNagaland');
+  String get doctorAnalyticsDistrictMizoram => _s('doctorAnalyticsDistrictMizoram');
+  String get doctorAnalyticsDistrictTripura => _s('doctorAnalyticsDistrictTripura');
+
+  // ── Doctor — overview ────────────────────────────────────────────
+  String get doctorOverviewTitle => _s('doctorOverviewTitle');
+  String doctorOverviewGreeting(String name) => _f('doctorOverviewGreeting', <String, Object?>{'name': name});
+  String get doctorOverviewActiveCaption => _s('doctorOverviewActiveCaption');
+  String get doctorOverviewSessionsWeekLabel => _s('doctorOverviewSessionsWeekLabel');
+  String get doctorOverviewSessionsWeekCaption => _s('doctorOverviewSessionsWeekCaption');
+  String get doctorOverviewCaseloadStatusLabel => _s('doctorOverviewCaseloadStatusLabel');
+  String doctorOverviewLegendStable(int count) => _f('doctorOverviewLegendStable', <String, Object?>{'count': count});
+  String doctorOverviewLegendNeedsAttention(int count) => _f('doctorOverviewLegendNeedsAttention', <String, Object?>{'count': count});
+  String doctorOverviewLegendFollowUp(int count) => _f('doctorOverviewLegendFollowUp', <String, Object?>{'count': count});
+  String get doctorOverviewTrendTitle => _s('doctorOverviewTrendTitle');
+  String get doctorOverviewTrendCaption => _s('doctorOverviewTrendCaption');
+  String get doctorOverviewNeedsReviewTitle => _s('doctorOverviewNeedsReviewTitle');
+  String get doctorOverviewAllPatients => _s('doctorOverviewAllPatients');
+  String get doctorOverviewRecentAlertsTitle => _s('doctorOverviewRecentAlertsTitle');
+  String get doctorOverviewAllAlerts => _s('doctorOverviewAllAlerts');
+  String get doctorOverviewMonthJanuary => _s('doctorOverviewMonthJanuary');
+  String get doctorOverviewMonthFebruary => _s('doctorOverviewMonthFebruary');
+  String get doctorOverviewMonthMarch => _s('doctorOverviewMonthMarch');
+  String get doctorOverviewMonthApril => _s('doctorOverviewMonthApril');
+  String get doctorOverviewMonthMay => _s('doctorOverviewMonthMay');
+  String get doctorOverviewMonthJune => _s('doctorOverviewMonthJune');
+  String get doctorOverviewMonthJuly => _s('doctorOverviewMonthJuly');
+  String get doctorOverviewMonthAugust => _s('doctorOverviewMonthAugust');
+  String get doctorOverviewMonthSeptember => _s('doctorOverviewMonthSeptember');
+  String get doctorOverviewMonthOctober => _s('doctorOverviewMonthOctober');
+  String get doctorOverviewMonthNovember => _s('doctorOverviewMonthNovember');
+  String get doctorOverviewMonthDecember => _s('doctorOverviewMonthDecember');
+
+
+  // ── Caregiver — nav ──────────────────────────────────────────────
+  String get caregiverNavDashboard => _s('caregiverNavDashboard');
+  String get caregiverNavPatient => _s('caregiverNavPatient');
+  String get caregiverNavActivity => _s('caregiverNavActivity');
+  String get caregiverNavReminders => _s('caregiverNavReminders');
+  String get caregiverNavProfile => _s('caregiverNavProfile');
+
+  // ── Caregiver — reminders ────────────────────────────────────────
+  String get caregiverRemindersTitle => _s('caregiverRemindersTitle');
+  String caregiverSubtitleToday(String name) => _f('caregiverSubtitleToday', <String, Object?>{'name': name});
+  String get caregiverAdherenceToday => _s('caregiverAdherenceToday');
+  String get caregiverAdherenceTitle => _s('caregiverAdherenceTitle');
+  String caregiverAdherenceSummary(int done, int total, int medDone, int medTotal) => _f('caregiverAdherenceSummary', <String, Object?>{'done': done, 'total': total, 'medDone': medDone, 'medTotal': medTotal});
+  String get caregiverAdherenceWeekLabel => _s('caregiverAdherenceWeekLabel');
+  String get caregiverReminderChannelsTitle => _s('caregiverReminderChannelsTitle');
+  String caregiverReminderChannelsBody(String language) => _f('caregiverReminderChannelsBody', <String, Object?>{'language': language});
+
+  // ── Caregiver — activity ─────────────────────────────────────────
+  String get caregiverActivityTitle => _s('caregiverActivityTitle');
+  String caregiverSubtitleLast7Days(String name) => _f('caregiverSubtitleLast7Days', <String, Object?>{'name': name});
+  String get caregiverStatEngagement => _s('caregiverStatEngagement');
+  String get caregiverStatAccuracy => _s('caregiverStatAccuracy');
+  String get caregiverStatActivitiesCompleted => _s('caregiverStatActivitiesCompleted');
+  String get caregiverStatReminderAdherence => _s('caregiverStatReminderAdherence');
+  String get caregiverChartEngagementTitle => _s('caregiverChartEngagementTitle');
+  String get caregiverChartEngagementCaption => _s('caregiverChartEngagementCaption');
+  String get caregiverChartActivitiesTitle => _s('caregiverChartActivitiesTitle');
+  String get caregiverChartActivitiesCaption => _s('caregiverChartActivitiesCaption');
+  String get caregiverChartScoreTitle => _s('caregiverChartScoreTitle');
+  String get caregiverChartScoreCaption => _s('caregiverChartScoreCaption');
+  String get caregiverChartMemoryTitle => _s('caregiverChartMemoryTitle');
+  String get caregiverChartMemoryCaption => _s('caregiverChartMemoryCaption');
+  String get caregiverChartAdherenceCaption => _s('caregiverChartAdherenceCaption');
+  String get caregiverAdaptiveDifficultyTitle => _s('caregiverAdaptiveDifficultyTitle');
+  String get caregiverAdaptiveDifficultySubtitle => _s('caregiverAdaptiveDifficultySubtitle');
+  String get caregiverRecentSessionsTitle => _s('caregiverRecentSessionsTitle');
+  String get caregiverChartLabelProcedure => _s('caregiverChartLabelProcedure');
+  String get caregiverChartLabelStory => _s('caregiverChartLabelStory');
+  String get caregiverChartLabelPlace => _s('caregiverChartLabelPlace');
+  String get caregiverChartLabelMelody => _s('caregiverChartLabelMelody');
+  String get caregiverChartLabelWeaves => _s('caregiverChartLabelWeaves');
+  String get caregiverChartLabelCards => _s('caregiverChartLabelCards');
+  String get caregiverYesterday => _s('caregiverYesterday');
+  String caregiverDaysAgo(int days) => _f('caregiverDaysAgo', <String, Object?>{'days': days});
+  String caregiverSessionMeta(String when, String time, String level, String hints) => _f('caregiverSessionMeta', <String, Object?>{'when': when, 'time': time, 'level': level, 'hints': hints});
+  String caregiverHintsUsedOne(int count) => _f('caregiverHintsUsedOne', <String, Object?>{'count': count});
+  String caregiverHintsUsedMany(int count) => _f('caregiverHintsUsedMany', <String, Object?>{'count': count});
+
+  // ── Caregiver — profile ──────────────────────────────────────────
+  String get caregiverRelationLabel => _s('caregiverRelationLabel');
+  String caregiverCaringForLabel(String name) => _f('caregiverCaringForLabel', <String, Object?>{'name': name});
+  String get caregiverPatientExperienceTitle => _s('caregiverPatientExperienceTitle');
+  String get caregiverPatientExperienceSubtitle => _s('caregiverPatientExperienceSubtitle');
+  String get caregiverTextSizeLabel => _s('caregiverTextSizeLabel');
+  String caregiverVoicePromptsToggle(String language) => _f('caregiverVoicePromptsToggle', <String, Object?>{'language': language});
+  String get caregiverOfflineFirstTitle => _s('caregiverOfflineFirstTitle');
+  String get caregiverOfflineFirstSubtitle => _s('caregiverOfflineFirstSubtitle');
+  String get caregiverSimulateOfflineLabel => _s('caregiverSimulateOfflineLabel');
+  String caregiverOfflineAllOnDevice(int count) => _f('caregiverOfflineAllOnDevice', <String, Object?>{'count': count});
+  String caregiverActivitiesReadyToSync(int count) => _f('caregiverActivitiesReadyToSync', <String, Object?>{'count': count});
+  String get caregiverAllActivitiesSynced => _s('caregiverAllActivitiesSynced');
+  String get caregiverSyncing => _s('caregiverSyncing');
+  String get caregiverSyncNow => _s('caregiverSyncNow');
+  String get caregiverSetupPatientProfileTitle => _s('caregiverSetupPatientProfileTitle');
+  String get caregiverSetupPatientProfileSubtitle => _s('caregiverSetupPatientProfileSubtitle');
+  String get caregiverSetupPatientProfileDetail => _s('caregiverSetupPatientProfileDetail');
+  String get caregiverOpenHerExperienceTitle => _s('caregiverOpenHerExperienceTitle');
+  String caregiverOpenHerExperienceSubtitle(String name) => _f('caregiverOpenHerExperienceSubtitle', <String, Object?>{'name': name});
+  String get caregiverDoctorAppointmentSubtitle => _s('caregiverDoctorAppointmentSubtitle');
+  String get caregiverSwitchRoleButton => _s('caregiverSwitchRoleButton');
+
+  // ── Caregiver — dashboard ────────────────────────────────────────
+  String get caregiverRoleLabel => _s('caregiverRoleLabel');
+  String get caregiverTodaysOverviewTitle => _s('caregiverTodaysOverviewTitle');
+  String get caregiverMedicationRemindersLabel => _s('caregiverMedicationRemindersLabel');
+  String get caregiverMoodLabel => _s('caregiverMoodLabel');
+  String get caregiverNotRecorded => _s('caregiverNotRecorded');
+  String get caregiverLastActiveLabel => _s('caregiverLastActiveLabel');
+  String get caregiverCognitiveProgressTitle => _s('caregiverCognitiveProgressTitle');
+  String get caregiverDetailsAction => _s('caregiverDetailsAction');
+  String get caregiverEngagementThisWeek => _s('caregiverEngagementThisWeek');
+  String get caregiverDailyEngagementWeekLabel => _s('caregiverDailyEngagementWeekLabel');
+  String get caregiverTodaysActivitiesTitle => _s('caregiverTodaysActivitiesTitle');
+  String get caregiverNothingCompletedTitle => _s('caregiverNothingCompletedTitle');
+  String get caregiverNothingCompletedBody => _s('caregiverNothingCompletedBody');
+  String get caregiverManageAction => _s('caregiverManageAction');
+  String get caregiverAdherenceTodayLabel => _s('caregiverAdherenceTodayLabel');
+  String caregiverRemindersMarkedDone(int done, int total) => _f('caregiverRemindersMarkedDone', <String, Object?>{'done': done, 'total': total});
+  String get caregiverDoneButton => _s('caregiverDoneButton');
+  String get caregiverNotesForYouTitle => _s('caregiverNotesForYouTitle');
+  String get caregiverAlertProceduralTitle => _s('caregiverAlertProceduralTitle');
+  String caregiverAlertProceduralBody(int pct) => _f('caregiverAlertProceduralBody', <String, Object?>{'pct': pct});
+  String get caregiverAlertEveningTitle => _s('caregiverAlertEveningTitle');
+  String caregiverAlertEveningBody(String name) => _f('caregiverAlertEveningBody', <String, Object?>{'name': name});
+  String get caregiverAlertMoodTitle => _s('caregiverAlertMoodTitle');
+  String get caregiverAlertMoodBody => _s('caregiverAlertMoodBody');
+  String get caregiverPersonalisationTitle => _s('caregiverPersonalisationTitle');
+  String get caregiverPersonalisationSubtitle => _s('caregiverPersonalisationSubtitle');
+  String get caregiverYourPatientLabel => _s('caregiverYourPatientLabel');
+  String caregiverAgeLocation(int age, String location) => _f('caregiverAgeLocation', <String, Object?>{'age': age, 'location': location});
+  String caregiverLastActiveInline(String when) => _f('caregiverLastActiveInline', <String, Object?>{'when': when});
+  String get caregiverOpenProfileLabel => _s('caregiverOpenProfileLabel');
+  String get caregiverEngagedLabel => _s('caregiverEngagedLabel');
+  String caregiverSessionLine(String time, String level, String duration) => _f('caregiverSessionLine', <String, Object?>{'time': time, 'level': level, 'duration': duration});
+  String get caregiverMonthJan => _s('caregiverMonthJan');
+  String get caregiverMonthFeb => _s('caregiverMonthFeb');
+  String get caregiverMonthMar => _s('caregiverMonthMar');
+  String get caregiverMonthApr => _s('caregiverMonthApr');
+  String get caregiverMonthMay => _s('caregiverMonthMay');
+  String get caregiverMonthJun => _s('caregiverMonthJun');
+  String get caregiverMonthJul => _s('caregiverMonthJul');
+  String get caregiverMonthAug => _s('caregiverMonthAug');
+  String get caregiverMonthSep => _s('caregiverMonthSep');
+  String get caregiverMonthOct => _s('caregiverMonthOct');
+  String get caregiverMonthNov => _s('caregiverMonthNov');
+  String get caregiverMonthDec => _s('caregiverMonthDec');
+  String get caregiverWeekdayMon => _s('caregiverWeekdayMon');
+  String get caregiverWeekdayTue => _s('caregiverWeekdayTue');
+  String get caregiverWeekdayWed => _s('caregiverWeekdayWed');
+  String get caregiverWeekdayThu => _s('caregiverWeekdayThu');
+  String get caregiverWeekdayFri => _s('caregiverWeekdayFri');
+  String get caregiverWeekdaySat => _s('caregiverWeekdaySat');
+  String get caregiverWeekdaySun => _s('caregiverWeekdaySun');
+
+  // ── Caregiver — memory profile ───────────────────────────────────
+  String get caregiverTabPeople => _s('caregiverTabPeople');
+  String get caregiverTabMemories => _s('caregiverTabMemories');
+  String get caregiverTabPhotographs => _s('caregiverTabPhotographs');
+  String get caregiverTabRoutine => _s('caregiverTabRoutine');
+  String get caregiverMemoryProfileTitle => _s('caregiverMemoryProfileTitle');
+  String get caregiverMemoryProfileSubtitle => _s('caregiverMemoryProfileSubtitle');
+  String get caregiverRerunOnboardingButton => _s('caregiverRerunOnboardingButton');
+  String get caregiverPeopleTitle => _s('caregiverPeopleTitle');
+  String get caregiverPeopleSubtitle => _s('caregiverPeopleSubtitle');
+  String get caregiverRemoveTooltip => _s('caregiverRemoveTooltip');
+  String get caregiverSuggestedToAddLabel => _s('caregiverSuggestedToAddLabel');
+  String get caregiverMemoriesTitle => _s('caregiverMemoriesTitle');
+  String get caregiverMemoriesSubtitle => _s('caregiverMemoriesSubtitle');
+  String get caregiverSaveButton => _s('caregiverSaveButton');
+  String get caregiverNoPhotographsTitle => _s('caregiverNoPhotographsTitle');
+  String get caregiverNoPhotographsBody => _s('caregiverNoPhotographsBody');
+  String get caregiverPhotographsTitle => _s('caregiverPhotographsTitle');
+  String caregiverPhotographsSubtitle(int count) => _f('caregiverPhotographsSubtitle', <String, Object?>{'count': count});
+  String get caregiverDailyRoutineTitle => _s('caregiverDailyRoutineTitle');
+  String get caregiverDailyRoutineSubtitle => _s('caregiverDailyRoutineSubtitle');
+
+  // ── Caregiver — onboarding ───────────────────────────────────────
+  String get caregiverLangBodo => _s('caregiverLangBodo');
+  String get caregiverLangMeiteilon => _s('caregiverLangMeiteilon');
+  String get caregiverLangKhasi => _s('caregiverLangKhasi');
+  String get caregiverLangMizo => _s('caregiverLangMizo');
+  String get caregiverLangNagamese => _s('caregiverLangNagamese');
+  String get caregiverLangBengali => _s('caregiverLangBengali');
+  String caregiverStepLabel(int step, int total) => _f('caregiverStepLabel', <String, Object?>{'step': step, 'total': total});
+  String get caregiverStepTitleIdentity => _s('caregiverStepTitleIdentity');
+  String get caregiverStepTitleFamily => _s('caregiverStepTitleFamily');
+  String get caregiverStepTitleRoutine => _s('caregiverStepTitleRoutine');
+  String get caregiverStepTitleReady => _s('caregiverStepTitleReady');
+  String get caregiverBackButton => _s('caregiverBackButton');
+  String get caregiverCreateCompanionButton => _s('caregiverCreateCompanionButton');
+  String get caregiverStep1Companion => _s('caregiverStep1Companion');
+  String get caregiverStep2Companion => _s('caregiverStep2Companion');
+  String get caregiverStep3Companion => _s('caregiverStep3Companion');
+  String get caregiverStep4Companion => _s('caregiverStep4Companion');
+  String get caregiverStep5Companion => _s('caregiverStep5Companion');
+  String get caregiverHerPhotographLabel => _s('caregiverHerPhotographLabel');
+  String get caregiverDemoPhotosNote => _s('caregiverDemoPhotosNote');
+  String get caregiverFieldFullName => _s('caregiverFieldFullName');
+  String get caregiverFieldShortName => _s('caregiverFieldShortName');
+  String get caregiverFieldPhone => _s('caregiverFieldPhone');
+  String get caregiverFieldLocation => _s('caregiverFieldLocation');
+  String get caregiverAgeLabel => _s('caregiverAgeLabel');
+  String caregiverAgeYears(int age) => _f('caregiverAgeYears', <String, Object?>{'age': age});
+  String get caregiverPreferredLanguageLabel => _s('caregiverPreferredLanguageLabel');
+  String get caregiverAddedLabel => _s('caregiverAddedLabel');
+  String get caregiverTapToAddLabel => _s('caregiverTapToAddLabel');
+  String get caregiverEveryoneAddedMessage => _s('caregiverEveryoneAddedMessage');
+  String get caregiverAddEveryoneButton => _s('caregiverAddEveryoneButton');
+  String get caregiverFillSuggestedButton => _s('caregiverFillSuggestedButton');
+  String caregiverAssetsSelectedCount(int selected, int total) => _f('caregiverAssetsSelectedCount', <String, Object?>{'selected': selected, 'total': total});
+  String get caregiverClearAllButton => _s('caregiverClearAllButton');
+  String get caregiverSelectAllButton => _s('caregiverSelectAllButton');
+  String get caregiverRestoreRoutineButton => _s('caregiverRestoreRoutineButton');
+  String caregiverReviewSummary(int age, String location, String language) => _f('caregiverReviewSummary', <String, Object?>{'age': age, 'location': location, 'language': language});
+  String get caregiverWhatThisChangesTitle => _s('caregiverWhatThisChangesTitle');
+  String get caregiverWhatThisChangesSubtitle => _s('caregiverWhatThisChangesSubtitle');
+  String caregiverReviewLineFamily(String name, String familyName) => _f('caregiverReviewLineFamily', <String, Object?>{'name': name, 'familyName': familyName});
+  String get caregiverReviewLineWeaving => _s('caregiverReviewLineWeaving');
+  String get caregiverReviewLineCooking => _s('caregiverReviewLineCooking');
+  String get caregiverReviewLineInstruments => _s('caregiverReviewLineInstruments');
+  String caregiverReviewLineLanguage(String language) => _f('caregiverReviewLineLanguage', <String, Object?>{'language': language});
+  String get caregiverSheFallback => _s('caregiverSheFallback');
+  String caregiverCompanionReadyTitle(String name) => _f('caregiverCompanionReadyTitle', <String, Object?>{'name': name});
+  String get caregiverCompanionReadyBody => _s('caregiverCompanionReadyBody');
+  String get caregiverBackToDashboardButton => _s('caregiverBackToDashboardButton');
+  String get caregiverProfileCreatedToday => _s('caregiverProfileCreatedToday');
+
+
+  // ── Intake — welcome ─────────────────────────────────────────────
+  String get intakeWelcomeHeadline => _s('intakeWelcomeHeadline');
+  String get intakeWelcomeSubtitle => _s('intakeWelcomeSubtitle');
+  String get intakePillarUnderstandTitle => _s('intakePillarUnderstandTitle');
+  String get intakePillarUnderstandDetail => _s('intakePillarUnderstandDetail');
+  String get intakePillarTrackTitle => _s('intakePillarTrackTitle');
+  String get intakePillarTrackDetail => _s('intakePillarTrackDetail');
+  String get intakePillarSupportTitle => _s('intakePillarSupportTitle');
+  String get intakePillarSupportDetail => _s('intakePillarSupportDetail');
+  String get intakeWelcomeDisclaimer => _s('intakeWelcomeDisclaimer');
+  String get intakeGetStarted => _s('intakeGetStarted');
+  String get intakeAlreadyHaveAccount => _s('intakeAlreadyHaveAccount');
+
+  // ── Intake — kit ─────────────────────────────────────────────────
+  String get intakeBack => _s('intakeBack');
+  String intakeStepProgress(int index, int count) => _f('intakeStepProgress', <String, Object?>{'index': index, 'count': count});
+  String get intakeDiagnosisDisclaimerStandard => _s('intakeDiagnosisDisclaimerStandard');
+
+  // ── Intake — consent/profile ─────────────────────────────────────
+  String get intakeConsentSymptomsLabel => _s('intakeConsentSymptomsLabel');
+  String get intakeConsentSymptomsDetail => _s('intakeConsentSymptomsDetail');
+  String get intakeConsentDailyActivitiesLabel => _s('intakeConsentDailyActivitiesLabel');
+  String get intakeConsentDailyActivitiesDetail => _s('intakeConsentDailyActivitiesDetail');
+  String get intakeConsentActivityPerformanceLabel => _s('intakeConsentActivityPerformanceLabel');
+  String get intakeConsentActivityPerformanceDetail => _s('intakeConsentActivityPerformanceDetail');
+  String get intakeConsentHealthHistoryLabel => _s('intakeConsentHealthHistoryLabel');
+  String get intakeConsentHealthHistoryDetail => _s('intakeConsentHealthHistoryDetail');
+  String get intakeConsentVoicePrompt => _s('intakeConsentVoicePrompt');
+  String get intakeYes => _s('intakeYes');
+  String get intakeNo => _s('intakeNo');
+  String get intakeConsentTitle => _s('intakeConsentTitle');
+  String get intakeConsentSubtitle => _s('intakeConsentSubtitle');
+  String get intakeConsentFootnote => _s('intakeConsentFootnote');
+  String get intakeConsentUsageTitle => _s('intakeConsentUsageTitle');
+  String get intakeConsentUsageBody => _s('intakeConsentUsageBody');
+  String get intakeConsentDiagnosisAck => _s('intakeConsentDiagnosisAck');
+  String get intakeConsentDiagnosisAckDetail => _s('intakeConsentDiagnosisAckDetail');
+  String get intakeProfileNamePrompt => _s('intakeProfileNamePrompt');
+  String get intakeProfileAgePrompt => _s('intakeProfileAgePrompt');
+  String get intakeProfileLanguagePrompt => _s('intakeProfileLanguagePrompt');
+  String get intakeProfileProfessionPrompt => _s('intakeProfileProfessionPrompt');
+  String get intakeProfileCompletedByPrompt => _s('intakeProfileCompletedByPrompt');
+  String get intakeProfileTitle => _s('intakeProfileTitle');
+  String get intakeProfileSubtitle => _s('intakeProfileSubtitle');
+  String get intakeProfileNameLabel => _s('intakeProfileNameLabel');
+  String get intakeProfileAgeLabel => _s('intakeProfileAgeLabel');
+  String get intakeProfileLanguageLabel => _s('intakeProfileLanguageLabel');
+  String get intakeProfileProfessionLabel => _s('intakeProfileProfessionLabel');
+  String get intakeProfileProfessionHint => _s('intakeProfileProfessionHint');
+  String get intakeProfileCompletedByLabel => _s('intakeProfileCompletedByLabel');
+
+  // ── Intake — medical/caregiver ───────────────────────────────────
+  String get intakeMedicalSleepPrompt => _s('intakeMedicalSleepPrompt');
+  String get intakeMedicalMoodPrompt => _s('intakeMedicalMoodPrompt');
+  String get intakeMedicalTitle => _s('intakeMedicalTitle');
+  String get intakeMedicalSubtitle => _s('intakeMedicalSubtitle');
+  String get intakeMedicalFootnote => _s('intakeMedicalFootnote');
+  String get intakeMedicalConditionsLabel => _s('intakeMedicalConditionsLabel');
+  String get intakeMedicalSleepSectionTitle => _s('intakeMedicalSleepSectionTitle');
+  String get intakeMedicalSleepHoursLabel => _s('intakeMedicalSleepHoursLabel');
+  String get intakeMedicalSleepQualityLabel => _s('intakeMedicalSleepQualityLabel');
+  String get intakeMedicalMoodSectionTitle => _s('intakeMedicalMoodSectionTitle');
+  String get intakeMedicalMedicationSectionTitle => _s('intakeMedicalMedicationSectionTitle');
+  String get intakeMedicalRemoveMedication => _s('intakeMedicalRemoveMedication');
+  String get intakeMedicalAddMedicationHint => _s('intakeMedicalAddMedicationHint');
+  String get intakeCaregiverDefaultName => _s('intakeCaregiverDefaultName');
+  String get intakeCaregiverInviteTitle => _s('intakeCaregiverInviteTitle');
+  String get intakeCaregiverInviteSubtitle => _s('intakeCaregiverInviteSubtitle');
+  String get intakeCaregiverAddObservations => _s('intakeCaregiverAddObservations');
+  String get intakeCaregiverSkip => _s('intakeCaregiverSkip');
+  String get intakeCaregiverWhyHelpsTitle => _s('intakeCaregiverWhyHelpsTitle');
+  String get intakeCaregiverWhyHelpsBody => _s('intakeCaregiverWhyHelpsBody');
+  String get intakeCaregiverObservationsTitle => _s('intakeCaregiverObservationsTitle');
+  String get intakeCaregiverObservationsSubtitle => _s('intakeCaregiverObservationsSubtitle');
+  String get intakeCaregiverObservationsFootnote => _s('intakeCaregiverObservationsFootnote');
+  String get intakeCaregiverNameLabel => _s('intakeCaregiverNameLabel');
+  String get intakeCaregiverRelationLabel => _s('intakeCaregiverRelationLabel');
+  String get intakeCaregiverNoteLabel => _s('intakeCaregiverNoteLabel');
+
+  // ── Intake — reason/safety ───────────────────────────────────────
+  String get intakeReasonTitle => _s('intakeReasonTitle');
+  String get intakeReasonSubtitle => _s('intakeReasonSubtitle');
+  String get intakeReasonFootnote => _s('intakeReasonFootnote');
+  String get intakeReasonOnsetLabel => _s('intakeReasonOnsetLabel');
+  String get intakeReasonProgressionLabel => _s('intakeReasonProgressionLabel');
+  String get intakeSafetyQuestionSuddenOnset => _s('intakeSafetyQuestionSuddenOnset');
+  String get intakeSafetyQuestionAlertness => _s('intakeSafetyQuestionAlertness');
+  String get intakeSafetyQuestionAlertnessDetailed => _s('intakeSafetyQuestionAlertnessDetailed');
+  String get intakeSafetyQuestionNeuroRedFlag => _s('intakeSafetyQuestionNeuroRedFlag');
+  String get intakeSafetyTitle => _s('intakeSafetyTitle');
+  String get intakeSafetySubtitle => _s('intakeSafetySubtitle');
+  String get intakeSafetyFootnote => _s('intakeSafetyFootnote');
+  String get intakeSafetyUrgentTitle => _s('intakeSafetyUrgentTitle');
+  String get intakeSafetyUrgentBody => _s('intakeSafetyUrgentBody');
+  String get intakeSafetyConsultDoctor => _s('intakeSafetyConsultDoctor');
+  String get intakeSafetyDialogTitle => _s('intakeSafetyDialogTitle');
+  String get intakeSafetyDialogBody1 => _s('intakeSafetyDialogBody1');
+  String get intakeSafetyDialogBody2 => _s('intakeSafetyDialogBody2');
+  String get intakeSafetyDialogDisclaimer => _s('intakeSafetyDialogDisclaimer');
+
+  // ── Intake — symptoms/function ───────────────────────────────────
+  String get intakeSymptomFrequencyQuestion => _s('intakeSymptomFrequencyQuestion');
+  String get intakeSymptomsFinish => _s('intakeSymptomsFinish');
+  String get intakeSymptomsNextGroup => _s('intakeSymptomsNextGroup');
+  String get intakeSymptomsFootnote => _s('intakeSymptomsFootnote');
+  String get intakeSymptomsDetailIntro => _s('intakeSymptomsDetailIntro');
+  String intakeSymptomsNothingToReport(int count) => _f('intakeSymptomsNothingToReport', <String, Object?>{'count': count});
+  String get intakeSymptomsAnswerIndividually => _s('intakeSymptomsAnswerIndividually');
+  String get intakeSymptomsDisclaimer => _s('intakeSymptomsDisclaimer');
+  String get intakeFunctionHelpPrompt => _s('intakeFunctionHelpPrompt');
+  String get intakeFunctionByMyself => _s('intakeFunctionByMyself');
+  String get intakeFunctionLittleHelp => _s('intakeFunctionLittleHelp');
+  String get intakeFunctionLotHelp => _s('intakeFunctionLotHelp');
+  String get intakeFunctionTitle => _s('intakeFunctionTitle');
+  String get intakeFunctionSubtitle => _s('intakeFunctionSubtitle');
+  String get intakeFunctionAllTickedFootnote => _s('intakeFunctionAllTickedFootnote');
+  String get intakeFunctionTapToChange => _s('intakeFunctionTapToChange');
+  String get intakeFunctionLegendTicked => _s('intakeFunctionLegendTicked');
+  String get intakeFunctionLegendUnticked => _s('intakeFunctionLegendUnticked');
+  String get intakeFunctionStartTickedNote => _s('intakeFunctionStartTickedNote');
+  String get intakeFunctionDoingByYourselfLabel => _s('intakeFunctionDoingByYourselfLabel');
+  String get intakeFunctionDisclaimer => _s('intakeFunctionDisclaimer');
+  String get intakeFunctionWithHelp => _s('intakeFunctionWithHelp');
+  String intakeFunctionHowMuchHelp(String activity) => _f('intakeFunctionHowMuchHelp', <String, Object?>{'activity': activity});
+  String get intakeFunctionALittle => _s('intakeFunctionALittle');
+  String get intakeFunctionALot => _s('intakeFunctionALot');
+
+  // ── Intake — baseline ────────────────────────────────────────────
+  String get intakeBaselineFriendFallback => _s('intakeBaselineFriendFallback');
+  String get intakeBaselineChartDailyLiving => _s('intakeBaselineChartDailyLiving');
+  String get intakeBaselineChartSteadyDays => _s('intakeBaselineChartSteadyDays');
+  String get intakeBaselineChartSupport => _s('intakeBaselineChartSupport');
+  String get intakeBaselineChartHealthBasics => _s('intakeBaselineChartHealthBasics');
+  String get intakeBaselineEyebrow => _s('intakeBaselineEyebrow');
+  String get intakeBaselineTitle => _s('intakeBaselineTitle');
+  String intakeBaselineSubtitle(String name) => _f('intakeBaselineSubtitle', <String, Object?>{'name': name});
+  String get intakeBaselineStartJourney => _s('intakeBaselineStartJourney');
+  String get intakeBaselineFootnote => _s('intakeBaselineFootnote');
+  String intakeBaselineCompanionThanks(String name) => _f('intakeBaselineCompanionThanks', <String, Object?>{'name': name});
+  String get intakeBaselineStrengthsTitle => _s('intakeBaselineStrengthsTitle');
+  String get intakeBaselineStrengthsSubtitle => _s('intakeBaselineStrengthsSubtitle');
+  String get intakeBaselineBenefitsTitle => _s('intakeBaselineBenefitsTitle');
+  String get intakeBaselineBenefit1 => _s('intakeBaselineBenefit1');
+  String get intakeBaselineBenefit2 => _s('intakeBaselineBenefit2');
+  String get intakeBaselineBenefit3 => _s('intakeBaselineBenefit3');
+  String get intakeBaselinePlanTitle => _s('intakeBaselinePlanTitle');
+  String get intakeBaselinePlanSubtitle => _s('intakeBaselinePlanSubtitle');
+  String intakeBaselineDayN(int day) => _f('intakeBaselineDayN', <String, Object?>{'day': day});
+  String get intakeBaselineTwoActivities => _s('intakeBaselineTwoActivities');
+  String get intakeBaselineDisclaimer => _s('intakeBaselineDisclaimer');
+  String get intakeBaselineCaptureError => _s('intakeBaselineCaptureError');
+  String intakeBaselineDayOfTotal(int day, int total) => _f('intakeBaselineDayOfTotal', <String, Object?>{'day': day, 'total': total});
+  String get intakeBaselineAllSixDone => _s('intakeBaselineAllSixDone');
+  String get intakeBaselineTodaysSession => _s('intakeBaselineTodaysSession');
+  String get intakeBaselineBuildingProfile => _s('intakeBaselineBuildingProfile');
+  String get intakeBaselineTodaySubtitle => _s('intakeBaselineTodaySubtitle');
+  String get intakeBaselineSeeProfile => _s('intakeBaselineSeeProfile');
+  String get intakeBaselineDoneForToday => _s('intakeBaselineDoneForToday');
+  String intakeBaselineStartGame(String game) => _f('intakeBaselineStartGame', <String, Object?>{'game': game});
+  String get intakeBaselineCompanionAllDone => _s('intakeBaselineCompanionAllDone');
+  String get intakeBaselineCompanionStart => _s('intakeBaselineCompanionStart');
+  String get intakeBaselineCompanionOneToGo => _s('intakeBaselineCompanionOneToGo');
+  String intakeBaselineTotalProgress(int done, int total) => _f('intakeBaselineTotalProgress', <String, Object?>{'done': done, 'total': total});
+  String intakeBaselineSessionComplete(int day) => _f('intakeBaselineSessionComplete', <String, Object?>{'day': day});
+  String intakeBaselineActivityMinutes(String domain, int minutes) => _f('intakeBaselineActivityMinutes', <String, Object?>{'domain': domain, 'minutes': minutes});
+  String get intakeBaselineDone => _s('intakeBaselineDone');
+
+  // ── Intake — voice panel ─────────────────────────────────────────
+  String get intakeVoiceAnswerBySpeaking => _s('intakeVoiceAnswerBySpeaking');
+  String get intakeVoiceCouldNotHear => _s('intakeVoiceCouldNotHear');
+  String get intakeVoiceInstructions => _s('intakeVoiceInstructions');
+  String get intakeVoiceTapToRetry => _s('intakeVoiceTapToRetry');
+  String get intakeVoiceDoneSpeaking => _s('intakeVoiceDoneSpeaking');
+  String get intakeVoiceTurnOff => _s('intakeVoiceTurnOff');
+  String get intakeVoicePhaseListening => _s('intakeVoicePhaseListening');
+  String get intakeVoicePhaseAsking => _s('intakeVoicePhaseAsking');
+  String get intakeVoicePhaseWaitingMic => _s('intakeVoicePhaseWaitingMic');
+  String get intakeVoicePhaseStopped => _s('intakeVoicePhaseStopped');
+  String get intakeVoicePhaseReady => _s('intakeVoicePhaseReady');
+
+
+  // ── Patient — common ─────────────────────────────────────────────
+  String get actionBack => _s('actionBack');
+  String get actionEdit => _s('actionEdit');
+  String statusPillDay(int day, int total) => _f('statusPillDay', <String, Object?>{'day': day, 'total': total});
+  String statusPillCountToday(int count) => _f('statusPillCountToday', <String, Object?>{'count': count});
+
+  // ── Patient — memory home ────────────────────────────────────────
+  String get memoryHomeEyebrow => _s('memoryHomeEyebrow');
+  String get memoryHomeTitle => _s('memoryHomeTitle');
+  String get memoryHomeSubtitleEmpty => _s('memoryHomeSubtitleEmpty');
+  String memoryHomeSubtitleProgress(int furnished, int total) => _f('memoryHomeSubtitleProgress', <String, Object?>{'furnished': furnished, 'total': total});
+  String get memoryHomeTapToLookInside => _s('memoryHomeTapToLookInside');
+  String get memoryHomeNotFurnishedYet => _s('memoryHomeNotFurnishedYet');
+  String memoryHomeSharedOn(String date) => _f('memoryHomeSharedOn', <String, Object?>{'date': date});
+  String memoryHomeRevisitedCount(int count) => _f('memoryHomeRevisitedCount', <String, Object?>{'count': count});
+  String get memoryHomeEntryTitle => _s('memoryHomeEntryTitle');
+  String get memoryHomeEntryEmpty => _s('memoryHomeEntryEmpty');
+  String memoryHomeEntryProgress(int furnished, int total) => _f('memoryHomeEntryProgress', <String, Object?>{'furnished': furnished, 'total': total});
+
+  // ── Patient — assistant screen ───────────────────────────────────
+  String get assistantErrorFallback => _s('assistantErrorFallback');
+  String get assistantEyebrow => _s('assistantEyebrow');
+  String get assistantScreenTitle => _s('assistantScreenTitle');
+  String get assistantScreenSubtitle => _s('assistantScreenSubtitle');
+  String assistantIntroGreeting(String name) => _f('assistantIntroGreeting', <String, Object?>{'name': name});
+  String get assistantIntroDisclaimer => _s('assistantIntroDisclaimer');
+  String get assistantMemorySavedChip => _s('assistantMemorySavedChip');
+  String get assistantGeneralInfoNote => _s('assistantGeneralInfoNote');
+  String get assistantOpenSummary => _s('assistantOpenSummary');
+  String get assistantAskQuestionHint => _s('assistantAskQuestionHint');
+
+  // ── Patient — memory wallet ──────────────────────────────────────
+  String get walletTabFamily => _s('walletTabFamily');
+  String get walletTabPlaces => _s('walletTabPlaces');
+  String get walletTabStories => _s('walletTabStories');
+  String get walletTabFavourites => _s('walletTabFavourites');
+  String get walletTabAll => _s('walletTabAll');
+  String get walletTitle => _s('walletTitle');
+  String get walletSubtitle => _s('walletSubtitle');
+  String get walletFavouriteActivity => _s('walletFavouriteActivity');
+  String get walletFavouriteFood => _s('walletFavouriteFood');
+  String get walletFavouriteTradition => _s('walletFavouriteTradition');
+  String get walletHerWork => _s('walletHerWork');
+  String get walletTellMeAboutThis => _s('walletTellMeAboutThis');
+  String get walletNoFamilyTitle => _s('walletNoFamilyTitle');
+  String get walletNoFamilyMessage => _s('walletNoFamilyMessage');
+  String get walletNoStoriesTitle => _s('walletNoStoriesTitle');
+  String get walletNoStoriesMessage => _s('walletNoStoriesMessage');
+  String get walletNothingHereTitle => _s('walletNothingHereTitle');
+  String get walletNothingHereMessage => _s('walletNothingHereMessage');
+  String get walletNoFavouritesTitle => _s('walletNoFavouritesTitle');
+  String get walletNoFavouritesMessage => _s('walletNoFavouritesMessage');
+
+  // ── Patient — care plan ──────────────────────────────────────────
+  String get carePlanEyebrow => _s('carePlanEyebrow');
+  String get carePlanTitle => _s('carePlanTitle');
+  String get carePlanSubtitle => _s('carePlanSubtitle');
+  String get carePlanWeeklyAssessmentTitle => _s('carePlanWeeklyAssessmentTitle');
+  String carePlanWeeklyAssessmentDetail(int completed, int expected) => _f('carePlanWeeklyAssessmentDetail', <String, Object?>{'completed': completed, 'expected': expected});
+  String get carePlanDailyActivityTitle => _s('carePlanDailyActivityTitle');
+  String get carePlanDailyActivityDetail => _s('carePlanDailyActivityDetail');
+  String get carePlanMedicationTitle => _s('carePlanMedicationTitle');
+  String carePlanMedicationDetail(int done, int total) => _f('carePlanMedicationDetail', <String, Object?>{'done': done, 'total': total});
+  String get carePlanCaregiverCheckInTitle => _s('carePlanCaregiverCheckInTitle');
+  String carePlanCaregiverCheckInDetail(String name) => _f('carePlanCaregiverCheckInDetail', <String, Object?>{'name': name});
+  String get carePlanDiscussWithDoctor => _s('carePlanDiscussWithDoctor');
+  String get carePlanKeepSummaryReady => _s('carePlanKeepSummaryReady');
+  String get carePlanDiscussDetail => _s('carePlanDiscussDetail');
+  String get carePlanKeepReadyDetail => _s('carePlanKeepReadyDetail');
+  String get carePlanNextReview => _s('carePlanNextReview');
+  String get carePlanDisclaimer => _s('carePlanDisclaimer');
+
+
+  // ── Patient — health widgets ─────────────────────────────────────
+  String get healthNotYetAssessed => _s('healthNotYetAssessed');
+  String get healthCognitiveHealthLabel => _s('healthCognitiveHealthLabel');
+  String get healthFirstResult => _s('healthFirstResult');
+  String healthVsBaseline(int score) => _f('healthVsBaseline', <String, Object?>{'score': score});
+  String get healthViewCognitiveProfile => _s('healthViewCognitiveProfile');
+
+  // ── Patient — report ─────────────────────────────────────────────
+  String get reportEyebrow => _s('reportEyebrow');
+  String get reportTitle => _s('reportTitle');
+  String get reportObservedPatternsTitle => _s('reportObservedPatternsTitle');
+  String get reportObservedPatternsSubtitle => _s('reportObservedPatternsSubtitle');
+  String get reportSuggestsDiscussion => _s('reportSuggestsDiscussion');
+  String reportAgeYears(int age) => _f('reportAgeYears', <String, Object?>{'age': age});
+  String reportCompletedBy(String who) => _f('reportCompletedBy', <String, Object?>{'who': who});
+  String get reportCopySummaryButton => _s('reportCopySummaryButton');
+  String get reportCopiedSnackbar => _s('reportCopiedSnackbar');
+  String get reportPlainTextNote => _s('reportPlainTextNote');
+
+  // ── Patient — cognitive profile ──────────────────────────────────
+  String get cognitiveDomainMemory => _s('cognitiveDomainMemory');
+  String get cognitiveDomainAttention => _s('cognitiveDomainAttention');
+  String get cognitiveDomainLanguage => _s('cognitiveDomainLanguage');
+  String get cognitiveDomainSpatial => _s('cognitiveDomainSpatial');
+  String get cognitiveDomainAuditory => _s('cognitiveDomainAuditory');
+  String get cognitiveDomainExecutive => _s('cognitiveDomainExecutive');
+  String get cognitiveByDomainTitle => _s('cognitiveByDomainTitle');
+  String get cognitiveBaselineCompleteEyebrow => _s('cognitiveBaselineCompleteEyebrow');
+  String get cognitiveProfileEyebrow => _s('cognitiveProfileEyebrow');
+  String get cognitiveStartingPointTitle => _s('cognitiveStartingPointTitle');
+  String get cognitiveStartingPointSubtitle => _s('cognitiveStartingPointSubtitle');
+  String get cognitiveProfileTitle => _s('cognitiveProfileTitle');
+  String get cognitiveProfileSubtitle => _s('cognitiveProfileSubtitle');
+  String get cognitiveWellDone => _s('cognitiveWellDone');
+  String get cognitiveAcrossSixDomains => _s('cognitiveAcrossSixDomains');
+  String get cognitiveChartNow => _s('cognitiveChartNow');
+  String get cognitiveChartBaseline => _s('cognitiveChartBaseline');
+  String get cognitiveFirstMeasurement => _s('cognitiveFirstMeasurement');
+  String get cognitiveCurrentScoreChange => _s('cognitiveCurrentScoreChange');
+  String get cognitivePatternsObservedTitle => _s('cognitivePatternsObservedTitle');
+  String get cognitivePatternsObservedSubtitle => _s('cognitivePatternsObservedSubtitle');
+  String get cognitivePatternsDisclaimer => _s('cognitivePatternsDisclaimer');
+  String get cognitiveGoToDashboard => _s('cognitiveGoToDashboard');
+  String get cognitivePrepareSummary => _s('cognitivePrepareSummary');
+  String get cognitiveKeyObservation => _s('cognitiveKeyObservation');
+  String get cognitiveFirstSessionReference => _s('cognitiveFirstSessionReference');
+  String get cognitiveChangeMultipleAreas => _s('cognitiveChangeMultipleAreas');
+
+  // ── Patient — result ─────────────────────────────────────────────
+  String get resultCognitivePerformance => _s('resultCognitivePerformance');
+
+  // ── Patient — games ──────────────────────────────────────────────
+  String get gamesTodaysCognitiveJourney => _s('gamesTodaysCognitiveJourney');
+
+
+  // ── Patient — dashboard ──────────────────────────────────────────
+  String get dashboardBackToTop => _s('dashboardBackToTop');
+  String get dashboardAskCompanion => _s('dashboardAskCompanion');
+  String get dashboardExplainResults => _s('dashboardExplainResults');
+  String get dashboardDoctorSummary => _s('dashboardDoctorSummary');
+  String get dashboardReadyToShare => _s('dashboardReadyToShare');
+  String get dashboardCarePlan => _s('dashboardCarePlan');
+  String get dashboardDoctorConversationSuggested => _s('dashboardDoctorConversationSuggested');
+  String get dashboardWeeklyAndDaily => _s('dashboardWeeklyAndDaily');
+  String get dashboardMemoryWallet => _s('dashboardMemoryWallet');
+  String get dashboardPeopleAndPlaces => _s('dashboardPeopleAndPlaces');
+  String get dashboardCheckInReminders => _s('dashboardCheckInReminders');
+  String get dashboardCognitiveHealthOnePlace => _s('dashboardCognitiveHealthOnePlace');
+  String get dashboardBuildStartingPoint => _s('dashboardBuildStartingPoint');
+  String get dashboardRestingToday => _s('dashboardRestingToday');
+  String get dashboardJourneyStart => _s('dashboardJourneyStart');
+  String dashboardJourneyWelcomeBack(int day) => _f('dashboardJourneyWelcomeBack', <String, Object?>{'day': day});
+  String dashboardDayOf(int day, int total) => _f('dashboardDayOf', <String, Object?>{'day': day, 'total': total});
+  String dashboardActivitiesDone(int done, int total) => _f('dashboardActivitiesDone', <String, Object?>{'done': done, 'total': total});
+  String get dashboardGapBetweenSessions => _s('dashboardGapBetweenSessions');
+  String get dashboardIHaveTimeContinue => _s('dashboardIHaveTimeContinue');
+  String get dashboardYourProgress => _s('dashboardYourProgress');
+  String get dashboardNothingToShowYet => _s('dashboardNothingToShowYet');
+  String get dashboardFirstActivityStarts => _s('dashboardFirstActivityStarts');
+  String get dashboardWeeklyAveragesBaseline => _s('dashboardWeeklyAveragesBaseline');
+  String get dashboardBuildingTowardsBaseline => _s('dashboardBuildingTowardsBaseline');
+  String get dashboardOverallActivityScore => _s('dashboardOverallActivityScore');
+  String dashboardBaselineScore(int score) => _f('dashboardBaselineScore', <String, Object?>{'score': score});
+  String get dashboardAdherence => _s('dashboardAdherence');
+  String get dashboardConsistency => _s('dashboardConsistency');
+  String get dashboardReportedIndependence => _s('dashboardReportedIndependence');
+  String get dashboardMoreAboutProgress => _s('dashboardMoreAboutProgress');
+  String dashboardSeeAllAreas(int count) => _f('dashboardSeeAllAreas', <String, Object?>{'count': count});
+  String dashboardWeeksAssessed(int completed, int expected) => _f('dashboardWeeksAssessed', <String, Object?>{'completed': completed, 'expected': expected});
+  String get dashboardWhyScoreChanged => _s('dashboardWhyScoreChanged');
+  String get dashboardWhyScoreChangedDetail => _s('dashboardWhyScoreChangedDetail');
+  String get dashboardExplainMyChange => _s('dashboardExplainMyChange');
+  String get dashboardShowLess => _s('dashboardShowLess');
+  String get dashboardThinkingOfQuestion => _s('dashboardThinkingOfQuestion');
+  String get dashboardJustAMoment => _s('dashboardJustAMoment');
+  String get dashboardQuestionForYou => _s('dashboardQuestionForYou');
+  String get dashboardAskedBecauseOfWhatYouTold => _s('dashboardAskedBecauseOfWhatYouTold');
+  String get dashboardTodaysReminders => _s('dashboardTodaysReminders');
+  String dashboardRemindersDone(int done, int total) => _f('dashboardRemindersDone', <String, Object?>{'done': done, 'total': total});
+
+
+  // ── Patient — profile ────────────────────────────────────────────
+  String get settingsVoicePromptsLabel => _s('settingsVoicePromptsLabel');
+  String get profileSheLoves => _s('profileSheLoves');
+  String get profileFamily => _s('profileFamily');
+  String profileFamilyCount(int count) => _f('profileFamilyCount', <String, Object?>{'count': count});
+  String get profilePhoneNumber => _s('profilePhoneNumber');
+  String get profileChangesApplyRightAway => _s('profileChangesApplyRightAway');
+  String get profileAssessment => _s('profileAssessment');
+  String profileBaselineCaptured(int sessions) => _f('profileBaselineCaptured', <String, Object?>{'sessions': sessions});
+  String get profileNotCompletedYet => _s('profileNotCompletedYet');
+  String get profileDoctorSummarySubtitle => _s('profileDoctorSummarySubtitle');
+  String get profileLoadDemoHistory => _s('profileLoadDemoHistory');
+  String get profileLoadDemoHistorySubtitle => _s('profileLoadDemoHistorySubtitle');
+  String get profileDemoHistoryLoaded => _s('profileDemoHistoryLoaded');
+  String get profileStartAssessmentOver => _s('profileStartAssessmentOver');
+  String get profileStartAssessmentOverSubtitle => _s('profileStartAssessmentOverSubtitle');
+  String get profileCareTeam => _s('profileCareTeam');
+  String get profileCaregiverCallsEvening => _s('profileCaregiverCallsEvening');
+  String get profileMemoryClinicSchedule => _s('profileMemoryClinicSchedule');
+  String get profileLogOutQuestion => _s('profileLogOutQuestion');
+  String get profileLogOutBody => _s('profileLogOutBody');
+  String get profileStaySignedIn => _s('profileStaySignedIn');
+  String get profileLogOut => _s('profileLogOut');
+  String get profileAccount => _s('profileAccount');
+  String get profileAnswersFiledUnderAccount => _s('profileAnswersFiledUnderAccount');
+  String get profileNotSignedIn => _s('profileNotSignedIn');
+  String get profileSignedIn => _s('profileSignedIn');
+  String get profileNoAccount => _s('profileNoAccount');
+  String get profileSignInToKeepRecord => _s('profileSignInToKeepRecord');
+  String get profileSignIn => _s('profileSignIn');
+  String get profileSmsAlertsMobileNumber => _s('profileSmsAlertsMobileNumber');
+  String get profileSmsAlertsSubtitle => _s('profileSmsAlertsSubtitle');
+  String get profilePhoneHint => _s('profilePhoneHint');
+  String get profilePhoneLabel => _s('profilePhoneLabel');
+  String get profileSaveNumber => _s('profileSaveNumber');
+  String get profileNoMobileNumberYet => _s('profileNoMobileNumberYet');
+  String get profilePhoneNumberRemoved => _s('profilePhoneNumberRemoved');
+  String get profilePhoneNumberUpdated => _s('profilePhoneNumberUpdated');
+
+
+  // ── Patient — today screen ───────────────────────────────────────
+  String get todayTipDoingGreat => _s('todayTipDoingGreat');
+  String get todayTipDrinkWater => _s('todayTipDrinkWater');
+  String get todayTipMitraHere => _s('todayTipMitraHere');
+  String get todayTipTakeMeds => _s('todayTipTakeMeds');
+  String get todayStatusLabel => _s('todayStatusLabel');
+  String todayCompletedCount(int done, int total) => _f('todayCompletedCount', <String, Object?>{'done': done, 'total': total});
+  String get todayRemindersTitle => _s('todayRemindersTitle');
+  String todayDoneCount(int done, int total) => _f('todayDoneCount', <String, Object?>{'done': done, 'total': total});
+  String get todayCreateReminderButton => _s('todayCreateReminderButton');
+  String get todayAllClear => _s('todayAllClear');
+  String get todayNoRemindersEnjoy => _s('todayNoRemindersEnjoy');
+  String get todayReminderNameRequired => _s('todayReminderNameRequired');
+  String get todayCreateNewReminderTitle => _s('todayCreateNewReminderTitle');
+  String get todayReminderNameLabel => _s('todayReminderNameLabel');
+  String get todayReminderNameHint => _s('todayReminderNameHint');
+  String get todayCategoryLabel => _s('todayCategoryLabel');
+  String get todayCategoryMedicines => _s('todayCategoryMedicines');
+  String get todayCategoryHydration => _s('todayCategoryHydration');
+  String get todayCategoryDailyActivity => _s('todayCategoryDailyActivity');
+  String get todayCategoryAppointment => _s('todayCategoryAppointment');
+  String get todayCategoryDailyRoutine => _s('todayCategoryDailyRoutine');
+  String get todayCategorySocialActivity => _s('todayCategorySocialActivity');
+  String get todaySetTimeLabel => _s('todaySetTimeLabel');
+  String get todayTapToChangeTime => _s('todayTapToChangeTime');
+  String get todayPreset8am => _s('todayPreset8am');
+  String get todayPreset1230pm => _s('todayPreset1230pm');
+  String get todayPreset5pm => _s('todayPreset5pm');
+  String get todayPreset9pm => _s('todayPreset9pm');
+  String get todayNotesLabel => _s('todayNotesLabel');
+  String get todayNotesHint => _s('todayNotesHint');
+  String get todaySmsAlertLabel => _s('todaySmsAlertLabel');
+  String get todaySmsAlertNote => _s('todaySmsAlertNote');
+  String get todaySaveReminderButton => _s('todaySaveReminderButton');
+  String get todayTimeOfDayMorning => _s('todayTimeOfDayMorning');
+  String get todayTimeOfDayAfternoon => _s('todayTimeOfDayAfternoon');
+  String get todayTimeOfDayEvening => _s('todayTimeOfDayEvening');
+  String todayReactionMedicine(String timeOfDay) => _f('todayReactionMedicine', <String, Object?>{'timeOfDay': timeOfDay});
+  String todayReactionHydration(String timeOfDay) => _f('todayReactionHydration', <String, Object?>{'timeOfDay': timeOfDay});
+  String todayReactionCognitive(String timeOfDay) => _f('todayReactionCognitive', <String, Object?>{'timeOfDay': timeOfDay});
+  String todayReactionAppointment(String timeOfDay) => _f('todayReactionAppointment', <String, Object?>{'timeOfDay': timeOfDay});
+  String todayReactionRoutine(String timeOfDay) => _f('todayReactionRoutine', <String, Object?>{'timeOfDay': timeOfDay});
+  String todayReactionSocial(String timeOfDay) => _f('todayReactionSocial', <String, Object?>{'timeOfDay': timeOfDay});
+  String get todayMonthJanuary => _s('todayMonthJanuary');
+  String get todayMonthFebruary => _s('todayMonthFebruary');
+  String get todayMonthMarch => _s('todayMonthMarch');
+  String get todayMonthApril => _s('todayMonthApril');
+  String get todayMonthMay => _s('todayMonthMay');
+  String get todayMonthJune => _s('todayMonthJune');
+  String get todayMonthJuly => _s('todayMonthJuly');
+  String get todayMonthAugust => _s('todayMonthAugust');
+  String get todayMonthSeptember => _s('todayMonthSeptember');
+  String get todayMonthOctober => _s('todayMonthOctober');
+  String get todayMonthNovember => _s('todayMonthNovember');
+  String get todayMonthDecember => _s('todayMonthDecember');
+  String get todayWeekdayMonday => _s('todayWeekdayMonday');
+  String get todayWeekdayTuesday => _s('todayWeekdayTuesday');
+  String get todayWeekdayWednesday => _s('todayWeekdayWednesday');
+  String get todayWeekdayThursday => _s('todayWeekdayThursday');
+  String get todayWeekdayFriday => _s('todayWeekdayFriday');
+  String get todayWeekdaySaturday => _s('todayWeekdaySaturday');
+  String get todayWeekdaySunday => _s('todayWeekdaySunday');
+
+
+  // ── Games — shared ───────────────────────────────────────────────
+  String get gameLevelEasy => _s('gameLevelEasy');
+  String get gameLevelMedium => _s('gameLevelMedium');
+  String get gameLevelHard => _s('gameLevelHard');
+  String get gameLevelExpert => _s('gameLevelExpert');
+  String get gameLevelMastery => _s('gameLevelMastery');
+  String get gameLevelLocked => _s('gameLevelLocked');
+  String get gameMemoryCardsChooseLevel => _s('gameMemoryCardsChooseLevel');
+  String get gameStartGame => _s('gameStartGame');
+  String get gameWeavesFinish => _s('gameWeavesFinish');
+
+  // ── Games — memory cards ─────────────────────────────────────────
+  String get gameMemoryCardsPairsFound => _s('gameMemoryCardsPairsFound');
+  String get gameMemoryCardsTries => _s('gameMemoryCardsTries');
+  String get gameMemoryCardsWrongTurns => _s('gameMemoryCardsWrongTurns');
+  String gameMemoryCardsStepLabel(int found, int pairs) => _f('gameMemoryCardsStepLabel', <String, Object?>{'found': found, 'pairs': pairs});
+  String gameMemoryCardsAllFound(String name) => _f('gameMemoryCardsAllFound', <String, Object?>{'name': name});
+  String gameMemoryCardsFoundMatch(String name) => _f('gameMemoryCardsFoundMatch', <String, Object?>{'name': name});
+  String get gameMemoryCardsTurnOverTwo => _s('gameMemoryCardsTurnOverTwo');
+  String get gameMemoryCardsIntroMessage => _s('gameMemoryCardsIntroMessage');
+  String gameMemoryCardsPairsCount(int n) => _f('gameMemoryCardsPairsCount', <String, Object?>{'n': n});
+  String get gameMemoryCardsCategoryLabel => _s('gameMemoryCardsCategoryLabel');
+  String get gameMemoryCardsTitle => _s('gameMemoryCardsTitle');
+  String get gameMemoryCardsInstructions => _s('gameMemoryCardsInstructions');
+
+
+  // ── Games — weaves ───────────────────────────────────────────────
+  String get gameWeavesFeedbackCorrect => _s('gameWeavesFeedbackCorrect');
+  String get gameWeavesFeedbackWrong => _s('gameWeavesFeedbackWrong');
+  String get gameWeavesPatternsRebuilt => _s('gameWeavesPatternsRebuilt');
+  String get gameWeavesPiecesPlaced => _s('gameWeavesPiecesPlaced');
+  String get gameWeavesSecondLooks => _s('gameWeavesSecondLooks');
+  String get gameWeavesLookCarefully => _s('gameWeavesLookCarefully');
+  String get gameWeavesNowRebuild => _s('gameWeavesNowRebuild');
+  String get gameWeavesWhichPiece => _s('gameWeavesWhichPiece');
+  String get gameWeavesBeautiful => _s('gameWeavesBeautiful');
+  String gameWeavesPatternOfTotal(int r, int t) => _f('gameWeavesPatternOfTotal', <String, Object?>{'r': r, 't': t});
+  String get gameWeavesNextPattern => _s('gameWeavesNextPattern');
+  String gameWeavesHidingIn(int seconds) => _f('gameWeavesHidingIn', <String, Object?>{'seconds': seconds});
+  String gameWeavesMemorise(int seconds) => _f('gameWeavesMemorise', <String, Object?>{'seconds': seconds});
+  String gameWeavesPlacedCount(int filled, int total) => _f('gameWeavesPlacedCount', <String, Object?>{'filled': filled, 'total': total});
+  String get gameWeavesCoveredHint => _s('gameWeavesCoveredHint');
+  String get gameWeavesChooseMissingPiece => _s('gameWeavesChooseMissingPiece');
+  String get gameWeavesIntroMessage => _s('gameWeavesIntroMessage');
+  String get gameWeavesStartPattern => _s('gameWeavesStartPattern');
+  String get gameWeavesSubtitle1Blank => _s('gameWeavesSubtitle1Blank');
+  String get gameWeavesSubtitleHiddenWeave => _s('gameWeavesSubtitleHiddenWeave');
+  String get gameWeavesSubtitle2Blanks => _s('gameWeavesSubtitle2Blanks');
+  String get gameWeavesSubtitleFastWeave => _s('gameWeavesSubtitleFastWeave');
+  String get gameWeavesSubtitle4x4Grid => _s('gameWeavesSubtitle4x4Grid');
+  String get gameWeavesCategoryLabel => _s('gameWeavesCategoryLabel');
+  String get gameWeavesTitle => _s('gameWeavesTitle');
+  String get gameWeavesInstructions => _s('gameWeavesInstructions');
+
+
+  // ── Games — melody ───────────────────────────────────────────────
+  String get gameMelodyTunesPlayed => _s('gameMelodyTunesPlayed');
+  String get gameMelodyNotesInTune => _s('gameMelodyNotesInTune');
+  String get gameMelodyReplaysUsed => _s('gameMelodyReplaysUsed');
+  String get gameMelodyIntroMessage => _s('gameMelodyIntroMessage');
+  String get gameMelodyListening => _s('gameMelodyListening');
+  String get gameMelodyNowYou => _s('gameMelodyNowYou');
+  String get gameMelodyExactlyRight => _s('gameMelodyExactlyRight');
+  String get gameMelodyClose => _s('gameMelodyClose');
+  String gameMelodyTuneOfTotal(int r, int t) => _f('gameMelodyTuneOfTotal', <String, Object?>{'r': r, 't': t});
+  String get gameMelodySubtitle2Notes => _s('gameMelodySubtitle2Notes');
+  String get gameMelodySubtitle3Notes => _s('gameMelodySubtitle3Notes');
+  String get gameMelodySubtitle4Notes => _s('gameMelodySubtitle4Notes');
+  String get gameMelodySubtitle4NotesFast => _s('gameMelodySubtitle4NotesFast');
+  String get gameMelodySubtitle5NotesFast => _s('gameMelodySubtitle5NotesFast');
+  String get gameMelodyYourTune => _s('gameMelodyYourTune');
+  String get gameMelodyTheTune => _s('gameMelodyTheTune');
+  String gameMelodyNoteCount(int n) => _f('gameMelodyNoteCount', <String, Object?>{'n': n});
+  String get gameMelodyPrototypeNote => _s('gameMelodyPrototypeNote');
+  String get gameMelodyPlayTheTune => _s('gameMelodyPlayTheTune');
+  String get gameMelodyListeningButton => _s('gameMelodyListeningButton');
+  String get gameMelodyPlayItAgain => _s('gameMelodyPlayItAgain');
+  String get gameMelodyNextTune => _s('gameMelodyNextTune');
+
+
+  // ── Games — procedure ────────────────────────────────────────────
+  String get gameProcedureCompleteSequence => _s('gameProcedureCompleteSequence');
+  String gameProcedureCorrectNext(String s) => _f('gameProcedureCorrectNext', <String, Object?>{'s': s});
+  String gameProcedureNotQuite(String s) => _f('gameProcedureNotQuite', <String, Object?>{'s': s});
+  String get gameProcedureVeryBeginning => _s('gameProcedureVeryBeginning');
+  String gameProcedureHintNextStep(String s) => _f('gameProcedureHintNextStep', <String, Object?>{'s': s});
+  String get gameProcedureShowSteps => _s('gameProcedureShowSteps');
+  String get gameProcedureSelectedLabel => _s('gameProcedureSelectedLabel');
+  String gameProcedureStepsCount(int n) => _f('gameProcedureStepsCount', <String, Object?>{'n': n});
+  String get gameProcedureVideoAvailable => _s('gameProcedureVideoAvailable');
+  String get gameProcedureWatchVideoLabel => _s('gameProcedureWatchVideoLabel');
+  String get gameProcedureStudyStepsLabel => _s('gameProcedureStudyStepsLabel');
+  String get gameProcedureWatchVideoMessage => _s('gameProcedureWatchVideoMessage');
+  String gameProcedureReadThroughSteps(String t) => _f('gameProcedureReadThroughSteps', <String, Object?>{'t': t});
+  String get gameProcedureReadyToBuild => _s('gameProcedureReadyToBuild');
+  String gameProcedurePlacedOfTotal(int p, int t) => _f('gameProcedurePlacedOfTotal', <String, Object?>{'p': p, 't': t});
+  String gameProcedureWholeSequence(String name) => _f('gameProcedureWholeSequence', <String, Object?>{'name': name});
+  String get gameProcedureWhatComesFirst => _s('gameProcedureWhatComesFirst');
+  String gameProcedureWhatComesAfter(String s) => _f('gameProcedureWhatComesAfter', <String, Object?>{'s': s});
+  String get gameProcedureSequenceSoFar => _s('gameProcedureSequenceSoFar');
+  String get gameProcedureTapNextStep => _s('gameProcedureTapNextStep');
+  String get gameProcedureChooseStepBelow => _s('gameProcedureChooseStepBelow');
+  String get gameProcedureVideoLoadError => _s('gameProcedureVideoLoadError');
+  String get gameProcedureReplayVideo => _s('gameProcedureReplayVideo');
+
+
+  // ── Games — familiar place ───────────────────────────────────────
+  String gameFamiliarPlaceExcellentFound(String name) => _f('gameFamiliarPlaceExcellentFound', <String, Object?>{'name': name});
+  String get gameFamiliarPlaceNotWhatWeAreLookingFor => _s('gameFamiliarPlaceNotWhatWeAreLookingFor');
+  String get gameFamiliarPlaceObjectsToFind => _s('gameFamiliarPlaceObjectsToFind');
+  String get gameFamiliarPlaceObjectsFound => _s('gameFamiliarPlaceObjectsFound');
+  String get gameFamiliarPlaceRoomsVisited => _s('gameFamiliarPlaceRoomsVisited');
+  String get gameFamiliarPlaceHintsUsed => _s('gameFamiliarPlaceHintsUsed');
+  String get gameFamiliarPlaceIntroMessage => _s('gameFamiliarPlaceIntroMessage');
+  String get gameFamiliarPlaceStartExploring => _s('gameFamiliarPlaceStartExploring');
+  String gameFamiliarPlaceRoomsCount(int n) => _f('gameFamiliarPlaceRoomsCount', <String, Object?>{'n': n});
+  String get gameFamiliarPlaceSubtitle5RoomsOneHint => _s('gameFamiliarPlaceSubtitle5RoomsOneHint');
+  String get gameFamiliarPlaceSubtitle5RoomsFast => _s('gameFamiliarPlaceSubtitle5RoomsFast');
+  String get gameFamiliarPlaceCategoryLabel => _s('gameFamiliarPlaceCategoryLabel');
+  String get gameFamiliarPlaceTitle => _s('gameFamiliarPlaceTitle');
+  String get gameFamiliarPlaceInstructions => _s('gameFamiliarPlaceInstructions');
+  String gameFamiliarPlaceRememberThese(int n) => _f('gameFamiliarPlaceRememberThese', <String, Object?>{'n': n});
+  String get gameFamiliarPlaceIWillRemember => _s('gameFamiliarPlaceIWillRemember');
+  String get gameFamiliarPlaceRememberTheseLabel => _s('gameFamiliarPlaceRememberTheseLabel');
+  String gameFamiliarPlaceWalkThroughRooms(int n) => _f('gameFamiliarPlaceWalkThroughRooms', <String, Object?>{'n': n});
+  String gameFamiliarPlaceFoundOfTotal(int f, int t) => _f('gameFamiliarPlaceFoundOfTotal', <String, Object?>{'f': f, 't': t});
+  String get gameFamiliarPlaceNextRoom => _s('gameFamiliarPlaceNextRoom');
+  String get gameFamiliarPlaceYouAreIn => _s('gameFamiliarPlaceYouAreIn');
+  String gameFamiliarPlaceRoomOfTotal(int i, int t) => _f('gameFamiliarPlaceRoomOfTotal', <String, Object?>{'i': i, 't': t});
+  String gameFamiliarPlaceHintsLeft(int n) => _f('gameFamiliarPlaceHintsLeft', <String, Object?>{'n': n});
+  String get gameFamiliarPlaceTapLightbulb => _s('gameFamiliarPlaceTapLightbulb');
+  String get gameFamiliarPlaceThingsInRoom => _s('gameFamiliarPlaceThingsInRoom');
+  String get gameFamiliarPlaceTapOneIfYouThink => _s('gameFamiliarPlaceTapOneIfYouThink');
+
+
+  // ── Games — story ────────────────────────────────────────────────
+  String get gameStoryIntroMessage => _s('gameStoryIntroMessage');
+  String get gameStoryStartButton => _s('gameStoryStartButton');
+  String get gameStoryLevelSimple => _s('gameStoryLevelSimple');
+  String get gameStorySubtitleStoryRecall => _s('gameStorySubtitleStoryRecall');
+  String get gameStoryLevelGuided => _s('gameStoryLevelGuided');
+  String get gameStoryLevelAdvanced => _s('gameStoryLevelAdvanced');
+  String get gameStorySubtitleOpenStory => _s('gameStorySubtitleOpenStory');
+  String get gameStoryLevelOpen => _s('gameStoryLevelOpen');
+  String get gameStorySubtitleFreeMemory => _s('gameStorySubtitleFreeMemory');
+  String get gameStoryLevelDeepMemory => _s('gameStoryLevelDeepMemory');
+  String get gameStorySubtitleFullRecall => _s('gameStorySubtitleFullRecall');
+  String get gameStoryCategoryLabel => _s('gameStoryCategoryLabel');
+  String get gameStoryTitle => _s('gameStoryTitle');
+  String get gameStoryInstructions => _s('gameStoryInstructions');
+  String gameStoryPartOfTotal(int p, int t) => _f('gameStoryPartOfTotal', <String, Object?>{'p': p, 't': t});
+  String get gameStoryThinkingAboutAnswer => _s('gameStoryThinkingAboutAnswer');
+  String get gameStoryOneLastThing => _s('gameStoryOneLastThing');
+  String get gameStoryNextStory => _s('gameStoryNextStory');
+  String get gameStoryChooseWhatHappensNext => _s('gameStoryChooseWhatHappensNext');
+  String get gameStoryDefaultPhotoTitle => _s('gameStoryDefaultPhotoTitle');
+  String get gameStoryThankYouKeepSafe => _s('gameStoryThankYouKeepSafe');
+  String get gameStoryLovelyStoryListening => _s('gameStoryLovelyStoryListening');
+  String get gameStoryTellSmallStory => _s('gameStoryTellSmallStory');
+  String get gameStoryFinish => _s('gameStoryFinish');
+  String get gameStoryTapFewPartsFirst => _s('gameStoryTapFewPartsFirst');
+  String get gameStoryThatIsMyStory => _s('gameStoryThatIsMyStory');
+  String gameStoryFromYourMemories(String year) => _f('gameStoryFromYourMemories', <String, Object?>{'year': year});
+  String get gameStoryTapWhatYouRemember => _s('gameStoryTapWhatYouRemember');
+  String get gameStoryYourStory => _s('gameStoryYourStory');
+  String get gameStoryMitraListening => _s('gameStoryMitraListening');
+  String get gameStoryYourAnswer => _s('gameStoryYourAnswer');
+  String get gameStoryHowMitraReadIt => _s('gameStoryHowMitraReadIt');
+  String get gameStoryHowMitraReadYourStory => _s('gameStoryHowMitraReadYourStory');
+  String get gameStoryCoherence => _s('gameStoryCoherence');
+  String get gameStoryRelevantDetails => _s('gameStoryRelevantDetails');
+  String get gameStoryMemoryAssociation => _s('gameStoryMemoryAssociation');
+  String get gameStorySimulatedCaption => _s('gameStorySimulatedCaption');
+
+
+  // ── Assessment — presenting concern ──────────────────────────────
+  String get assessmentConcernMemoryProblems => _s('assessmentConcernMemoryProblems');
+  String get assessmentConcernConcentration => _s('assessmentConcernConcentration');
+  String get assessmentConcernAppointments => _s('assessmentConcernAppointments');
+  String get assessmentConcernWordFinding => _s('assessmentConcernWordFinding');
+  String get assessmentConcernConfusion => _s('assessmentConcernConfusion');
+  String get assessmentConcernDailyTasks => _s('assessmentConcernDailyTasks');
+  String get assessmentConcernFamilyNoticed => _s('assessmentConcernFamilyNoticed');
+  String get assessmentConcernSelfMonitoring => _s('assessmentConcernSelfMonitoring');
+  String get assessmentConcernDoctorRecommended => _s('assessmentConcernDoctorRecommended');
+
+  // ── Assessment — onset window ────────────────────────────────────
+  String get assessmentOnsetRecent => _s('assessmentOnsetRecent');
+  String get assessmentOnset1to6Months => _s('assessmentOnset1to6Months');
+  String get assessmentOnset6to12Months => _s('assessmentOnset6to12Months');
+  String get assessmentOnset1to2Years => _s('assessmentOnset1to2Years');
+  String get assessmentOnsetOver2Years => _s('assessmentOnsetOver2Years');
+  String get assessmentOnsetUnsure => _s('assessmentOnsetUnsure');
+
+  // ── Assessment — progression ─────────────────────────────────────
+  String get assessmentProgressionNoChange => _s('assessmentProgressionNoChange');
+  String get assessmentProgressionSlightlyWorse => _s('assessmentProgressionSlightlyWorse');
+  String get assessmentProgressionGraduallyWorse => _s('assessmentProgressionGraduallyWorse');
+  String get assessmentProgressionRapidlyWorse => _s('assessmentProgressionRapidlyWorse');
+  String get assessmentProgressionFluctuating => _s('assessmentProgressionFluctuating');
+
+  // ── Assessment — frequency ───────────────────────────────────────
+  String get assessmentFrequencyNever => _s('assessmentFrequencyNever');
+  String get assessmentFrequencySometimes => _s('assessmentFrequencySometimes');
+  String get assessmentFrequencyOften => _s('assessmentFrequencyOften');
+  String get assessmentFrequencyVeryOften => _s('assessmentFrequencyVeryOften');
+
+  // ── Assessment — symptom domain ──────────────────────────────────
+  String get assessmentDomainMemory => _s('assessmentDomainMemory');
+  String get assessmentDomainAttentionThinking => _s('assessmentDomainAttentionThinking');
+  String get assessmentDomainLanguage => _s('assessmentDomainLanguage');
+  String get assessmentDomainBehaviour => _s('assessmentDomainBehaviour');
+  String get assessmentDomainMovementPerception => _s('assessmentDomainMovementPerception');
+  String get assessmentDomainPromptMemory => _s('assessmentDomainPromptMemory');
+  String get assessmentDomainPromptAttentionThinking => _s('assessmentDomainPromptAttentionThinking');
+  String get assessmentDomainPromptLanguage => _s('assessmentDomainPromptLanguage');
+  String get assessmentDomainPromptBehaviour => _s('assessmentDomainPromptBehaviour');
+  String get assessmentDomainPromptMovementPerception => _s('assessmentDomainPromptMovementPerception');
+
+  // ── Assessment — symptom items ───────────────────────────────────
+  String get assessmentSymptomMemRepeat => _s('assessmentSymptomMemRepeat');
+  String get assessmentSymptomMemConv => _s('assessmentSymptomMemConv');
+  String get assessmentSymptomMemAppt => _s('assessmentSymptomMemAppt');
+  String get assessmentSymptomMemMisplace => _s('assessmentSymptomMemMisplace');
+  String get assessmentSymptomMemNew => _s('assessmentSymptomMemNew');
+  String get assessmentSymptomAttConcentrate => _s('assessmentSymptomAttConcentrate');
+  String get assessmentSymptomAttFollow => _s('assessmentSymptomAttFollow');
+  String get assessmentSymptomAttPlan => _s('assessmentSymptomAttPlan');
+  String get assessmentSymptomAttMoney => _s('assessmentSymptomAttMoney');
+  String get assessmentSymptomAttSolve => _s('assessmentSymptomAttSolve');
+  String get assessmentSymptomLangWords => _s('assessmentSymptomLangWords');
+  String get assessmentSymptomLangNaming => _s('assessmentSymptomLangNaming');
+  String get assessmentSymptomLangUnderstand => _s('assessmentSymptomLangUnderstand');
+  String get assessmentSymptomBehInterest => _s('assessmentSymptomBehInterest');
+  String get assessmentSymptomBehImpulsive => _s('assessmentSymptomBehImpulsive');
+  String get assessmentSymptomBehSocial => _s('assessmentSymptomBehSocial');
+  String get assessmentSymptomBehEating => _s('assessmentSymptomBehEating');
+  String get assessmentSymptomMovTremor => _s('assessmentSymptomMovTremor');
+  String get assessmentSymptomMovStiff => _s('assessmentSymptomMovStiff');
+  String get assessmentSymptomMovBalance => _s('assessmentSymptomMovBalance');
+  String get assessmentSymptomMovHalluc => _s('assessmentSymptomMovHalluc');
+  String get assessmentSymptomMovAlert => _s('assessmentSymptomMovAlert');
+  String get assessmentSymptomMovDreams => _s('assessmentSymptomMovDreams');
+
+  // ── Assessment — functional items ────────────────────────────────
+  String get assessmentFunctionMoney => _s('assessmentFunctionMoney');
+  String get assessmentFunctionMeds => _s('assessmentFunctionMeds');
+  String get assessmentFunctionCooking => _s('assessmentFunctionCooking');
+  String get assessmentFunctionShopping => _s('assessmentFunctionShopping');
+  String get assessmentFunctionPhone => _s('assessmentFunctionPhone');
+  String get assessmentFunctionTransport => _s('assessmentFunctionTransport');
+  String get assessmentFunctionAppointments => _s('assessmentFunctionAppointments');
+  String get assessmentFunctionBathing => _s('assessmentFunctionBathing');
+
+  // ── Assessment — medical condition ───────────────────────────────
+  String get assessmentConditionHypertension => _s('assessmentConditionHypertension');
+  String get assessmentConditionDiabetes => _s('assessmentConditionDiabetes');
+  String get assessmentConditionHighCholesterol => _s('assessmentConditionHighCholesterol');
+  String get assessmentConditionStrokeOrTia => _s('assessmentConditionStrokeOrTia');
+  String get assessmentConditionParkinsons => _s('assessmentConditionParkinsons');
+  String get assessmentConditionThyroid => _s('assessmentConditionThyroid');
+  String get assessmentConditionHeadInjury => _s('assessmentConditionHeadInjury');
+  String get assessmentConditionOtherNeurological => _s('assessmentConditionOtherNeurological');
+
+  // ── Assessment — sleep ───────────────────────────────────────────
+  String get assessmentSleepGood => _s('assessmentSleepGood');
+  String get assessmentSleepFair => _s('assessmentSleepFair');
+  String get assessmentSleepPoor => _s('assessmentSleepPoor');
+
+  // ── Assessment — completed by ────────────────────────────────────
+  String get assessmentCompletedByPatient => _s('assessmentCompletedByPatient');
+  String get assessmentCompletedByCaregiver => _s('assessmentCompletedByCaregiver');
+  String get assessmentCompletedByFamilyMember => _s('assessmentCompletedByFamilyMember');
+  String get assessmentCompletedByClinician => _s('assessmentCompletedByClinician');
+
+  // ── Assessment — caregiver observation ───────────────────────────
+  String get assessmentCaregiverObsRepeat => _s('assessmentCaregiverObsRepeat');
+  String get assessmentCaregiverObsAppointments => _s('assessmentCaregiverObsAppointments');
+  String get assessmentCaregiverObsBills => _s('assessmentCaregiverObsBills');
+  String get assessmentCaregiverObsWords => _s('assessmentCaregiverObsWords');
+  String get assessmentCaregiverObsLost => _s('assessmentCaregiverObsLost');
+  String get assessmentCaregiverObsPersonality => _s('assessmentCaregiverObsPersonality');
+  String get assessmentCaregiverObsHalluc => _s('assessmentCaregiverObsHalluc');
+  String get assessmentCaregiverObsWithdrawn => _s('assessmentCaregiverObsWithdrawn');
 
   // ── Language names ─────────────────────────────────────────────────────
   String get languageEnglish => _s('languageEnglish');
   String get languageHindi => _s('languageHindi');
   String get languageAssamese => _s('languageAssamese');
+  String get languageMarathi => _s('languageMarathi');
+
+  // ── Activity domains (short, patient-facing — see cognitiveDomain* above
+  // for the longer clinical wording used on the profile screen) ───────────
+  String get activityDomainMemory => _s('activityDomainMemory');
+  String get activityDomainAttention => _s('activityDomainAttention');
+  String get activityDomainReasoning => _s('activityDomainReasoning');
+  String get activityDomainSpatial => _s('activityDomainSpatial');
+  String get activityDomainAuditory => _s('activityDomainAuditory');
+  String get activityDomainProcedural => _s('activityDomainProcedural');
+
+  // ── Activity content (names, taglines, level descriptions) ──────────────
+  String get gameProcedureName => _s('gameProcedureName');
+  String get gameProcedureTagline => _s('gameProcedureTagline');
+  String get gameStoryName => _s('gameStoryName');
+  String get gameStoryTagline => _s('gameStoryTagline');
+  String get gameFamiliarPlaceName => _s('gameFamiliarPlaceName');
+  String get gameFamiliarPlaceTagline => _s('gameFamiliarPlaceTagline');
+  String get gameMelodyName => _s('gameMelodyName');
+  String get gameMelodyTagline => _s('gameMelodyTagline');
+  String get gameWeavesName => _s('gameWeavesName');
+  String get gameWeavesTagline => _s('gameWeavesTagline');
+  String get gameMemoryCardsName => _s('gameMemoryCardsName');
+  String get gameMemoryCardsTagline => _s('gameMemoryCardsTagline');
+  String gamesMinutesShort(int minutes) =>
+      _f('gamesMinutesShort', <String, Object?>{'minutes': minutes});
+
+  String get difficultyIncreaseMessage => _s('difficultyIncreaseMessage');
+  String get difficultyMaintainMessage => _s('difficultyMaintainMessage');
+  String get difficultyDecreaseMessage => _s('difficultyDecreaseMessage');
+
+  String get levelDescProcedure1 => _s('levelDescProcedure1');
+  String get levelDescProcedure2 => _s('levelDescProcedure2');
+  String get levelDescProcedure3 => _s('levelDescProcedure3');
+  String get levelDescProcedure4 => _s('levelDescProcedure4');
+  String get levelDescProcedureDefault => _s('levelDescProcedureDefault');
+  String get levelDescStory1 => _s('levelDescStory1');
+  String get levelDescStory2 => _s('levelDescStory2');
+  String get levelDescStory3 => _s('levelDescStory3');
+  String get levelDescStoryDefault => _s('levelDescStoryDefault');
+  String get levelDescFamiliarPlace1 => _s('levelDescFamiliarPlace1');
+  String get levelDescFamiliarPlace2 => _s('levelDescFamiliarPlace2');
+  String get levelDescFamiliarPlace3 => _s('levelDescFamiliarPlace3');
+  String get levelDescFamiliarPlaceDefault => _s('levelDescFamiliarPlaceDefault');
+  String get levelDescMelody1 => _s('levelDescMelody1');
+  String get levelDescMelody2 => _s('levelDescMelody2');
+  String get levelDescMelody3 => _s('levelDescMelody3');
+  String get levelDescMelody4 => _s('levelDescMelody4');
+  String get levelDescMelodyDefault => _s('levelDescMelodyDefault');
+  String get levelDescWeaves1 => _s('levelDescWeaves1');
+  String get levelDescWeaves2 => _s('levelDescWeaves2');
+  String get levelDescWeaves3 => _s('levelDescWeaves3');
+  String get levelDescWeavesDefault => _s('levelDescWeavesDefault');
+  String get levelDescMemoryCards1 => _s('levelDescMemoryCards1');
+  String get levelDescMemoryCards2 => _s('levelDescMemoryCards2');
+  String get levelDescMemoryCards3 => _s('levelDescMemoryCards3');
+  String get levelDescMemoryCardsDefault => _s('levelDescMemoryCardsDefault');
+
+  // ── Memory Home ───────────────────────────────────────────────────────
+  String get memoryCategoryFamilyLabel => _s('memoryCategoryFamilyLabel');
+  String get memoryCategoryChildhoodLabel => _s('memoryCategoryChildhoodLabel');
+  String get memoryCategoryWorkLabel => _s('memoryCategoryWorkLabel');
+  String get memoryCategoryFestivalsLabel => _s('memoryCategoryFestivalsLabel');
+  String get memoryCategoryFoodLabel => _s('memoryCategoryFoodLabel');
+  String get memoryCategoryVillageLabel => _s('memoryCategoryVillageLabel');
+  String get memoryCategoryFamilyEmpty => _s('memoryCategoryFamilyEmpty');
+  String get memoryCategoryChildhoodEmpty => _s('memoryCategoryChildhoodEmpty');
+  String get memoryCategoryWorkEmpty => _s('memoryCategoryWorkEmpty');
+  String get memoryCategoryFestivalsEmpty => _s('memoryCategoryFestivalsEmpty');
+  String get memoryCategoryFoodEmpty => _s('memoryCategoryFoodEmpty');
+  String get memoryCategoryVillageEmpty => _s('memoryCategoryVillageEmpty');
+
+  // ── Health dashboard ──────────────────────────────────────────────────
+  String get healthTodaysActivity => _s('healthTodaysActivity');
+  String get healthAnotherActivity => _s('healthAnotherActivity');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

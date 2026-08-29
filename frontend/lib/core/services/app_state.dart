@@ -197,6 +197,7 @@ class AppState extends ChangeNotifier {
     _highContrast = settings.highContrast;
     _reduceMotion = settings.reduceMotion;
     _voicePrompts = settings.voicePrompts;
+    _localeCode = settings.localeCode;
     _connectivity.forcedOffline = settings.offlineOverride;
     _safeZone = SafeZone.decode(settings.safeZoneJson);
 
@@ -1193,6 +1194,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The interface language code (`en`/`hi`/`as`/`mr`), so it survives a
+  /// restart. `AppState` only stores the choice — `LocaleController` (see
+  /// `lib/l10n/locale_controller.dart`) is what actually drives the live UI,
+  /// deliberately kept separate since it has no other reason to touch Hive.
+  /// `MemoryMitraApp` seeds the controller from this at startup; whatever
+  /// calls `LocaleController.setLocale` is responsible for also setting this
+  /// so the two stay in sync (see `LanguageSelector`).
+  String? _localeCode;
+  String? get localeCode => _localeCode;
+  set localeCode(String? v) {
+    _localeCode = v;
+    _persistSettings();
+    notifyListeners();
+  }
+
   void _persistSettings() {
     final AppSettings snapshot = AppSettings(
       textSize: _textSize,
@@ -1203,6 +1219,7 @@ class AppState extends ChangeNotifier {
       lastRole: _role == AppRole.none ? null : _role.name,
       lastAccountId: _accountId,
       safeZoneJson: _safeZone?.encode(),
+      localeCode: _localeCode,
     );
     _write(() => _settingsRepo.save(snapshot));
   }
