@@ -1,45 +1,73 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# ─────────────────────────────────────────────────────────────────────────
+# Repository-wide ignores.
+#
+# Each project keeps its own rules as well:
+#   frontend/.gitignore  — Flutter/Dart build output
+#   backend/.gitignore   — added with the FastAPI service
+# ─────────────────────────────────────────────────────────────────────────
 
-# IntelliJ related
+# Operating system
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors and IDEs
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.history/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Logs and scratch output
+*.log
+.env
+.env.*
+!.env.example
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
+# ── Backend (FastAPI) — in place ahead of the service itself ─────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/.venv/
+backend/venv/
+backend/env/
+backend/build/
+backend/dist/
+backend/*.egg-info/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/htmlcov/
+backend/.coverage
+backend/.coverage.*
+backend/instance/
+backend/*.db
+backend/*.sqlite3
+
+# Flutter/Dart build outputs at repository root
 /build/
+/.dart_tool/
+/.flutter-plugins
+/.flutter-plugins-dependencies
 
-# Symbolication related
-app.*.symbols
+# Android generated at repository root
+/android/local.properties
+/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+/android/.gradle/
+/android/gradle/
+/android/gradlew
+/android/gradlew.bat
 
-# Obfuscation related
-app.*.map.json
+# iOS generated at repository root
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/ephemeral/
+/ios/Flutter/flutter_export_environment.sh
+/ios/Runner/GeneratedPluginRegistrant.h
+/ios/Runner/GeneratedPluginRegistrant.m
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
