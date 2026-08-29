@@ -16,6 +16,7 @@ import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
 import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
 import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
 import 'package:memory_mitra/features/patient/patient_shell.dart';
+import 'package:memory_mitra/features/patient/widgets/patient_widgets.dart';
 
 /// Layout regression suite.
 ///
@@ -400,7 +401,19 @@ void main() {
 
       await tester.pumpWidget(harness(const PatientShell(), state: state));
       await beat(tester);
-      await tester.tap(find.text('Good').first);
+      // The mood picker now sits below the session card, so it has to be
+      // scrolled to — and matched inside the picker, since "Good" appears
+      // elsewhere on the screen too.
+      final Finder good = find.descendant(
+        of: find.byType(MoodPicker),
+        matching: find.text('Good'),
+      );
+      // `ensureVisible`, not `scrollUntilVisible`: the picker is already built
+      // (the ListView builds a little past the fold), so a finder-based scroll
+      // stops immediately and leaves it sitting below the screen edge.
+      await tester.ensureVisible(good);
+      await beat(tester);
+      await tester.tap(good);
       await beat(tester);
       expect(state.mood, isNotNull);
       expect(state.journeyDone.contains('checkin'), isTrue);

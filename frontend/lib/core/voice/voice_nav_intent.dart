@@ -98,66 +98,77 @@ class VoiceNavMatcher {
       'home', 'home screen', 'main screen', 'go home', 'front page', 'start screen',
       'ghar', 'mukhya', 'होम', 'घर', 'मुख्य पृष्ठ', 'मुख्य',
       'ঘৰ', 'হোম', 'মূল পৰ্দা', 'মূল',
+      'मुख्य पान',
     ],
     VoiceDestination.today: <String>[
       'today', 'todays', 'my day', 'schedule', 'medicine', 'medicines', 'tablet',
       'aaj', 'aaj ka din', 'dawa', 'davai',
       'आज', 'आज का दिन', 'दवा', 'दवाई', 'गोली',
       'আজি', 'ঔষধ', 'আজিৰ দিন',
+      'औषध', 'आजचा दिवस',
     ],
     VoiceDestination.activities: <String>[
       'activities', 'activity', 'games', 'game', 'play', 'puzzle', 'exercise',
       'khel', 'khelo',
       'खेल', 'गेम', 'खेलना', 'गतिविधि',
       'খেল', 'খেলা', 'ধেমালি',
+      'उपक्रम', 'खेळ',
     ],
     VoiceDestination.companion: <String>[
       'companion', 'assistant', 'mitra', 'talk', 'chat', 'ask mitra', 'talk to mitra',
       'baat', 'baat karo', 'saathi',
       'साथी', 'मित्रा', 'बात', 'बात करो', 'बातचीत',
       'সংগী', 'কথা', 'কথা পাতো', 'মিত্ৰা',
+      'सोबती', 'गप्पा', 'बोला',
     ],
     VoiceDestination.profile: <String>[
       'profile', 'my profile', 'about me', 'my details', 'account',
       'meri jankari', 'prophile',
       'प्रोफाइल', 'प्रोफ़ाइल', 'मेरी जानकारी', 'खाता',
       'প্ৰফাইল', 'মোৰ তথ্য',
+      'माझी माहिती',
     ],
     VoiceDestination.memories: <String>[
       'memories', 'memory wallet', 'my memories', 'photos', 'photo', 'album', 'pictures',
       'yaadein', 'yaad', 'tasveer',
       'यादें', 'याद', 'तस्वीर', 'फोटो', 'यादों का बटुआ',
       'স্মৃতি', 'ফটো', 'ছবি', 'মোৰ স্মৃতি',
+      'आठवणी', 'आठवण',
     ],
     VoiceDestination.memoryLane: <String>[
       'memory lane', 'memory home', 'my people', 'family', 'my family',
       'parivar', 'ghar wale',
       'परिवार', 'मेरा परिवार', 'अपने लोग',
       'পৰিয়াল', 'মোৰ পৰিয়াল',
+      'कुटुंब', 'माझे कुटुंब',
     ],
     VoiceDestination.carePlan: <String>[
       'care plan', 'my plan', 'plan', 'daily plan',
       'yojana', 'dekhbhal',
       'देखभाल', 'देखभाल योजना', 'योजना',
       'যত্ন', 'যত্নৰ পৰিকল্পনা', 'পৰিকল্পনা',
+      'काळजी', 'काळजी योजना',
     ],
     VoiceDestination.report: <String>[
       'report', 'my report', 'health report', 'summary', 'doctor report',
       'riport',
       'रिपोर्ट', 'मेरी रिपोर्ट', 'सारांश',
       'ৰিপৰ্ট', 'প্ৰতিবেদন', 'মোৰ ৰিপৰ্ট',
+      'अहवाल', 'माझा अहवाल',
     ],
     VoiceDestination.progress: <String>[
       'progress', 'my progress', 'cognitive profile', 'score', 'scores', 'how am i doing',
       'pragati',
       'प्रगति', 'मेरी प्रगति', 'स्कोर',
       'অগ্ৰগতি', 'মোৰ অগ্ৰগতি', 'নম্বৰ',
+      'प्रगती', 'माझी प्रगती',
     ],
     VoiceDestination.settings: <String>[
       'settings', 'setting', 'language', 'change language', 'text size',
       'bhasha', 'setting badlo',
       'सेटिंग', 'सेटिंग्स', 'भाषा', 'भाषा बदलो',
       'ছেটিং', 'ভাষা', 'ভাষা সলনি',
+      'सेटिंग्ज', 'भाषा बदला',
     ],
     VoiceDestination.dashboard: <String>[
       'dashboard', 'overview screen',
@@ -189,6 +200,7 @@ class VoiceNavMatcher {
       'surakshit', 'jagah',
       'सुरक्षित क्षेत्र', 'नक्शा', 'जगह', 'कहाँ है',
       'সুৰক্ষিত অঞ্চল', 'মানচিত্ৰ', 'ক\'ত আছে',
+      'नकाशा', 'कुठे आहे',
     ],
     VoiceDestination.overview: <String>[
       'overview', 'clinic overview',
@@ -222,18 +234,21 @@ class VoiceNavMatcher {
       'peeche', 'wapas', 'peeche jao',
       'पीछे', 'वापस', 'वापिस', 'पिछला',
       'উভতি', 'উভতি যাওক', 'পিছলৈ',
+      'मागे', 'मागे जा',
     ],
     VoiceNavAction.help: <String>[
       'help', 'what can i say', 'what can you do', 'options', 'commands',
       'madad', 'kya bol sakta hun',
       'मदद', 'सहायता', 'क्या बोलूं',
       'সহায়', 'সহায়ক', 'কি ক\'ব পাৰোঁ',
+      'मदत करा', 'काय बोलू',
     ],
     VoiceNavAction.stop: <String>[
       'stop', 'cancel', 'quit', 'exit', 'never mind', 'nothing',
       'bas', 'ruko', 'band karo',
       'रुको', 'बंद करो', 'रहने दो',
       'বন্ধ', 'বন্ধ কৰক', 'এৰি দিয়ক',
+      'थांबा', 'नको',
     ],
   };
 
@@ -494,6 +509,7 @@ String voiceDestinationLabel(VoiceDestination d, VoiceLanguage language) =>
       VoiceLanguage.english => _labelsEn[d]!,
       VoiceLanguage.hindi => _labelsHi[d]!,
       VoiceLanguage.assamese => _labelsAs[d]!,
+      VoiceLanguage.marathi => _labelsMr[d]!,
     };
 
 const Map<VoiceDestination, String> _labelsEn = <VoiceDestination, String>{
@@ -542,6 +558,29 @@ const Map<VoiceDestination, String> _labelsHi = <VoiceDestination, String>{
   VoiceDestination.alerts: 'चेतावनी',
 };
 
+const Map<VoiceDestination, String> _labelsMr = <VoiceDestination, String>{
+  VoiceDestination.home: 'घर',
+  VoiceDestination.today: 'आज',
+  VoiceDestination.activities: 'उपक्रम',
+  VoiceDestination.companion: 'सोबती',
+  VoiceDestination.profile: 'प्रोफाइल',
+  VoiceDestination.memories: 'आठवणी',
+  VoiceDestination.memoryLane: 'कुटुंब',
+  VoiceDestination.carePlan: 'काळजी योजना',
+  VoiceDestination.report: 'अहवाल',
+  VoiceDestination.progress: 'प्रगती',
+  VoiceDestination.settings: 'सेटिंग',
+  VoiceDestination.dashboard: 'डॅशबोर्ड',
+  VoiceDestination.patient: 'रुग्ण',
+  VoiceDestination.activityLog: 'हालचाल',
+  VoiceDestination.reminders: 'आठवण',
+  VoiceDestination.safeZone: 'सुरक्षित क्षेत्र',
+  VoiceDestination.overview: 'आढावा',
+  VoiceDestination.patients: 'रुग्ण यादी',
+  VoiceDestination.analytics: 'विश्लेषण',
+  VoiceDestination.alerts: 'सूचना',
+};
+
 const Map<VoiceDestination, String> _labelsAs = <VoiceDestination, String>{
   VoiceDestination.home: 'ঘৰ',
   VoiceDestination.today: 'আজি',
@@ -577,6 +616,7 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'What should I do for you?',
         VoiceLanguage.hindi => 'मैं आपके लिए क्या करूँ?',
         VoiceLanguage.assamese => 'মই আপোনাৰ বাবে কি কৰিম?',
+        VoiceLanguage.marathi => 'मी तुमच्यासाठी काय करू?',
       };
 
   /// Spoken as the screen changes.
@@ -584,6 +624,7 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'Opening $place.',
         VoiceLanguage.hindi => '$place खोल रहे हैं।',
         VoiceLanguage.assamese => '$place খুলি আছোঁ।',
+        VoiceLanguage.marathi => '$place उघडत आहे.',
       };
 
   /// The words were understood, but this shell cannot reach that place.
@@ -591,18 +632,21 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'I cannot open $place from here.',
         VoiceLanguage.hindi => 'यहाँ से मैं $place नहीं खोल सकती।',
         VoiceLanguage.assamese => 'ইয়াৰ পৰা মই $place খুলিব নোৱাৰোঁ।',
+        VoiceLanguage.marathi => 'येथून मी $place उघडू शकत नाही.',
       };
 
   static String notUnderstood(VoiceLanguage l) => switch (l) {
         VoiceLanguage.english => 'I did not catch a place name. Say help to hear the list.',
         VoiceLanguage.hindi => 'मुझे जगह समझ नहीं आई। सूची सुनने के लिए मदद कहिए।',
         VoiceLanguage.assamese => 'ঠাইৰ নাম বুজি নাপালোঁ। তালিকা শুনিবলৈ সহায় বুলি কওক।',
+        VoiceLanguage.marathi => 'मला जागा समजली नाही. यादी ऐकण्यासाठी मदत म्हणा.',
       };
 
   static String goingBack(VoiceLanguage l) => switch (l) {
         VoiceLanguage.english => 'Going back.',
         VoiceLanguage.hindi => 'वापस जा रहे हैं।',
         VoiceLanguage.assamese => 'উভতি যাওঁ।',
+        VoiceLanguage.marathi => 'मागे जात आहे.',
       };
 
   /// Read when someone asks what they can say. [places] is already localised.
@@ -612,6 +656,7 @@ class VoiceNavSpeech {
       VoiceLanguage.english => 'You can say: $list. Or say back, or stop.',
       VoiceLanguage.hindi => 'आप कह सकते हैं: $list। या पीछे, या रुको।',
       VoiceLanguage.assamese => 'আপুনি ক\'ব পাৰে: $list। বা উভতি, বা বন্ধ।',
+      VoiceLanguage.marathi => 'तुम्ही म्हणू शकता: $list. किंवा मागे, किंवा थांबा.',
     };
   }
 }

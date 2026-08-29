@@ -35,11 +35,14 @@ class PatientShell extends StatefulWidget {
 class _PatientShellState extends State<PatientShell> {
   int _index = 0;
 
+  /// One entry per child of the `IndexedStack` below, **in the same order**.
+  /// `AppNavBar` pairs them by position, so a label out of order silently
+  /// sends people to the wrong screen rather than failing.
   static const List<NavDestination> _destinations = <NavDestination>[
     NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
+    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
     NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
     NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
-    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
     NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
