@@ -87,7 +87,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                         children: <Widget>[
                           for (final MapEntry<_Tab, ({String label, IconData icon})> e
-                              in _tabs.entries)
+                              in _tabsFor(l).entries)
                             Padding(
                               padding: const EdgeInsets.only(right: 9),
                               child: _TabChip(
