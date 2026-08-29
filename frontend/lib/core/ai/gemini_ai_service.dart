@@ -413,6 +413,8 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
           detail: 'no usable question in the response');
     }
     return AiSuccess<List<DailyQuestion>>(questions.take(4).toList(growable: false));
+  }
+
   static MemoryCategory? _memoryCategoryFrom(Object? raw) {
     if (raw == null) return null;
     final String name = raw.toString().trim();

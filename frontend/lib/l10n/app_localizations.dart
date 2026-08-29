@@ -175,6 +175,10 @@ class AppLocalizations {
   String get settingsAllSynced => _s('settingsAllSynced');
 
   // ── Voice assistant ────────────────────────────────────────────────────
+  String get voiceNavButton => _s('voiceNavButton');
+  String get voiceNavTitle => _s('voiceNavTitle');
+  String get voiceNavHint => _s('voiceNavHint');
+  String get voiceNavSpeakNow => _s('voiceNavSpeakNow');
   String get voiceAskMitra => _s('voiceAskMitra');
   String get voiceTalkAboutDay => _s('voiceTalkAboutDay');
   String get voiceTapMicrophone => _s('voiceTapMicrophone');

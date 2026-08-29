@@ -15,6 +15,8 @@ import 'speech_engines.dart';
 import 'voice_assistant_controller.dart';
 import 'voice_intake_controller.dart';
 import 'voice_language.dart';
+import 'voice_nav_intent.dart';
+import 'voice_navigation_controller.dart';
 
 /// Exposes `AppState`'s connectivity to the AI layer without changing it.
 ///
@@ -114,3 +116,29 @@ VoiceAssistantController buildVoiceController(
 
 /// Re-exported so callers need one import to build a context for a test.
 typedef PatientContextBuilder = PatientAiContext Function();
+
+/// Builds the controller behind spoken navigation.
+///
+/// Same two engines as the assistant and the intake, so there is one speech
+/// stack in the app rather than three. No [AiService] is involved: navigation
+/// is a closed vocabulary matched on-device, which is why it keeps working
+/// with no network at all.
+VoiceNavigationController buildVoiceNavController({
+  required VoiceNavHandler onNavigate,
+  VoiceNavBack? onBack,
+  Set<VoiceDestination> destinations = const <VoiceDestination>{},
+  SpeechRecognizer? recognizer,
+  SpeechSynthesizer? synthesizer,
+  VoiceLanguage? language,
+  bool speakAloud = true,
+}) {
+  return VoiceNavigationController(
+    recognizer: recognizer ?? SpeechToTextRecognizer(),
+    synthesizer: synthesizer ?? FlutterTtsSynthesizer(),
+    onNavigate: onNavigate,
+    onBack: onBack,
+    destinations: destinations,
+    language: language ?? VoiceLanguage.english,
+    speakAloud: speakAloud,
+  );
+}

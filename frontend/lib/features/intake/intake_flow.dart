@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes/app_routes.dart';
+import '../../app/theme/app_colors.dart';
 import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/voice/voice_bootstrap.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import 'intake_kit.dart';
 import 'baseline_screens.dart';
+import 'welcome_screens.dart';
 import 'steps_consent_profile.dart';
 import 'steps_medical_caregiver.dart';
 import 'steps_reason_safety.dart';
@@ -76,7 +80,79 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
     if (_index > 0) setState(() => _index--);
   }
 
-  VoidCallback? get _onBack => _index == 0 ? null : _back;
+  /// Back on the *first* step leaves the intake instead of doing nothing.
+  ///
+  /// Step 1 is reached by choosing "Patient" on the welcome screen, and
+  /// wanting to undo that choice is an ordinary thing to want. Nothing is
+  /// lost by leaving either way: every answer is already on disk, and coming
+  /// back resumes at the first unanswered question via `nextIntakeStep`.
+  ///
+  /// There are two ways out because there are two ways in:
+  ///
+  ///  - *Pushed* by the role picker, with the welcome screen underneath —
+  ///    popping is all it takes, and nobody is signed out.
+  ///  - *The root route*, which is where signing in lands a returning
+  ///    patient: `WelcomeScreen.continueFrom` uses `Nav.rootTo`, so the whole
+  ///    stack below is gone and there is nothing to pop. Getting back to the
+  ///    welcome screen then means ending the session, so we ask first — a
+  ///    back arrow that silently signs someone out would be a trap.
+  Future<void> _leave() async {
+    final NavigatorState navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+
+    final AppState state = AppScope.read(context);
+    if (state.accountId != null) {
+      if (!await _confirmSignOut() || !mounted) return;
+
+      final AuthService? auth = AuthScope.maybeOf(context);
+      // Local first: the app must end up signed out even when Firebase is
+      // unreachable, which on a rural connection it often is.
+      await state.signOutAccount();
+      try {
+        await auth?.signOut();
+      } catch (error) {
+        debugPrint('IntakeFlowScreen: signing out of Firebase failed ($error)');
+      }
+      if (!mounted) return;
+    }
+
+    Nav.rootTo(context, const WelcomeScreen());
+  }
+
+  /// Signing out is the price of going back from a root intake, so it is
+  /// stated plainly — including the part people actually worry about, which
+  /// is whether their answers survive it.
+  Future<bool> _confirmSignOut() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('Go back and log out?'),
+            content: const Text(
+              'Going back to the start signs you out on this device. Your '
+              'answers stay saved and come back when you sign in again.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Stay here'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                child: const Text('Go back and log out'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  /// Within the flow this steps back a question; on step 1 it steps out of
+  /// the flow. Never null — every route into the intake has a way back out.
+  VoidCallback get _onBack => _index > 0 ? _back : _leave;
 
   @override
   Widget build(BuildContext context) {

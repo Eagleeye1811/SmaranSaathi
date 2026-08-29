@@ -20,10 +20,19 @@ import '../../../core/widgets/ui_kit.dart';
 /// inside the app spent the most valuable pixels on the screen saying
 /// something the person already knew.
 class PatientTopBar extends StatelessWidget {
-  const PatientTopBar({super.key, this.trailing, this.onExit, this.showStatus = true});
+  const PatientTopBar({
+    super.key,
+    this.trailing,
+    this.onExit,
+    this.showStatus = true,
+    this.showExit = true,
+  });
 
   final Widget? trailing;
   final VoidCallback? onExit;
+
+  /// Lets a screen suppress the switch-role button even when it passes an
+  /// [onExit]. Kept because screens in the reminders work rely on it.
   final bool showExit;
 
   /// The progress pill. Off on screens that are already about one thing.
@@ -71,7 +80,7 @@ class PatientTopBar extends StatelessWidget {
               },
             ),
           ],
-          if (onExit != null) ...<Widget>[
+          if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
               icon: Icons.logout_rounded,

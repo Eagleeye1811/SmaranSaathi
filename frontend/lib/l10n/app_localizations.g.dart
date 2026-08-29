@@ -127,6 +127,10 @@ const Map<String, String> _strings_as = <String, String>{
   'languageEnglish': 'ইংৰাজী',
   'languageHindi': 'হিন্দী',
   'languageAssamese': 'অসমীয়া',
+  'voiceNavButton': 'মাতেৰে ক\'ৰবালৈ যাওক',
+  'voiceNavTitle': 'মই আপোনাৰ বাবে কি কৰিম?',
+  'voiceNavSpeakNow': 'এতিয়া কওক',
+  'voiceNavHint': 'যেনে কওক: “কামবোৰ খোলক”।',
 };
 
 const Map<String, String> _strings_en = <String, String>{
@@ -252,6 +256,10 @@ const Map<String, String> _strings_en = <String, String>{
   'languageEnglish': 'English',
   'languageHindi': 'Hindi',
   'languageAssamese': 'Assamese',
+  'voiceNavButton': 'Go somewhere by voice',
+  'voiceNavTitle': 'What should I do for you?',
+  'voiceNavSpeakNow': 'Speak now',
+  'voiceNavHint': 'Say something like “take me to activities”.',
 };
 
 const Map<String, String> _strings_hi = <String, String>{
@@ -377,6 +385,10 @@ const Map<String, String> _strings_hi = <String, String>{
   'languageEnglish': 'अंग्रेज़ी',
   'languageHindi': 'हिन्दी',
   'languageAssamese': 'असमिया',
+  'voiceNavButton': 'आवाज़ से कहीं जाएँ',
+  'voiceNavTitle': 'मैं आपके लिए क्या करूँ?',
+  'voiceNavSpeakNow': 'अभी बोलिए',
+  'voiceNavHint': 'ऐसे कहिए: “गतिविधियाँ खोलो”।',
 };
 
 const Map<String, Map<String, String>> _byLocale =

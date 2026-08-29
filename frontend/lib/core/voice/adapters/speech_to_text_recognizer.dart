@@ -22,18 +22,50 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
   /// next permission check can tell a denial from a missing engine.
   SpeechRecognitionError? _lastError;
 
+  /// Where the current turn's results go. Null between turns, and detached
+  /// the instant a turn is ended deliberately.
+  void Function(SpeechResult result)? _sink;
+
+  /// The most recent transcript, kept so a turn that ends without a final
+  /// result still has something to hand back.
+  String _heard = '';
+
+  /// Whether this turn has already produced its one final result.
+  bool _finalSent = false;
+
   @override
   Future<bool> initialize() async {
     if (_initialised) return _available;
     _initialised = true;
     _available = await _engine.initialize(
       onError: (SpeechRecognitionError e) => _lastError = e,
-      onStatus: (_) {},
+      onStatus: _onStatus,
       // The plugin asks for permission during initialize; we want that
       // separated so the UI can explain itself first.
       debugLogging: false,
     );
     return _available;
+  }
+
+  /// Treats the engine going quiet as the end of the sentence.
+  ///
+  /// This is what lets someone simply stop talking instead of reaching for a
+  /// button. A final result is *supposed* to arrive when the recogniser
+  /// detects a pause, but on a good number of Android builds the end of a
+  /// turn is announced only as a status change and no final result ever
+  /// follows — the partials just stop. Every caller was then left waiting
+  /// forever on a turn the engine had already finished.
+  ///
+  /// Only fires for a turn the engine ended by itself: [stop] and [cancel]
+  /// detach the sink first, because those callers resolve the turn
+  /// themselves and a second ending would run the whole flow twice.
+  void _onStatus(String status) {
+    if (status != 'done' && status != 'notListening') return;
+    final void Function(SpeechResult result)? sink = _sink;
+    if (sink == null || _finalSent) return;
+    _finalSent = true;
+    _sink = null;
+    sink(SpeechResult(text: _heard, isFinal: true));
   }
 
   @override
@@ -81,19 +113,35 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
       return onError(const VoiceError(VoiceErrorKind.speechUnavailable));
     }
     _lastError = null;
+    _sink = onResult;
+    _heard = '';
+    _finalSent = false;
 
     await _engine.listen(
-      localeId: localeId,
-      onResult: (SpeechRecognitionResult r) => onResult(SpeechResult(
-        text: r.recognizedWords,
-        isFinal: r.finalResult,
-        confidence: r.confidence,
-      )),
-      listenFor: listenFor,
-      pauseFor: pauseFor,
+      onResult: (SpeechRecognitionResult r) {
+        _heard = r.recognizedWords;
+        final void Function(SpeechResult result)? sink = _sink;
+        if (sink == null) return;
+        if (r.finalResult) {
+          _finalSent = true;
+          _sink = null;
+        }
+        sink(SpeechResult(
+          text: r.recognizedWords,
+          isFinal: r.finalResult,
+          confidence: r.confidence,
+        ));
+      },
+      // All of these belong in the options object; passing them as top-level
+      // arguments is deprecated in speech_to_text 7.
       listenOptions: stt.SpeechListenOptions(
+        localeId: localeId,
+        listenFor: listenFor,
+        pauseFor: pauseFor,
         // Partial results drive the live transcript, which is the feedback
-        // that tells an uncertain user the device is hearing them.
+        // that tells an uncertain user the device is hearing them — and they
+        // are also the text a turn falls back on when the engine ends
+        // without a final result.
         partialResults: true,
         cancelOnError: true,
         listenMode: stt.ListenMode.confirmation,
@@ -117,13 +165,22 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
       );
 
   @override
-  Future<void> stop() => _engine.stop();
+  Future<void> stop() {
+    // Detached first: the caller is ending this turn and will act on what it
+    // already has, so the engine's own ending must not run the flow again.
+    _sink = null;
+    return _engine.stop();
+  }
 
   @override
-  Future<void> cancel() => _engine.cancel();
+  Future<void> cancel() {
+    _sink = null;
+    return _engine.cancel();
+  }
 
   @override
   void dispose() {
+    _sink = null;
     // The plugin has no dispose; cancelling releases the microphone.
     _engine.cancel();
   }

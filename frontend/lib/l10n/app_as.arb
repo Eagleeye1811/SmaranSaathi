@@ -135,5 +135,10 @@
 
   "languageEnglish": "ইংৰাজী",
   "languageHindi": "হিন্দী",
-  "languageAssamese": "অসমীয়া"
+  "languageAssamese": "অসমীয়া",
+
+  "voiceNavButton": "মাতেৰে ক'ৰবালৈ যাওক",
+  "voiceNavTitle": "মই আপোনাৰ বাবে কি কৰিম?",
+  "voiceNavSpeakNow": "এতিয়া কওক",
+  "voiceNavHint": "যেনে কওক: “কামবোৰ খোলক”।"
 }

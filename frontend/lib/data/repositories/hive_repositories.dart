@@ -385,6 +385,7 @@ class HiveSettingsRepository implements SettingsRepository {
       offlineOverride: b.get('offlineOverride') as bool? ?? false,
       lastRole: b.get('lastRole') as String?,
       lastAccountId: b.get('lastAccountId') as String?,
+      safeZoneJson: b.get('safeZone') as String?,
     );
   }
 
@@ -398,11 +399,16 @@ class HiveSettingsRepository implements SettingsRepository {
       'offlineOverride': settings.offlineOverride,
       if (settings.lastRole != null) 'lastRole': settings.lastRole,
       if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
+      if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
     });
     // A null account means "signed out", which has to *remove* the key —
     // skipping the write would leave the previous uid in the box and reopen
     // someone else's assessment on the next launch.
     if (settings.lastAccountId == null) await _store.settings.delete('lastAccountId');
+    // Same reasoning: a removed zone has to leave the box, or the old
+    // boundary comes back at the next launch and alarms about a house the
+    // family has moved out of.
+    if (settings.safeZoneJson == null) await _store.settings.delete('safeZone');
   }
 }
 

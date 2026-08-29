@@ -8,7 +8,11 @@ import 'package:memory_mitra/core/services/auth_service.dart';
 import 'package:memory_mitra/app/app.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/features/auth/sign_in_screen.dart';
+import 'package:memory_mitra/features/auth/role_selection_screen.dart';
 import 'package:memory_mitra/features/intake/welcome_screens.dart';
+import 'package:memory_mitra/features/patient/profile/patient_profile_screen.dart';
+import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:memory_mitra/app/theme/app_theme.dart';
 
 /// A fake, in-memory `AuthService` — the same "swap the real thing for a
 /// controllable fake" pattern already used for `ConnectivityService`
@@ -375,5 +379,68 @@ void main() {
     expect(find.byType(SignInScreen), findsNothing);
     expect(state.accountId, isNull);
     expect(auth.currentUser, isNull);
+  });
+
+  group('there is always a way back to the role picker', () {
+    // A plain `test`, not `testWidgets`: `signInAccount` awaits repository
+    // reads, and inside testWidgets' fake async those futures only complete
+    // while the tester pumps.
+    test('signing out clears the role, so the picker is reachable', () async {
+      final AppState state = AppState();
+      addTearDown(state.dispose);
+      // The real order: sign in, then choose a role. (A fresh uid with no
+      // stored profile resets the role on purpose, so setting it first would
+      // be testing nothing.)
+      await state.signInAccount('uid-1');
+      state.setRole(AppRole.patient);
+      expect(state.role, AppRole.patient);
+
+      await state.signOutAccount();
+
+      // The role went with the account. Without this, `sessionHome` sent the
+      // next sign-in straight back into the patient app and the role picker
+      // could never be reached again.
+      expect(state.role, AppRole.none);
+      expect(WelcomeScreen.sessionHome(state), isA<RoleSelectionScreen>());
+    });
+
+    testWidgets('"Switch role" reaches the picker even from a root patient app',
+        (WidgetTester tester) async {
+      // Generous, because this test is about navigation and the destination
+      // screen's own layout at small sizes is not what is under test.
+      tester.view.physicalSize = const Size(834, 1180) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+
+      // The patient profile as the *root* route, which is what signing in
+      // produces: `sessionHome` arrives through `Nav.rootTo`, so there is
+      // nothing underneath to pop and the old `maybePop` did nothing at all.
+      await tester.pumpWidget(AppScope(
+        state: state,
+        child: MaterialApp(
+          theme: AppTheme.warm(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          // The screen's own Switch needs a Material ancestor that a bare
+          // `home:` does not provide.
+          home: const Material(child: PatientProfileScreen()),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      final Finder switchRole = find.text('Switch role');
+      await tester.scrollUntilVisible(switchRole, 300,
+          scrollable: find.byType(Scrollable).first);
+      await tester.tap(switchRole);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.byType(RoleSelectionScreen), findsOneWidget);
+      expect(state.role, AppRole.none);
+    });
   });
 }

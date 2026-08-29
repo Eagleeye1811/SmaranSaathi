@@ -11,7 +11,7 @@ android {
     // androidx.core the Firebase plugins pull in both require API 36, and the
     // Firebase / connectivity / path_provider plugins all want NDK 27.
     compileSdk = 36
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "29.0.14206865"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

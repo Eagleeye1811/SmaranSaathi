@@ -13,7 +13,9 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../core/models/safety.dart';
 import '../onboarding/patient_onboarding_flow.dart';
+import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// The caregiver's home: how the day has gone, and what needs attention.
@@ -90,6 +92,14 @@ class CaregiverDashboardScreen extends StatelessWidget {
                       onOpen: () => onOpenTab?.call(1),
                     ),
                   ),
+                  const SizedBox(height: Insets.lg),
+
+                  // ── Safe zone ─────────────────────────────────────────
+                  //
+                  // Directly under the patient card, above the day's numbers:
+                  // "where are they" outranks "how did the puzzles go" for a
+                  // caregiver opening this screen worried.
+                  FadeInUp(delayMs: 70, child: _SafeZoneCard(state: state)),
                   const SizedBox(height: Insets.lg),
 
                   // ── Today's overview ──────────────────────────────────
@@ -643,6 +653,63 @@ class _AlertCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The dashboard's way in to the map, doubling as the wandering alert.
+class _SafeZoneCard extends StatelessWidget {
+  const _SafeZoneCard({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final SafeZone? zone = state.safeZone;
+    final SafeZoneEvent? alert = state.activeWanderAlert;
+    final bool wandering = alert != null;
+
+    final Color accent = wandering
+        ? AppColors.danger
+        : (zone == null ? AppColors.inkMuted : AppColors.success);
+
+    return MmCard(
+      onTap: () => Nav.push(context, const SafeZoneScreen()),
+      color: wandering ? AppColors.dangerTint : null,
+      child: Row(
+        children: <Widget>[
+          SoftIcon(
+            icon: wandering
+                ? Icons.warning_amber_rounded
+                : (zone == null ? Icons.add_location_alt_outlined : Icons.shield_outlined),
+            color: accent,
+          ),
+          const SizedBox(width: Insets.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  wandering
+                      ? '${state.patient.shortName} has left ${alert.zoneLabel}'
+                      : (zone == null ? 'Set a safe zone' : 'Safe zone · ${zone.label}'),
+                  style: AppText.h3.tint(wandering ? AppColors.danger : AppColors.ink),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  wandering
+                      ? '${alert.distanceMetres.round()} m outside. Open the map to see where.'
+                      : (zone == null
+                          ? 'Be told if they wander away from home.'
+                          : '${zone.radiusMetres.round()} m around ${zone.label}. Tap to see the map.'),
+                  style: AppText.bodySmall.tint(AppColors.inkSoft),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
         ],
       ),
     );

@@ -157,5 +157,11 @@
 
   "languageEnglish": "English",
   "languageHindi": "Hindi",
-  "languageAssamese": "Assamese"
+  "languageAssamese": "Assamese",
+
+  "voiceNavButton": "Go somewhere by voice",
+  "voiceNavTitle": "What should I do for you?",
+  "voiceNavSpeakNow": "Speak now",
+  "voiceNavHint": "Say something like “take me to activities”.",
+  "@voiceNavButton": {"description": "Label of the microphone button that opens spoken navigation."}
 }

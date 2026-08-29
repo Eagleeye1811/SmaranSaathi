@@ -3,6 +3,14 @@
          the moment the patient first taps "Talk to Mitra", never at launch. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
+    <!-- Safe zone: the patient's position is read only while the app is in
+         the foreground, so ACCESS_BACKGROUND_LOCATION is deliberately absent.
+         INTERNET is already implied by the Flutter debug manifest but is
+         declared here because the map tiles need it in release too. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="memory_mitra"
         android:name="${applicationName}"

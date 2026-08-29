@@ -12,6 +12,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/models/auth_user.dart';
 import '../../../core/services/auth_service.dart';
+import '../../auth/role_selection_screen.dart';
 import '../../auth/sign_in_screen.dart';
 import '../../intake/welcome_screens.dart';
 import '../health/report_screen.dart';
@@ -356,7 +357,15 @@ class PatientProfileScreen extends StatelessWidget {
                       color: AppColors.inkSoft,
                       outlined: true,
                       height: 62,
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      // Was `maybePop`, which did nothing whenever the
+                      // patient app was the root route — which it is for
+                      // anyone who signed in, since `sessionHome` arrives
+                      // here through `Nav.rootTo`. Clearing the role and
+                      // going to the picker works from either entry.
+                      onPressed: () {
+                        AppScope.read(context).setRole(AppRole.none);
+                        Nav.rootTo(context, const RoleSelectionScreen());
+                      },
                     ),
                   ),
                 ],

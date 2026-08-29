@@ -256,7 +256,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 onTap: () => Nav.push(context, const CarePlanScreen()),
               ),
               const SizedBox(height: Insets.lg),
-              _RemindersStrip(state: state, onOpenTab: onOpenTab),
+              _RemindersStrip(state: state, onOpenTab: widget.onOpenTab),
               const SizedBox(height: Insets.md),
               // The warm parts of the app the monitoring journey sits on top
               // of. Kept one tap away rather than in the navigation bar: they
@@ -279,7 +279,9 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       label: 'Today',
                       detail: 'Check-in and reminders',
                       color: AppColors.plum,
-                      onTap: () => onOpenTab != null ? onOpenTab!(1) : Nav.push(context, const TodayScreen()),
+                      onTap: () => widget.onOpenTab != null
+                          ? widget.onOpenTab!(1)
+                          : Nav.push(context, const TodayScreen()),
                     ),
                   ),
                 ],
