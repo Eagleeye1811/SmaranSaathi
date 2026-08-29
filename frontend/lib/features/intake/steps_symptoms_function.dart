@@ -7,6 +7,8 @@ import '../../core/models/assessment.dart';
 import '../../core/services/app_state.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/app_localizations.dart';
+import 'assessment_l10n.dart';
 import 'intake_kit.dart';
 
 /// Step 5 — the symptom questionnaire, one group per screen.
@@ -104,6 +106,7 @@ class _SymptomStepState extends State<SymptomStep> {
   Widget build(BuildContext context) {
     final List<SymptomItem> items = SymptomCatalogue.of(_domain);
     final bool detailed = _detailed.contains(_domain);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     return IntakeScaffold(
       stepIndex: 5,
@@ -114,11 +117,11 @@ class _SymptomStepState extends State<SymptomStep> {
       voiceKey: _domain,
       voiceQuestions: <VoiceIntakeQuestion>[
         VoiceIntakeQuestion(
-          prompt: '${_domain.label}. ${_domain.prompt} '
-              '${items.map((SymptomItem i) => i.text.toLowerCase()).join(', ')}. '
-              'How often does anything like this happen?',
+          prompt: '${symptomDomainLabel(l, _domain)}. ${symptomDomainPrompt(l, _domain)} '
+              '${items.map((SymptomItem i) => symptomItemText(l, i).toLowerCase()).join(', ')}. '
+              '${l.intakeSymptomFrequencyQuestion}',
           options: SymptomFrequency.values
-              .map((SymptomFrequency f) => f.label)
+              .map((SymptomFrequency f) => symptomFrequencyLabel(l, f))
               .toList(growable: false),
           answeredIndex: _stem[_domain]?.index,
           onSelect: (int i) => _answerStem(SymptomFrequency.values[i]),
@@ -126,9 +129,9 @@ class _SymptomStepState extends State<SymptomStep> {
         if (detailed)
           for (final SymptomItem item in items)
             VoiceIntakeQuestion(
-              prompt: '${_domain.prompt} ${item.text.toLowerCase()}?',
+              prompt: '${symptomDomainPrompt(l, _domain)} ${symptomItemText(l, item).toLowerCase()}?',
               options: SymptomFrequency.values
-                  .map((SymptomFrequency f) => f.label)
+                  .map((SymptomFrequency f) => symptomFrequencyLabel(l, f))
                   .toList(growable: false),
               answeredIndex: _assessment.responses[item.id]?.index,
               onSelect: (int i) => setState(() {
@@ -137,12 +140,13 @@ class _SymptomStepState extends State<SymptomStep> {
               }),
             ),
       ],
-      title: _domain.label,
+      title: symptomDomainLabel(l, _domain),
       subtitle: '${_group + 1} of ${SymptomDomain.values.length}',
       onContinue: _groupAnswered ? _next : null,
-      continueLabel:
-          _group == SymptomDomain.values.length - 1 ? 'Finish symptoms' : 'Next group',
-      footnote: _groupAnswered ? null : 'One answer is enough to continue.',
+      continueLabel: _group == SymptomDomain.values.length - 1
+          ? l.intakeSymptomsFinish
+          : l.intakeSymptomsNextGroup,
+      footnote: _groupAnswered ? null : l.intakeSymptomsFootnote,
       children: <Widget>[
         MmCard(
           padding: const EdgeInsets.all(Insets.md),
@@ -150,7 +154,7 @@ class _SymptomStepState extends State<SymptomStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('${_domain.prompt}…', style: AppText.label),
+              Text('${symptomDomainPrompt(l, _domain)}…', style: AppText.label),
               const SizedBox(height: Insets.sm),
               for (final SymptomItem item in items)
                 Padding(
@@ -160,7 +164,7 @@ class _SymptomStepState extends State<SymptomStep> {
                     children: <Widget>[
                       const Text('•  ', style: TextStyle(height: 1.4)),
                       Expanded(
-                        child: Text(item.text.toLowerCase(), style: AppText.bodySmall),
+                        child: Text(symptomItemText(l, item).toLowerCase(), style: AppText.bodySmall),
                       ),
                     ],
                   ),
@@ -170,9 +174,9 @@ class _SymptomStepState extends State<SymptomStep> {
         ),
         const SizedBox(height: Insets.md),
         ScaleQuestion(
-          question: 'How often does anything like this happen?',
+          question: l.intakeSymptomFrequencyQuestion,
           options: SymptomFrequency.values
-              .map((SymptomFrequency f) => f.label)
+              .map((SymptomFrequency f) => symptomFrequencyLabel(l, f))
               .toList(growable: false),
           selectedIndex: _stem[_domain]?.index,
           onSelect: (int i) => _answerStem(SymptomFrequency.values[i]),
@@ -180,16 +184,15 @@ class _SymptomStepState extends State<SymptomStep> {
         if (detailed) ...<Widget>[
           const SizedBox(height: Insets.sm),
           Text(
-            'Since some of this is happening, it helps to be a little more '
-            'exact. Adjust anything that is not right.',
+            l.intakeSymptomsDetailIntro,
             style: AppText.bodySmall,
           ),
           const SizedBox(height: Insets.sm),
           for (final SymptomItem item in items)
             ScaleQuestion(
-              question: item.text,
+              question: symptomItemText(l, item),
               options: SymptomFrequency.values
-                  .map((SymptomFrequency f) => f.label)
+                  .map((SymptomFrequency f) => symptomFrequencyLabel(l, f))
                   .toList(growable: false),
               selectedIndex: _assessment.responses[item.id]?.index,
               onSelect: (int i) => setState(() {
@@ -212,8 +215,7 @@ class _SymptomStepState extends State<SymptomStep> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Nothing to report here. That is recorded for all '
-                    '${items.length} of them.',
+                    l.intakeSymptomsNothingToReport(items.length),
                     style: AppText.bodySmall,
                   ),
                 ),
@@ -222,16 +224,14 @@ class _SymptomStepState extends State<SymptomStep> {
           ),
           const SizedBox(height: Insets.sm),
           SoftButton(
-            label: 'Answer these one by one instead',
+            label: l.intakeSymptomsAnswerIndividually,
             icon: Icons.tune_rounded,
             onPressed: () => setState(() => _detailed.add(_domain)),
           ),
         ],
         const SizedBox(height: Insets.sm),
-        const NotADiagnosisNote(
-          message:
-              'These questions describe what you notice. They are not a test and '
-              'there are no wrong answers.',
+        NotADiagnosisNote(
+          message: l.intakeSymptomsDisclaimer,
         ),
       ],
     );
@@ -288,6 +288,7 @@ class _FunctionStepState extends State<FunctionStep> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.read(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final int needing = _assessment.needingHelp.length;
 
     return IntakeScaffold(
@@ -297,22 +298,23 @@ class _FunctionStepState extends State<FunctionStep> {
       voiceQuestions: <VoiceIntakeQuestion>[
         for (final FunctionalItem item in FunctionCatalogue.items)
           VoiceIntakeQuestion(
-            prompt: '${item.label}. Do you do this by yourself, '
-                'with a little help, or with a lot of help?',
-            options: const <String>['By myself', 'A little help', 'A lot of help'],
+            prompt: '${functionalItemLabel(l, item)}. ${l.intakeFunctionHelpPrompt}',
+            options: <String>[
+              l.intakeFunctionByMyself,
+              l.intakeFunctionLittleHelp,
+              l.intakeFunctionLotHelp,
+            ],
             answeredIndex: _levelOf(item).index,
             onSelect: (int i) => _set(item, FunctionLevel.values[i]),
           ),
       ],
-      title: 'Everyday activities',
-      subtitle: 'Which of these do you still do by yourself?',
+      title: l.intakeFunctionTitle,
+      subtitle: l.intakeFunctionSubtitle,
       onContinue: () {
         state.saveFunction(_assessment);
         widget.onDone();
       },
-      footnote: needing == 0
-          ? 'All ticked — that is a complete answer, not a skipped question.'
-          : null,
+      footnote: needing == 0 ? l.intakeFunctionAllTickedFootnote : null,
       children: <Widget>[
         // The instruction, in the same two states the rows themselves use.
         // "Untick what you need help with" was the whole instruction before,
@@ -323,20 +325,20 @@ class _FunctionStepState extends State<FunctionStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Tap a row to change it', style: AppText.body.wght(700)),
+              Text(l.intakeFunctionTapToChange, style: AppText.body.wght(700)),
               const SizedBox(height: Insets.sm),
-              const _Legend(
+              _Legend(
                 ticked: true,
-                text: 'Ticked — you do this by yourself',
+                text: l.intakeFunctionLegendTicked,
               ),
               const SizedBox(height: Insets.xs),
-              const _Legend(
+              _Legend(
                 ticked: false,
-                text: 'Not ticked — someone helps you with it',
+                text: l.intakeFunctionLegendUnticked,
               ),
               const SizedBox(height: Insets.sm),
               Text(
-                'They all start ticked. If that is right, just continue.',
+                l.intakeFunctionStartTickedNote,
                 style: AppText.bodySmall,
               ),
             ],
@@ -362,7 +364,7 @@ class _FunctionStepState extends State<FunctionStep> {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  Expanded(child: Text('Doing by yourself', style: AppText.label)),
+                  Expanded(child: Text(l.intakeFunctionDoingByYourselfLabel, style: AppText.label)),
                   const SizedBox(width: Insets.sm),
                   Text(
                     '${FunctionCatalogue.items.length - needing} of '
@@ -377,11 +379,8 @@ class _FunctionStepState extends State<FunctionStep> {
           ),
         ),
         const SizedBox(height: Insets.md),
-        const NotADiagnosisNote(
-          message:
-              'Needing help with an activity is common and has many causes — '
-              'eyesight, arthritis, confidence, habit. This is recorded as '
-              'context, not as evidence of a condition.',
+        NotADiagnosisNote(
+          message: l.intakeFunctionDisclaimer,
         ),
       ],
     );
@@ -458,6 +457,7 @@ class _ActivityTick extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool independent = level == FunctionLevel.independent;
+    final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: Insets.sm),
       child: MmCard(
@@ -485,7 +485,7 @@ class _ActivityTick extends StatelessWidget {
                     const SizedBox(width: Insets.md),
                     Expanded(
                       child: Text(
-                        item.label,
+                        functionalItemLabel(l, item),
                         style: AppText.body.copyWith(
                           fontWeight:
                               independent ? FontWeight.w700 : FontWeight.w500,
@@ -493,7 +493,7 @@ class _ActivityTick extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      independent ? 'By myself' : 'With help',
+                      independent ? l.intakeFunctionByMyself : l.intakeFunctionWithHelp,
                       style: AppText.caption.copyWith(
                         color: independent ? AppColors.primary : AppColors.inkMuted,
                         fontWeight: FontWeight.w700,
@@ -507,8 +507,8 @@ class _ActivityTick extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(Insets.md, 0, Insets.md, Insets.sm),
                 child: ScaleQuestion(
-                  question: 'How much help with ${item.label.toLowerCase()}?',
-                  options: const <String>['A little', 'A lot'],
+                  question: l.intakeFunctionHowMuchHelp(functionalItemLabel(l, item).toLowerCase()),
+                  options: <String>[l.intakeFunctionALittle, l.intakeFunctionALot],
                   selectedIndex: level == FunctionLevel.needsHelp ? 0 : 1,
                   onSelect: (int i) => onLevel(
                     i == 0 ? FunctionLevel.needsHelp : FunctionLevel.dependent,

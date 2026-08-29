@@ -10,6 +10,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../intake/intake_kit.dart';
 import 'health_widgets.dart';
 import 'report_screen.dart';
@@ -32,29 +33,32 @@ class CognitiveProfileScreen extends StatelessWidget {
   final bool firstTime;
   final VoidCallback? onContinue;
 
-  static const Map<CognitiveDomain, String> _shortLabels = <CognitiveDomain, String>{
-    CognitiveDomain.memory: 'Memory',
-    CognitiveDomain.attention: 'Attention',
-    CognitiveDomain.reasoning: 'Language',
-    CognitiveDomain.spatial: 'Spatial',
-    CognitiveDomain.auditory: 'Auditory',
-    CognitiveDomain.procedural: 'Executive',
-  };
+  static Map<CognitiveDomain, String> _shortLabels(AppLocalizations l) =>
+      <CognitiveDomain, String>{
+        CognitiveDomain.memory: l.cognitiveDomainMemory,
+        CognitiveDomain.attention: l.cognitiveDomainAttention,
+        CognitiveDomain.reasoning: l.cognitiveDomainLanguage,
+        CognitiveDomain.spatial: l.cognitiveDomainSpatial,
+        CognitiveDomain.auditory: l.cognitiveDomainAuditory,
+        CognitiveDomain.procedural: l.cognitiveDomainExecutive,
+      };
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final MonitoringSnapshot snapshot = state.monitoring;
+    final Map<CognitiveDomain, String> shortLabels = _shortLabels(l);
 
     final Map<String, int> current = <String, int>{
       for (final DomainReading r in snapshot.readings)
-        if (r.hasReading) _shortLabels[r.domain]!: r.current!.round(),
+        if (r.hasReading) shortLabels[r.domain]!: r.current!.round(),
     };
     final Map<String, int>? baseline = snapshot.baseline == null
         ? null
         : <String, int>{
             for (final DomainReading r in snapshot.readings)
-              if (r.baseline != null) _shortLabels[r.domain]!: r.baseline!.round(),
+              if (r.baseline != null) shortLabels[r.domain]!: r.baseline!.round(),
           };
 
     return Scaffold(
@@ -65,11 +69,11 @@ class CognitiveProfileScreen extends StatelessWidget {
               Insets.gutter, Insets.md, Insets.gutter, Insets.xl),
           children: <Widget>[
             ScreenHeader(
-              eyebrow: firstTime ? 'Baseline complete' : 'Cognitive profile',
-              title: firstTime ? 'Your starting point' : 'Your cognitive profile',
+              eyebrow: firstTime ? l.cognitiveBaselineCompleteEyebrow : l.cognitiveProfileEyebrow,
+              title: firstTime ? l.cognitiveStartingPointTitle : l.cognitiveProfileTitle,
               subtitle: firstTime
-                  ? 'Everything from here is compared with these six numbers.'
-                  : 'Current performance against your own baseline.',
+                  ? l.cognitiveStartingPointSubtitle
+                  : l.cognitiveProfileSubtitle,
               leading: firstTime
                   ? null
                   : RoundIconButton(
@@ -79,8 +83,8 @@ class CognitiveProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: Insets.lg),
             if (firstTime) ...<Widget>[
-              const CompanionSpeech(
-                message: 'Well done. That is your starting point recorded.',
+              CompanionSpeech(
+                message: l.cognitiveWellDone,
                 state: CompanionState.celebrating,
               ),
               const SizedBox(height: Insets.lg),
@@ -92,7 +96,7 @@ class CognitiveProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(Insets.lg),
                 child: Column(
                   children: <Widget>[
-                    Text('Across the six domains', style: AppText.label),
+                    Text(l.cognitiveAcrossSixDomains, style: AppText.label),
                     const SizedBox(height: Insets.md),
                     Center(
                       child: RadarChart(
@@ -103,9 +107,9 @@ class CognitiveProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: Insets.md),
                     ChartLegend(entries: <({String label, Color color})>[
-                      (label: 'Now', color: AppColors.seriesTeal),
+                      (label: l.cognitiveChartNow, color: AppColors.seriesTeal),
                       if (baseline != null)
-                        (label: 'Baseline', color: AppColors.seriesBlue),
+                        (label: l.cognitiveChartBaseline, color: AppColors.seriesBlue),
                     ]),
                   ],
                 ),
@@ -113,10 +117,10 @@ class CognitiveProfileScreen extends StatelessWidget {
               const SizedBox(height: Insets.lg),
             ],
             SectionHeader(
-              title: 'By domain',
+              title: l.cognitiveByDomainTitle,
               subtitle: firstTime
-                  ? 'Your first measurement in each area'
-                  : 'Current score, and change from baseline',
+                  ? l.cognitiveFirstMeasurement
+                  : l.cognitiveCurrentScoreChange,
             ),
             const SizedBox(height: Insets.sm),
             for (final DomainReading r in snapshot.readings) DomainRow(reading: r),
@@ -124,28 +128,25 @@ class CognitiveProfileScreen extends StatelessWidget {
             _KeyObservation(snapshot: snapshot, firstTime: firstTime),
             const SizedBox(height: Insets.lg),
             SectionHeader(
-              title: 'Patterns observed',
-              subtitle: 'What was reported and measured, grouped',
+              title: l.cognitivePatternsObservedTitle,
+              subtitle: l.cognitivePatternsObservedSubtitle,
             ),
             const SizedBox(height: Insets.sm),
             for (final ObservedPattern p in snapshot.patterns) PatternRow(pattern: p),
             const SizedBox(height: Insets.sm),
-            const NotADiagnosisNote(
-              message:
-                  'These are patterns in what you reported and what the activities '
-                  'measured. This app deliberately does not estimate the likelihood '
-                  'of any specific condition — that requires a clinical assessment.',
+            NotADiagnosisNote(
+              message: l.cognitivePatternsDisclaimer,
             ),
             const SizedBox(height: Insets.lg),
             if (firstTime)
               BigButton(
-                label: 'Go to my dashboard',
+                label: l.cognitiveGoToDashboard,
                 icon: Icons.arrow_forward_rounded,
                 onPressed: onContinue,
               )
             else
               BigButton(
-                label: 'Prepare a summary for my doctor',
+                label: l.cognitivePrepareSummary,
                 icon: Icons.description_outlined,
                 onPressed: () => Nav.push(context, const ReportScreen()),
               ),
@@ -164,6 +165,7 @@ class _KeyObservation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       color: AppColors.primaryTint,
       padding: const EdgeInsets.all(Insets.lg),
@@ -174,24 +176,19 @@ class _KeyObservation extends StatelessWidget {
             children: <Widget>[
               const Icon(Icons.lightbulb_outline_rounded, color: AppColors.primaryDeep),
               const SizedBox(width: Insets.sm),
-              Text('Key observation', style: AppText.label.copyWith(color: AppColors.primaryDeep)),
+              Text(l.cognitiveKeyObservation,
+                  style: AppText.label.copyWith(color: AppColors.primaryDeep)),
             ],
           ),
           const SizedBox(height: Insets.sm),
           Text(
-            firstTime
-                ? 'This first session is your reference point. A single set of '
-                    'scores says very little on its own — what carries meaning is '
-                    'how they move over the coming weeks.'
-                : snapshot.headline,
+            firstTime ? l.cognitiveFirstSessionReference : snapshot.headline,
             style: AppText.bodyLarge.copyWith(height: 1.5),
           ),
           if (!firstTime && snapshot.suggestsClinicalDiscussion) ...<Widget>[
             const SizedBox(height: Insets.md),
             Text(
-              'Change has been observed in more than one area, alongside reported '
-              'difficulty with daily activities. That combination is worth '
-              'discussing with a healthcare professional.',
+              l.cognitiveChangeMultipleAreas,
               style: AppText.body.copyWith(color: AppColors.inkSoft, height: 1.5),
             ),
           ],

@@ -7,6 +7,7 @@ import '../../../core/models/clinical.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Clinician typography — the warm palette's ink swapped for the cooler
 /// clinical one, so the two experiences never look like the same product.
@@ -93,6 +94,7 @@ class ClinicTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 10, Insets.gutter, 14),
       child: Row(
@@ -137,7 +139,7 @@ class ClinicTopBar extends StatelessWidget {
             icon: Icons.logout_rounded,
             size: 36,
             color: AppColors.clinicInkSoft,
-            tooltip: 'Switch role',
+            tooltip: l.actionSwitchRole,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
         ],

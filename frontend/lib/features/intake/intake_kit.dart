@@ -5,6 +5,7 @@ import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/app_localizations.dart';
 import 'voice_intake_panel.dart';
 
 /// Shared chrome for every step of the intake.
@@ -42,7 +43,7 @@ class IntakeScaffold extends StatelessWidget {
     this.stepIndex,
     this.stepCount,
     this.onContinue,
-    this.continueLabel = 'Continue',
+    this.continueLabel,
     this.secondaryLabel,
     this.onSecondary,
     this.onBack,
@@ -69,7 +70,7 @@ class IntakeScaffold extends StatelessWidget {
   final int? stepCount;
 
   final VoidCallback? onContinue;
-  final String continueLabel;
+  final String? continueLabel;
   final String? secondaryLabel;
   final VoidCallback? onSecondary;
   final VoidCallback? onBack;
@@ -78,6 +79,7 @@ class IntakeScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool hasProgress = stepIndex != null && stepCount != null;
     final VoiceIntakeController? voice = VoiceIntakeScope.maybeOf(context);
     return Scaffold(
@@ -98,12 +100,14 @@ class IntakeScaffold extends StatelessWidget {
                           child: RoundIconButton(
                             icon: Icons.arrow_back_rounded,
                             onPressed: onBack,
-                            tooltip: 'Back',
+                            tooltip: l.intakeBack,
                           ),
                         ),
                       Expanded(
                         child: Text(
-                          hasProgress ? 'Step $stepIndex of $stepCount' : (eyebrow ?? ''),
+                          hasProgress
+                              ? l.intakeStepProgress(stepIndex!, stepCount!)
+                              : (eyebrow ?? ''),
                           style: AppText.overline.copyWith(color: accent),
                         ),
                       ),
@@ -140,7 +144,7 @@ class IntakeScaffold extends StatelessWidget {
             ),
             _ActionBar(
               onContinue: onContinue,
-              continueLabel: continueLabel,
+              continueLabel: continueLabel ?? l.actionContinue,
               secondaryLabel: secondaryLabel,
               onSecondary: onSecondary,
               footnote: footnote,
@@ -385,12 +389,9 @@ class NotADiagnosisNote extends StatelessWidget {
   final String? message;
   final bool compact;
 
-  static const String standard =
-      'This is a monitoring observation, not a medical diagnosis. Persistent '
-      'changes should be discussed with a healthcare professional.';
-
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(compact ? Insets.sm : Insets.md),
@@ -405,7 +406,7 @@ class NotADiagnosisNote extends StatelessWidget {
           const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.inkMuted),
           const SizedBox(width: Insets.sm),
           Expanded(
-            child: Text(message ?? standard,
+            child: Text(message ?? l.intakeDiagnosisDisclaimerStandard,
                 style: AppText.caption.copyWith(height: 1.45)),
           ),
         ],

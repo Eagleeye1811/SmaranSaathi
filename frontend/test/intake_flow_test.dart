@@ -70,6 +70,16 @@ Future<void> drainSync(WidgetTester tester, AppState state, {int maxBeats = 20})
   }
 }
 
+/// The plain-`test()` equivalent of [drainSync] — no `WidgetTester` exists in
+/// that context (that is the point: it keeps the widget binding, and its
+/// pending-timer assertion, out of the way), so this polls with a real delay
+/// instead of pumping one.
+Future<void> drainSyncPlain(AppState state, {int maxBeats = 20}) async {
+  for (int i = 0; i < maxBeats && state.pendingSync > 0; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 200));
+  }
+}
+
 /// Drags the screen's scrollable to the bottom so every card is laid out.
 Future<void> scrollThrough(WidgetTester tester) async {
   final Finder list = find.byType(Scrollable).first;
@@ -506,7 +516,7 @@ void main() {
     // Six activities each queue an operation, and SyncManager drains them
     // one at a time (~180ms via LoopbackTransport) — a fixed couple of beats
     // isn't reliably enough real time for all of them, so poll instead.
-    await drainSync(tester, state);
+    await drainSyncPlain(state);
 
     final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
     expect(memoryBaseline, isNotNull);

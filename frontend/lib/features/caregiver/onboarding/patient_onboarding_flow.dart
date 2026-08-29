@@ -12,6 +12,7 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../patient/patient_shell.dart';
 
 /// Six-step onboarding run by the caregiver.
@@ -45,16 +46,29 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
   final Set<String> _assetIds = <String>{};
   final List<RoutineItem> _routine = List<RoutineItem>.from(MockData.routine);
 
+  AppLocalizations get _l => AppLocalizations.of(context);
+
+  // The canonical (English) values actually stored in `_language` and, on
+  // commit, `Patient.language` — downstream code (`VoiceLanguageX
+  // .fromPatientLanguage`, `LocaleController.fromPatientLanguage`) matches
+  // against these English names regardless of interface language, so only
+  // the *displayed* chip label may change with locale; the stored value
+  // must not.
   static const List<String> _languages = <String>[
-    'Assamese',
-    'Bodo',
-    'Meiteilon',
-    'Khasi',
-    'Mizo',
-    'Nagamese',
-    'Bengali',
-    'Hindi',
+    'Assamese', 'Bodo', 'Meiteilon', 'Khasi', 'Mizo', 'Nagamese', 'Bengali', 'Hindi',
   ];
+
+  String _languageLabel(String canonical) => switch (canonical) {
+        'Assamese' => _l.languageAssamese,
+        'Hindi' => _l.languageHindi,
+        'Bodo' => _l.caregiverLangBodo,
+        'Meiteilon' => _l.caregiverLangMeiteilon,
+        'Khasi' => _l.caregiverLangKhasi,
+        'Mizo' => _l.caregiverLangMizo,
+        'Nagamese' => _l.caregiverLangNagamese,
+        'Bengali' => _l.caregiverLangBengali,
+        _ => canonical,
+      };
 
   @override
   void initState() {
@@ -139,7 +153,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
           .where((MemoryAsset a) => _assetIds.contains(a.id))
           .toList(growable: false),
       routine: _routine,
-      joinedOn: 'Profile created today',
+      joinedOn: _l.caregiverProfileCreatedToday,
       phoneNumber: _phone.text.trim(),
     );
     state.updateDraft(p);
@@ -194,13 +208,13 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
   }
 
   Widget _header() {
-    const List<String> titles = <String>[
-      'Let\'s get to know her',
-      'Family & friends',
-      'Life & memories',
-      'Memory photographs',
-      'Her daily routine',
-      'Ready',
+    final List<String> titles = <String>[
+      _l.caregiverStepTitleIdentity,
+      _l.caregiverStepTitleFamily,
+      _l.caregiverMemoriesTitle,
+      _l.caregiverPhotographsTitle,
+      _l.caregiverStepTitleRoutine,
+      _l.caregiverStepTitleReady,
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, Insets.md),
@@ -219,7 +233,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('STEP ${_step + 1} / $_totalSteps', style: AppText.overline),
+                    Text(_l.caregiverStepLabel(_step + 1, _totalSteps), style: AppText.overline),
                     const SizedBox(height: 3),
                     Text(titles[_step], style: AppText.h2),
                   ],
@@ -262,7 +276,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
             Expanded(
               flex: 2,
               child: BigButton(
-                label: 'Back',
+                label: _l.caregiverBackButton,
                 color: AppColors.inkSoft,
                 outlined: true,
                 height: 60,
@@ -274,7 +288,9 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
           Expanded(
             flex: 3,
             child: BigButton(
-              label: _step == _totalSteps - 1 ? 'Create her companion' : 'Continue',
+              label: _step == _totalSteps - 1
+                  ? _l.caregiverCreateCompanionButton
+                  : _l.actionContinue,
               icon: _step == _totalSteps - 1
                   ? Icons.auto_awesome_rounded
                   : Icons.arrow_forward_rounded,
@@ -296,8 +312,8 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     return ListView(
       padding: _pagePad,
       children: <Widget>[
-        const CompanionSpeech(
-          message: 'Tell me about the person I will be keeping company.',
+        CompanionSpeech(
+          message: _l.caregiverStep1Companion,
           state: CompanionState.happy,
           companionSize: 68,
           compact: true,
@@ -307,7 +323,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('HER PHOTOGRAPH', style: AppText.overline),
+              Text(_l.caregiverHerPhotographLabel, style: AppText.overline),
               const SizedBox(height: 12),
               SizedBox(
                 height: 92,
@@ -339,20 +355,20 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text('Demo photographs — the full product uses the family\'s own photos.',
+              Text(_l.caregiverDemoPhotosNote,
                   style: AppText.caption),
               const SizedBox(height: Insets.lg),
-              _Field(label: 'Full name', controller: _name, hint: 'Aama Devi'),
+              _Field(label: _l.caregiverFieldFullName, controller: _name, hint: 'Aama Devi'),
               const SizedBox(height: 14),
               _Field(
-                label: 'What does she like to be called?',
+                label: _l.caregiverFieldShortName,
                 controller: _short,
                 hint: 'Aama',
               ),
               const SizedBox(height: 14),
-              _Field(label: 'Mobile Phone Number (for SMS alerts)', controller: _phone, hint: '+919876543210'),
+              _Field(label: _l.caregiverFieldPhone, controller: _phone, hint: '+919876543210'),
               const SizedBox(height: 14),
-              Text('AGE', style: AppText.overline),
+              Text(_l.caregiverAgeLabel, style: AppText.overline),
               const SizedBox(height: 8),
               Row(
                 children: <Widget>[
@@ -372,25 +388,25 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                       color: AppColors.primaryTint,
                       borderRadius: Corners.r(Corners.pill),
                     ),
-                    child: Text('$_age years',
+                    child: Text(_l.caregiverAgeYears(_age),
                         style: AppText.body.wght(800).tint(AppColors.primaryDeep)),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              _Field(label: 'Where does she live?', controller: _location, hint: 'Jorhat, Assam'),
+              _Field(label: _l.caregiverFieldLocation, controller: _location, hint: 'Jorhat, Assam'),
               const SizedBox(height: 16),
-              Text('PREFERRED LANGUAGE', style: AppText.overline),
+              Text(_l.caregiverPreferredLanguageLabel, style: AppText.overline),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: <Widget>[
-                  for (final String l in _languages)
+                  for (final String lang in _languages)
                     _SelectChip(
-                      label: l,
-                      selected: _language == l,
-                      onTap: () => setState(() => _language = l),
+                      label: _languageLabel(lang),
+                      selected: _language == lang,
+                      onTap: () => setState(() => _language = lang),
                     ),
                 ],
               ),
@@ -411,15 +427,15 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     return ListView(
       padding: _pagePad,
       children: <Widget>[
-        const CompanionSpeech(
-          message: 'Who are the people she loves? I will ask after them by name.',
+        CompanionSpeech(
+          message: _l.caregiverStep2Companion,
           state: CompanionState.listening,
           companionSize: 68,
           compact: true,
         ),
         const SizedBox(height: Insets.lg),
         if (_family.isNotEmpty) ...<Widget>[
-          Text('ADDED', style: AppText.overline),
+          Text(_l.caregiverAddedLabel, style: AppText.overline),
           const SizedBox(height: 10),
           for (final FamilyMember f in _family)
             Padding(
@@ -453,7 +469,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
           const SizedBox(height: Insets.md),
         ],
         if (suggestions.isNotEmpty) ...<Widget>[
-          Text('TAP TO ADD', style: AppText.overline),
+          Text(_l.caregiverTapToAddLabel, style: AppText.overline),
           const SizedBox(height: 10),
           for (final FamilyMember f in suggestions)
             Padding(
@@ -497,7 +513,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                 const Icon(Icons.check_circle_rounded, color: AppColors.success),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text('Everyone has been added.',
+                  child: Text(_l.caregiverEveryoneAddedMessage,
                       style: AppText.body.wght(700).tint(AppColors.success)),
                 ),
               ],
@@ -506,7 +522,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
         const SizedBox(height: Insets.md),
         if (_family.isEmpty)
           SoftButton(
-            label: 'Add everyone at once',
+            label: _l.caregiverAddEveryoneButton,
             icon: Icons.group_add_rounded,
             onPressed: () => setState(() {
               _family
@@ -524,8 +540,8 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     return ListView(
       padding: _pagePad,
       children: <Widget>[
-        const CompanionSpeech(
-          message: 'These become the stories, games and questions I use with her.',
+        CompanionSpeech(
+          message: _l.caregiverStep3Companion,
           state: CompanionState.thinking,
           companionSize: 68,
           compact: true,
@@ -534,7 +550,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
         Align(
           alignment: Alignment.centerLeft,
           child: SoftButton(
-            label: 'Fill in the suggested answers',
+            label: _l.caregiverFillSuggestedButton,
             icon: Icons.auto_fix_high_rounded,
             onPressed: () => setState(() {
               for (final LifeMemory m in MockData.memories) {
@@ -584,8 +600,8 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     return ListView(
       padding: _pagePad,
       children: <Widget>[
-        const CompanionSpeech(
-          message: 'Choose the pictures she would like to see again.',
+        CompanionSpeech(
+          message: _l.caregiverStep4Companion,
           state: CompanionState.happy,
           companionSize: 68,
           compact: true,
@@ -594,11 +610,13 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
         Row(
           children: <Widget>[
             Expanded(
-              child: Text('${_assetIds.length} of ${MockData.assets.length} selected',
+              child: Text(_l.caregiverAssetsSelectedCount(_assetIds.length, MockData.assets.length),
                   style: AppText.label),
             ),
             SoftButton(
-              label: _assetIds.length == MockData.assets.length ? 'Clear all' : 'Select all',
+              label: _assetIds.length == MockData.assets.length
+                  ? _l.caregiverClearAllButton
+                  : _l.caregiverSelectAllButton,
               icon: Icons.select_all_rounded,
               onPressed: () => setState(() {
                 if (_assetIds.length == MockData.assets.length) {
@@ -687,8 +705,8 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
     return ListView(
       padding: _pagePad,
       children: <Widget>[
-        const CompanionSpeech(
-          message: 'When does her day happen? I will fit around it, not the other way round.',
+        CompanionSpeech(
+          message: _l.caregiverStep5Companion,
           state: CompanionState.encouraging,
           companionSize: 68,
           compact: true,
@@ -743,7 +761,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
         const SizedBox(height: Insets.md),
         if (_routine.length < MockData.routine.length)
           SoftButton(
-            label: 'Restore the suggested routine',
+            label: _l.caregiverRestoreRoutineButton,
             icon: Icons.restore_rounded,
             onPressed: () => setState(() {
               _routine
@@ -776,7 +794,7 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
   // ── step 6: review ─────────────────────────────────────────────────────
 
   Widget _stepReview() {
-    final String name = _short.text.trim().isEmpty ? 'She' : _short.text.trim();
+    final String name = _short.text.trim().isEmpty ? _l.caregiverSheFallback : _short.text.trim();
     return ListView(
       padding: _pagePad,
       children: <Widget>[
@@ -794,7 +812,9 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
               const SizedBox(height: 12),
               Text(_name.text.trim(), style: AppText.h1.sized(26)),
               const SizedBox(height: 6),
-              Text('$_age years · ${_location.text.trim()} · $_language',
+              Text(
+                  _l.caregiverReviewSummary(
+                      _age, _location.text.trim(), _languageLabel(_language)),
                   style: AppText.bodySmall),
               const SizedBox(height: Insets.md),
               const WovenStrip(height: 10, opacity: 0.6),
@@ -804,12 +824,12 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
                 spacing: 10,
                 runSpacing: 14,
                 children: <Widget>[
-                  _ReviewStat(value: '${_family.length}', label: 'People'),
+                  _ReviewStat(value: '${_family.length}', label: _l.caregiverTabPeople),
                   _ReviewStat(
                       value: '${_memories.values.where((TextEditingController c) => c.text.trim().isNotEmpty).length}',
-                      label: 'Memories'),
-                  _ReviewStat(value: '${_assetIds.length}', label: 'Photographs'),
-                  _ReviewStat(value: '${_routine.length}', label: 'Routine'),
+                      label: _l.caregiverTabMemories),
+                  _ReviewStat(value: '${_assetIds.length}', label: _l.caregiverTabPhotographs),
+                  _ReviewStat(value: '${_routine.length}', label: _l.caregiverTabRoutine),
                 ],
               ),
             ],
@@ -817,9 +837,9 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
         ),
         const SizedBox(height: Insets.lg),
         SectionHeader(
-          title: 'What this changes',
+          title: _l.caregiverWhatThisChangesTitle,
           icon: Icons.auto_awesome_rounded,
-          subtitle: 'How Mitra will use what you told us',
+          subtitle: _l.caregiverWhatThisChangesSubtitle,
           dense: true,
         ),
         MmCard(
@@ -830,14 +850,14 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
             children: <Widget>[
               for (final String line in <String>[
                 if (_family.isNotEmpty)
-                  '$name will be asked after ${_family.first.name} by name',
+                  _l.caregiverReviewLineFamily(name, _family.first.name),
                 if (_memories['m_work']!.text.contains('eav') ||
                     _memories['m_work']!.text.isEmpty)
-                  'Weaving motifs will appear in her pattern activities',
+                  _l.caregiverReviewLineWeaving,
                 if (_memories['m_food']!.text.isNotEmpty || _memories['m_food']!.text.isEmpty)
-                  'Cooking steps will replace generic tasks in Procedure Reconstruction',
-                'Dhol, pepa and gogona will be used instead of generic tones',
-                'Content and prompts will use $_language',
+                  _l.caregiverReviewLineCooking,
+                _l.caregiverReviewLineInstruments,
+                _l.caregiverReviewLineLanguage(_languageLabel(_language)),
               ])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -947,6 +967,7 @@ class _OnboardingCompleteScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final String name = state.patient.shortName;
 
     return Scaffold(
@@ -975,7 +996,7 @@ class _OnboardingCompleteScreen extends StatelessWidget {
                         FadeInUp(
                           delayMs: 80,
                           child: Text(
-                            '$name\'s companion is ready.',
+                            l.caregiverCompanionReadyTitle(name),
                             textAlign: TextAlign.center,
                             style: AppText.hero.sized(30),
                           ),
@@ -984,8 +1005,7 @@ class _OnboardingCompleteScreen extends StatelessWidget {
                         FadeInUp(
                           delayMs: 120,
                           child: Text(
-                            'Everything you told us is now part of how Mitra talks, '
-                            'plays and remembers with her.',
+                            l.caregiverCompanionReadyBody,
                             textAlign: TextAlign.center,
                             style: AppText.bodyLarge.tint(AppColors.inkSoft),
                           ),
@@ -994,7 +1014,7 @@ class _OnboardingCompleteScreen extends StatelessWidget {
                         FadeInUp(
                           delayMs: 160,
                           child: BigButton(
-                            label: 'Open her experience',
+                            label: l.caregiverOpenHerExperienceTitle,
                             icon: Icons.arrow_forward_rounded,
                             onPressed: () {
                               state.setRole(AppRole.patient);
@@ -1006,7 +1026,7 @@ class _OnboardingCompleteScreen extends StatelessWidget {
                         FadeInUp(
                           delayMs: 200,
                           child: BigButton(
-                            label: 'Back to my dashboard',
+                            label: l.caregiverBackToDashboardButton,
                             color: AppColors.inkSoft,
                             outlined: true,
                             height: 60,

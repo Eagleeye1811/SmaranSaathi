@@ -22,13 +22,13 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/models/daily.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../data/mock/mock_data.dart';
 import '../assistant/assistant_screen.dart';
 import '../../intake/baseline_screens.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
 import '../memories/memory_wallet_screen.dart';
-import '../today/today_screen.dart';
 import '../widgets/patient_widgets.dart';
 import 'care_plan_screen.dart';
 import 'cognitive_profile_screen.dart';
@@ -88,6 +88,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final MonitoringSnapshot snapshot = state.monitoring;
     final Recommendation recommendation = state.todaysRecommendation;
     final GameDefinition game = MockData.game(recommendation.gameId);
@@ -100,7 +101,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               onPressed: _toTop,
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              tooltip: 'Back to the top',
+              tooltip: l.dashboardBackToTop,
               child: const Icon(Icons.keyboard_arrow_up_rounded, size: 28),
             )
           : null,
@@ -158,7 +159,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 ),
                 const SizedBox(height: Insets.lg),
                 SectionHeader(
-                  title: assessmentDueToday ? "Today's activity" : 'Another activity',
+                  title: assessmentDueToday ? l.healthTodaysActivity : l.healthAnotherActivity,
                   subtitle: recommendation.headline,
                 ),
                 const SizedBox(height: Insets.sm),
@@ -186,7 +187,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text(game.name, style: AppText.h3),
+                                Text(game.localizedName(l), style: AppText.h3),
                                 const SizedBox(height: 2),
                                 Text(
                                   '${game.domain.clinicalLabel} · ${game.estimatedMinutes} min',
@@ -202,7 +203,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                           style: AppText.body.copyWith(height: 1.45)),
                       const SizedBox(height: Insets.md),
                       BigButton(
-                        label: 'Start',
+                        label: l.actionStart,
                         icon: Icons.play_arrow_rounded,
                         color: game.accent,
                         height: 58,
@@ -226,8 +227,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.forum_rounded,
-                      label: 'Ask your companion',
-                      detail: 'Explain my results',
+                      label: l.dashboardAskCompanion,
+                      detail: l.dashboardExplainResults,
                       color: AppColors.primary,
                       onTap: () => Nav.push(context, const AssistantScreen()),
                     ),
@@ -236,8 +237,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.description_outlined,
-                      label: 'Doctor summary',
-                      detail: 'Ready to share',
+                      label: l.dashboardDoctorSummary,
+                      detail: l.dashboardReadyToShare,
                       color: AppColors.secondary,
                       onTap: () => Nav.push(context, const ReportScreen()),
                     ),
@@ -247,42 +248,30 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               const SizedBox(height: Insets.sm),
               _ActionCard(
                 icon: Icons.checklist_rounded,
-                label: 'Care plan',
+                label: l.dashboardCarePlan,
                 detail: snapshot.suggestsClinicalDiscussion
-                    ? 'A conversation with a doctor is suggested'
-                    : 'Weekly assessment and daily activity',
+                    ? l.dashboardDoctorConversationSuggested
+                    : l.dashboardWeeklyAndDaily,
                 color: AppColors.accent,
                 wide: true,
                 onTap: () => Nav.push(context, const CarePlanScreen()),
               ),
               const SizedBox(height: Insets.lg),
-              _RemindersStrip(state: state, onOpenTab: onOpenTab),
+              // The reminders strip is the one entry point back to the Today
+              // tab from here — it already carries the progress count, so a
+              // second "Today" tile below used to just repeat it.
+              _RemindersStrip(state: state, onOpenTab: widget.onOpenTab),
               const SizedBox(height: Insets.md),
               // The warm parts of the app the monitoring journey sits on top
               // of. Kept one tap away rather than in the navigation bar: they
               // support the day, they are not what the person came for.
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.favorite_outline_rounded,
-                      label: 'Memory wallet',
-                      detail: 'People and places',
-                      color: AppColors.terracotta,
-                      onTap: () => Nav.push(context, const MemoryWalletScreen()),
-                    ),
-                  ),
-                  const SizedBox(width: Insets.sm),
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.today_outlined,
-                      label: 'Today',
-                      detail: 'Check-in and reminders',
-                      color: AppColors.plum,
-                      onTap: () => onOpenTab != null ? onOpenTab!(1) : Nav.push(context, const TodayScreen()),
-                    ),
-                  ),
-                ],
+              _ActionCard(
+                icon: Icons.favorite_outline_rounded,
+                label: l.dashboardMemoryWallet,
+                detail: l.dashboardPeopleAndPlaces,
+                color: AppColors.terracotta,
+                wide: true,
+                onTap: () => Nav.push(context, const MemoryWalletScreen()),
               ),
                   ],
                 ),
@@ -309,12 +298,13 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final int hour = DateTime.now().hour;
     final String part = hour < 12
-        ? 'Good morning'
+        ? l.greetingMorning
         : hour < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+            ? l.greetingAfternoon
+            : l.greetingEvening;
 
     return Column(
       children: <Widget>[
@@ -332,8 +322,8 @@ class _Header extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           state.baselineReady
-              ? 'Your cognitive health, in one place'
-              : 'Let us build your starting point together',
+              ? l.dashboardCognitiveHealthOnePlace
+              : l.dashboardBuildStartingPoint,
           style: AppText.bodySmall,
           textAlign: TextAlign.center,
         ),
@@ -355,6 +345,7 @@ class _JourneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final int day = state.baselineDayIndex;
     final int totalDone = GameId.values.length - state.baselineRemaining.length;
     final bool restingToday =
@@ -372,13 +363,10 @@ class _JourneyCard extends StatelessWidget {
         children: <Widget>[
           Text(
             restingToday
-                ? "You have done today's two. Rest now — I will be here "
-                    'tomorrow for the next pair.'
+                ? l.dashboardRestingToday
                 : day == 0
-                    ? 'Let us start your journey. Two short activities today, '
-                        'and I will be with you for both.'
-                    : 'Welcome back. Two more activities and we are on day '
-                        '${day + 1} of three.',
+                    ? l.dashboardJourneyStart
+                    : l.dashboardJourneyWelcomeBack(day + 1),
             style: AppText.body.wght(600),
           ),
           const SizedBox(height: Insets.md),
@@ -388,12 +376,15 @@ class _JourneyCard extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               PillTag(
-                label: 'Day ${day >= AppState.baselinePlan.length ? AppState.baselinePlan.length : day + 1} '
-                    'of ${AppState.baselinePlan.length}',
+                label: l.dashboardDayOf(
+                    day >= AppState.baselinePlan.length
+                        ? AppState.baselinePlan.length
+                        : day + 1,
+                    AppState.baselinePlan.length),
                 color: AppColors.accent,
                 dense: true,
               ),
-              Text('$totalDone of ${GameId.values.length} activities done',
+              Text(l.dashboardActivitiesDone(totalDone, GameId.values.length),
                   style: AppText.caption),
             ],
           ),
@@ -402,13 +393,12 @@ class _JourneyCard extends StatelessWidget {
           const SizedBox(height: Insets.md),
           if (restingToday) ...<Widget>[
             Text(
-              'The gap between sessions is part of the measurement: three '
-              "separate days average out one bad night's sleep.",
+              l.dashboardGapBetweenSessions,
               style: AppText.bodySmall,
             ),
             const SizedBox(height: Insets.sm),
             SoftButton(
-              label: 'I have time now — continue',
+              label: l.dashboardIHaveTimeContinue,
               icon: Icons.play_arrow_rounded,
               onPressed: () {
                 state.unlockNextBaselineDay();
@@ -452,6 +442,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
   @override
   Widget build(BuildContext context) {
     final AppState state = widget.state;
+    final AppLocalizations l = AppLocalizations.of(context);
     final MonitoringSnapshot snapshot = widget.snapshot;
     final List<SeriesPoint> weekly = AppState.monitor.weeklySeries(state.sessions);
     final List<DomainReading> readings =
@@ -461,14 +452,13 @@ class _ProgressSectionState extends State<_ProgressSection> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          SectionHeader(title: 'Your progress', icon: Icons.timeline_rounded),
+          SectionHeader(title: l.dashboardYourProgress, icon: Icons.timeline_rounded),
           const SizedBox(height: Insets.sm),
-          const MmCard(
+          MmCard(
             child: EmptyState(
               icon: Icons.insights_rounded,
-              title: 'Nothing to show yet',
-              message: 'Your first activity starts this. Every number here '
-                  'comes from something you have actually done.',
+              title: l.dashboardNothingToShowYet,
+              message: l.dashboardFirstActivityStarts,
             ),
           ),
         ],
@@ -479,11 +469,11 @@ class _ProgressSectionState extends State<_ProgressSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'Your progress',
+          title: l.dashboardYourProgress,
           icon: Icons.timeline_rounded,
           subtitle: snapshot.hasBaseline
-              ? 'Weekly averages against your baseline'
-              : 'Building towards your baseline',
+              ? l.dashboardWeeklyAveragesBaseline
+              : l.dashboardBuildingTowardsBaseline,
         ),
         const SizedBox(height: Insets.sm),
         if (weekly.length > 1) ...<Widget>[
@@ -497,10 +487,10 @@ class _ProgressSectionState extends State<_ProgressSection> {
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: <Widget>[
-                    Text('Overall activity score', style: AppText.label),
+                    Text(l.dashboardOverallActivityScore, style: AppText.label),
                     if (snapshot.overallBaseline != null)
                       PillTag(
-                        label: 'Baseline ${snapshot.overallBaseline!.round()}',
+                        label: l.dashboardBaselineScore(snapshot.overallBaseline!.round()),
                         color: AppColors.secondary,
                         dense: true,
                       ),
@@ -522,7 +512,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
           children: <Widget>[
             Expanded(
               child: StatTile(
-                label: 'Adherence',
+                label: l.dashboardAdherence,
                 value: '${snapshot.adherencePercent}%',
                 meter: snapshot.adherencePercent / 100,
                 icon: Icons.event_available_rounded,
@@ -532,7 +522,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
             const SizedBox(width: Insets.sm),
             Expanded(
               child: StatTile(
-                label: 'Consistency',
+                label: l.dashboardConsistency,
                 value: '${snapshot.consistency}%',
                 meter: snapshot.consistency / 100,
                 color: AppColors.secondary,
@@ -544,7 +534,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
         ),
         const SizedBox(height: Insets.sm),
         StatTile(
-          label: 'Reported independence in daily activities',
+          label: l.dashboardReportedIndependence,
           value: '${snapshot.functionalIndependence}%',
           meter: snapshot.functionalIndependence / 100,
           color: AppColors.accent,
@@ -554,8 +544,8 @@ class _ProgressSectionState extends State<_ProgressSection> {
           const SizedBox(height: Insets.sm),
           SoftButton(
             label: readings.isEmpty
-                ? 'More about my progress'
-                : 'See all ${readings.length} areas',
+                ? l.dashboardMoreAboutProgress
+                : l.dashboardSeeAllAreas(readings.length),
             icon: Icons.expand_more_rounded,
             onPressed: () => setState(() => _expanded = true),
           ),
@@ -563,9 +553,9 @@ class _ProgressSectionState extends State<_ProgressSection> {
           if (readings.isNotEmpty) ...<Widget>[
             const SizedBox(height: Insets.md),
             SectionHeader(
-              title: 'By domain',
-              subtitle: '${snapshot.assessmentsCompleted} of '
-                  '${snapshot.assessmentsExpected} weeks assessed',
+              title: l.cognitiveByDomainTitle,
+              subtitle: l.dashboardWeeksAssessed(
+                  snapshot.assessmentsCompleted, snapshot.assessmentsExpected),
             ),
             const SizedBox(height: Insets.sm),
             for (final DomainReading r in readings)
@@ -578,17 +568,15 @@ class _ProgressSectionState extends State<_ProgressSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Why did my score change?', style: AppText.h3),
+                Text(l.dashboardWhyScoreChanged, style: AppText.h3),
                 const SizedBox(height: Insets.xs),
                 Text(
-                  'Sleep, mood, illness, medication and plain tiredness all move '
-                  'these numbers. Ask the companion to read your own record and '
-                  'explain what it sees.',
+                  l.dashboardWhyScoreChangedDetail,
                   style: AppText.body.copyWith(color: AppColors.inkSoft, height: 1.5),
                 ),
                 const SizedBox(height: Insets.md),
                 SoftButton(
-                  label: 'Explain my change',
+                  label: l.dashboardExplainMyChange,
                   icon: Icons.help_outline_rounded,
                   filled: true,
                   onPressed: () => Nav.push(
@@ -603,7 +591,7 @@ class _ProgressSectionState extends State<_ProgressSection> {
           const NotADiagnosisNote(),
           const SizedBox(height: Insets.sm),
           SoftButton(
-            label: 'Show less',
+            label: l.dashboardShowLess,
             icon: Icons.expand_less_rounded,
             color: AppColors.inkSoft,
             onPressed: () => setState(() => _expanded = false),
@@ -667,13 +655,14 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     if (_loading) {
-      return const MmCard(
+      return MmCard(
         child: ListRow(
-          leading: SoftIcon(icon: Icons.auto_awesome_rounded),
-          title: 'Thinking of something to ask you…',
-          subtitle: 'Just a moment',
+          leading: const SoftIcon(icon: Icons.auto_awesome_rounded),
+          title: l.dashboardThinkingOfQuestion,
+          subtitle: l.dashboardJustAMoment,
         ),
       );
     }
@@ -688,8 +677,7 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'You have answered all of today\'s questions. Thank you for '
-                'talking with me.',
+                '${l.homeAllQuestionsAnswered} ${l.homeThankYouForTalking}',
                 style: AppText.body.wght(600).tint(AppColors.primaryDeep),
               ),
             ),
@@ -703,9 +691,9 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         SectionHeader(
-          title: 'A question for you',
+          title: l.dashboardQuestionForYou,
           icon: Icons.auto_awesome_rounded,
-          subtitle: 'Asked because of what you told me about yourself',
+          subtitle: l.dashboardAskedBecauseOfWhatYouTold,
         ),
         const SizedBox(height: Insets.sm),
         DailyQuestionCard(
@@ -818,8 +806,9 @@ class _RemindersStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (state.remindersTotal == 0) return const SizedBox.shrink();
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
-      onTap: () => onOpenTab != null ? onOpenTab!(1) : null,
+      onTap: () => onOpenTab != null ? onOpenTab!(3) : null,
       padding: const EdgeInsets.all(Insets.md),
       child: Row(
         children: <Widget>[
@@ -829,8 +818,8 @@ class _RemindersStrip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Today\'s reminders', style: AppText.label),
-                Text('${state.remindersDone} of ${state.remindersTotal} done',
+                Text(l.dashboardTodaysReminders, style: AppText.label),
+                Text(l.dashboardRemindersDone(state.remindersDone, state.remindersTotal),
                     style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
               ],
             ),

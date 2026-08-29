@@ -9,6 +9,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../widgets/clinic_widgets.dart';
 import 'patient_detail_screen.dart';
 
@@ -34,6 +35,7 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> all = state.caseload;
     final List<ClinicPatient> filtered = all.where((ClinicPatient c) {
       final bool matchesQuery = _query.isEmpty ||
@@ -49,8 +51,8 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
       child: Column(
         children: <Widget>[
           ClinicTopBar(
-            title: 'Patients',
-            subtitle: '${all.length} shown of ${state.caseload.length} active',
+            title: l.doctorTabPatients,
+            subtitle: l.doctorPatientsSubtitle(all.length, state.caseload.length),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 12),
@@ -61,7 +63,7 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
                   style: CT.body,
                   onChanged: (String v) => setState(() => _query = v),
                   decoration: InputDecoration(
-                    hintText: 'Search by name or district',
+                    hintText: l.doctorPatientsSearchHint,
                     prefixIcon: const Icon(Icons.search_rounded, size: 21),
                     isDense: true,
                     contentPadding:
@@ -85,7 +87,7 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
                     scrollDirection: Axis.horizontal,
                     children: <Widget>[
                       _FilterChip(
-                        label: 'All',
+                        label: l.doctorPatientsFilterAll,
                         selected: _filter == null,
                         color: AppColors.clinicAccent,
                         onTap: () => setState(() => _filter = null),
@@ -105,9 +107,9 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
           ),
           Expanded(
             child: filtered.isEmpty
-                ? const EmptyState(
-                    title: 'No patients match',
-                    message: 'Try a different name, district or status filter.',
+                ? EmptyState(
+                    title: l.doctorPatientsEmptyTitle,
+                    message: l.doctorPatientsEmptyMessage,
                     icon: Icons.search_off_rounded,
                   )
                 : ListView.separated(
@@ -253,24 +255,23 @@ class _ColumnKey extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return ClinicCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('READING THIS LIST', style: CT.overline),
+          Text(l.doctorPatientsColumnKeyTitle, style: CT.overline),
           const SizedBox(height: 8),
           Text(
-            'The number is a cognitive activity score derived from in-app performance — '
-            'accuracy, attention, recall and completion across the six activities. '
-            'The sparkline shows the last 14 days. Sorted lowest score first.',
+            l.doctorPatientsColumnKeyBody,
             style: CT.caption,
           ),
           const SizedBox(height: 12),
-          const ChartLegend(
+          ChartLegend(
             entries: <({String label, Color color})>[
-              (label: 'Improving', color: AppColors.success),
-              (label: 'Stable', color: AppColors.clinicInkSoft),
-              (label: 'Declining', color: AppColors.danger),
+              (label: l.doctorPatientsLegendImproving, color: AppColors.success),
+              (label: l.doctorPatientsLegendStable, color: AppColors.clinicInkSoft),
+              (label: l.doctorPatientsLegendDeclining, color: AppColors.danger),
             ],
           ),
         ],

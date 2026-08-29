@@ -7,6 +7,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Header shared by every caregiver screen.
 class CaregiverTopBar extends StatelessWidget {
@@ -19,6 +20,7 @@ class CaregiverTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, 12),
       child: Row(
@@ -32,7 +34,7 @@ class CaregiverTopBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(title ?? 'MemoryMitra',
+                Text(title ?? l.appName,
                     style: AppText.h3.wght(800), maxLines: 1, overflow: TextOverflow.ellipsis),
                 if (subtitle != null) ...<Widget>[
                   const SizedBox(height: 1),
@@ -55,7 +57,7 @@ class CaregiverTopBar extends StatelessWidget {
           RoundIconButton(
             icon: Icons.logout_rounded,
             size: 38,
-            tooltip: 'Switch role',
+            tooltip: l.actionSwitchRole,
             onPressed: () => Navigator.of(context).maybePop(),
           ),
         ],

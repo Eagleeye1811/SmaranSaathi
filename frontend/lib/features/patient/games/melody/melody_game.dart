@@ -14,6 +14,7 @@ import '../../../../core/services/app_state.dart';
 import '../../../../core/widgets/companion.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
 
@@ -271,6 +272,7 @@ class _MelodyGameState extends State<MelodyGame> {
   }
 
   void _finish() {
+    final AppLocalizations l = AppLocalizations.of(context);
     _playTimer?.cancel();
     final GamePerformance p = _tracker.build(
       expectedSeconds: AdaptiveDifficultyService.expectedSeconds(GameId.melody, _selectedLevel),
@@ -284,9 +286,9 @@ class _MelodyGameState extends State<MelodyGame> {
           decision: d,
           playedLevel: _selectedLevel,
           highlights: <({String label, String value})>[
-            (label: 'Tunes played', value: '$_roundsPerSession'),
-            (label: 'Notes in a tune', value: '$_sequenceLength'),
-            (label: 'Replays used', value: '${_tracker.hints}'),
+            (label: l.gameMelodyTunesPlayed, value: '$_roundsPerSession'),
+            (label: l.gameMelodyNotesInTune, value: '$_sequenceLength'),
+            (label: l.gameMelodyReplaysUsed, value: '${_tracker.hints}'),
           ],
         ),
       ),
@@ -295,19 +297,20 @@ class _MelodyGameState extends State<MelodyGame> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final String message = switch (_phase) {
-      _Phase.intro => 'Listen to the tune I play, then play it back to me.',
-      _Phase.playing => 'Listen…',
-      _Phase.listening => 'Now you. Play the tune back.',
+      _Phase.intro => l.gameMelodyIntroMessage,
+      _Phase.playing => l.gameMelodyListening,
+      _Phase.listening => l.gameMelodyNowYou,
       _Phase.feedback => _roundCorrect
-          ? 'That is exactly right. Beautiful.'
-          : 'Close! Let us try another tune.',
+          ? l.gameMelodyExactlyRight
+          : l.gameMelodyClose,
     };
 
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      stepLabel: 'Tune ${_round + 1} of $_roundsPerSession',
+      stepLabel: l.gameMelodyTuneOfTotal(_round + 1, _roundsPerSession),
 
       progress: (_round + (_phase == _Phase.feedback ? 1 : 0.4)) / _roundsPerSession,
       companionMessage: message,
@@ -318,7 +321,7 @@ class _MelodyGameState extends State<MelodyGame> {
           _roundCorrect ? CompanionState.celebrating : CompanionState.encouraging,
         _ => CompanionState.happy,
       },
-      bottom: _buildBottom(),
+      bottom: _buildBottom(l),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
         child: Column(
@@ -330,7 +333,7 @@ class _MelodyGameState extends State<MelodyGame> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('CHOOSE LEVEL', style: AppText.overline),
+                    Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
                     const SizedBox(height: 10),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
@@ -340,8 +343,8 @@ class _MelodyGameState extends State<MelodyGame> {
                             width: 96,
                             child: _LevelOptionChip(
                               levelNum: 1,
-                              title: 'Easy',
-                              subtitle: '2 notes',
+                              title: l.gameLevelEasy,
+                              subtitle: l.gameMelodySubtitle2Notes,
                               unlocked: 1 <= _maxUnlockedLevel,
                               selected: _selectedLevel == 1,
                               onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
@@ -352,8 +355,8 @@ class _MelodyGameState extends State<MelodyGame> {
                             width: 96,
                             child: _LevelOptionChip(
                               levelNum: 2,
-                              title: 'Medium',
-                              subtitle: '3 notes',
+                              title: l.gameLevelMedium,
+                              subtitle: l.gameMelodySubtitle3Notes,
                               unlocked: 2 <= _maxUnlockedLevel,
                               selected: _selectedLevel == 2,
                               onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
@@ -364,8 +367,8 @@ class _MelodyGameState extends State<MelodyGame> {
                             width: 96,
                             child: _LevelOptionChip(
                               levelNum: 3,
-                              title: 'Hard',
-                              subtitle: '4 notes',
+                              title: l.gameLevelHard,
+                              subtitle: l.gameMelodySubtitle4Notes,
                               unlocked: 3 <= _maxUnlockedLevel,
                               selected: _selectedLevel == 3,
                               onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
@@ -376,8 +379,8 @@ class _MelodyGameState extends State<MelodyGame> {
                             width: 96,
                             child: _LevelOptionChip(
                               levelNum: 4,
-                              title: 'Expert',
-                              subtitle: '4 notes · Fast',
+                              title: l.gameLevelExpert,
+                              subtitle: l.gameMelodySubtitle4NotesFast,
                               unlocked: 4 <= _maxUnlockedLevel,
                               selected: _selectedLevel == 4,
                               onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
@@ -388,8 +391,8 @@ class _MelodyGameState extends State<MelodyGame> {
                             width: 96,
                             child: _LevelOptionChip(
                               levelNum: 5,
-                              title: 'Mastery',
-                              subtitle: '5 notes · Fast',
+                              title: l.gameLevelMastery,
+                              subtitle: l.gameMelodySubtitle5NotesFast,
                               unlocked: 5 <= _maxUnlockedLevel,
                               selected: _selectedLevel == 5,
                               onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
@@ -417,12 +420,12 @@ class _MelodyGameState extends State<MelodyGame> {
                       Expanded(
                         child: Text(
                           _phase == _Phase.listening || _phase == _Phase.feedback
-                              ? 'YOUR TUNE'
-                              : 'THE TUNE',
+                              ? l.gameMelodyYourTune
+                              : l.gameMelodyTheTune,
                           style: AppText.overline.tint(_game.accent),
                         ),
                       ),
-                      Text('${_sequence.length} notes', style: AppText.caption),
+                      Text(l.gameMelodyNoteCount(_sequence.length), style: AppText.caption),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -488,8 +491,7 @@ class _MelodyGameState extends State<MelodyGame> {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(
-                      'In this prototype each instrument is shown as its own waveform and '
-                      'vibration. The full product plays real dhol, pepa and gogona recordings.',
+                      l.gameMelodyPrototypeNote,
                       style: AppText.caption,
                     ),
                   ),
@@ -503,18 +505,18 @@ class _MelodyGameState extends State<MelodyGame> {
     );
   }
 
-  Widget? _buildBottom() {
+  Widget? _buildBottom(AppLocalizations l) {
     switch (_phase) {
       case _Phase.intro:
         return BigButton(
-          label: 'Play the tune',
+          label: l.gameMelodyPlayTheTune,
           icon: Icons.play_arrow_rounded,
           color: _game.accent,
           onPressed: _play,
         );
       case _Phase.playing:
         return BigButton(
-          label: 'Listening…',
+          label: l.gameMelodyListeningButton,
           icon: Icons.graphic_eq_rounded,
           color: _game.accent,
           onPressed: null,
@@ -524,7 +526,7 @@ class _MelodyGameState extends State<MelodyGame> {
           children: <Widget>[
             Expanded(
               child: BigButton(
-                label: 'Play it again',
+                label: l.gameMelodyPlayItAgain,
                 icon: Icons.replay_rounded,
                 color: _game.accent,
                 outlined: true,
@@ -536,7 +538,7 @@ class _MelodyGameState extends State<MelodyGame> {
         );
       case _Phase.feedback:
         return BigButton(
-          label: _round + 1 >= _roundsPerSession ? 'Finish' : 'Next tune',
+          label: _round + 1 >= _roundsPerSession ? l.gameWeavesFinish : l.gameMelodyNextTune,
           icon: Icons.arrow_forward_rounded,
           color: _game.accent,
           onPressed: _nextRound,
@@ -710,6 +712,7 @@ class _LevelOptionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Pressable(
       onTap: onTap,
       child: AnimatedContainer(
@@ -733,7 +736,7 @@ class _LevelOptionChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Level $levelNum',
+                  l.gamesLevel(levelNum),
                   style: AppText.caption.wght(800).tint(
                         unlocked
                             ? (selected ? AppColors.primary : AppColors.inkMuted)
@@ -764,7 +767,7 @@ class _LevelOptionChip extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              unlocked ? subtitle : 'Locked 🔒',
+              unlocked ? subtitle : l.gameLevelLocked,
               style: AppText.caption.sized(10).tint(
                     unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
                   ),

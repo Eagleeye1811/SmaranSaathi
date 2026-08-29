@@ -7,6 +7,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// Clinician account and platform information.
@@ -16,12 +17,13 @@ class DoctorProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
 
     return SafeArea(
       bottom: false,
       child: Column(
         children: <Widget>[
-          const ClinicTopBar(title: 'Profile'),
+          ClinicTopBar(title: l.doctorTabProfile),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -48,11 +50,10 @@ class DoctorProfileScreen extends StatelessWidget {
                             children: <Widget>[
                               Text(MockData.doctorName, style: CT.h2.sized(21)),
                               const SizedBox(height: 3),
-                              Text('Consultant Neurologist · Memory Clinic',
-                                  style: CT.caption),
+                              Text(l.doctorProfileRoleLine, style: CT.caption),
                               const SizedBox(height: 8),
-                              const PillTag(
-                                label: '24 patients',
+                              PillTag(
+                                label: l.doctorProfilePatientCount(24),
                                 color: AppColors.clinicAccent,
                                 dense: true,
                               ),
@@ -72,12 +73,16 @@ class DoctorProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Practice', style: CT.h3),
+                        Text(l.doctorProfilePracticeHeading, style: CT.h3),
                         const SizedBox(height: 12),
-                        _Row(label: 'Clinic', value: MockData.clinicName),
-                        _Row(label: 'Region', value: 'North Eastern Region'),
-                        _Row(label: 'Languages supported', value: '8 regional languages'),
-                        _Row(label: 'Clinic days', value: 'Tue, Thu, Sat'),
+                        _Row(label: l.doctorProfileClinicLabel, value: MockData.clinicName),
+                        _Row(label: l.doctorProfileRegionLabel, value: l.doctorProfileRegionValue),
+                        _Row(
+                            label: l.doctorProfileLanguagesLabel,
+                            value: l.doctorProfileLanguagesValue),
+                        _Row(
+                            label: l.doctorProfileClinicDaysLabel,
+                            value: l.doctorProfileClinicDaysValue),
                       ],
                     ),
                   ),
@@ -91,13 +96,13 @@ class DoctorProfileScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('How these figures are produced', style: CT.h3),
+                        Text(l.doctorProfileFiguresHeading, style: CT.h3),
                         const SizedBox(height: 10),
-                        for (final String s in const <String>[
-                          'Every activity records accuracy, response time, hint use, mistakes and completion.',
-                          'Those signals roll up into six cognitive domain scores and one overall activity score.',
-                          'The adaptive engine adjusts difficulty per activity so scores stay comparable over time.',
-                          'Sessions completed offline are stored on the device and synced when a connection returns.',
+                        for (final String s in <String>[
+                          l.doctorProfileFiguresBulletActivity,
+                          l.doctorProfileFiguresBulletDomains,
+                          l.doctorProfileFiguresBulletAdaptive,
+                          l.doctorProfileFiguresBulletOffline,
                         ])
                           Padding(
                             padding: const EdgeInsets.only(bottom: 9),
@@ -137,14 +142,14 @@ class DoctorProfileScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
                                   Text(
-                                    state.offline ? 'Offline mode' : 'Connected',
+                                    state.offline ? l.settingsOfflineMode : l.doctorProfileConnected,
                                     style: CT.body.wght(700),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     state.offline
-                                        ? '${state.pendingSync} records waiting to sync'
-                                        : 'Records up to date',
+                                        ? l.doctorProfileRecordsWaitingSync(state.pendingSync)
+                                        : l.doctorProfileRecordsUpToDate,
                                     style: CT.caption,
                                   ),
                                 ],
@@ -174,7 +179,7 @@ class DoctorProfileScreen extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).maybePop(),
                     icon: const Icon(Icons.swap_horiz_rounded),
-                    label: const Text('Switch to another role'),
+                    label: Text(l.doctorProfileSwitchRole),
                   ),
                 ),
               ],
@@ -217,6 +222,7 @@ class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
   Widget build(BuildContext context) {
     final AuthService? service = _service;
     if (service == null) return const SizedBox.shrink();
+    final AppLocalizations l = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: Insets.lg),
@@ -246,16 +252,16 @@ class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Signed in as', style: CT.caption),
+                        Text(l.doctorProfileSignedInAs, style: CT.caption),
                         Text(email, style: CT.body.wght(700)),
-                        if (role != null) Text('Role: $role', style: CT.caption),
+                        if (role != null) Text(l.doctorProfileRoleValue(role), style: CT.caption),
                       ],
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => service.signOut(),
                     icon: const Icon(Icons.logout_rounded, size: 18),
-                    label: const Text('Log out'),
+                    label: Text(l.doctorProfileLogOut),
                   ),
                 ],
               );

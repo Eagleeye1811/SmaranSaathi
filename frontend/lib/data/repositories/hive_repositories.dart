@@ -385,6 +385,7 @@ class HiveSettingsRepository implements SettingsRepository {
       offlineOverride: b.get('offlineOverride') as bool? ?? false,
       lastRole: b.get('lastRole') as String?,
       lastAccountId: b.get('lastAccountId') as String?,
+      localeCode: b.get('localeCode') as String?,
     );
   }
 
@@ -398,6 +399,7 @@ class HiveSettingsRepository implements SettingsRepository {
       'offlineOverride': settings.offlineOverride,
       if (settings.lastRole != null) 'lastRole': settings.lastRole,
       if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
+      if (settings.localeCode != null) 'localeCode': settings.localeCode,
     });
     // A null account means "signed out", which has to *remove* the key —
     // skipping the write would leave the previous uid in the box and reopen

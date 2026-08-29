@@ -8,6 +8,7 @@ import '../../../core/models/monitoring.dart';
 import '../../../core/models/report.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../intake/intake_kit.dart';
 import 'health_widgets.dart';
 
@@ -24,6 +25,7 @@ class ReportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final ClinicalReport report = state.buildReport();
 
     return Scaffold(
@@ -37,8 +39,8 @@ class ReportScreen extends StatelessWidget {
                     Insets.gutter, Insets.md, Insets.gutter, Insets.lg),
                 children: <Widget>[
                   ScreenHeader(
-                    eyebrow: 'For your doctor',
-                    title: 'Cognitive health summary',
+                    eyebrow: l.reportEyebrow,
+                    title: l.reportTitle,
                     subtitle: report.periodLabel,
                     leading: RoundIconButton(
                       icon: Icons.arrow_back_rounded,
@@ -53,8 +55,8 @@ class ReportScreen extends StatelessWidget {
                     const SizedBox(height: Insets.md),
                   ],
                   SectionHeader(
-                    title: 'Observed patterns',
-                    subtitle: 'Grouped findings, with the inputs behind each',
+                    title: l.reportObservedPatternsTitle,
+                    subtitle: l.reportObservedPatternsSubtitle,
                   ),
                   const SizedBox(height: Insets.sm),
                   for (final ObservedPattern p in report.patterns) PatternRow(pattern: p),
@@ -70,8 +72,7 @@ class ReportScreen extends StatelessWidget {
                           const SizedBox(width: Insets.sm),
                           Expanded(
                             child: Text(
-                              'Persistent change was observed in more than one area. '
-                              'Discussion with a healthcare professional is appropriate.',
+                              l.reportSuggestsDiscussion,
                               style: AppText.body.copyWith(height: 1.45),
                             ),
                           ),
@@ -99,6 +100,7 @@ class _Identity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
       padding: const EdgeInsets.all(Insets.lg),
       child: Column(
@@ -106,14 +108,17 @@ class _Identity extends StatelessWidget {
         children: <Widget>[
           Text(report.patientName, style: AppText.h2),
           const SizedBox(height: 4),
-          Text('${report.age} years · ${report.language} · ${report.occupation}',
+          Text(
+              '${l.reportAgeYears(report.age)} · ${report.language} · '
+              '${report.occupation}',
               style: AppText.bodySmall),
           const SizedBox(height: Insets.sm),
           Wrap(
             spacing: Insets.xs,
             runSpacing: Insets.xs,
             children: <Widget>[
-              PillTag(label: 'Completed by ${report.completedBy.toLowerCase()}', dense: true),
+              PillTag(
+                  label: l.reportCompletedBy(report.completedBy.toLowerCase()), dense: true),
               PillTag(
                 label: report.periodLabel,
                 color: AppColors.secondary,
@@ -178,6 +183,7 @@ class _ShareBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.md, Insets.gutter, Insets.md),
@@ -189,15 +195,15 @@ class _ShareBar extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           BigButton(
-            label: 'Copy summary to share',
+            label: l.reportCopySummaryButton,
             icon: Icons.copy_all_rounded,
             height: 60,
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: report.asPlainText()));
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Summary copied — paste it into a message or email'),
+                SnackBar(
+                  content: Text(l.reportCopiedSnackbar),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -205,8 +211,7 @@ class _ShareBar extends StatelessWidget {
           ),
           const SizedBox(height: Insets.xs),
           Text(
-            'The summary is plain text, so it can be pasted anywhere — '
-            'nothing leaves this device unless you send it.',
+            l.reportPlainTextNote,
             style: AppText.caption,
             textAlign: TextAlign.center,
           ),

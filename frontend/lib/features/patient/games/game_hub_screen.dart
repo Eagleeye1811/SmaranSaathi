@@ -4,7 +4,6 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/game.dart';
-import '../../../core/services/adaptive_difficulty_service.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/services/personalization_service.dart';
 import '../../../core/widgets/illustration.dart';
@@ -14,6 +13,7 @@ import '../../../data/mock/mock_data.dart';
 import '../widgets/patient_widgets.dart';
 import 'game_launcher.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// The activity hub. Ordered by the personalisation engine, so the thing that
 /// matters most to this particular person is always first.
@@ -47,7 +47,7 @@ class GameHubScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Today\'s Cognitive Journey', style: AppText.patientTitle.sized(28)),
+                        Text(l.gamesTodaysCognitiveJourney, style: AppText.patientTitle.sized(28)),
                         const SizedBox(height: 6),
                         Text(
                           l.gamesIntro,
@@ -208,22 +208,22 @@ class _GameCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(game.name, style: AppText.h3.wght(800)),
+                      Text(game.localizedName(l), style: AppText.h3.wght(800)),
                       const SizedBox(height: 4),
-                      Text(game.tagline, style: AppText.bodySmall, maxLines: 2),
+                      Text(game.localizedTagline(l), style: AppText.bodySmall, maxLines: 2),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
                         runSpacing: 6,
                         children: <Widget>[
                           PillTag(
-                            label: game.domain.label,
+                            label: game.domain.localizedLabel(l),
                             icon: game.domain.icon,
                             color: game.accent,
                             dense: true,
                           ),
                           PillTag(
-                            label: '${game.estimatedMinutes} min',
+                            label: l.gamesMinutesShort(game.estimatedMinutes),
                             icon: Icons.schedule_rounded,
                             color: AppColors.inkSoft,
                             dense: true,
@@ -255,7 +255,7 @@ class _GameCard extends StatelessWidget {
                       Row(
                         children: <Widget>[
                           Flexible(
-                            child: Text('Level $level',
+                            child: Text(l.gamesLevel(level),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppText.caption.wght(700)),
@@ -266,21 +266,21 @@ class _GameCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        AdaptiveDifficultyService.levelDescription(game.id, level),
+                        localizedLevelDescription(l, game.id, level),
                         style: AppText.caption,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (lastAccuracy != null) ...<Widget>[
                         const SizedBox(height: 3),
-                        Text('Last time · $lastAccuracy% accuracy', style: AppText.caption),
+                        Text(l.gamesLastTime(lastAccuracy!), style: AppText.caption),
                       ],
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
                 SoftButton(
-                  label: completed ? l.actionPlayAgain : 'Play',
+                  label: completed ? l.actionPlayAgain : l.actionPlay,
                   icon: Icons.play_arrow_rounded,
                   color: game.accent,
                   filled: !completed,

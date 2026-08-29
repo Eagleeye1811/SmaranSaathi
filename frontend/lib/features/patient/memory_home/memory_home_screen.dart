@@ -7,6 +7,8 @@ import '../../../core/models/memory_fragment.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 
 /// The reward space for the memory companion: one room per [MemoryCategory],
 /// furnished — not scored — by whatever the patient has actually shared with
@@ -18,6 +20,7 @@ class MemoryHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
     final List<MemoryFragment> all = state.memoryFragments;
     final Map<MemoryCategory, List<MemoryFragment>> byCategory = <MemoryCategory, List<MemoryFragment>>{
       for (final MemoryCategory c in MemoryCategory.values)
@@ -38,11 +41,11 @@ class MemoryHomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(
                       Insets.gutter, Insets.md, Insets.gutter, Insets.sm),
                   child: ScreenHeader(
-                    eyebrow: 'Your stories, kept',
-                    title: 'Memory Home',
+                    eyebrow: l.memoryHomeEyebrow,
+                    title: l.memoryHomeTitle,
                     subtitle: furnished == 0
-                        ? 'Share a story with Mitra and a room starts to fill in.'
-                        : '$furnished of ${MemoryCategory.values.length} rooms furnished so far.',
+                        ? l.memoryHomeSubtitleEmpty
+                        : l.memoryHomeSubtitleProgress(furnished, MemoryCategory.values.length),
                     leading: RoundIconButton(
                       icon: Icons.arrow_back_rounded,
                       onPressed: () => Navigator.of(context).maybePop(),
@@ -135,6 +138,7 @@ class _RoomCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final bool furnished = fragments.isNotEmpty;
     final List<Color> palette = _palettes[category]!;
 
@@ -200,14 +204,14 @@ class _RoomCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(category.label,
+                  Text(category.localizedLabel(l),
                       style: AppText.bodySmall.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                       )),
                   const SizedBox(height: 2),
                   Text(
-                    furnished ? 'Tap to look inside' : 'Not furnished yet',
+                    furnished ? l.memoryHomeTapToLookInside : l.memoryHomeNotFurnishedYet,
                     style: AppText.caption.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
@@ -230,15 +234,18 @@ class _RoomDetailSheet extends StatelessWidget {
   final MemoryCategory category;
   final List<MemoryFragment> fragments;
 
-  static const List<String> _months = <String>[
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
-  static String _shortDate(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+  static String _shortDate(DateTime d, AppLocalizations l) {
+    final List<String> months = <String>[
+      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
+      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
+      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
+    ];
+    return '${d.day} ${months[d.month - 1]}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.35,
@@ -266,7 +273,7 @@ class _RoomDetailSheet extends StatelessWidget {
                 child: Row(
                   children: <Widget>[
                     Expanded(
-                      child: Text(category.label, style: AppText.h2),
+                      child: Text(category.localizedLabel(l), style: AppText.h2),
                     ),
                   ],
                 ),
@@ -277,7 +284,7 @@ class _RoomDetailSheet extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                         child: Center(
                           child: Text(
-                            category.emptyRoomLabel,
+                            category.localizedEmptyRoomLabel(l),
                             textAlign: TextAlign.center,
                             style: AppText.body.copyWith(color: AppColors.inkSoft),
                           ),
@@ -303,12 +310,12 @@ class _RoomDetailSheet extends StatelessWidget {
                                     spacing: 8,
                                     runSpacing: 4,
                                     children: <Widget>[
-                                      Text('Shared ${_shortDate(f.createdAt)}',
+                                      Text(l.memoryHomeSharedOn(_shortDate(f.createdAt, l)),
                                           style: AppText.caption),
                                       if (f.mentionedName != null)
                                         Text('· ${f.mentionedName}', style: AppText.caption),
                                       if (f.timesResurfaced > 0)
-                                        Text('· revisited ${f.timesResurfaced}x',
+                                        Text(l.memoryHomeRevisitedCount(f.timesResurfaced),
                                             style: AppText.caption),
                                     ],
                                   ),
