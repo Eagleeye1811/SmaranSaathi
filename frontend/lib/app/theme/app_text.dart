@@ -13,9 +13,19 @@ class AppText {
 
   static const String family = 'Nunito';
 
+  /// Nunito is Latin-only. Hindi/Marathi (Devanagari) and Assamese (Bengali
+  /// script) glyphs fall through to these instead of whatever the OS's
+  /// default font happens to be — regional-language text stays legible and
+  /// visually consistent instead of silently switching typeface mid-app.
+  static const List<String> familyFallback = <String>[
+    'NotoSansDevanagari',
+    'NotoSansBengali',
+  ];
+
   static TextStyle _s(double size, double weight, {double? height, double? tracking, Color? color}) {
     return TextStyle(
       fontFamily: family,
+      fontFamilyFallback: familyFallback,
       fontSize: size,
       height: height ?? 1.28,
       letterSpacing: tracking,

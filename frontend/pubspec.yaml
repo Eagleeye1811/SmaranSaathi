@@ -50,3 +50,13 @@ flutter:
     - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito.ttf
+    # Nunito only covers Latin. Hindi/Marathi (Devanagari) and Assamese
+    # (Bengali script) fall back to these via AppText's fontFamilyFallback
+    # rather than the OS's own default font, so regional-language text reads
+    # in a consistent weight/style instead of visibly mismatching Nunito.
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari.ttf
+    - family: NotoSansBengali
+      fonts:
+        - asset: assets/fonts/NotoSansBengali.ttf

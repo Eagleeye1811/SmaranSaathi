@@ -230,7 +230,9 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       label: l.dashboardAskCompanion,
                       detail: l.dashboardExplainResults,
                       color: AppColors.primary,
-                      onTap: () => Nav.push(context, const AssistantScreen()),
+                      onTap: () => widget.onOpenTab != null
+                          ? widget.onOpenTab!(2)
+                          : Nav.push(context, const AssistantScreen()),
                     ),
                   ),
                   const SizedBox(width: Insets.sm),
@@ -407,7 +409,9 @@ class _JourneyCard extends StatelessWidget {
             ),
           ] else
             BigButton(
-              label: totalDone == 0 ? 'Start my first session' : "Start today's session",
+              label: totalDone == 0
+                  ? l.dashboardStartFirstSession
+                  : l.dashboardStartTodaysSession,
               icon: Icons.play_arrow_rounded,
               height: 62,
               onPressed: onStart,

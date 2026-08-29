@@ -851,10 +851,9 @@ class _PatientOnboardingFlowState extends State<PatientOnboardingFlow> {
               for (final String line in <String>[
                 if (_family.isNotEmpty)
                   _l.caregiverReviewLineFamily(name, _family.first.name),
-                if (_memories['m_work']!.text.contains('eav') ||
-                    _memories['m_work']!.text.isEmpty)
+                if (_memories['m_work']!.text.contains('eav'))
                   _l.caregiverReviewLineWeaving,
-                if (_memories['m_food']!.text.isNotEmpty || _memories['m_food']!.text.isEmpty)
+                if (_memories['m_food']!.text.isNotEmpty)
                   _l.caregiverReviewLineCooking,
                 _l.caregiverReviewLineInstruments,
                 _l.caregiverReviewLineLanguage(_languageLabel(_language)),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
@@ -14,7 +13,7 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
-import '../onboarding/patient_onboarding_flow.dart';
+import '../../../l10n/content_labels.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// The caregiver's home: how the day has gone, and what needs attention.
@@ -106,13 +105,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                       child: Column(
                         children: <Widget>[
                           OverviewRow(
-                            label: l.caregiverStatEngagement,
-                            value: '${state.todayEngagement}%',
-                            meter: state.todayEngagement / 100,
-                            icon: Icons.psychology_alt_rounded,
-                          ),
-                          const Divider(color: AppColors.hairline),
-                          OverviewRow(
                             label: l.caregiverStatActivitiesCompleted,
                             value: '${state.completedToday.length}/4',
                             meter: state.completedToday.length / 4,
@@ -150,13 +142,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                     dense: true,
                                   ),
                           ),
-                          const Divider(color: AppColors.hairline),
-                          OverviewRow(
-                            label: l.caregiverLastActiveLabel,
-                            value: state.lastActiveLabel,
-                            color: AppColors.inkSoft,
-                            icon: Icons.schedule_rounded,
-                          ),
                         ],
                       ),
                     ),
@@ -185,7 +170,8 @@ class CaregiverDashboardScreen extends StatelessWidget {
                               Expanded(
                                 child: StatTile(
                                   label: l.caregiverEngagementThisWeek,
-                                  value: '${state.todayEngagement}',
+                                  value:
+                                      '${(state.engagementWeek.map((p) => p.value).reduce((a, b) => a + b) / state.engagementWeek.length).round()}',
                                   suffix: '%',
                                   color: AppColors.seriesTeal,
                                 ),
@@ -313,7 +299,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                   size: 42,
                                 ),
                                 title: r.title,
-                                subtitle: '${r.time} · ${r.kind.label}',
+                                subtitle: '${r.time} · ${r.kind.localizedLabel(l)}',
                                 trailing: SoftButton(
                                   label: l.caregiverDoneButton,
                                   color: AppColors.success,
@@ -402,40 +388,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: Insets.lg),
-
-                  // ── Onboarding entry ──────────────────────────────────
-                  FadeInUp(
-                    delayMs: 310,
-                    child: MmCard(
-                      onTap: () => Nav.open(context, const PatientOnboardingFlow()),
-                      child: Row(
-                        children: <Widget>[
-                          const SoftIcon(
-                            icon: Icons.person_add_alt_1_rounded,
-                            color: AppColors.plum,
-                            size: 50,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(l.caregiverSetupPatientProfileTitle,
-                                    style: AppText.body.wght(800)),
-                                const SizedBox(height: 3),
-                                Text(
-                                  l.caregiverSetupPatientProfileDetail,
-                                  style: AppText.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -446,17 +398,12 @@ class CaregiverDashboardScreen extends StatelessWidget {
   }
 
   String _dateLabel(AppLocalizations l) {
-    final List<String> months = <String>[
-      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
-      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
-      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
-    ];
     final List<String> days = <String>[
       l.caregiverWeekdayMon, l.caregiverWeekdayTue, l.caregiverWeekdayWed, l.caregiverWeekdayThu,
       l.caregiverWeekdayFri, l.caregiverWeekdaySat, l.caregiverWeekdaySun,
     ];
     final DateTime n = DateTime.now();
-    return '${days[n.weekday - 1]}, ${n.day} ${months[n.month - 1]} ${n.year}';
+    return '${days[n.weekday - 1]}, ${n.day} ${monthShortLabel(l, n.month)} ${n.year}';
   }
 }
 
@@ -586,7 +533,7 @@ class _SessionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(g.name,
+                Text(g.localizedName(l),
                     style: AppText.body.wght(700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),

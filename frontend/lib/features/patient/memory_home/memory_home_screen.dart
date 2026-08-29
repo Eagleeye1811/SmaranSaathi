@@ -118,15 +118,6 @@ class _RoomCard extends StatelessWidget {
   final List<MemoryFragment> fragments;
   final VoidCallback onTap;
 
-  static const Map<MemoryCategory, IconData> _icons = <MemoryCategory, IconData>{
-    MemoryCategory.family: Icons.groups_rounded,
-    MemoryCategory.childhood: Icons.child_care_rounded,
-    MemoryCategory.work: Icons.handyman_rounded,
-    MemoryCategory.festivals: Icons.celebration_rounded,
-    MemoryCategory.food: Icons.restaurant_rounded,
-    MemoryCategory.village: Icons.holiday_village_rounded,
-  };
-
   static const Map<MemoryCategory, List<Color>> _palettes = <MemoryCategory, List<Color>>{
     MemoryCategory.family: <Color>[AppColors.terracottaTint, AppColors.terracotta, AppColors.plum],
     MemoryCategory.childhood: <Color>[AppColors.accentTint, AppColors.accent, AppColors.terracotta],
@@ -177,7 +168,7 @@ class _RoomCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.85),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(_icons[category], size: 16, color: palette[1]),
+                child: Icon(category.icon, size: 16, color: palette[1]),
               ),
             ),
             if (furnished)
@@ -233,15 +224,6 @@ class _RoomDetailSheet extends StatelessWidget {
 
   final MemoryCategory category;
   final List<MemoryFragment> fragments;
-
-  static String _shortDate(DateTime d, AppLocalizations l) {
-    final List<String> months = <String>[
-      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
-      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
-      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
-    ];
-    return '${d.day} ${months[d.month - 1]}';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +292,7 @@ class _RoomDetailSheet extends StatelessWidget {
                                     spacing: 8,
                                     runSpacing: 4,
                                     children: <Widget>[
-                                      Text(l.memoryHomeSharedOn(_shortDate(f.createdAt, l)),
+                                      Text(l.memoryHomeSharedOn(shortDayMonth(l, f.createdAt)),
                                           style: AppText.caption),
                                       if (f.mentionedName != null)
                                         Text('· ${f.mentionedName}', style: AppText.caption),

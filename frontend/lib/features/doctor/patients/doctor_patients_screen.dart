@@ -10,6 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../widgets/clinic_widgets.dart';
 import 'patient_detail_screen.dart';
 
@@ -94,7 +95,7 @@ class _DoctorPatientsScreenState extends State<DoctorPatientsScreen> {
                       ),
                       for (final ClinicalStatus s in ClinicalStatus.values)
                         _FilterChip(
-                          label: s.label,
+                          label: s.localizedLabel(l),
                           selected: _filter == s,
                           color: statusColor(s),
                           onTap: () => setState(() => _filter = s),
@@ -189,6 +190,7 @@ class _PatientTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color tc = trendColor(patient.trend);
     return ClinicCard(
       onTap: onTap,
@@ -233,7 +235,7 @@ class _PatientTile extends StatelessWidget {
                     const SizedBox(width: 3),
                     Flexible(
                       child: Text(
-                        patient.trend.label,
+                        patient.trend.localizedLabel(l),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: CT.caption.sized(10.5).tint(tc),

@@ -10,6 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// Reminder management for the caregiver, grouped by category.
@@ -169,6 +170,7 @@ class _KindSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reminders.isEmpty) return const SizedBox.shrink();
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = CaregiverRemindersScreen.colorOf(kind);
     final int done = reminders.where((Reminder r) => r.done).length;
 
@@ -181,7 +183,7 @@ class _KindSection extends StatelessWidget {
             children: <Widget>[
               Text(kind.glyph, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 9),
-              Expanded(child: Text(kind.label, style: AppText.h3)),
+              Expanded(child: Text(kind.localizedLabel(l), style: AppText.h3)),
               PillTag(label: '$done/${reminders.length}', color: color, dense: true),
             ],
           ),

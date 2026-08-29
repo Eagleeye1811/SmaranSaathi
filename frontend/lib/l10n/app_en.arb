@@ -587,6 +587,10 @@
   "intakeCaregiverNameLabel": "Their name",
   "intakeCaregiverRelationLabel": "Relationship",
   "intakeCaregiverNoteLabel": "Anything else they want to add",
+  "intakeMedicalAddMedicationPrompt": "What medicine would you like to add?",
+  "intakeCaregiverNamePrompt": "What is their name?",
+  "intakeCaregiverRelationPrompt": "What is your relationship to them?",
+  "intakeCaregiverNotePrompt": "Is there anything else you would like to add?",
   "intakeReasonTitle": "What brings you here?",
   "intakeReasonSubtitle": "Select everything that applies.",
   "intakeReasonFootnote": "Answer all three questions to continue.",
@@ -1247,5 +1251,41 @@
   },
   "offlineBannerBodyAllSynced": "Everything still works. All activities are saved on this device.",
   "healthTodaysActivity": "Today's activity",
-  "healthAnotherActivity": "Another activity"
+  "healthAnotherActivity": "Another activity",
+  "profileActivitiesSavedOnDevice": "{count} activities saved on this device",
+  "@profileActivitiesSavedOnDevice": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileSyncing": "Syncing…",
+  "profileSyncActivities": "Sync {count} activities",
+  "@profileSyncActivities": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "profileChangeNumber": "Change",
+  "profileAddNumber": "Add Number",
+  "dashboardStartFirstSession": "Start my first session",
+  "dashboardStartTodaysSession": "Start today's session",
+  "clinicalStatusStable": "Stable",
+  "clinicalStatusNeedsAttention": "Needs attention",
+  "clinicalStatusFollowUp": "Follow-up",
+  "reminderKindMedicine": "Medicine",
+  "reminderKindHydration": "Hydration",
+  "reminderKindCognitive": "Cognitive activity",
+  "reminderKindAppointment": "Appointment",
+  "reminderKindRoutine": "Daily routine",
+  "reminderKindSocial": "Social activity",
+  "lifeMemoryCategoryWork": "Work",
+  "lifeMemoryCategoryActivities": "Activities",
+  "lifeMemoryCategoryPlaces": "Places",
+  "lifeMemoryCategoryStories": "Stories",
+  "lifeMemoryCategoryFood": "Food",
+  "lifeMemoryCategoryTraditions": "Traditions"
 }

@@ -642,6 +642,10 @@ class AppLocalizations {
   String get intakeCaregiverNameLabel => _s('intakeCaregiverNameLabel');
   String get intakeCaregiverRelationLabel => _s('intakeCaregiverRelationLabel');
   String get intakeCaregiverNoteLabel => _s('intakeCaregiverNoteLabel');
+  String get intakeMedicalAddMedicationPrompt => _s('intakeMedicalAddMedicationPrompt');
+  String get intakeCaregiverNamePrompt => _s('intakeCaregiverNamePrompt');
+  String get intakeCaregiverRelationPrompt => _s('intakeCaregiverRelationPrompt');
+  String get intakeCaregiverNotePrompt => _s('intakeCaregiverNotePrompt');
 
   // ── Intake — reason/safety ───────────────────────────────────────
   String get intakeReasonTitle => _s('intakeReasonTitle');
@@ -1387,6 +1391,34 @@ class AppLocalizations {
   // ── Health dashboard ──────────────────────────────────────────────────
   String get healthTodaysActivity => _s('healthTodaysActivity');
   String get healthAnotherActivity => _s('healthAnotherActivity');
+
+  // ── Profile — connectivity / phone (added during a cleanliness pass) ────
+  String profileActivitiesSavedOnDevice(int count) =>
+      _f('profileActivitiesSavedOnDevice', <String, Object?>{'count': count});
+  String get profileSyncing => _s('profileSyncing');
+  String profileSyncActivities(int count) =>
+      _f('profileSyncActivities', <String, Object?>{'count': count});
+  String get profileChangeNumber => _s('profileChangeNumber');
+  String get profileAddNumber => _s('profileAddNumber');
+  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
+  String get dashboardStartTodaysSession => _s('dashboardStartTodaysSession');
+
+  // ── Clinical status / reminder kind / life-memory category labels ───────
+  String get clinicalStatusStable => _s('clinicalStatusStable');
+  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
+  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
+  String get reminderKindMedicine => _s('reminderKindMedicine');
+  String get reminderKindHydration => _s('reminderKindHydration');
+  String get reminderKindCognitive => _s('reminderKindCognitive');
+  String get reminderKindAppointment => _s('reminderKindAppointment');
+  String get reminderKindRoutine => _s('reminderKindRoutine');
+  String get reminderKindSocial => _s('reminderKindSocial');
+  String get lifeMemoryCategoryWork => _s('lifeMemoryCategoryWork');
+  String get lifeMemoryCategoryActivities => _s('lifeMemoryCategoryActivities');
+  String get lifeMemoryCategoryPlaces => _s('lifeMemoryCategoryPlaces');
+  String get lifeMemoryCategoryStories => _s('lifeMemoryCategoryStories');
+  String get lifeMemoryCategoryFood => _s('lifeMemoryCategoryFood');
+  String get lifeMemoryCategoryTraditions => _s('lifeMemoryCategoryTraditions');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

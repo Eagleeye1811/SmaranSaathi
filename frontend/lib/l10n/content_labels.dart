@@ -1,3 +1,5 @@
+import '../core/models/clinical.dart';
+import '../core/models/daily.dart';
 import '../core/models/game.dart';
 import '../core/models/memory_fragment.dart';
 import '../core/models/settings.dart';
@@ -148,4 +150,125 @@ extension VoiceErrorKindLabel on VoiceErrorKind {
 
 extension VoiceErrorLabel on VoiceError {
   String localizedMessage(AppLocalizations l) => kind.localizedMessage(l);
+}
+
+/// Reuses the same short wording already shown on the doctor alerts KPI
+/// card, so a severity reads the same way everywhere it appears instead of
+/// the KPI card and the section header underneath it disagreeing.
+extension AlertSeverityLabel on AlertSeverity {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        AlertSeverity.info => l.doctorAlertsSeverityInformational,
+        AlertSeverity.watch => l.doctorAlertsSeverityAttention,
+        AlertSeverity.urgent => l.doctorAlertsSeverityAssessment,
+      };
+}
+
+extension ClinicalStatusLabel on ClinicalStatus {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        ClinicalStatus.stable => l.clinicalStatusStable,
+        ClinicalStatus.needsAttention => l.clinicalStatusNeedsAttention,
+        ClinicalStatus.followUp => l.clinicalStatusFollowUp,
+      };
+}
+
+/// Reuses the wording already translated for the patients-list trend
+/// legend, so "Improving/Stable/Declining" reads identically wherever a
+/// trend is shown.
+extension TrendDirectionLabel on TrendDirection {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        TrendDirection.up => l.doctorPatientsLegendImproving,
+        TrendDirection.flat => l.doctorPatientsLegendStable,
+        TrendDirection.down => l.doctorPatientsLegendDeclining,
+      };
+}
+
+extension ReminderKindLabel on ReminderKind {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        ReminderKind.medicine => l.reminderKindMedicine,
+        ReminderKind.hydration => l.reminderKindHydration,
+        ReminderKind.cognitive => l.reminderKindCognitive,
+        ReminderKind.appointment => l.reminderKindAppointment,
+        ReminderKind.routine => l.reminderKindRoutine,
+        ReminderKind.social => l.reminderKindSocial,
+      };
+}
+
+/// The abbreviated month name for [month] (1 = January), reusing the
+/// `caregiverMonth*` ARB set — previously hand-copied as a 12-entry list in
+/// three separate screens.
+String monthShortLabel(AppLocalizations l, int month) => switch (month) {
+      1 => l.caregiverMonthJan,
+      2 => l.caregiverMonthFeb,
+      3 => l.caregiverMonthMar,
+      4 => l.caregiverMonthApr,
+      5 => l.caregiverMonthMay,
+      6 => l.caregiverMonthJun,
+      7 => l.caregiverMonthJul,
+      8 => l.caregiverMonthAug,
+      9 => l.caregiverMonthSep,
+      10 => l.caregiverMonthOct,
+      11 => l.caregiverMonthNov,
+      12 => l.caregiverMonthDec,
+      _ => throw ArgumentError.value(month, 'month', 'must be 1-12'),
+    };
+
+/// "5 Jan" — day + abbreviated month. Shared by Memory Home and Memory
+/// Wallet, which both date-stamp the same [MemoryFragment] data.
+String shortDayMonth(AppLocalizations l, DateTime d) =>
+    '${d.day} ${monthShortLabel(l, d.month)}';
+
+/// Short chart-axis label for an activity, on the doctor's screens
+/// (patient detail's activity breakdown, analytics' engagement-by-activity
+/// chart) — both charted the same six activities and used to each carry
+/// their own identical copy of this mapping.
+String doctorChartLabel(AppLocalizations l, GameId id) => switch (id) {
+      GameId.procedure => l.doctorDetailChartProcedure,
+      GameId.story => l.doctorDetailChartStory,
+      GameId.familiarPlace => l.doctorDetailChartPlace,
+      GameId.melody => l.doctorDetailChartMelody,
+      GameId.weaves => l.doctorDetailChartWeaves,
+      GameId.memoryCards => l.doctorDetailChartCards,
+    };
+
+/// The full month name for [month] (1 = January), reusing the
+/// `todayMonth*` ARB set. `today_screen.dart` keeps its own copy for now
+/// (queued for a separate design-kit pass) rather than being switched over
+/// here.
+String monthFullLabel(AppLocalizations l, int month) => switch (month) {
+      1 => l.todayMonthJanuary,
+      2 => l.todayMonthFebruary,
+      3 => l.todayMonthMarch,
+      4 => l.todayMonthApril,
+      5 => l.todayMonthMay,
+      6 => l.todayMonthJune,
+      7 => l.todayMonthJuly,
+      8 => l.todayMonthAugust,
+      9 => l.todayMonthSeptember,
+      10 => l.todayMonthOctober,
+      11 => l.todayMonthNovember,
+      12 => l.todayMonthDecember,
+      _ => throw ArgumentError.value(month, 'month', 'must be 1-12'),
+    };
+
+/// [LifeMemory.category] is free text seeded from a fixed onboarding
+/// catalogue (`MockData.memories`), not an enum — so this matches the known
+/// values and falls back to the raw string for anything unexpected, rather
+/// than risk hiding a caregiver's own words.
+String localizedLifeMemoryCategory(AppLocalizations l, String category) {
+  switch (category.toLowerCase()) {
+    case 'work':
+      return l.lifeMemoryCategoryWork;
+    case 'activities':
+      return l.lifeMemoryCategoryActivities;
+    case 'places':
+      return l.lifeMemoryCategoryPlaces;
+    case 'stories':
+      return l.lifeMemoryCategoryStories;
+    case 'food':
+      return l.lifeMemoryCategoryFood;
+    case 'traditions':
+      return l.lifeMemoryCategoryTraditions;
+    default:
+      return category;
+  }
 }

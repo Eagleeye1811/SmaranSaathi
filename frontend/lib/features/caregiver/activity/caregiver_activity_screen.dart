@@ -26,7 +26,7 @@ class CaregiverActivityScreen extends StatelessWidget {
 
     final List<SeriesPoint> perGame = <SeriesPoint>[
       for (final GameDefinition g in MockData.games)
-        SeriesPoint(_shortName(l, g.name), _averageFor(state, g.id)),
+        SeriesPoint(_shortName(l, g.id), _averageFor(state, g.id)),
     ];
 
     return MotifBackground(
@@ -295,14 +295,13 @@ class CaregiverActivityScreen extends StatelessWidget {
     );
   }
 
-  static String _shortName(AppLocalizations l, String name) => switch (name) {
-        'Procedure Reconstruction' => l.caregiverChartLabelProcedure,
-        'Finish the Story' => l.caregiverChartLabelStory,
-        'Familiar Place Explorer' => l.caregiverChartLabelPlace,
-        'Melody of the Valleys' => l.caregiverChartLabelMelody,
-        'Weaves of the Hills' => l.caregiverChartLabelWeaves,
-        'NER Memory Cards' => l.caregiverChartLabelCards,
-        _ => name,
+  static String _shortName(AppLocalizations l, GameId id) => switch (id) {
+        GameId.procedure => l.caregiverChartLabelProcedure,
+        GameId.story => l.caregiverChartLabelStory,
+        GameId.familiarPlace => l.caregiverChartLabelPlace,
+        GameId.melody => l.caregiverChartLabelMelody,
+        GameId.weaves => l.caregiverChartLabelWeaves,
+        GameId.memoryCards => l.caregiverChartLabelCards,
       };
 
   static double _averageFor(AppState state, GameId id) {
@@ -364,7 +363,7 @@ class _HistoryRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(g.name,
+                Text(g.localizedName(l),
                     style: AppText.body.wght(700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),

@@ -62,8 +62,6 @@ class _TodayScreenState extends State<TodayScreen> {
     final List<String> companionTips = _companionTips(l);
 
     final String notificationHeadline = l.todayStatusLabel;
-    final String notificationDetail =
-        l.todayCompletedCount(state.remindersDone, state.remindersTotal);
     const IconData notificationIcon = Icons.today_rounded;
     const Color notificationColor = AppColors.primary;
 
@@ -151,13 +149,6 @@ class _TodayScreenState extends State<TodayScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                notificationDetail,
-                                style: AppText.body.wght(800).sized(15.5),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
                                 child: Text(
