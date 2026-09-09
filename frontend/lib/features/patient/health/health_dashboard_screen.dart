@@ -29,6 +29,7 @@ import '../../intake/baseline_screens.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
 import '../memories/memory_wallet_screen.dart';
+import '../today/today_screen.dart';
 import '../widgets/patient_widgets.dart';
 import 'care_plan_screen.dart';
 import 'cognitive_profile_screen.dart';
@@ -125,18 +126,14 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               // working and the queue drains when the connection returns.
               if (state.offline) OfflineBanner(pending: state.pendingSync),
               const SizedBox(height: Insets.sm),
-              // The daily check-in stays on the home screen: mood is one of
-              // the ordinary things that moves a cognitive score, and asking
-              // for it every day is what makes it useful when explaining one.
-              _CheckIn(state: state),
-              const SizedBox(height: Insets.lg),
-              // Written for this person from their onboarding answers — by
-              // Gemini when it is reachable, on the device when it is not.
-              const _TodaysQuestions(),
-              const SizedBox(height: Insets.lg),
               // Before the baseline exists there is nothing honest to put in a
               // status card, so the journey takes its place: two activities a
               // day until the profile is real.
+              //
+              // It leads the screen because it is the one thing the patient is
+              // here to *do*. The check-in below is a question we ask them;
+              // this is the task they came for, and burying it under a mood
+              // picker made the app look like a diary.
               if (!state.baselineReady) ...<Widget>[
                 _JourneyCard(
                   onStart: () => openBaselineSession(
@@ -151,7 +148,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: Insets.lg),
-              ] else ...<Widget>[
+              ],
+              // The daily check-in stays on the home screen: mood is one of
+              // the ordinary things that moves a cognitive score, and asking
+              // for it every day is what makes it useful when explaining one.
+              _CheckIn(state: state),
+              const SizedBox(height: Insets.lg),
+              // Written for this person from their onboarding answers — by
+              // Gemini when it is reachable, on the device when it is not.
+              const _TodaysQuestions(),
+              const SizedBox(height: Insets.lg),
+              if (state.baselineReady) ...<Widget>[
                 StatusCard(
                   snapshot: snapshot,
                   onViewProfile: () =>
@@ -259,21 +266,35 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 onTap: () => Nav.push(context, const CarePlanScreen()),
               ),
               const SizedBox(height: Insets.lg),
-              // The reminders strip is the one entry point back to the Today
-              // tab from here — it already carries the progress count, so a
-              // second "Today" tile below used to just repeat it.
               _RemindersStrip(state: state, onOpenTab: widget.onOpenTab),
               const SizedBox(height: Insets.md),
               // The warm parts of the app the monitoring journey sits on top
               // of. Kept one tap away rather than in the navigation bar: they
               // support the day, they are not what the person came for.
-              _ActionCard(
-                icon: Icons.favorite_outline_rounded,
-                label: l.dashboardMemoryWallet,
-                detail: l.dashboardPeopleAndPlaces,
-                color: AppColors.terracotta,
-                wide: true,
-                onTap: () => Nav.push(context, const MemoryWalletScreen()),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _ActionCard(
+                      icon: Icons.favorite_outline_rounded,
+                      label: 'Memory wallet',
+                      detail: 'People and places',
+                      color: AppColors.terracotta,
+                      onTap: () => Nav.push(context, const MemoryWalletScreen()),
+                    ),
+                  ),
+                  const SizedBox(width: Insets.sm),
+                  Expanded(
+                    child: _ActionCard(
+                      icon: Icons.today_outlined,
+                      label: 'Today',
+                      detail: 'Check-in and reminders',
+                      color: AppColors.plum,
+                      onTap: () => widget.onOpenTab != null
+                          ? widget.onOpenTab!(1)
+                          : Nav.push(context, const TodayScreen()),
+                    ),
+                  ),
+                ],
               ),
                   ],
                 ),
@@ -812,7 +833,9 @@ class _RemindersStrip extends StatelessWidget {
     if (state.remindersTotal == 0) return const SizedBox.shrink();
     final AppLocalizations l = AppLocalizations.of(context);
     return MmCard(
-      onTap: () => onOpenTab != null ? onOpenTab!(3) : null,
+      // Index 1 is Today, which is the reminder list. (This was 3, the
+      // Companion tab — the same off-by-position slip as the nav bar.)
+      onTap: () => onOpenTab != null ? onOpenTab!(1) : null,
       padding: const EdgeInsets.all(Insets.md),
       child: Row(
         children: <Widget>[

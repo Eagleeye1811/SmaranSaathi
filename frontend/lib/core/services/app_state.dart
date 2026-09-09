@@ -15,6 +15,7 @@ import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
 import '../models/patient.dart';
 import '../models/report.dart';
+import '../models/safety.dart';
 import '../models/settings.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
@@ -198,6 +199,7 @@ class AppState extends ChangeNotifier {
     _voicePrompts = settings.voicePrompts;
     _localeCode = settings.localeCode;
     _connectivity.forcedOffline = settings.offlineOverride;
+    _safeZone = SafeZone.decode(settings.safeZoneJson);
 
     // The role the device was last used as. Persisted but never restored
     // until now, so every returning user was sent back to the role picker.
@@ -975,6 +977,12 @@ class AppState extends ChangeNotifier {
   Future<void> signOutAccount() async {
     if (_accountId == null) return;
     _accountId = null;
+    // The role goes with the account. `lastRole` exists so a *returning*
+    // person is not re-asked, but an explicit sign-out means the next person
+    // to pick up the phone may be someone else — and keeping the old role
+    // sent them straight back into the patient app with no way to reach the
+    // role picker at all.
+    _role = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;
     _baseline = null;
@@ -1210,9 +1218,43 @@ class AppState extends ChangeNotifier {
       offlineOverride: _connectivity.forcedOffline,
       lastRole: _role == AppRole.none ? null : _role.name,
       lastAccountId: _accountId,
+      safeZoneJson: _safeZone?.encode(),
       localeCode: _localeCode,
     );
     _write(() => _settingsRepo.save(snapshot));
+  }
+
+  // ── Safe zone ──────────────────────────────────────────────────────────
+
+  SafeZone? _safeZone;
+
+  /// The area the caregiver expects the patient to stay inside, or null when
+  /// none has been drawn yet.
+  SafeZone? get safeZone => _safeZone;
+
+  /// Wandering events, newest first, mirrored here from `SafeZoneMonitor` so
+  /// the caregiver dashboard can show them without owning the monitor.
+  final List<SafeZoneEvent> _safeZoneEvents = <SafeZoneEvent>[];
+  List<SafeZoneEvent> get safeZoneEvents =>
+      List<SafeZoneEvent>.unmodifiable(_safeZoneEvents);
+
+  /// The most recent unresolved departure, or null when the patient is home.
+  SafeZoneEvent? get activeWanderAlert {
+    if (_safeZoneEvents.isEmpty) return null;
+    final SafeZoneEvent newest = _safeZoneEvents.first;
+    return newest.kind == SafeZoneEventKind.left ? newest : null;
+  }
+
+  void setSafeZone(SafeZone? zone) {
+    _safeZone = zone;
+    _persistSettings();
+    notifyListeners();
+  }
+
+  void recordSafeZoneEvent(SafeZoneEvent event) {
+    _safeZoneEvents.insert(0, event);
+    if (_safeZoneEvents.length > 50) _safeZoneEvents.removeLast();
+    notifyListeners();
   }
 
   // ── Connectivity and sync ──────────────────────────────────────────────

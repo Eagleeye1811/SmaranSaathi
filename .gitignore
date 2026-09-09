@@ -71,3 +71,9 @@ backend/*.sqlite3
 /ios/Runner/GeneratedPluginRegistrant.h
 /ios/Runner/GeneratedPluginRegistrant.m
 
+# JVM heap dumps. Gradle is configured with -XX:+HeapDumpOnOutOfMemoryError,
+# so a build that runs out of memory drops a multi-gigabyte .hprof next to
+# whatever was running — far past GitHub's 100 MB limit. They are crash
+# artefacts with no value once the OOM is fixed.
+*.hprof
+hs_err_pid*.log

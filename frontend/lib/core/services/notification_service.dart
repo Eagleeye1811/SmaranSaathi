@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../models/daily.dart';
@@ -12,35 +14,46 @@ class LocalNotificationService {
   bool _initialized = false;
 
   /// Initializes the local notification plugin with high importance settings.
-  Future<void> initialize() async {
-    if (_initialized) return;
+  ///
+  /// Returns false when the platform has no notification channel at all — a
+  /// widget test, a desktop build, a device that refused the permission. The
+  /// caller carries on without the banner rather than failing.
+  Future<bool> initialize() async {
+    if (_initialized) return true;
+    try {
+      const AndroidInitializationSettings androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const AndroidInitializationSettings androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+      const InitializationSettings settings = InitializationSettings(
+        android: androidSettings,
+      );
 
-    const InitializationSettings settings = InitializationSettings(
-      android: androidSettings,
-    );
+      await _plugin.initialize(settings);
 
-    await _plugin.initialize(settings);
+      // Create high-priority notification channel for pop-up banners with
+      // sound & vibration.
+      const AndroidNotificationChannel channel = AndroidNotificationChannel(
+        'smaran_saathi_reminders_channel',
+        'SmaranSaathi Reminder Popups',
+        description:
+            'Heads-up pop-up banner alerts for medicine and activity reminders',
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+      );
 
-    // Create high-priority notification channel for pop-up banners with sound & vibration
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'smaran_saathi_reminders_channel',
-      'SmaranSaathi Reminder Popups',
-      description: 'Heads-up pop-up banner alerts for medicine and activity reminders',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
+      final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+          _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
-    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      await androidPlugin?.createNotificationChannel(channel);
+      await androidPlugin?.requestNotificationsPermission();
 
-    await androidPlugin?.createNotificationChannel(channel);
-    await androidPlugin?.requestNotificationsPermission();
-
-    _initialized = true;
+      _initialized = true;
+      return true;
+    } catch (error) {
+      debugPrint('LocalNotificationService: unavailable ($error)');
+      return false;
+    }
   }
 
   /// Displays an immediate Heads-Up Pop-Up Banner notification on screen.
@@ -49,7 +62,7 @@ class LocalNotificationService {
     required String title,
     required String body,
   }) async {
-    await initialize();
+    if (!await initialize()) return;
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'smaran_saathi_reminders_channel',
@@ -66,12 +79,15 @@ class LocalNotificationService {
 
     const NotificationDetails details = NotificationDetails(android: androidDetails);
 
-    await _plugin.show(
-      id,
-      title,
-      body,
-      details,
-    );
+    // A banner that cannot be shown must never take the caller down with it.
+    // The safe-zone alert in particular has already been recorded in state and
+    // drawn on screen by the time this runs; losing the notification is a
+    // degraded alert, losing the exception handling is a lost one.
+    try {
+      await _plugin.show(id, title, body, details);
+    } catch (error) {
+      debugPrint('LocalNotificationService: show failed ($error)');
+    }
   }
 
   /// Schedules a pop-up heads-up banner notification at the reminder time.

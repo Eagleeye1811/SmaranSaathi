@@ -122,6 +122,11 @@
   "languageEnglish": "अंग्रेज़ी",
   "languageHindi": "हिन्दी",
   "languageAssamese": "असमिया",
+
+  "voiceNavButton": "आवाज़ से कहीं जाएँ",
+  "voiceNavTitle": "मैं आपके लिए क्या करूँ?",
+  "voiceNavSpeakNow": "अभी बोलिए",
+  "voiceNavHint": "ऐसे कहिए: “गतिविधियाँ खोलो”।",
   "languageMarathi": "मराठी",
   "doctorTabOverview": "अवलोकन",
   "doctorTabPatients": "मरीज़",

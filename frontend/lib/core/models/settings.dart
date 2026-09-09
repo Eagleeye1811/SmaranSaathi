@@ -32,6 +32,7 @@ class AppSettings {
     this.offlineOverride = false,
     this.lastRole,
     this.lastAccountId,
+    this.safeZoneJson,
     this.localeCode,
   });
 
@@ -61,6 +62,13 @@ class AppSettings {
   /// defeat the point of storing it locally at all.
   final String? lastAccountId;
 
+  /// The patient's safe zone, encoded by [SafeZone.encode].
+  ///
+  /// Stored as a string rather than as its own Hive type because it is one
+  /// small record with one owner — a type adapter, a type id and a box would
+  /// be three more things to migrate for no gain.
+  final String? safeZoneJson;
+
   AppSettings copyWith({
     TextSizePreference? textSize,
     bool? highContrast,
@@ -69,6 +77,8 @@ class AppSettings {
     bool? offlineOverride,
     String? lastRole,
     String? lastAccountId,
+    String? safeZoneJson,
+    bool clearSafeZone = false,
     String? localeCode,
   }) {
     return AppSettings(
@@ -79,6 +89,8 @@ class AppSettings {
       offlineOverride: offlineOverride ?? this.offlineOverride,
       lastRole: lastRole ?? this.lastRole,
       lastAccountId: lastAccountId ?? this.lastAccountId,
+      safeZoneJson:
+          clearSafeZone ? null : (safeZoneJson ?? this.safeZoneJson),
       localeCode: localeCode ?? this.localeCode,
     );
   }

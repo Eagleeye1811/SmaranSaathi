@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -314,6 +316,135 @@ void main() {
     expect(state.intake.function.independencePercent, lessThan(100));
   });
 
+  group('step 1 can be left', () {
+    testWidgets('back on step 1 returns to the screen that opened the intake',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+
+      // The real stack: the welcome screen pushes the intake, so step 1 has
+      // somewhere to go back to.
+      await tester.pumpWidget(harness(
+        Builder(builder: (BuildContext context) {
+          return Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => IntakeFlowScreen(onFinished: () {}),
+                  ),
+                ),
+                child: const Text('I am the patient'),
+              ),
+            ),
+          );
+        }),
+        state: state,
+      ));
+      await beat(tester);
+
+      await tester.tap(find.text('I am the patient'));
+      await tester.pumpAndSettle();
+      expect(find.text('Step 1 of 8'), findsOneWidget);
+
+      // The button someone stuck on the first question reaches for.
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.pumpAndSettle();
+
+      expect(find.text('I am the patient'), findsOneWidget);
+      expect(find.text('Step 1 of 8'), findsNothing);
+    });
+
+    testWidgets('leaving loses nothing: it resumes where it stopped',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+
+      // Consent already given, so the flow resumes past step 1 rather than
+      // asking again — which is what makes leaving safe to offer.
+      state.giveConsent();
+
+      await tester.pumpWidget(
+        harness(IntakeFlowScreen(onFinished: () {}), state: state),
+      );
+      await beat(tester, 400);
+      await beat(tester, 400);
+
+      expect(find.text('Step 2 of 8'), findsOneWidget);
+      expect(state.intake.consentGiven, isTrue);
+    });
+
+    testWidgets('back is offered even when the intake is the root route',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+
+      // Signing in lands a returning patient here as the *root*:
+      // `WelcomeScreen.continueFrom` uses `Nav.rootTo`, so there is nothing
+      // underneath to pop. The button still has to be there.
+      await tester.pumpWidget(
+        harness(IntakeFlowScreen(onFinished: () {}), state: state),
+      );
+      await beat(tester);
+
+      expect(find.text('Step 1 of 8'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+
+      // Nobody is signed in here, so there is nothing to confirm: it goes
+      // straight to the welcome screen.
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await beat(tester, 600);
+      expect(find.text('Step 1 of 8'), findsNothing);
+      expect(find.byType(WelcomeScreen), findsOneWidget);
+    });
+
+    testWidgets('a signed-in patient is asked before being logged out',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      addTearDown(state.dispose);
+      // Started rather than awaited: `signInAccount` awaits repository reads,
+      // and inside testWidgets' fake async those futures only complete while
+      // the tester pumps. The uid is bound synchronously either way.
+      unawaited(state.signInAccount('uid-1'));
+
+      await tester.pumpWidget(
+        harness(IntakeFlowScreen(onFinished: () {}), state: state),
+      );
+      await beat(tester, 400);
+      await beat(tester, 400);
+
+      // Declining leaves everything exactly as it was — a stray tap on the
+      // back arrow must not be able to end someone's session.
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await beat(tester, 600);
+      expect(find.text('Go back and log out?'), findsOneWidget);
+
+      await tester.tap(find.text('Stay here'));
+      await beat(tester, 600);
+      expect(find.text('Step 1 of 8'), findsOneWidget);
+      expect(state.accountId, 'uid-1');
+
+      // Accepting signs out and returns to the welcome screen.
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await beat(tester, 600);
+      await tester.tap(find.text('Go back and log out'));
+      // Signing out awaits the repositories before the welcome screen is
+      // routed to, and that route then fades in over ~380ms.
+      for (int i = 0; i < 4; i++) {
+        await beat(tester, 400);
+      }
+      await drainSync(tester, state);
+
+      expect(state.accountId, isNull);
+      expect(find.byType(WelcomeScreen), findsOneWidget);
+      expect(find.text('Step 1 of 8'), findsNothing);
+    });
+  });
+
   testWidgets('the flow resumes at the first unanswered step',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
@@ -512,11 +643,9 @@ void main() {
       state.markBaselineActivity(id);
     }
     await state.captureBaseline(now: DateTime(2026, 8, 29));
-    // Let the queued sync drain, or the binding fails on a pending timer.
-    // Six activities each queue an operation, and SyncManager drains them
-    // one at a time (~180ms via LoopbackTransport) — a fixed couple of beats
-    // isn't reliably enough real time for all of them, so poll instead.
-    await drainSyncPlain(state);
+    // A plain test, so the outbox drains on the real clock with no binding to
+    // complain about pending timers — no beat-pumping needed here.
+    await state.flush();
 
     final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
     expect(memoryBaseline, isNotNull);

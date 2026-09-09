@@ -75,6 +75,13 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 700));
 
+    // The daily check-in now sits below the session card, so on a small test
+    // surface it is not built until the list is scrolled.
+    await tester.scrollUntilVisible(
+      find.text('How are you feeling today?'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('How are you feeling today?'), findsOneWidget);
     // The four patient destinations are always labelled, never icon-only.
     for (final String label in <String>[

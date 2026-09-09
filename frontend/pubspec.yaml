@@ -25,11 +25,19 @@ dependencies:
   audioplayers: ^6.1.0
   lottie: ^3.1.0
   video_player: ^2.9.2
+  # Safe zone: OpenStreetMap tiles need no API key, so the map works the
+  # moment the app runs. geolocator supplies the position stream and the
+  # runtime permission flow.
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  geolocator: ^13.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  # Drives the voice layer's silence timers without waiting on a real clock.
+  fake_async: ^1.3.1
 
 flutter:
   uses-material-design: true

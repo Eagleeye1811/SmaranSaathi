@@ -42,6 +42,14 @@ Future<void> settle(WidgetTester tester, {int frames = 8, int ms = 400}) async {
 /// Scrolls a target into view before tapping it — the phone-sized test surface
 /// is shorter than several of these screens.
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  if (finder.evaluate().isEmpty) {
+    // Not built at all yet. A ListView builds only a little past the fold, so
+    // `ensureVisible` has nothing to work with until the list has been
+    // scrolled far enough to create it.
+    await tester.scrollUntilVisible(finder, 200,
+        scrollable: find.byType(Scrollable).first);
+    await beat(tester, 200);
+  }
   expect(finder, findsWidgets);
   await tester.ensureVisible(finder.last);
   await beat(tester, 300);

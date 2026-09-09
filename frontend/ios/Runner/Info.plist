@@ -4,6 +4,8 @@
 <dict>
 	<!-- Voice assistant. Both strings are shown verbatim in the iOS prompt, so
 	     they are written for the patient, not for a reviewer. -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MemoryMitra shows where you are on the map so your caregiver can keep you safe, and gently guides you home if you wander outside your safe zone.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>MemoryMitra uses the microphone so you can talk to Mitra and ask about your day.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

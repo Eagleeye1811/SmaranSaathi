@@ -30,10 +30,8 @@ class PatientTopBar extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onExit;
 
-  /// Whether the switch-role button may appear at all. Independent of
-  /// [onExit] being set: a screen can suppress the button outright (e.g. the
-  /// Today screen, which has its own way back) rather than relying on the
-  /// caller simply not passing a callback.
+  /// Lets a screen suppress the switch-role button even when it passes an
+  /// [onExit]. Kept because screens in the reminders work rely on it.
   final bool showExit;
 
   /// The progress pill. Off on screens that are already about one thing.
@@ -82,7 +80,7 @@ class PatientTopBar extends StatelessWidget {
               },
             ),
           ],
-          if (showExit && onExit != null) ...<Widget>[
+          if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
               icon: Icons.logout_rounded,
