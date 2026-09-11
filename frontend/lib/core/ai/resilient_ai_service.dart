@@ -11,15 +11,13 @@ import 'on_device_ai_service.dart';
 ///
 /// Policy, in one place:
 ///
-/// 1. If the device is offline, or the build has no AI configured, do not
-///    attempt a call — answer on-device immediately. A patient asking "what do
-///    I have today?" in a village with no signal gets an answer, not a spinner
-///    followed by an error.
-/// 2. Otherwise try the remote service.
-/// 3. If it fails for *any* reason, fall back to the on-device answer rather
-///    than surfacing an error. The failure is still reported through
-///    [lastFailure] so a caregiver screen can show "offline — generated on this
-///    device" honestly.
+/// 1. If the device is offline, or the build has no AI configured, answer
+///    on-device immediately — no spinner, no error.
+/// 2. If online, attempt the remote call with a [_kTimeout] circuit breaker.
+///    Low-connectivity users (slow 2G/3G) get the on-device answer within
+///    3 seconds rather than waiting indefinitely.
+/// 3. If the remote call fails for *any* reason (timeout, HTTP error,
+///    malformed JSON, rate-limit), fall back silently to on-device.
 ///
 /// The result always carries its [AiSource], so nothing on screen can pass a
 /// locally-computed sentence off as a model's work.
@@ -28,18 +26,25 @@ class ResilientAiService implements AiService {
     required AiService remote,
     required ConnectivityService connectivity,
     OnDeviceAiService onDevice = const OnDeviceAiService(),
+    Duration timeout = _kTimeout,
   })  : _remote = remote,
         _connectivity = connectivity,
-        _onDevice = onDevice;
+        _onDevice = onDevice,
+        _timeout = timeout;
 
   final AiService _remote;
   final ConnectivityService _connectivity;
   final OnDeviceAiService _onDevice;
+  final Duration _timeout;
+
+  /// 3-second circuit breaker — on spotty 2G/3G this fires before the patient
+  /// notices the app is slow, giving them an instant on-device answer instead.
+  static const Duration _kTimeout = Duration(seconds: 3);
 
   AiFailure? _lastFailure;
 
-  /// Why the last call fell back, or null if it did not. Useful for a quiet
-  /// "showing offline insight" line; never shown as a blocking error.
+  /// Why the last call fell back, or null if it succeeded remotely.
+  /// Useful for a quiet "showing offline insight" label; never a blocking error.
   AiFailure? get lastFailure => _lastFailure;
 
   /// True when a remote call is worth attempting right now.
@@ -52,6 +57,43 @@ class ResilientAiService implements AiService {
     _onDevice.dispose();
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Runs [call] with a [_timeout] circuit breaker.
+  ///
+  /// On timeout: sets [_lastFailure] to [AiErrorKind.timeout] and returns
+  /// the [fallback] value wrapped in [AiSuccess].
+  /// On any other error: sets [_lastFailure] to [AiErrorKind.network] and
+  /// returns [fallback].
+  Future<AiResult<T>> _withTimeout<T>({
+    required Future<AiResult<T>> Function() call,
+    required T fallback,
+    required String label,
+  }) async {
+    try {
+      final AiResult<T> result = await call().timeout(_timeout);
+      return result.fold(
+        onSuccess: (T value) {
+          _lastFailure = null;
+          return AiSuccess<T>(value);
+        },
+        onError: (AiFailure failure) {
+          _lastFailure = failure;
+          debugPrint('ResilientAiService: $label remote error → device ($failure)');
+          return AiSuccess<T>(fallback);
+        },
+      );
+    } on Object catch (e) {
+      final bool isTimeout = e.toString().contains('TimeoutException');
+      _lastFailure = AiFailure(isTimeout ? AiErrorKind.timeout : AiErrorKind.server);
+
+      debugPrint('ResilientAiService: $label ${isTimeout ? "timed out" : "threw"} → device ($e)');
+      return AiSuccess<T>(fallback);
+    }
+  }
+
+  // ── AiService implementation ──────────────────────────────────────────────
+
   @override
   Future<AiResult<CognitiveInsight>> cognitiveInsight(PatientAiContext context) async {
     if (!isAvailable) {
@@ -61,24 +103,16 @@ class ResilientAiService implements AiService {
       return AiSuccess<CognitiveInsight>(_onDevice.buildInsight(context));
     }
 
-    final AiResult<CognitiveInsight> result = await _remote.cognitiveInsight(context);
-    return result.fold(
-      onSuccess: (CognitiveInsight value) {
-        _lastFailure = null;
-        return AiSuccess<CognitiveInsight>(value);
-      },
-      onError: (AiFailure failure) {
-        _lastFailure = failure;
-        debugPrint('ResilientAiService: insight fell back to device ($failure)');
-        return AiSuccess<CognitiveInsight>(_onDevice.buildInsight(context));
-      },
+    return _withTimeout(
+      call: () => _remote.cognitiveInsight(context),
+      fallback: _onDevice.buildInsight(context),
+      label: 'cognitiveInsight',
     );
   }
 
   @override
   Future<AiResult<AssistantReply>> ask(String question, PatientAiContext context) async {
     if (question.trim().isEmpty) {
-      // Not worth a round trip, and not worth an error screen either.
       return AiSuccess<AssistantReply>(_onDevice.buildReply('', context));
     }
 
@@ -89,17 +123,10 @@ class ResilientAiService implements AiService {
       return AiSuccess<AssistantReply>(_onDevice.buildReply(question, context));
     }
 
-    final AiResult<AssistantReply> result = await _remote.ask(question, context);
-    return result.fold(
-      onSuccess: (AssistantReply value) {
-        _lastFailure = null;
-        return AiSuccess<AssistantReply>(value);
-      },
-      onError: (AiFailure failure) {
-        _lastFailure = failure;
-        debugPrint('ResilientAiService: answer fell back to device ($failure)');
-        return AiSuccess<AssistantReply>(_onDevice.buildReply(question, context));
-      },
+    return _withTimeout(
+      call: () => _remote.ask(question, context),
+      fallback: _onDevice.buildReply(question, context),
+      label: 'ask',
     );
   }
 
@@ -112,17 +139,10 @@ class ResilientAiService implements AiService {
       return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
     }
 
-    final AiResult<List<DailyQuestion>> result = await _remote.dailyQuestions(context);
-    return result.fold(
-      onSuccess: (List<DailyQuestion> value) {
-        _lastFailure = null;
-        return AiSuccess<List<DailyQuestion>>(value);
-      },
-      onError: (AiFailure failure) {
-        _lastFailure = failure;
-        debugPrint('ResilientAiService: questions fell back to device ($failure)');
-        return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
-      },
+    return _withTimeout(
+      call: () => _remote.dailyQuestions(context),
+      fallback: _onDevice.buildDailyQuestions(context),
+      label: 'dailyQuestions',
     );
   }
 }

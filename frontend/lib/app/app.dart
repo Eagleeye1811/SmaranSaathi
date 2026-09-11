@@ -6,6 +6,7 @@ import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
+
 import '../features/patient/patient_entry.dart';
 import '../features/auth/splash_screen.dart';
 
