@@ -35,6 +35,7 @@ class ResilientAiService implements AiService {
     required ConnectivityService connectivity,
     AiService? llamaOnDevice,
     OnDeviceAiService onDevice = const OnDeviceAiService(),
+    Duration timeout = _kTimeout,
   })  : _remote = remote,
         _connectivity = connectivity,
         _local = llamaOnDevice ?? onDevice;
@@ -48,8 +49,8 @@ class ResilientAiService implements AiService {
 
   AiFailure? _lastFailure;
 
-  /// Why the last call fell back, or null if it did not. Useful for a quiet
-  /// "showing offline insight" line; never shown as a blocking error.
+  /// Why the last call fell back, or null if it succeeded remotely.
+  /// Useful for a quiet "showing offline insight" label; never a blocking error.
   AiFailure? get lastFailure => _lastFailure;
 
   /// True when a remote call is worth attempting right now.
@@ -61,6 +62,43 @@ class ResilientAiService implements AiService {
     _remote.dispose();
     _local.dispose();
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Runs [call] with a [_timeout] circuit breaker.
+  ///
+  /// On timeout: sets [_lastFailure] to [AiErrorKind.timeout] and returns
+  /// the [fallback] value wrapped in [AiSuccess].
+  /// On any other error: sets [_lastFailure] to [AiErrorKind.network] and
+  /// returns [fallback].
+  Future<AiResult<T>> _withTimeout<T>({
+    required Future<AiResult<T>> Function() call,
+    required T fallback,
+    required String label,
+  }) async {
+    try {
+      final AiResult<T> result = await call().timeout(_timeout);
+      return result.fold(
+        onSuccess: (T value) {
+          _lastFailure = null;
+          return AiSuccess<T>(value);
+        },
+        onError: (AiFailure failure) {
+          _lastFailure = failure;
+          debugPrint('ResilientAiService: $label remote error → device ($failure)');
+          return AiSuccess<T>(fallback);
+        },
+      );
+    } on Object catch (e) {
+      final bool isTimeout = e.toString().contains('TimeoutException');
+      _lastFailure = AiFailure(isTimeout ? AiErrorKind.timeout : AiErrorKind.server);
+
+      debugPrint('ResilientAiService: $label ${isTimeout ? "timed out" : "threw"} → device ($e)');
+      return AiSuccess<T>(fallback);
+    }
+  }
+
+  // ── AiService implementation ──────────────────────────────────────────────
 
   @override
   Future<AiResult<CognitiveInsight>> cognitiveInsight(PatientAiContext context) async {

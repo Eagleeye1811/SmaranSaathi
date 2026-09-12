@@ -615,7 +615,9 @@ void main() {
 
   // Plain test: this exercises AppState alone, and the sync outbox keeps its
   // own real timers, which the widget binding would flag as pending.
-  test('the baseline is built from the activities just played', () async {
+  testWidgets('baseline is built from the activities just played', (WidgetTester tester) async {
+
+
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 

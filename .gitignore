@@ -77,3 +77,11 @@ backend/*.sqlite3
 # artefacts with no value once the OOM is fixed.
 *.hprof
 hs_err_pid*.log
+
+# ── Large model weights (exceed GitHub's 100 MB hard limit) ──────────────────
+# Host these on Hugging Face Hub instead (https://huggingface.co)
+*.gguf
+*.bin
+*.safetensors
+*.ot
+frontend/assets/models/
