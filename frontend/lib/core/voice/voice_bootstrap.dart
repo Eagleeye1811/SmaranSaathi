@@ -101,15 +101,25 @@ VoiceAssistantController buildVoiceController(
   String? replyLanguage,
   bool autoSpeak = true,
 }) {
+  final String activeCode = replyLanguage ?? state.localeCode ?? 'en';
+  final VoiceLanguage effectiveLanguage = language ??
+      switch (activeCode) {
+        'hi' => VoiceLanguage.hindi,
+        'as' => VoiceLanguage.assamese,
+        _ => VoiceLanguage.english,
+      };
+
   return VoiceAssistantController(
     assistant: assistant ?? buildPatientAssistant(state),
     recognizer: recognizer ?? SpeechToTextRecognizer(),
     synthesizer: synthesizer ?? FlutterTtsSynthesizer(),
     // Rebuilt per turn so the assistant always sees the app as it is now.
-    contextBuilder: () => state.aiContext(replyLanguage: replyLanguage),
+    contextBuilder: () => state.aiContext(
+      replyLanguage: state.localeCode ?? activeCode,
+    ),
     // The interface language wins over the profile's: a patient who switched
     // the app to Hindi expects Mitra to answer in Hindi too.
-    language: language ?? VoiceLanguageX.fromPatientLanguage(state.patient.language),
+    language: effectiveLanguage,
     autoSpeak: autoSpeak,
   );
 }

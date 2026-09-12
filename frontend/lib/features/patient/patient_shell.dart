@@ -6,6 +6,7 @@ import '../../core/services/app_state.dart';
 import '../../core/voice/voice_nav_intent.dart';
 import '../../core/widgets/app_nav_bar.dart';
 import '../../core/widgets/voice_nav_host.dart';
+import '../../l10n/app_localizations.dart';
 import 'assistant/assistant_screen.dart';
 import 'games/game_hub_screen.dart';
 import 'health/care_plan_screen.dart';
@@ -34,17 +35,6 @@ class PatientShell extends StatefulWidget {
 
 class _PatientShellState extends State<PatientShell> {
   int _index = 0;
-
-  /// One entry per child of the `IndexedStack` below, **in the same order**.
-  /// `AppNavBar` pairs them by position, so a label out of order silently
-  /// sends people to the wrong screen rather than failing.
-  static const List<NavDestination> _destinations = <NavDestination>[
-    NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
-    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
-    NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
-    NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
-    NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
-  ];
 
   void _go(int i) => setState(() => _index = i);
 
@@ -103,6 +93,14 @@ class _PatientShellState extends State<PatientShell> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<NavDestination> destinations = <NavDestination>[
+      NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
+      NavDestination(l.patientNavToday, Icons.notifications_outlined, Icons.notifications_rounded),
+      NavDestination(l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
+      NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
+      NavDestination(l.patientNavProfile, Icons.person_outline_rounded, Icons.person_rounded),
+    ];
     return Scaffold(
       backgroundColor: state.highContrast ? Colors.white : AppColors.background,
       // Above the tabs, not inside one: someone who has wandered needs to see
@@ -125,7 +123,7 @@ class _PatientShellState extends State<PatientShell> {
         ),
       ),
       bottomNavigationBar: AppNavBar(
-        destinations: _destinations,
+        destinations: destinations,
         index: _index,
         onChanged: _go,
         large: true,

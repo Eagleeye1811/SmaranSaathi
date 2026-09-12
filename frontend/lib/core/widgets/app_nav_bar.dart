@@ -153,15 +153,16 @@ class ConnectivityChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = offline ? AppColors.warning : AppColors.success;
     final String label = offline
-        ? (pending > 0 ? 'Offline · $pending' : 'Offline')
-        : (syncing ? 'Syncing…' : (pending > 0 ? '$pending to sync' : 'Online'));
+        ? (pending > 0 ? l.syncChipOfflineCount(pending) : l.syncChipOffline)
+        : (syncing ? l.syncChipSyncing : (pending > 0 ? l.syncChipPending(pending) : l.syncChipOnline));
 
     return Tooltip(
       message: offline
-          ? 'Simulated offline mode — tap to reconnect'
-          : 'Connected — tap to simulate going offline',
+          ? l.syncChipTooltipOffline
+          : l.syncChipTooltipOnline,
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(

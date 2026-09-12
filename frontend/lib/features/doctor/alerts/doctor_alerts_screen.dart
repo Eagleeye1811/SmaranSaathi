@@ -9,6 +9,7 @@ import '../../../core/models/game.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -81,7 +82,7 @@ class DoctorAlertsScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 9),
                         Expanded(
-                          child: Text(s.label,
+                          child: Text(s.localizedLabel(l),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: CT.h3.sized(17)),
@@ -156,12 +157,12 @@ class _AlertCard extends StatelessWidget {
                   children: <Widget>[
                     if (alert.domain != null)
                       PillTag(
-                        label: alert.domain!.label,
+                        label: alert.domain!.localizedLabel(l),
                         icon: alert.domain!.icon,
                         color: AppColors.clinicInkSoft,
                         dense: true,
                       ),
-                    PillTag(label: alert.severity.label, color: c, dense: true),
+                    PillTag(label: alert.severity.localizedLabel(l), color: c, dense: true),
                   ],
                 ),
               ),

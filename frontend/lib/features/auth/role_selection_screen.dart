@@ -11,6 +11,7 @@ import '../../core/widgets/companion.dart';
 import '../../core/widgets/illustration.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/app_localizations.dart';
 import '../caregiver/caregiver_shell.dart';
 import '../doctor/doctor_shell.dart';
 import '../patient/patient_entry.dart';
@@ -20,6 +21,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
     final Size screen = MediaQuery.sizeOf(context);
     final bool tall = screen.height > 720;
@@ -61,13 +63,13 @@ class RoleSelectionScreen extends StatelessWidget {
                             child: Column(
                               children: <Widget>[
                                 Text(
-                                  'Welcome to MemoryMitra',
+                                  l.authWelcomeTitle,
                                   textAlign: TextAlign.center,
                                   style: AppText.hero.sized(tall ? 30 : 26),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'I am Mitra. I keep company with the things\nyou love to remember.',
+                                  l.authWelcomeSubtitle,
                                   textAlign: TextAlign.center,
                                   style: AppText.body.tint(AppColors.inkSoft),
                                 ),
@@ -82,7 +84,7 @@ class RoleSelectionScreen extends StatelessWidget {
                                 const Expanded(child: Divider(color: AppColors.hairline)),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  child: Text('WHO ARE YOU?', style: AppText.overline),
+                                  child: Text(l.authWhoAreYou, style: AppText.overline),
                                 ),
                                 const Expanded(child: Divider(color: AppColors.hairline)),
                               ],
@@ -93,9 +95,9 @@ class RoleSelectionScreen extends StatelessWidget {
                             delayMs: 190,
                             child: _RoleCard(
                               sceneId: 'portrait_aama',
-                              title: 'Patient',
-                              name: 'Aama Devi, 72',
-                              description: 'Meet your companion, play, and remember together.',
+                              title: l.authRolePatient,
+                              name: l.authRolePatientName,
+                              description: l.authRolePatientDesc,
                               accent: AppColors.terracotta,
                               tint: AppColors.terracottaTint,
                               onTap: () {
@@ -110,9 +112,9 @@ class RoleSelectionScreen extends StatelessWidget {
                             delayMs: 230,
                             child: _RoleCard(
                               sceneId: 'portrait_priya',
-                              title: 'Caregiver',
-                              name: 'Priya — daughter',
-                              description: 'Build her memory profile and follow her day.',
+                              title: l.authRoleCaregiver,
+                              name: l.authRoleCaregiverName,
+                              description: l.authRoleCaregiverDesc,
                               accent: AppColors.primary,
                               tint: AppColors.primaryTint,
                               onTap: () {
@@ -127,9 +129,9 @@ class RoleSelectionScreen extends StatelessWidget {
                             delayMs: 270,
                             child: _RoleCard(
                               icon: Icons.medical_information_rounded,
-                              title: 'Doctor',
-                              name: 'Dr. Neha Sharma',
-                              description: 'Review cognitive performance trends across patients.',
+                              title: l.authRoleDoctor,
+                              name: l.authRoleDoctorName,
+                              description: l.authRoleDoctorDesc,
                               accent: AppColors.secondary,
                               tint: AppColors.secondaryTint,
                               onTap: () {

@@ -14,6 +14,7 @@ import '../../../core/voice/voice_bootstrap.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../l10n/locale_controller.dart';
 import '../../intake/intake_kit.dart';
 import '../health/report_screen.dart';
@@ -253,6 +254,7 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     return SizedBox(
       height: 54,
       child: ListView(
@@ -275,7 +277,7 @@ class _QuickActions extends StatelessWidget {
                     children: <Widget>[
                       Icon(a.icon, size: 18, color: AppColors.primary),
                       const SizedBox(width: 8),
-                      Text(a.label,
+                      Text(a.localizedLabel(l),
                           style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
                     ],
                   ),
@@ -458,7 +460,7 @@ class _Bubble extends StatelessWidget {
                           color: AppColors.primaryTint,
                           borderRadius: Corners.r(Corners.pill),
                         ),
-                        child: Text(f.label,
+                        child: Text(f.localizedLabel(l),
                             style: AppText.bodySmall.copyWith(
                               color: AppColors.primaryDeep,
                               fontWeight: FontWeight.w700,

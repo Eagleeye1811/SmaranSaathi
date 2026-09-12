@@ -12,6 +12,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/safe_zone_monitor.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The caregiver's safe-zone map.
 ///
@@ -114,7 +115,7 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Remove the safe zone?'),
+            title: Text(AppLocalizations.of(context)!.removeSafeZoneConfirm),
             content: const Text(
               'You will stop being told when they leave. You can draw a new '
               'zone at any time.',
@@ -122,12 +123,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Keep it'),
+                child: Text(AppLocalizations.of(context)!.keepIt),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Remove'),
+                child: Text(AppLocalizations.of(context)!.remove),
               ),
             ],
           ),
@@ -141,10 +142,11 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Safe zone'),
+        title: Text(l.safeZone),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
       ),
@@ -376,6 +378,7 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context)!;
     return Material(
       color: Colors.white,
       elevation: 8,
@@ -387,12 +390,12 @@ class _Controls extends StatelessWidget {
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Tap the map to move the middle',
+                    Text(l.tapMapToMoveMiddle,
                         style: AppText.bodySmall.tint(AppColors.inkSoft)),
                     const SizedBox(height: Insets.xs),
                     Row(
                       children: <Widget>[
-                        Text('How far can they go?', style: AppText.body.wght(700)),
+                        Text(l.howFarCanTheyGo, style: AppText.body.wght(700)),
                         const Spacer(),
                         Text('${draft!.radiusMetres.round()} m',
                             style: AppText.body.wght(800).tint(AppColors.primary)),
@@ -410,14 +413,14 @@ class _Controls extends StatelessWidget {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: onCancel,
-                            child: const Text('Cancel'),
+                            child: Text(l.cancel),
                           ),
                         ),
                         const SizedBox(width: Insets.sm),
                         Expanded(
                           child: FilledButton(
                             onPressed: onSave,
-                            child: const Text('Save safe zone'),
+                            child: Text(l.saveSafeZone),
                           ),
                         ),
                       ],
@@ -476,7 +479,7 @@ class _PermissionNotice extends StatelessWidget {
             child: Text(outcome.message,
                 style: AppText.bodySmall.tint(const Color(0xFF8A5D08))),
           ),
-          TextButton(onPressed: () => onRetry(), child: const Text('Retry')),
+          TextButton(onPressed: () => onRetry(), child: Text(AppLocalizations.of(context)!.retry)),
         ],
       ),
     );

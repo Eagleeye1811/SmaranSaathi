@@ -7,6 +7,7 @@ import '../../core/services/app_state.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/voice/voice_bootstrap.dart';
 import '../../core/voice/voice_intake_controller.dart';
+import '../../core/voice/voice_language.dart';
 import 'intake_kit.dart';
 import 'baseline_screens.dart';
 import 'welcome_screens.dart';
@@ -14,6 +15,8 @@ import 'steps_consent_profile.dart';
 import 'steps_medical_caregiver.dart';
 import 'steps_reason_safety.dart';
 import 'steps_symptoms_function.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/locale_controller.dart';
 
 /// The intake, start to finish.
 ///
@@ -46,12 +49,26 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
 
   late int _index;
 
-  /// Owned by the flow, not by a step: saying "next" on the last question of a
-  /// screen has to move the flow on, which no single step can do for itself.
-  late final VoiceIntakeController _voice = buildVoiceIntakeController(
-    onAdvance: _advance,
-    onGoBack: _back,
-  );
+  VoiceIntakeController? _voice;
+
+  VoiceIntakeController _ensureVoice() {
+    if (_voice != null) return _voice!;
+    final LocaleController? locale = LocaleScope.maybeRead(context);
+    return _voice = buildVoiceIntakeController(
+      onAdvance: _advance,
+      onGoBack: _back,
+      language: locale?.voiceLanguage ?? VoiceLanguage.english,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final LocaleController? locale = LocaleScope.maybeOf(context);
+    if (_voice != null && locale != null && _voice!.language != locale.voiceLanguage) {
+      _voice!.setLanguage(locale.voiceLanguage);
+    }
+  }
 
   @override
   void initState() {
@@ -64,7 +81,7 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
 
   @override
   void dispose() {
-    _voice.dispose();
+    _voice?.dispose();
     super.dispose();
   }
 
@@ -129,7 +146,7 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Go back and log out?'),
+            title: Text(AppLocalizations.of(context).goBackAndLogOutConfirm),
             content: const Text(
               'Going back to the start signs you out on this device. Your '
               'answers stay saved and come back when you sign in again.',
@@ -137,12 +154,12 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Stay here'),
+                child: Text(AppLocalizations.of(context).stayHere),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Go back and log out'),
+                child: Text(AppLocalizations.of(context).goBackAndLogOut),
               ),
             ],
           ),
@@ -157,7 +174,7 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return VoiceIntakeScope(
-      controller: _voice,
+      controller: _ensureVoice(),
       child: _step,
     );
   }

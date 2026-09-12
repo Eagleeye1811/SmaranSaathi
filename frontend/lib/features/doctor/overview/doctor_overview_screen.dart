@@ -11,6 +11,8 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
+import '../../../l10n/mock_translator.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -37,7 +39,7 @@ class DoctorOverviewScreen extends StatelessWidget {
         children: <Widget>[
           ClinicTopBar(
             title: l.doctorOverviewTitle,
-            subtitle: MockData.clinicName,
+            subtitle: MockTranslator.translateClinicName(MockData.clinicName, l),
           ),
           Expanded(
             child: ListView(
@@ -344,6 +346,7 @@ class _AlertRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color c = severityColor(alert.severity);
     return ClinicCard(
       accentEdge: c,
@@ -373,7 +376,7 @@ class _AlertRow extends StatelessWidget {
                 color: c,
               ),
               const SizedBox(width: 5),
-              Text(alert.severity.label,
+              Text(alert.severity.localizedLabel(l),
                   style: AppText.caption.sized(11.5).wght(700).tint(c)),
             ],
           ),

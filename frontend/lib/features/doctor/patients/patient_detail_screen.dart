@@ -12,6 +12,7 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../patient/health/report_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -201,7 +202,7 @@ class PatientDetailScreen extends StatelessWidget {
                               child: RadarChart(
                                 values: <String, int>{
                                   for (final CognitiveDomain d in CognitiveDomain.values)
-                                    d.label: patient.profile.score(d),
+                                    d.localizedLabel(l): patient.profile.score(d),
                                 },
                                 size: 280,
                                 color: AppColors.seriesTeal,
@@ -219,7 +220,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     const SizedBox(width: 9),
                                     SizedBox(
                                       width: 84,
-                                      child: Text(d.label, style: CT.bodySmall),
+                                      child: Text(d.localizedLabel(l), style: CT.bodySmall),
                                     ),
                                     Expanded(
                                       child: MeterBar(
@@ -280,7 +281,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     Icon(patient.trend.icon,
                                         size: 15, color: trendColor(patient.trend)),
                                     const SizedBox(width: 5),
-                                    Text(patient.trend.label,
+                                    Text(patient.trend.localizedLabel(l),
                                         style: CT.caption
                                             .wght(700)
                                             .tint(trendColor(patient.trend))),
@@ -374,7 +375,7 @@ class PatientDetailScreen extends StatelessWidget {
                                       ),
                                       Expanded(
                                         child: Text(
-                                          MockData.game(state.sessions[i].gameId).name,
+                                          MockData.game(state.sessions[i].gameId).localizedName(l),
                                           style: CT.bodySmall.tint(AppColors.clinicInk),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -427,7 +428,7 @@ class PatientDetailScreen extends StatelessWidget {
                                 Text(a.detail, style: CT.bodySmall),
                                 const SizedBox(height: 8),
                                 PillTag(
-                                  label: a.severity.label,
+                                  label: a.severity.localizedLabel(l),
                                   color: severityColor(a.severity),
                                   dense: true,
                                 ),

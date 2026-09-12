@@ -15,7 +15,9 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../core/models/safety.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/mock_translator.dart';
 import '../onboarding/patient_onboarding_flow.dart';
+import '../../patient/settings/language_selector.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
 
@@ -322,8 +324,8 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                   color: AppColors.secondary,
                                   size: 42,
                                 ),
-                                title: r.title,
-                                subtitle: '${r.time} · ${r.kind.label}',
+                                title: MockTranslator.translateTitle(r.title, l),
+                                subtitle: '${MockTranslator.translateTime(r.time, l)} · ${r.kind.label}',
                                 trailing: SoftButton(
                                   label: l.caregiverDoneButton,
                                   color: AppColors.success,
@@ -445,6 +447,11 @@ class CaregiverDashboardScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: Insets.lg),
+                  FadeInUp(
+                    delayMs: 330,
+                    child: const LanguageSelector(),
                   ),
                 ],
               ),
@@ -671,6 +678,7 @@ class _SafeZoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final SafeZone? zone = state.safeZone;
     final SafeZoneEvent? alert = state.activeWanderAlert;
     final bool wandering = alert != null;
@@ -697,17 +705,17 @@ class _SafeZoneCard extends StatelessWidget {
               children: <Widget>[
                 Text(
                   wandering
-                      ? '${state.patient.shortName} has left ${alert.zoneLabel}'
-                      : (zone == null ? 'Set a safe zone' : 'Safe zone · ${zone.label}'),
+                      ? l.caregiverSafeZoneLeft(state.patient.shortName, alert.zoneLabel)
+                      : (zone == null ? l.caregiverSetSafeZone : l.caregiverSafeZoneLabel(zone.label)),
                   style: AppText.h3.tint(wandering ? AppColors.danger : AppColors.ink),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   wandering
-                      ? '${alert.distanceMetres.round()} m outside. Open the map to see where.'
+                      ? l.caregiverSafeZoneOutsideDetail(alert.distanceMetres.round())
                       : (zone == null
-                          ? 'Be told if they wander away from home.'
-                          : '${zone.radiusMetres.round()} m around ${zone.label}. Tap to see the map.'),
+                          ? l.caregiverSafeZoneWanderDetail
+                          : l.caregiverSafeZoneRadiusDetail(zone.radiusMetres.round(), zone.label)),
                   style: AppText.bodySmall.tint(AppColors.inkSoft),
                 ),
               ],

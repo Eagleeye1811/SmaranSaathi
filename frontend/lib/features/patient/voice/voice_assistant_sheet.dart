@@ -10,6 +10,8 @@ import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
+import '../../../l10n/locale_controller.dart';
+import '../settings/language_picker_button.dart';
 
 /// "Ask Mitra" — the voice conversation, as a sheet over the patient app.
 ///
@@ -53,6 +55,15 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
     // Resolve engines and languages up front so the first tap is instant and
     // an unsupported language is known before the patient tries to speak.
     widget.controller.initialize();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final LocaleController? locale = LocaleScope.maybeOf(context);
+    if (locale != null && widget.controller.language != locale.voiceLanguage) {
+      widget.controller.setLanguage(locale.voiceLanguage);
+    }
   }
 
   VoiceAssistantController get _c => widget.controller;
@@ -102,6 +113,14 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
                 const SizedBox(height: Insets.lg),
                 if (_c.resolvedInputLanguage?.isFallback ?? false) ...<Widget>[
                   _languageNotice(),
+                  const SizedBox(height: Insets.md),
+                ],
+                if (_c.resolvedOutputLanguage != null && !_c.resolvedOutputLanguage!.isSupported) ...<Widget>[
+                  _ttsUnavailableNotice(AppLocalizations.of(context)),
+                  const SizedBox(height: Insets.md),
+                ],
+                if (_c.resolvedInputLanguage != null && !_c.resolvedInputLanguage!.isSupported) ...<Widget>[
+                  _sttUnavailableNotice(AppLocalizations.of(context)),
                   const SizedBox(height: Insets.md),
                 ],
                 if (_c.recognizedText.isNotEmpty) ...<Widget>[
@@ -164,6 +183,8 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
             ),
           ),
           if (_c.isListening) const _ListeningPulse(),
+          const SizedBox(width: Insets.xs),
+          const LanguagePickerButton(),
         ],
       );
 
@@ -185,6 +206,44 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
                 _languageName(l, r.requested),
                 _languageName(l, r.resolved!),
               ),
+              style: AppText.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ttsUnavailableNotice(AppLocalizations l) {
+    return MmCard(
+      color: AppColors.secondaryTint,
+      padding: const EdgeInsets.all(Insets.md),
+      child: Row(
+        children: <Widget>[
+          const SoftIcon(icon: Icons.volume_off_rounded, color: AppColors.secondary),
+          const SizedBox(width: Insets.sm),
+          Expanded(
+            child: Text(
+              l.voiceErrorTtsUnavailable,
+              style: AppText.bodySmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sttUnavailableNotice(AppLocalizations l) {
+    return MmCard(
+      color: AppColors.warningTint,
+      padding: const EdgeInsets.all(Insets.md),
+      child: Row(
+        children: <Widget>[
+          const SoftIcon(icon: Icons.mic_off_rounded, color: AppColors.warning),
+          const SizedBox(width: Insets.sm),
+          Expanded(
+            child: Text(
+              l.voiceErrorLanguage,
               style: AppText.bodySmall,
             ),
           ),
@@ -257,7 +316,6 @@ class _VoiceAssistantSheetState extends State<VoiceAssistantSheet> {
         VoiceLanguage.english => l.languageEnglish,
         VoiceLanguage.hindi => l.languageHindi,
         VoiceLanguage.assamese => l.languageAssamese,
-        VoiceLanguage.marathi => l.languageMarathi,
       };
 
   Widget _primaryControl() {

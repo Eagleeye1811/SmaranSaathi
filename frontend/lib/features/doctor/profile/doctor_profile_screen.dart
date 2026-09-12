@@ -8,6 +8,7 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/mock_translator.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// Clinician account and platform information.
@@ -75,7 +76,9 @@ class DoctorProfileScreen extends StatelessWidget {
                       children: <Widget>[
                         Text(l.doctorProfilePracticeHeading, style: CT.h3),
                         const SizedBox(height: 12),
-                        _Row(label: l.doctorProfileClinicLabel, value: MockData.clinicName),
+                        _Row(
+                            label: l.doctorProfileClinicLabel,
+                            value: MockTranslator.translateClinicName(MockData.clinicName, l)),
                         _Row(label: l.doctorProfileRegionLabel, value: l.doctorProfileRegionValue),
                         _Row(
                             label: l.doctorProfileLanguagesLabel,

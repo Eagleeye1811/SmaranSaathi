@@ -9,6 +9,8 @@ import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/mock_translator.dart';
+import '../settings/language_picker_button.dart';
 
 /// The bar across the top of every patient screen.
 ///
@@ -80,6 +82,8 @@ class PatientTopBar extends StatelessWidget {
               },
             ),
           ],
+          const SizedBox(width: 4),
+          const LanguagePickerButton(),
           if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
@@ -176,6 +180,7 @@ class MoodPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     const List<(MoodLevel, Color)> moods = <(MoodLevel, Color)>[
       (MoodLevel.good, AppColors.success),
       (MoodLevel.okay, AppColors.accent),
@@ -207,7 +212,11 @@ class MoodPicker extends StatelessWidget {
                       Text(m.emoji, style: const TextStyle(fontSize: 34)),
                       const SizedBox(height: 6),
                       Text(
-                        m.label,
+                        switch (m) {
+                          MoodLevel.good => l.moodGood,
+                          MoodLevel.okay => l.moodOkay,
+                          MoodLevel.low => l.moodLow,
+                        },
                         textAlign: TextAlign.center,
                         style: AppText.body.wght(selected == m ? 800 : 600),
                       ),
@@ -404,6 +413,7 @@ class ReminderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context)!;
     final Color color = switch (reminder.kind) {
       ReminderKind.medicine => AppColors.terracotta,
       ReminderKind.hydration => AppColors.secondary,
@@ -442,10 +452,10 @@ class ReminderRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(reminder.time, style: AppText.label.tint(color).wght(800)),
+                Text(MockTranslator.translateTime(reminder.time, l), style: AppText.label.tint(color).wght(800)),
                 const SizedBox(height: 2),
                 Text(
-                  reminder.title,
+                  MockTranslator.translateTitle(reminder.title, l),
                   style: (large ? AppText.bodyLarge : AppText.body).wght(700).copyWith(
                         decoration: reminder.done ? TextDecoration.lineThrough : null,
                         decorationColor: AppColors.inkMuted,
@@ -453,7 +463,8 @@ class ReminderRow extends StatelessWidget {
                 ),
                 if (reminder.detail.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
-                  Text(reminder.detail, style: AppText.bodySmall),
+                  Text(MockTranslator.translateDetail(reminder.detail, l),
+                      style: AppText.caption.tint(AppColors.inkSoft)),
                 ],
               ],
             ),

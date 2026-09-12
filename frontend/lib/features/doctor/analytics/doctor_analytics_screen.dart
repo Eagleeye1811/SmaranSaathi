@@ -10,6 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// Cohort-level analytics across the clinic's caseload.
@@ -25,7 +26,7 @@ class DoctorAnalyticsScreen extends StatelessWidget {
     // Domain averages across the cohort.
     final Map<String, int> domainAverages = <String, int>{
       for (final CognitiveDomain d in CognitiveDomain.values)
-        d.label: (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
+        d.localizedLabel(l): (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
                 caseload.length)
             .round(),
     };

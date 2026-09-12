@@ -8,6 +8,8 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
+import '../../patient/settings/language_picker_button.dart';
 
 /// Clinician typography — the warm palette's ink swapped for the cooler
 /// clinical one, so the two experiences never look like the same product.
@@ -134,7 +136,9 @@ class ClinicTopBar extends StatelessWidget {
               if (goingOnline) state.syncNow();
             },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          const LanguagePickerButton(color: AppColors.clinicInkSoft),
+          const SizedBox(width: 4),
           RoundIconButton(
             icon: Icons.logout_rounded,
             size: 36,
@@ -221,6 +225,7 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color c = statusColor(status);
     final IconData icon = switch (status) {
       ClinicalStatus.stable => Icons.check_circle_rounded,
@@ -239,7 +244,7 @@ class StatusChip extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 13, color: c),
           const SizedBox(width: 5),
-          Text(status.label, style: CT.caption.sized(11.5).wght(700).tint(c)),
+          Text(status.localizedLabel(l), style: CT.caption.sized(11.5).wght(700).tint(c)),
         ],
       ),
     );

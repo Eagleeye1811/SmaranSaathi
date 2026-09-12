@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../services/app_state.dart';
 import '../services/auth_service.dart';
 import 'ui_kit.dart';
@@ -60,10 +61,12 @@ class _AccountSectionState extends State<AccountSection> {
     final AuthService? service = _service;
     if (service == null) return const SizedBox.shrink();
 
+    final AppLocalizations l = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        SectionHeader(title: 'Account', icon: Icons.badge_outlined),
+        SectionHeader(title: l.profileAccount, icon: Icons.badge_outlined),
         MmCard(
           child: FutureBuilder<Map<String, dynamic>?>(
             future: _me,
@@ -82,10 +85,10 @@ class _AccountSectionState extends State<AccountSection> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Signed in as', style: AppText.caption),
+                            Text(l.accountSignedInAs, style: AppText.caption),
                             Text(email, style: AppText.body.wght(700)),
                             if (role != null)
-                              Text('Role: $role', style: AppText.bodySmall.tint(AppColors.inkMuted)),
+                              Text(l.accountRole(role), style: AppText.bodySmall.tint(AppColors.inkMuted)),
                           ],
                         ),
                       ),
@@ -93,7 +96,7 @@ class _AccountSectionState extends State<AccountSection> {
                   ),
                   const SizedBox(height: Insets.md),
                   SoftButton(
-                    label: 'Log out',
+                    label: l.actionLogOut,
                     icon: Icons.logout_rounded,
                     color: AppColors.danger,
                     onPressed: () => _logOut(context, service),

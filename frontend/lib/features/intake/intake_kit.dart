@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../l10n/app_localizations.dart';
+import '../patient/settings/language_picker_button.dart';
 import 'voice_intake_panel.dart';
 
 /// Shared chrome for every step of the intake.
@@ -111,6 +112,8 @@ class IntakeScaffold extends StatelessWidget {
                           style: AppText.overline.copyWith(color: accent),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      const LanguagePickerButton(),
                     ],
                   ),
                   if (hasProgress) ...<Widget>[

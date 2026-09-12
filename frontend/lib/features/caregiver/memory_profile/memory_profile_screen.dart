@@ -11,6 +11,7 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/mock_translator.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
 
@@ -212,10 +213,10 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                       children: <Widget>[
                         Text(f.name, style: AppText.h3),
                         const SizedBox(height: 2),
-                        PillTag(label: f.relation, color: AppColors.terracotta, dense: true),
+                        PillTag(label: MockTranslator.translateRelation(f.relation, l), color: AppColors.terracotta, dense: true),
                         if (f.note.isNotEmpty) ...<Widget>[
                           const SizedBox(height: 6),
-                          Text(f.note, style: AppText.caption),
+                          Text(MockTranslator.translateFamilyNote(f.note, l), style: AppText.caption),
                         ],
                       ],
                     ),
@@ -257,7 +258,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                     SceneImage(sceneId: f.sceneId, size: 46, circle: true),
                     const SizedBox(width: 14),
                     Expanded(
-                      child: Text('${f.name} · ${f.relation}',
+                      child: Text('${f.name} · ${MockTranslator.translateRelation(f.relation, l)}',
                           style: AppText.body.wght(600)),
                     ),
                     const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),

@@ -274,8 +274,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.favorite_outline_rounded,
-                      label: 'Memory wallet',
-                      detail: 'People and places',
+                      label: l.dashboardMemoryWallet,
+                      detail: l.dashboardPeopleAndPlaces,
                       color: AppColors.terracotta,
                       onTap: () => Nav.push(context, const MemoryWalletScreen()),
                     ),
@@ -284,8 +284,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.today_outlined,
-                      label: 'Today',
-                      detail: 'Check-in and reminders',
+                      label: l.patientNavToday,
+                      detail: l.dashboardCheckInReminders,
                       color: AppColors.plum,
                       onTap: () => widget.onOpenTab != null
                           ? widget.onOpenTab!(1)
@@ -428,7 +428,7 @@ class _JourneyCard extends StatelessWidget {
             ),
           ] else
             BigButton(
-              label: totalDone == 0 ? 'Start my first session' : "Start today's session",
+              label: totalDone == 0 ? l.dashboardStartFirstSession : l.dashboardStartTodaySession,
               icon: Icons.play_arrow_rounded,
               height: 62,
               onPressed: onStart,
@@ -642,11 +642,16 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
   List<DailyQuestion> _questions = const <DailyQuestion>[];
   int _index = 0;
   bool _loading = true;
+  String? _loadedLocale;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final String currentLocale = Localizations.localeOf(context).languageCode;
+    if (_loadedLocale != currentLocale) {
+      _loadedLocale = currentLocale;
+      _load(currentLocale);
+    }
   }
 
   @override
@@ -655,10 +660,11 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load([String? localeCode]) async {
     final AppState state = AppScope.read(context);
+    final String activeLocale = localeCode ?? Localizations.localeOf(context).languageCode;
     final AiService ai = _ai ??= buildPatientAssistant(state);
-    final PatientAiContext context_ = state.aiContext();
+    final PatientAiContext context_ = state.aiContext(replyLanguage: activeLocale);
     final AiResult<List<DailyQuestion>> result = await ai.dailyQuestions(context_);
     if (!mounted) return;
     setState(() {

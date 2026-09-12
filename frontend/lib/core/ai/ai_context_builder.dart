@@ -37,7 +37,7 @@ extension AiContextBuilder on AppState {
         completedToday: completedToday,
         lastPlayed: lastPlayed,
         engagementToday: todayEngagement,
-        replyLanguage: replyLanguage,
+        replyLanguage: replyLanguage ?? localeCode ?? (patient.language.isNotEmpty ? patient.language : 'en'),
         intake: intake,
         // Capped: enough for the model to stay coherent within the session
         // without the prompt growing unbounded across a long conversation.

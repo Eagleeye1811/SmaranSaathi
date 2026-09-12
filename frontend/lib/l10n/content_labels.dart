@@ -1,3 +1,5 @@
+import '../core/ai/health_assistant.dart';
+import '../core/models/clinical.dart';
 import '../core/models/game.dart';
 import '../core/models/memory_fragment.dart';
 import '../core/models/settings.dart';
@@ -148,4 +150,39 @@ extension VoiceErrorKindLabel on VoiceErrorKind {
 
 extension VoiceErrorLabel on VoiceError {
   String localizedMessage(AppLocalizations l) => kind.localizedMessage(l);
+}
+
+extension HealthQuickActionLabel on HealthQuickAction {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        HealthQuickAction.explainResults => l.actionExplainResults,
+        HealthQuickAction.whyChanged => l.actionWhyChanged,
+        HealthQuickAction.prepareForDoctor => l.actionPrepareForDoctor,
+        HealthQuickAction.whatToMonitor => l.actionWhatToMonitor,
+        HealthQuickAction.aboutDementia => l.actionAboutDementia,
+        HealthQuickAction.howAmIDoing => l.actionHowAmIDoing,
+      };
+}
+
+extension ClinicalStatusLabel on ClinicalStatus {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        ClinicalStatus.stable => l.clinicalStatusStable,
+        ClinicalStatus.needsAttention => l.clinicalStatusNeedsAttention,
+        ClinicalStatus.followUp => l.clinicalStatusFollowUp,
+      };
+}
+
+extension TrendDirectionLabel on TrendDirection {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        TrendDirection.up => l.clinicalTrendImproving,
+        TrendDirection.flat => l.clinicalTrendStable,
+        TrendDirection.down => l.clinicalTrendDeclining,
+      };
+}
+
+extension AlertSeverityLabel on AlertSeverity {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        AlertSeverity.info => l.alertSeverityInfo,
+        AlertSeverity.watch => l.alertSeverityWatch,
+        AlertSeverity.urgent => l.alertSeverityUrgent,
+      };
 }
