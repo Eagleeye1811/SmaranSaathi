@@ -54,6 +54,25 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
     super.dispose();
   }
 
+  /// Leaves the preview, from however deep inside it the caregiver is.
+  ///
+  /// `maybePop` removed one route, which is the preview itself only when
+  /// nothing has been opened on top of it. The patient's app pushes onto this
+  /// same navigator — their profile, the reminders screen, the companion — so
+  /// from any of those a single pop landed back *inside* the preview rather
+  /// than out of it. Unwinding to this route first and then popping it closes
+  /// the whole thing, every time.
+  ///
+  /// The role the caregiver arrived with is restored in `dispose`, so leaving
+  /// by this button, by the system gesture or by any other route out all end
+  /// the preview the same way.
+  void _close() {
+    final NavigatorState navigator = Navigator.of(context);
+    final Route<dynamic>? self = ModalRoute.of(context);
+    if (self != null) navigator.popUntil((Route<dynamic> route) => route == self);
+    navigator.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -82,7 +101,7 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
                       icon: const Icon(Icons.arrow_back_rounded),
                       color: AppColors.terracotta,
                       tooltip: l.caregiverBackToCaregiver,
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: _close,
                     ),
                     Expanded(
                       child: Column(
@@ -102,6 +121,20 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    // The same exit as the arrow, at the end of the banner
+                    // where a thing you are dismissing is closed. The arrow
+                    // reads as "back one screen" inside the patient's app,
+                    // which is not what leaving the preview is.
+                    //
+                    // It only closes the preview. Changing role for real is a
+                    // deliberate act and lives on the caregiver's own profile
+                    // page, where signing out does too.
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      color: AppColors.terracotta,
+                      tooltip: l.caregiverBackToCaregiver,
+                      onPressed: _close,
                     ),
                   ],
                 ),

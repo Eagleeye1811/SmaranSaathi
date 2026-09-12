@@ -12,12 +12,16 @@ import 'caregiver_shell.dart';
 /// person with cognitive change frequently under-reports exactly the things
 /// it asks about, while the person living with them does not.
 ///
-/// It is no longer a gate in front of a signed-in account. Someone who has
-/// just proved who they are should land in their app, not in a fifteen-screen
-/// questionnaire they may have come back specifically to avoid; the dashboard
-/// offers it instead, and keeps offering until it is done. Only an anonymous
-/// session still opens on it, because with no account there is nothing else
-/// to show.
+/// The test is whether the questionnaire has been answered, not whether
+/// somebody is signed in. A brand-new account has answered nothing, so
+/// creating one leads straight here and the profile is built at the end of
+/// it; a returning account has answered it already and goes to the dashboard.
+/// Gating on the account instead — which this briefly did — meant a new
+/// caregiver signed up and landed on an empty dashboard with no profile
+/// behind it.
+///
+/// It is still not a dead end: the dashboard keeps offering the onboarding in
+/// its attention list for anyone who skips out of it half way.
 ///
 /// Because every screen of it is written to disk as it is answered, a
 /// caregiver who closes the app halfway through comes back to the next
@@ -27,29 +31,50 @@ class CaregiverEntry extends StatefulWidget {
 
   @override
   State<CaregiverEntry> createState() => _CaregiverEntryState();
+
+  /// Whether this account has been through setup already.
+  ///
+  /// Its own function so it can be tested without building the whole
+  /// caregiver shell — which, inside a test harness, never settles.
+  static bool isAlreadySetUp(AppState state, {bool justFinished = false}) =>
+      justFinished || state.intake.isComplete || state.hasPatientProfile;
 }
 
-enum _Phase { onboarding, shell }
-
 class _CaregiverEntryState extends State<CaregiverEntry> {
-  late _Phase _phase;
-
-  @override
-  void initState() {
-    super.initState();
-    final AppState state = AppScope.read(context);
-    _phase = state.intake.isComplete || state.accountId != null
-        ? _Phase.shell
-        : _Phase.onboarding;
-  }
+  /// Set when the questionnaire is finished *here*, so the shell stays put
+  /// even though the record needs a moment to be written and read back.
+  bool _justFinished = false;
 
   @override
   Widget build(BuildContext context) {
-    return switch (_phase) {
-      _Phase.onboarding => IntakeFlowScreen(
-          onFinished: () => setState(() => _phase = _Phase.shell),
-        ),
-      _Phase.shell => const CaregiverShell(),
-    };
+    // Read through `AppScope.of`, not `read`, and decided on every build
+    // rather than once in `initState`.
+    //
+    // Binding an account is asynchronous — the record comes off disk, and
+    // anything this device has not seen is asked of the server. Deciding once,
+    // at the moment this screen was created, meant deciding before any of
+    // that had landed: a caregiver with a finished questionnaire was shown the
+    // onboarding, and it stayed on screen even as the answers arrived behind
+    // it. Now the answers arriving is a rebuild, and the rebuild shows the
+    // dashboard.
+    final AppState state = AppScope.of(context);
+
+    // Three ways to be past the onboarding, not one.
+    //
+    // `intake.isComplete` alone was too strict: it is only true once the very
+    // last screen of the questionnaire has been submitted, so a caregiver who
+    // answered enough to produce a real profile — and who has been using the
+    // app since — was sent back to question one every time they signed in.
+    // Someone whose account already names the person they care for has
+    // plainly done this before.
+    //
+    // The dashboard still offers to finish it, for as long as it is unfinished.
+    if (CaregiverEntry.isAlreadySetUp(state, justFinished: _justFinished)) {
+      return const CaregiverShell();
+    }
+
+    return IntakeFlowScreen(
+      onFinished: () => setState(() => _justFinished = true),
+    );
   }
 }

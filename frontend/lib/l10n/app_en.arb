@@ -143,7 +143,7 @@
   "settingsOfflineMode": "Offline mode",
   "settingsOfflineNote": "Everything works without the internet",
   "settingsConnected": "Connected — activity syncs automatically",
-  "voiceAskSaathi": "Ask Saathi",
+  "voiceAskSaathi": "Ask Mitra",
   "voiceTalkAboutDay": "Talk to me about your day",
   "voiceTapMicrophone": "Tap the microphone and ask me",
   "voiceAskAnythingElse": "Ask me anything else",
@@ -1592,6 +1592,7 @@
   "patientNavHome": "Home",
   "patientNavToday": "Today",
   "patientNavActivities": "Activities",
+  "patientNavWellness": "Wellness",
   "patientNavCompanion": "Companion",
   "patientNavProfile": "Profile",
   "dashboardCheckInAndReminders": "Check-in and reminders",
@@ -1881,13 +1882,10 @@
   "authDeviceOnlyNote": "Everything works without an account — your answers stay on this phone until you sign in.",
   "authSignOut": "Sign out",
   "authSignedInAs": "Signed in as {email}",
-  "authRolePatient": "Patient",
   "authRolePatientWho": "The person themselves",
   "authRolePatientDetail": "Meet your companion, play, and remember together.",
-  "authRoleCaregiver": "Caregiver",
   "authRoleCaregiverWho": "Family, or a carer",
   "authRoleCaregiverDetail": "Answer a few questions about them, then follow their day.",
-  "authRoleDoctor": "Doctor",
   "authRoleDoctorWho": "Clinician",
   "authRoleDoctorDetail": "Review cognitive performance trends across patients.",
   "authCaregiverSetsUp": "Sets up the profile",
@@ -1911,11 +1909,7 @@
   },
   "profileChangeNumber": "Change",
   "profileAddNumber": "Add Number",
-  "dashboardStartFirstSession": "Start my first session",
   "dashboardStartTodaysSession": "Start today's session",
-  "clinicalStatusStable": "Stable",
-  "clinicalStatusNeedsAttention": "Needs attention",
-  "clinicalStatusFollowUp": "Follow-up",
   "reminderKindMedicine": "Medicine",
   "reminderKindHydration": "Hydration",
   "reminderKindCognitive": "Cognitive activity",
@@ -1994,5 +1988,16 @@
   "pairApproved": "Approved",
   "pairSignedInAsPatient": "Signed in as {name}",
   "pairPatientUsernameIs": "Their username is {username}",
-  "pairUnsupported": "This server does not support device sign-in yet. It needs updating."
+  "pairUnsupported": "This server does not support device sign-in yet. It needs updating.",
+  "accountSignedInAs": "Signed in as",
+  "accountRole": "Role: {role}",
+  "doctorSettingsSub": "Review permissions, connection status and app preferences.",
+  "safeZoneHomeLabel": "Home",
+  "@accountRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  }
 }

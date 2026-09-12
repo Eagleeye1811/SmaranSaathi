@@ -63,7 +63,7 @@ class _MedicalReportsScreenState extends State<MedicalReportsScreen> {
                     Text('Report Type Required', style: CT.caption.wght(600)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<ReportKind>(
-                      initialValue: selectedKind,
+                      value: selectedKind,
                       decoration: InputDecoration(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

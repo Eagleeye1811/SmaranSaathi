@@ -12,7 +12,6 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
-import '../../../core/models/auth_user.dart';
 import '../../../core/services/auth_service.dart';
 import '../../auth/auth_role_screen.dart';
 import '../../auth/sign_in_screen.dart';
@@ -44,7 +43,7 @@ class PatientProfileScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            const PatientTopBar(),
+            const PatientTopBar(showActions: false),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -439,9 +438,9 @@ class _AccountCard extends StatelessWidget {
                     context,
                     SignInScreen(
                       authService: service,
-                      onSignedIn: (AuthUser user) {
-                        state.signInAccount(user.uid);
-                        Navigator.of(context).maybePop();
+                      onSignedIn: (AuthResult result) async {
+                        await state.signInAccount(result.user!.uid);
+                        if (context.mounted) Navigator.of(context).maybePop();
                       },
                     ),
                   ),
@@ -579,7 +578,7 @@ class _SwitchRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
+              activeColor: Colors.white,
               activeTrackColor: AppColors.primary,
             ),
           ),

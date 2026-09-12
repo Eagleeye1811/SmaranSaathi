@@ -613,7 +613,12 @@ void main() {
         tester, find.widgetWithText(ChipChoice, 'Remembering important things'));
     await next();
 
-    // 12 · the summary reads the answers back before it lets go
+    // 12 · a doctor, offered rather than required — nothing here has to be
+    // answered for the questionnaire to end.
+    expect(find.text('Is a doctor involved?'), findsOneWidget);
+    await next();
+
+    // 13 · the summary reads the answers back before it lets go
     expect(find.text('Thank you'), findsOneWidget);
     expect(find.text('Misplacing things'), findsWidgets);
     expect(find.textContaining('Answered by'), findsOneWidget);
@@ -687,7 +692,7 @@ void main() {
 
       // Not back at consent, and not at a dashboard either.
       expect(find.text('Health and care so far'), findsOneWidget);
-      expect(find.text('Step 3 of 12'), findsOneWidget);
+      expect(find.text('Step 3 of 13'), findsOneWidget);
     });
   });
 
@@ -721,14 +726,14 @@ void main() {
 
       await tester.tap(find.text('I am the patient'));
       await tester.pumpAndSettle();
-      expect(find.text('Step 1 of 12'), findsOneWidget);
+      expect(find.text('Step 1 of 13'), findsOneWidget);
 
       // The button someone stuck on the first question reaches for.
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pumpAndSettle();
 
       expect(find.text('I am the patient'), findsOneWidget);
-      expect(find.text('Step 1 of 12'), findsNothing);
+      expect(find.text('Step 1 of 13'), findsNothing);
     });
 
     testWidgets('leaving loses nothing: it resumes where it stopped',
@@ -747,7 +752,7 @@ void main() {
       await beat(tester, 400);
       await beat(tester, 400);
 
-      expect(find.text('Step 2 of 12'), findsOneWidget);
+      expect(find.text('Step 2 of 13'), findsOneWidget);
       expect(state.intake.consentGiven, isTrue);
     });
 
@@ -765,14 +770,14 @@ void main() {
       );
       await beat(tester);
 
-      expect(find.text('Step 1 of 12'), findsOneWidget);
+      expect(find.text('Step 1 of 13'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 
       // Nobody is signed in here, so there is nothing to confirm: it goes
       // straight to the welcome screen.
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await beat(tester, 600);
-      expect(find.text('Step 1 of 12'), findsNothing);
+      expect(find.text('Step 1 of 13'), findsNothing);
       expect(find.byType(WelcomeScreen), findsOneWidget);
     });
 
@@ -800,7 +805,7 @@ void main() {
 
       await tester.tap(find.text('Stay here'));
       await beat(tester, 600);
-      expect(find.text('Step 1 of 12'), findsOneWidget);
+      expect(find.text('Step 1 of 13'), findsOneWidget);
       expect(state.accountId, 'uid-1');
 
       // Accepting signs out and returns to the welcome screen.
@@ -816,7 +821,7 @@ void main() {
 
       expect(state.accountId, isNull);
       expect(find.byType(WelcomeScreen), findsOneWidget);
-      expect(find.text('Step 1 of 12'), findsNothing);
+      expect(find.text('Step 1 of 13'), findsNothing);
     });
   });
 
@@ -850,7 +855,7 @@ void main() {
 
     // Straight to the health step, skipping consent and the person screen.
     expect(find.text('Health and care so far'), findsOneWidget);
-    expect(find.text('Step 3 of 12'), findsOneWidget);
+    expect(find.text('Step 3 of 13'), findsOneWidget);
   });
 
   testWidgets('a daily session shows only that day\'s two activities',

@@ -72,7 +72,25 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Future<AuthResult> signUp({required String email, required String password}) =>
-      _attempt(() => _auth.createUserWithEmailAndPassword(email: email.trim(), password: password));
+      _attempt(() => _auth.createUserWithEmailAndPassword(email: email.trim(), password: password),
+          isNewAccount: true);
+
+  @override
+  Future<AuthResult> signInOrCreate({
+    required String email,
+    required String password,
+  }) async {
+    final AuthResult created = await signUp(email: email, password: password);
+    if (created.isSuccess) return created;
+
+    // The only outcome that means "you already have one of these". Every
+    // other failure — a malformed email, too short a password, no network —
+    // is a real problem the person has to see, not a reason to try again as
+    // a sign-in and report a confusing second error.
+    if (created.error != _emailInUseMessage) return created;
+
+    return signIn(email: email, password: password);
+  }
 
   /// Google sign-in, exchanged for a Firebase credential.
   ///
@@ -114,18 +132,31 @@ class FirebaseAuthService implements AuthService {
     }
   }
 
-  Future<AuthResult> _attempt(Future<fb.UserCredential> Function() action) async {
+  Future<AuthResult> _attempt(
+    Future<fb.UserCredential> Function() action, {
+    bool isNewAccount = false,
+  }) async {
     try {
       final fb.UserCredential credential = await action();
       final fb.User? user = credential.user;
       if (user == null) return const AuthResult.failure('Sign-in did not return a user.');
-      return AuthResult.success(AuthUser(uid: user.uid, email: user.email));
+      return AuthResult.success(
+        AuthUser(uid: user.uid, email: user.email),
+        // Firebase says so itself for a federated sign-in; for email/password
+        // the caller knows which method it used.
+        isNewAccount: isNewAccount || (credential.additionalUserInfo?.isNewUser ?? false),
+      );
     } on fb.FirebaseAuthException catch (error) {
       return AuthResult.failure(_readableMessage(error));
     } catch (error) {
       return const AuthResult.failure('Something went wrong. Please try again.');
     }
   }
+
+  /// Matched by [signInOrCreate], so it is a constant rather than a literal
+  /// repeated in two places that could drift apart.
+  static const String _emailInUseMessage =
+      'An account already exists with that email — signing you in instead.';
 
   String _readableMessage(fb.FirebaseAuthException error) {
     switch (error.code) {
@@ -139,7 +170,7 @@ class FirebaseAuthService implements AuthService {
       case 'invalid-credential':
         return 'Incorrect email or password.';
       case 'email-already-in-use':
-        return 'An account already exists with that email — try signing in instead.';
+        return _emailInUseMessage;
       case 'weak-password':
         return 'Please choose a longer password (at least 6 characters).';
       case 'network-request-failed':

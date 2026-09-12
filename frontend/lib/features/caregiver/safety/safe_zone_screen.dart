@@ -116,7 +116,7 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.removeSafeZoneConfirm),
+            title: Text(AppLocalizations.of(context).removeSafeZoneConfirm),
             content: const Text(
               'You will stop being told when they leave. You can draw a new '
               'zone at any time.',
@@ -124,12 +124,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(AppLocalizations.of(context)!.keepIt),
+                child: Text(AppLocalizations.of(context).keepIt),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: Text(AppLocalizations.of(context)!.remove),
+                child: Text(AppLocalizations.of(context).remove),
               ),
             ],
           ),

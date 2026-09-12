@@ -36,6 +36,7 @@ class AppSettings {
     this.localeCode,
     this.patientUsername,
     this.accountRolesJson,
+    this.registeredDoctorsJson,
   });
 
   final TextSizePreference textSize;
@@ -71,6 +72,14 @@ class AppSettings {
   /// that uid already picked is restored without asking again.
   final String? accountRolesJson;
 
+  /// Doctors who have signed up in this app, as a JSON list.
+  ///
+  /// A clinician who creates an account has to be findable by the families
+  /// who need them — otherwise the directory only ever contains the sample
+  /// clinics and a real sign-up goes nowhere. Persisted because the caregiver
+  /// who searches for them is a different role, often a different launch.
+  final String? registeredDoctorsJson;
+
   /// The Firebase uid whose assessment this device last worked on.
   ///
   /// Persisted so a restart reopens the same person's intake *before* anyone
@@ -99,6 +108,7 @@ class AppSettings {
     String? localeCode,
     String? patientUsername,
     String? accountRolesJson,
+    String? registeredDoctorsJson,
   }) {
     return AppSettings(
       textSize: textSize ?? this.textSize,
@@ -113,6 +123,7 @@ class AppSettings {
       localeCode: localeCode ?? this.localeCode,
       patientUsername: patientUsername ?? this.patientUsername,
       accountRolesJson: accountRolesJson ?? this.accountRolesJson,
+      registeredDoctorsJson: registeredDoctorsJson ?? this.registeredDoctorsJson,
     );
   }
 }

@@ -12,13 +12,54 @@ import '../../../data/mock/mock_data.dart';
 import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
+import '../../patient/settings/language_picker_button.dart';
 import '../widgets/clinic_widgets.dart';
 
 /// Clinician account and platform information.
 class DoctorProfileScreen extends StatelessWidget {
   const DoctorProfileScreen({super.key});
 
+  /// Back to the role picker with the account intact — a clinician looking at
+  /// another side of the app, not leaving it.
+  static Future<void> _switchRole(BuildContext context) async {
+    AppScope.read(context).setRole(AppRole.none);
+    if (!context.mounted) return;
+    Nav.rootTo(context, const WelcomeScreen());
+  }
+
+  /// Leaves the account properly, local state first.
+  ///
+  /// Local first because the app must end up signed out even with no network;
+  /// a failed Firebase call must not leave a clinician still signed in on the
+  /// device in front of them. Nothing is deleted — the account's records stay
+  /// under its own uid and come back at the next sign-in.
+  ///
+  /// This used to be the *same* button as "switch role", which meant a
+  /// clinician who only wanted to look at the caregiver side was signed out of
+  /// their account to do it.
   static Future<void> _logOutDoctor(BuildContext context) async {
+    final bool confirmed = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('Log out?'),
+            content: const Text(
+                'You will need to sign in again to reach your caseload.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(AppLocalizations.of(dialogContext).actionCancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                child: const Text('Log out'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !context.mounted) return;
+
     final AppState state = AppScope.read(context);
     final AuthService? service = AuthScope.maybeOf(context);
     await state.signOutAccount();
@@ -34,10 +75,88 @@ class DoctorProfileScreen extends StatelessWidget {
     Nav.rootTo(context, const WelcomeScreen());
   }
 
+  /// Fills in the details a family actually chooses on.
+  static Future<void> _editListing(
+      BuildContext context, AppState state, DoctorProfile mine) async {
+    final TextEditingController name = TextEditingController(text: mine.name);
+    final TextEditingController spec =
+        TextEditingController(text: mine.specialization);
+    final TextEditingController clinic = TextEditingController(text: mine.hospital);
+    final TextEditingController reg =
+        TextEditingController(text: mine.registrationNumber);
+
+    final bool saved = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('Your listing'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextField(
+                    controller: name,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                        labelText: 'Name', border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: Insets.sm),
+                  TextField(
+                    controller: spec,
+                    decoration: const InputDecoration(
+                        labelText: 'Specialisation',
+                        hintText: 'Neurologist, Geriatrician…',
+                        border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: Insets.sm),
+                  TextField(
+                    controller: clinic,
+                    decoration: const InputDecoration(
+                        labelText: 'Clinic or hospital',
+                        border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: Insets.sm),
+                  TextField(
+                    controller: reg,
+                    decoration: const InputDecoration(
+                        labelText: 'Registration number',
+                        border: OutlineInputBorder()),
+                  ),
+                ],
+              ),
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(AppLocalizations.of(dialogContext).actionCancel),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (saved) {
+      state.updateMyDoctorProfile(
+        name: name.text.trim(),
+        specialization: spec.text.trim(),
+        hospital: clinic.text.trim(),
+        registrationNumber: reg.text.trim(),
+      );
+    }
+    name.dispose();
+    spec.dispose();
+    clinic.dispose();
+    reg.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
+    final DoctorProfile? mine = state.myDoctorProfile;
 
     return Scaffold(
       backgroundColor: AppColors.clinicBackground,
@@ -73,9 +192,24 @@ class DoctorProfileScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text(MockData.doctorName, style: CT.h2.sized(21)),
+                              // Their own name once they have an account,
+                              // not the demo clinician's. A doctor who signs
+                              // up and is shown somebody else's name has no
+                              // reason to believe the listing families see is
+                              // theirs either.
+                              Text(mine?.displayName ?? MockData.doctorName,
+                                  style: CT.h2.sized(21),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
                               const SizedBox(height: 3),
-                              Text(l.doctorProfileRoleLine, style: CT.caption),
+                              Text(
+                                mine == null || mine.specialization.isEmpty
+                                    ? l.doctorProfileRoleLine
+                                    : mine.specialization,
+                                style: CT.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               const SizedBox(height: 8),
                               PillTag(
                                 label: l.doctorProfilePatientCount(24),
@@ -116,14 +250,6 @@ class DoctorProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: Insets.lg),
 
-                FadeInUp(
-                  delayMs: 80,
-                  child: const ClinicCard(
-                    padding: EdgeInsets.all(Insets.lg),
-                    child: _DoctorAvailabilitySection(),
-                  ),
-                ),
-                const SizedBox(height: Insets.lg),
 
                 FadeInUp(
                   delayMs: 110,
@@ -164,7 +290,7 @@ class DoctorProfileScreen extends StatelessWidget {
                                 state.setOffline(v);
                                 if (!v) state.syncNow();
                               },
-                              activeThumbColor: Colors.white,
+                              activeColor: Colors.white,
                               activeTrackColor: AppColors.warning,
                             ),
                           ],
@@ -175,14 +301,96 @@ class DoctorProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: Insets.lg),
 
+                // ── The listing families see ──────────────────────────
+                //
+                // Signing up puts a clinician in the caregiver's directory
+                // straight away, which is the point — but an entry with no
+                // specialisation or clinic is one nobody will choose. This is
+                // where it gets filled in.
+                if (mine != null) ...<Widget>[
+                  FadeInUp(
+                    delayMs: 110,
+                    child: ClinicCard(
+                      padding: const EdgeInsets.all(Insets.lg),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Text('Your public listing', style: CT.h3.wght(700)),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => _editListing(context, state, mine),
+                                icon: const Icon(Icons.edit_outlined, size: 17),
+                                label: const Text('Edit'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: Insets.sm),
+                          _Row(
+                            label: 'Specialisation',
+                            value: mine.specialization.isEmpty
+                                ? 'Not set — families search by this'
+                                : mine.specialization,
+                          ),
+                          _Row(
+                            label: 'Clinic',
+                            value: mine.hospital.isEmpty ? 'Not set' : mine.hospital,
+                          ),
+                          _Row(
+                            label: 'Registration',
+                            value: mine.registrationNumber.isEmpty
+                                ? 'Not set'
+                                : mine.registrationNumber,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Insets.lg),
+                ],
+
+                // ── Language ──────────────────────────────────────────
+                FadeInUp(
+                  delayMs: 120,
+                  child: Row(
+                    children: <Widget>[
+                      Text(l.settingsLanguage, style: CT.h3.wght(700)),
+                      const Spacer(),
+                      const LanguagePickerButton(color: AppColors.clinicInkSoft),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: Insets.lg),
+
+                // Shows the signed-in email, and only when an auth service is
+                // configured — so the two actions below it are separate and
+                // unconditional, and there is always a way out of the account.
                 const _DoctorAccountSection(),
 
                 FadeInUp(
                   delayMs: 140,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _logOutDoctor(context),
-                    icon: const Icon(Icons.logout_rounded),
-                    label: Text(l.doctorProfileSwitchRole),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      OutlinedButton.icon(
+                        onPressed: () => _switchRole(context),
+                        icon: const Icon(Icons.swap_horiz_rounded),
+                        label: Text(l.doctorProfileSwitchRole),
+                      ),
+                      const SizedBox(height: Insets.sm),
+                      OutlinedButton.icon(
+                        onPressed: () => _logOutDoctor(context),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Log out'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.danger,
+                          side: BorderSide(
+                              color: AppColors.danger.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -298,371 +506,3 @@ class _Row extends StatelessWidget {
   }
 }
 
-/// Interactive section allowing the doctor to select their active availability days
-/// and configure appointment slots for patients/caregivers to book.
-class _DoctorAvailabilitySection extends StatefulWidget {
-  const _DoctorAvailabilitySection();
-
-  @override
-  State<_DoctorAvailabilitySection> createState() => _DoctorAvailabilitySectionState();
-}
-
-class _DoctorAvailabilitySectionState extends State<_DoctorAvailabilitySection> {
-  static const List<String> _allDays = <String>[
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-
-  String _filterDay = 'All';
-
-  void _showAddSlotDialog(BuildContext context, AppState state) {
-    String selectedDay = state.doctorActiveDays.isNotEmpty
-        ? state.doctorActiveDays.first
-        : 'Monday';
-    String startTime = '10:00 AM';
-    String endTime = '11:00 AM';
-
-    final List<String> presets = <String>[
-      '9:00 AM – 10:00 AM',
-      '10:00 AM – 11:00 AM',
-      '11:00 AM – 12:00 PM',
-      '2:00 PM – 3:00 PM',
-      '3:00 PM – 4:00 PM',
-      '4:00 PM – 5:00 PM',
-    ];
-    String selectedPreset = presets.first;
-
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) {
-        return StatefulBuilder(
-          builder: (BuildContext dialogCtx, StateSetter setModalState) {
-            return AlertDialog(
-              backgroundColor: AppColors.clinicSurface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Add Appointment Slot', style: CT.h3.wght(700)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Select Day', style: CT.caption.wght(600)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedDay,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      items: _allDays
-                          .map((String d) => DropdownMenuItem<String>(
-                                value: d,
-                                child: Text(d, style: CT.bodySmall),
-                              ))
-                          .toList(),
-                      onChanged: (String? val) {
-                        if (val != null) setModalState(() => selectedDay = val);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Text('Quick Preset Time', style: CT.caption.wght(600)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedPreset,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      items: presets
-                          .map((String p) => DropdownMenuItem<String>(
-                                value: p,
-                                child: Text(p, style: CT.bodySmall),
-                              ))
-                          .toList(),
-                      onChanged: (String? val) {
-                        if (val != null) {
-                          setModalState(() {
-                            selectedPreset = val;
-                            final List<String> parts = val.split(' – ');
-                            if (parts.length == 2) {
-                              startTime = parts[0];
-                              endTime = parts[1];
-                            }
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    Text('Or Custom Time Range', style: CT.caption.wght(600)),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: startTime,
-                            style: CT.bodySmall,
-                            decoration: InputDecoration(
-                              labelText: 'Start',
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onChanged: (String v) => startTime = v,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextFormField(
-                            initialValue: endTime,
-                            style: CT.bodySmall,
-                            decoration: InputDecoration(
-                              labelText: 'End',
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            onChanged: (String v) => endTime = v,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(dialogCtx).pop(),
-                  child: Text('Cancel', style: CT.bodySmall),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.clinicAccent,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () {
-                    final String timeLabel = '$startTime – $endTime';
-                    state.addDoctorSlot(
-                      DoctorSlot(
-                        id: 'slot_${DateTime.now().millisecondsSinceEpoch}',
-                        dayLabel: selectedDay,
-                        timeLabel: timeLabel,
-                      ),
-                    );
-                    Navigator.of(dialogCtx).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Slot added for $selectedDay ($timeLabel). Available to caregivers.'),
-                      ),
-                    );
-                  },
-                  child: const Text('Add Slot'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final AppState state = AppScope.of(context);
-    final Set<String> activeDays = state.doctorActiveDays;
-    final List<DoctorSlot> slots = state.doctorSlots;
-    final List<DoctorSlot> filteredSlots = _filterDay == 'All'
-        ? slots
-        : slots.where((DoctorSlot s) => s.dayLabel.toLowerCase() == _filterDay.toLowerCase()).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            const Icon(Icons.event_available_rounded, size: 20, color: AppColors.clinicAccent),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('Availability & Appointment Slots', style: CT.h3.wght(700)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Select your available consultation days and set slots for caregiver bookings.',
-          style: CT.caption,
-        ),
-        const SizedBox(height: 16),
-        Text('Available Consultation Days', style: CT.body.wght(700)),
-        const SizedBox(height: 2),
-        Text('Tap days to toggle your availability on/off', style: CT.caption),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: _allDays.map((String day) {
-            final bool isSelected = activeDays.contains(day);
-            return FilterChip(
-              label: Text(day.substring(0, 3)),
-              selected: isSelected,
-              showCheckmark: isSelected,
-              selectedColor: AppColors.clinicAccent.withValues(alpha: 0.18),
-              checkmarkColor: AppColors.clinicAccent,
-              labelStyle: CT.bodySmall.wght(isSelected ? 700 : 500).tint(
-                    isSelected ? AppColors.clinicAccent : AppColors.clinicInkSoft,
-                  ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(
-                  color: isSelected ? AppColors.clinicAccent : AppColors.clinicHairline,
-                  width: isSelected ? 1.5 : 1,
-                ),
-              ),
-              onSelected: (_) => state.toggleDoctorDay(day),
-            );
-          }).toList(),
-        ),
-        const SizedBox(height: 20),
-        const Divider(color: AppColors.clinicHairline),
-        const SizedBox(height: 12),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('Configured Slots (${slots.length})', style: CT.body.wght(700)),
-                  Text('Live and bookable by caregivers', style: CT.caption),
-                ],
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.clinicAccent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                visualDensity: VisualDensity.compact,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () => _showAddSlotDialog(context, state),
-              icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text('Add Slot', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Day filter chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: <String>['All', ..._allDays].map((String d) {
-              final bool isSel = _filterDay == d;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: ChoiceChip(
-                  label: Text(d == 'All' ? 'All Days' : d.substring(0, 3)),
-                  selected: isSel,
-                  visualDensity: VisualDensity.compact,
-                  labelStyle: CT.caption.wght(isSel ? 700 : 500).tint(
-                        isSel ? AppColors.clinicAccent : AppColors.clinicInkSoft,
-                      ),
-                  selectedColor: AppColors.clinicAccent.withValues(alpha: 0.15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    side: BorderSide(
-                      color: isSel ? AppColors.clinicAccent : AppColors.clinicHairline,
-                    ),
-                  ),
-                  onSelected: (bool sel) {
-                    if (sel) setState(() => _filterDay = d);
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (filteredSlots.isEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.clinicBackground,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              'No consultation slots for ${_filterDay == "All" ? "any day" : _filterDay}. Tap "+ Add Slot" above to set slots.',
-              style: CT.caption,
-              textAlign: TextAlign.center,
-            ),
-          )
-        else
-          for (final DoctorSlot slot in filteredSlots) ...<Widget>[
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: slot.isBooked ? AppColors.clinicHairline : AppColors.clinicAccent.withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.clinicAccent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      slot.dayLabel.substring(0, 3).toUpperCase(),
-                      style: CT.caption.wght(800).tint(AppColors.clinicAccent),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(slot.timeLabel, style: CT.bodySmall.wght(700)),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: <Widget>[
-                            PillTag(
-                              label: slot.isBooked
-                                  ? 'Booked by ${slot.bookedByPatient}'
-                                  : 'Available for Booking',
-                              color: slot.isBooked ? const Color(0xFF2F7FB8) : AppColors.success,
-                              dense: true,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Delete Slot',
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.clinicInkSoft),
-                    onPressed: () {
-                      state.removeDoctorSlot(slot.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Removed slot: ${slot.dayLabel} ${slot.timeLabel}'),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-      ],
-    );
-  }
-}

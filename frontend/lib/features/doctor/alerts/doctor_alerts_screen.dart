@@ -8,7 +8,6 @@ import '../../../core/models/clinical.dart';
 import '../../../core/models/doctor.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../patients/patient_detail_screen.dart';
@@ -24,18 +23,18 @@ class DoctorAlertsScreen extends StatefulWidget {
 }
 
 class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
-  late List<ConnectionRequest> _connectionRequests;
 
   @override
   void initState() {
     super.initState();
-    _connectionRequests = List<ConnectionRequest>.from(MockData.connectionRequests());
   }
 
+  /// Accepting here is what connects the doctor on the caregiver's screen —
+  /// the two used to be separate lists that never heard about each other, so
+  /// a request could be accepted here and the caregiver would go on seeing an
+  /// invitation nobody had answered.
   void _acceptConnection(String id) {
-    setState(() {
-      _connectionRequests.removeWhere((ConnectionRequest r) => r.id == id);
-    });
+    AppScope.read(context).acceptConnectionRequest(id);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Connection accepted. Patient added to caseload.'),
@@ -46,9 +45,7 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
   }
 
   void _declineConnection(String id) {
-    setState(() {
-      _connectionRequests.removeWhere((ConnectionRequest r) => r.id == id);
-    });
+    AppScope.read(context).declineConnectionRequest(id);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Connection request declined.'),
@@ -65,7 +62,7 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
         .where((DoctorAlert a) => a.severity == AlertSeverity.urgent)
         .toList();
 
-    final bool hasItems = _connectionRequests.isNotEmpty || urgentAlerts.isNotEmpty;
+    final bool hasItems = state.myConnectionRequests.isNotEmpty || urgentAlerts.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.clinicBackground,
@@ -83,7 +80,7 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, 32),
                 children: <Widget>[
                   // ── Pending Connection Requests ──────────────────────
-                  if (_connectionRequests.isNotEmpty) ...<Widget>[
+                  if (state.myConnectionRequests.isNotEmpty) ...<Widget>[
                     Row(
                       children: <Widget>[
                         const Icon(Icons.person_add_outlined, size: 18, color: Color(0xFFD9962B)),
@@ -104,14 +101,14 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
                             borderRadius: Corners.r(10),
                           ),
                           child: Text(
-                            '${_connectionRequests.length}',
+                            '${state.myConnectionRequests.length}',
                             style: CT.caption.wght(700).tint(const Color(0xFFD9962B)),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    for (final ConnectionRequest req in _connectionRequests)
+                    for (final ConnectionRequest req in state.myConnectionRequests)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: ClinicCard(

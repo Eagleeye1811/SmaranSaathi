@@ -88,7 +88,7 @@ const Map<String, String> _strings_as = <String, String>{
   'settingsOfflineMode': 'অফলাইন ম\'ড',
   'settingsOfflineNote': 'ইণ্টাৰনেট নোহোৱাকৈও সকলো কাম কৰে',
   'settingsConnected': 'সংযুক্ত — কাম নিজে নিজে ছিংক হয়',
-  'voiceAskSaathi': 'সাথীক সোধক',
+  'voiceAskSaathi': 'মিত্ৰাক সোধক',
   'voiceTalkAboutDay': 'মোৰ লগত আপোনাৰ দিনৰ কথা পাতক',
   'voiceTapMicrophone': 'মাইক্ৰʼফোন স্পৰ্শ কৰি মোক সোধক',
   'voiceAskAnythingElse': 'মোক আন কিবা সোধক',
@@ -1489,6 +1489,7 @@ const Map<String, String> _strings_as = <String, String>{
   'patientNavHome': 'ঘৰ',
   'patientNavToday': 'আজি',
   'patientNavActivities': 'কাৰ্য্যকলাপ',
+  'patientNavWellness': 'সুস্থতা',
   'patientNavCompanion': 'সংগী',
   'patientNavProfile': 'প্ৰফাইল',
   'dashboardCheckInAndReminders': 'চেক-ইন আৰু স্মাৰক',
@@ -1871,6 +1872,10 @@ const Map<String, String> _strings_as = <String, String>{
   'pairSignedInAsPatient': '{name} হিচাপে ছাইন ইন',
   'pairPatientUsernameIs': 'তেওঁৰ ব্যৱহাৰকাৰী নাম {username}',
   'pairUnsupported': 'এই চাৰ্ভাৰে এতিয়াও ডিভাইচ ছাইন ইন সমৰ্থন নকৰে। ইয়াক আপডেট কৰিব লাগিব।',
+  'accountSignedInAs': 'লগ ইন হৈ আছে',
+  'accountRole': 'ভূমিকা: {role}',
+  'doctorSettingsSub': 'অনুমতি, সংযোগৰ অৱস্থা আৰু এপ্লিকেচনৰ পছন্দসমূহ পৰীক্ষা কৰক।',
+  'safeZoneHomeLabel': 'ঘৰ',
 };
 
 const Map<String, String> _strings_en = <String, String>{
@@ -1957,7 +1962,7 @@ const Map<String, String> _strings_en = <String, String>{
   'settingsOfflineMode': 'Offline mode',
   'settingsOfflineNote': 'Everything works without the internet',
   'settingsConnected': 'Connected — activity syncs automatically',
-  'voiceAskSaathi': 'Ask Saathi',
+  'voiceAskSaathi': 'Ask Mitra',
   'voiceTalkAboutDay': 'Talk to me about your day',
   'voiceTapMicrophone': 'Tap the microphone and ask me',
   'voiceAskAnythingElse': 'Ask me anything else',
@@ -3358,6 +3363,7 @@ const Map<String, String> _strings_en = <String, String>{
   'patientNavHome': 'Home',
   'patientNavToday': 'Today',
   'patientNavActivities': 'Activities',
+  'patientNavWellness': 'Wellness',
   'patientNavCompanion': 'Companion',
   'patientNavProfile': 'Profile',
   'dashboardCheckInAndReminders': 'Check-in and reminders',
@@ -3740,6 +3746,10 @@ const Map<String, String> _strings_en = <String, String>{
   'pairSignedInAsPatient': 'Signed in as {name}',
   'pairPatientUsernameIs': 'Their username is {username}',
   'pairUnsupported': 'This server does not support device sign-in yet. It needs updating.',
+  'accountSignedInAs': 'Signed in as',
+  'accountRole': 'Role: {role}',
+  'doctorSettingsSub': 'Review permissions, connection status and app preferences.',
+  'safeZoneHomeLabel': 'Home',
 };
 
 const Map<String, String> _strings_hi = <String, String>{
@@ -3826,7 +3836,7 @@ const Map<String, String> _strings_hi = <String, String>{
   'settingsOfflineMode': 'ऑफ़लाइन मोड',
   'settingsOfflineNote': 'इंटरनेट के बिना भी सब काम करता है',
   'settingsConnected': 'जुड़ा हुआ — गतिविधि अपने आप सिंक होती है',
-  'voiceAskSaathi': 'साथी से पूछें',
+  'voiceAskSaathi': 'मित्रा से पूछें',
   'voiceTalkAboutDay': 'मुझसे अपने दिन के बारे में बात करें',
   'voiceTapMicrophone': 'माइक्रोफ़ोन छुएँ और मुझसे पूछें',
   'voiceAskAnythingElse': 'मुझसे कुछ और पूछें',
@@ -5227,6 +5237,7 @@ const Map<String, String> _strings_hi = <String, String>{
   'patientNavHome': 'होम',
   'patientNavToday': 'आज',
   'patientNavActivities': 'गतिविधियाँ',
+  'patientNavWellness': 'स्वास्थ्य',
   'patientNavCompanion': 'साथी',
   'patientNavProfile': 'प्रोफ़ाइल',
   'dashboardCheckInAndReminders': 'हाल-चाल और स्मरण',
@@ -5609,6 +5620,10 @@ const Map<String, String> _strings_hi = <String, String>{
   'pairSignedInAsPatient': '{name} के रूप में साइन इन',
   'pairPatientUsernameIs': 'उनका उपयोगकर्ता नाम {username} है',
   'pairUnsupported': 'यह सर्वर अभी डिवाइस साइन इन का समर्थन नहीं करता। इसे अपडेट करना होगा।',
+  'accountSignedInAs': 'इस रूप में साइन इन हैं',
+  'accountRole': 'भूमिका: {role}',
+  'doctorSettingsSub': 'अनुमतियों, कनेक्शन की स्थिति और एप्लिकेशन प्राथमिकताओं की समीक्षा करें।',
+  'safeZoneHomeLabel': 'घर',
 };
 
 const Map<String, Map<String, String>> _byLocale =

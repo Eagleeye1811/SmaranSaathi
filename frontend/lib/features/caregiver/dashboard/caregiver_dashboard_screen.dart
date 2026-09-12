@@ -61,10 +61,7 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen> {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.primaryTint.withValues(alpha: 0.8),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: ListView(
@@ -617,7 +614,6 @@ class _SafeZoneSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
     final SafeZone? zone = state.safeZone;
     final SafeZoneEvent? alert = state.activeWanderAlert;
 

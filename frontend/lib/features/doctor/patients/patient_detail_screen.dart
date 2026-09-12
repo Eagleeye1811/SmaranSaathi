@@ -382,16 +382,13 @@ class PatientDetailScreen extends StatelessWidget {
                               children: <Widget>[
                                 const Icon(Icons.medication_outlined, size: 18, color: Color(0xFFD9962B)),
                                 const SizedBox(width: 8),
+                                // Adherence is already a headline figure at
+                                // the top of this screen; repeating it here
+                                // invites a reader to wonder which of the two
+                                // is the real one. This card is about what
+                                // they take.
                                 Expanded(
                                   child: Text(l.doctorDetailMedicationInfo, style: CT.h3.wght(700)),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success.withValues(alpha: 0.12),
-                                    borderRadius: Corners.r(6),
-                                  ),
-                                  child: Text('${patient.adherence}% on-time', style: CT.caption.wght(700).tint(AppColors.success)),
                                 ),
                               ],
                             ),
@@ -686,19 +683,11 @@ class PatientDetailScreen extends StatelessWidget {
                             const SizedBox(height: 3),
                             Text(patient.profile.updated, style: CT.caption),
                             const SizedBox(height: Insets.md),
-                            Center(
-                              child: RadarChart(
-                                values: <String, int>{
-                                  for (final CognitiveDomain d in CognitiveDomain.values)
-                                    d.localizedLabel(l): patient.profile.score(d),
-                                },
-                                size: 280,
-                                color: AppColors.seriesTeal,
-                              ),
-                            ),
-                            const SizedBox(height: Insets.md),
-                            const Divider(color: AppColors.clinicHairline),
-                            const SizedBox(height: Insets.md),
+                            // The radar chart that used to sit above these
+                            // bars plotted the same six numbers, in a form
+                            // that cannot be read off precisely — a clinician
+                            // comparing 68 against 74 needs the figure, not a
+                            // polygon. One reading of the profile, not two.
                             for (final CognitiveDomain d in CognitiveDomain.values)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 11),
