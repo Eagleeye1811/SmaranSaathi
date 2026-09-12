@@ -1,8 +1,9 @@
 import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../assamese_speech_phonetics.dart';
 import '../speech_engines.dart';
 
 /// `flutter_tts` behind the app's [SpeechSynthesizer] interface.
@@ -55,7 +56,21 @@ class FlutterTtsSynthesizer implements SpeechSynthesizer {
   Future<List<String>> supportedLanguages() async {
     if (!await initialize()) return const <String>[];
     final List<dynamic> languages = await _engine.getLanguages as List<dynamic>;
-    return languages.map((dynamic l) => l.toString()).toList(growable: false);
+    final List<String> list =
+        languages.map((dynamic l) => l.toString()).toList(growable: true);
+    if (kIsWeb) {
+      if (!list.any((String s) => s.toLowerCase().startsWith('en'))) {
+        list.add('en-IN');
+        list.add('en-US');
+      }
+      if (!list.any((String s) => s.toLowerCase().startsWith('hi'))) {
+        list.add('hi-IN');
+      }
+      if (!list.any((String s) => s.toLowerCase().startsWith('as'))) {
+        list.add('as-IN');
+      }
+    }
+    return list;
   }
 
   @override
@@ -66,13 +81,36 @@ class FlutterTtsSynthesizer implements SpeechSynthesizer {
     double pitch = 1.0,
   }) async {
     if (!await initialize()) return;
-    await _engine.setLanguage(localeId);
-    await _engine.setSpeechRate(rate);
-    await _engine.setPitch(pitch);
+
+    String targetLocale = localeId;
+    String targetText = text;
+
+    if (localeId.toLowerCase().startsWith('as')) {
+      final List<dynamic> rawVoices =
+          await _engine.getLanguages as List<dynamic>;
+      final bool hasNativeAssamese = rawVoices
+          .any((dynamic s) => s.toString().toLowerCase().startsWith('as'));
+      if (!hasNativeAssamese) {
+        targetLocale = 'hi-IN';
+        targetText = AssameseSpeechPhonetics.toIndicPhoneticText(text);
+      }
+    }
+
     _speaking = true;
     try {
-      // Awaits completion because of `awaitSpeakCompletion(true)` above.
-      await _engine.speak(text);
+      await _engine.setLanguage(targetLocale);
+      await _engine.setSpeechRate(rate);
+      await _engine.setPitch(pitch);
+      if (kIsWeb) {
+        await _engine.speak(targetText).timeout(
+              const Duration(seconds: 12),
+              onTimeout: () => null,
+            );
+      } else {
+        await _engine.speak(targetText);
+      }
+    } catch (e) {
+      debugPrint('FlutterTtsSynthesizer.speak error: $e');
     } finally {
       _speaking = false;
     }

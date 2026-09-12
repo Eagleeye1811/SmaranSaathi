@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../ai/ai_context.dart';
 import '../ai/ai_models.dart';
 import '../ai/ai_service.dart';
+import 'assamese_speech_phonetics.dart';
 import 'speech_engines.dart';
 import 'voice_language.dart';
 import 'voice_models.dart';
@@ -88,7 +89,13 @@ class VoiceAssistantController extends ChangeNotifier {
   /// rather than offering something that cannot work.
   bool get canListen => _recognizer.isAvailable;
 
-  bool get canSpeak => _synthesizer.isAvailable;
+  bool get canSpeak =>
+      _synthesizer.isAvailable &&
+      (_resolvedOutput == null ||
+          (_resolvedOutput!.isSupported &&
+              (!(_resolvedOutput!.isFallback &&
+                      _resolvedOutput!.requested == VoiceLanguage.assamese) ||
+                  _resolvedOutput!.resolved == VoiceLanguage.hindi)));
 
   // ── Setup ──────────────────────────────────────────────────────────────
 
@@ -255,16 +262,34 @@ class VoiceAssistantController extends ChangeNotifier {
   Future<void> _speak(String text, int turn) async {
     final ResolvedVoiceLanguage? output = _resolvedOutput;
     if (output == null || !output.isSupported) {
-      // The answer is on screen; only the audio is missing, so this is a
-      // notice rather than a failure — the reply survives.
       _error = const VoiceError(VoiceErrorKind.ttsUnavailable);
       _set(VoicePhase.idle);
       return;
     }
 
+    final String speakText;
+    final String targetLocale;
+
+    if (output.requested == VoiceLanguage.assamese) {
+      if (output.isExactMatch) {
+        speakText = text;
+        targetLocale = output.localeId!;
+      } else if (output.resolved == VoiceLanguage.hindi) {
+        speakText = AssameseSpeechPhonetics.toIndicPhoneticText(text);
+        targetLocale = output.localeId!;
+      } else {
+        _error = const VoiceError(VoiceErrorKind.ttsUnavailable);
+        _set(VoicePhase.idle);
+        return;
+      }
+    } else {
+      speakText = text;
+      targetLocale = output.localeId!;
+    }
+
     _set(VoicePhase.speaking);
     try {
-      await _synthesizer.speak(text, localeId: output.localeId!);
+      await _synthesizer.speak(speakText, localeId: targetLocale);
       if (_stale(turn)) return;
       _set(VoicePhase.idle);
     } catch (e) {

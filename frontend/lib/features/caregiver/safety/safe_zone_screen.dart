@@ -12,7 +12,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/safe_zone_monitor.dart';
-import '../../../core/widgets/ui_kit.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The caregiver's safe-zone map.
 ///
@@ -115,7 +115,7 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Remove the safe zone?'),
+            title: Text(AppLocalizations.of(context)!.removeSafeZoneConfirm),
             content: const Text(
               'You will stop being told when they leave. You can draw a new '
               'zone at any time.',
@@ -123,12 +123,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Keep it'),
+                child: Text(AppLocalizations.of(context)!.keepIt),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Remove'),
+                child: Text(AppLocalizations.of(context)!.remove),
               ),
             ],
           ),
@@ -731,6 +731,10 @@ class _PermissionNotice extends StatelessWidget {
             color: AppColors.warning,
             onPressed: () => onRetry(),
           ),
+<<<<<<< HEAD
+          TextButton(onPressed: () => onRetry(), child: Text(AppLocalizations.of(context)!.retry)),
+=======
+>>>>>>> ce72ec09b002d700761960d969c16ac76c28e441
         ],
       ),
     );

@@ -26,7 +26,6 @@ class LanguageSelector extends StatelessWidget {
     _LanguageOption(Locale('en'), 'English'),
     _LanguageOption(Locale('hi'), 'हिन्दी'),
     _LanguageOption(Locale('as'), 'অসমীয়া'),
-    _LanguageOption(Locale('mr'), 'मराठी'),
   ];
 
   @override
@@ -69,23 +68,20 @@ class LanguageSelector extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Insets.md),
-          for (int row = 0; row * 2 < _languages.length; row++) ...<Widget>[
-            if (row > 0) const SizedBox(height: Insets.sm),
-            Row(
-              children: <Widget>[
-                for (int i = row * 2; i < (row * 2) + 2 && i < _languages.length; i++) ...<Widget>[
-                  Expanded(
-                    child: _LanguageChip(
-                      label: _languages[i].native,
-                      selected: _languages[i].locale.languageCode == current,
-                      onTap: () => select(_languages[i].locale),
-                    ),
+          Row(
+            children: <Widget>[
+              for (int i = 0; i < _languages.length; i++) ...<Widget>[
+                Expanded(
+                  child: _LanguageChip(
+                    label: _languages[i].native,
+                    selected: _languages[i].locale.languageCode == current,
+                    onTap: () => select(_languages[i].locale),
                   ),
-                  if (i == row * 2) const SizedBox(width: Insets.sm),
-                ],
+                ),
+                if (i < _languages.length - 1) const SizedBox(width: Insets.sm),
               ],
-            ),
-          ],
+            ],
+          ),
         ],
       ),
     );

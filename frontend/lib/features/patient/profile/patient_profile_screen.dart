@@ -578,7 +578,7 @@ class _SwitchRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
               activeTrackColor: AppColors.primary,
             ),
           ),
@@ -781,17 +781,23 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _phoneController.text = currentPhone;
-                        _isEditing = true;
-                      });
-                    },
-                    child: Text(
-                      currentPhone.isNotEmpty ? l.profileChangeNumber : l.profileAddNumber,
-                      style: AppText.body.wght(800).tint(AppColors.primary),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _phoneController.text = currentPhone;
+                          _isEditing = true;
+                        });
+                      },
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          currentPhone.isNotEmpty ? l.profileChangeNumber : l.profileAddNumber,
+                          style: AppText.body.wght(800).tint(AppColors.primary),
+                        ),
+                      ),
                     ),
                   ),
                 ],

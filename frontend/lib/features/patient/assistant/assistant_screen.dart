@@ -15,6 +15,7 @@ import '../../../core/voice/voice_bootstrap.dart';
 import '../../../core/widgets/companion.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../l10n/locale_controller.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
@@ -301,36 +302,32 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `IntrinsicHeight` + a scrolling `Row`, not a fixed-height `ListView`:
-    // a hardcoded height clips these pills at large accessibility text
-    // sizes, since the label's rendered height grows with the text scale
-    // factor but a fixed SizedBox does not.
-    return IntrinsicHeight(
-      child: SingleChildScrollView(
+    final AppLocalizations l = AppLocalizations.of(context);
+    return SizedBox(
+      height: 54,
+      child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-        child: Row(
-          children: <Widget>[
-            for (final HealthQuickAction a in HealthQuickAction.values)
-              Padding(
-                padding: const EdgeInsets.only(right: Insets.xs),
-                child: Pressable(
-                  onTap: () => onSelected(a),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: Corners.r(Corners.pill),
-                      border: Border.all(color: AppColors.hairline),
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Icon(a.icon, size: 18, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Text(a.label,
-                            style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
-                      ],
-                    ),
+        children: <Widget>[
+          for (final HealthQuickAction a in HealthQuickAction.values)
+            Padding(
+              padding: const EdgeInsets.only(right: Insets.xs),
+              child: Pressable(
+                onTap: () => onSelected(a),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: Corners.r(Corners.pill),
+                    border: Border.all(color: AppColors.hairline),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(a.icon, size: 18, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(a.localizedLabel(l),
+                          style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+                    ],
                   ),
                 ),
               ),
@@ -511,17 +508,58 @@ class _Bubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(answer.text, style: AppText.body.copyWith(height: 1.5)),
-                  if (message.memoryCaptured) ...<Widget>[
-                    const SizedBox(height: Insets.sm),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
-                        const SizedBox(width: 6),
-                        Text(l.assistantMemorySavedChip,
-                            style: AppText.caption.copyWith(
-                              color: AppColors.accent,
+                  const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
+                  const SizedBox(width: 6),
+                  Text(l.assistantMemorySavedChip,
+                      style: AppText.caption.copyWith(
+                        color: AppColors.accent,
+                        fontWeight: FontWeight.w700,
+                      )),
+                ],
+              ),
+            ],
+            if (answer.bullets.isNotEmpty) ...<Widget>[
+              const SizedBox(height: Insets.md),
+              for (final String b in answer.bullets)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 7),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      const Padding(
+                        padding: EdgeInsets.only(top: 5, right: 8),
+                        child: Icon(Icons.chevron_right_rounded,
+                            size: 16, color: AppColors.primary),
+                      ),
+                      Expanded(
+                        child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            if (!answer.grounded) ...<Widget>[
+              const SizedBox(height: Insets.sm),
+              Text(l.assistantGeneralInfoNote, style: AppText.caption),
+            ],
+            if (answer.followUps.isNotEmpty) ...<Widget>[
+              const SizedBox(height: Insets.md),
+              Wrap(
+                spacing: Insets.xs,
+                runSpacing: Insets.xs,
+                children: <Widget>[
+                  for (final HealthQuickAction f in answer.followUps)
+                    Pressable(
+                      onTap: () => onFollowUp(f),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryTint,
+                          borderRadius: Corners.r(Corners.pill),
+                        ),
+                        child: Text(f.localizedLabel(l),
+                            style: AppText.bodySmall.copyWith(
+                              color: AppColors.primaryDeep,
                               fontWeight: FontWeight.w700,
                             )),
                       ],

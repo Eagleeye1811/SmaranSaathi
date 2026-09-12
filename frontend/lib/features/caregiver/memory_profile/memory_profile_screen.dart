@@ -11,8 +11,9 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
-import '../life_profile/life_profile_screen.dart';
-import 'memory_profile_editors.dart';
+import '../../../l10n/mock_translator.dart';
+import '../onboarding/patient_onboarding_flow.dart';
+import '../widgets/caregiver_top_bar.dart';
 
 /// The memory profile: everything personalisation is built from, editable in
 /// one place.
@@ -218,21 +219,10 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                       children: <Widget>[
                         Text(f.name, style: AppText.h3),
                         const SizedBox(height: 2),
-                        Row(
-                          children: <Widget>[
-                            PillTag(label: f.relation, color: AppColors.terracotta, dense: true),
-                            if (f.livesWithPatient) ...<Widget>[
-                              const SizedBox(width: 6),
-                              const PillTag(
-                                  label: 'Lives with them',
-                                  color: AppColors.primary,
-                                  dense: true),
-                            ],
-                          ],
-                        ),
+                        PillTag(label: MockTranslator.translateRelation(f.relation, l), color: AppColors.terracotta, dense: true),
                         if (f.note.isNotEmpty) ...<Widget>[
                           const SizedBox(height: 6),
-                          Text(f.note, style: AppText.caption),
+                          Text(MockTranslator.translateFamilyNote(f.note, l), style: AppText.caption),
                         ],
                       ],
                     ),
@@ -249,12 +239,35 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
               ),
             ),
           ),
-        const SizedBox(height: 4),
-        SoftButton(
-          label: 'Add a person',
-          icon: Icons.person_add_alt_rounded,
-          onPressed: () => _saveFamily(p, state),
-        ),
+        if (available.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 6),
+          Text(l.caregiverSuggestedToAddLabel, style: AppText.overline),
+          const SizedBox(height: 10),
+          for (final FamilyMember f in available)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: MmCard(
+                padding: const EdgeInsets.all(12),
+                color: AppColors.surfaceMuted,
+                onTap: () {
+                  final List<FamilyMember> next = List<FamilyMember>.from(p.family)..add(f);
+                  state.updateDraft(p.copyWith(family: next));
+                  state.commitDraft();
+                },
+                child: Row(
+                  children: <Widget>[
+                    SceneImage(sceneId: f.sceneId, size: 46, circle: true),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text('${f.name} · ${MockTranslator.translateRelation(f.relation, l)}',
+                          style: AppText.body.wght(600)),
+                    ),
+                    const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
+                  ],
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }

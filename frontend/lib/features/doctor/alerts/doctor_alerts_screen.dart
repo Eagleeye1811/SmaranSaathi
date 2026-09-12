@@ -5,102 +5,226 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
-import '../../../core/models/game.dart';
+import '../../../core/models/doctor.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
-/// Alerts raised by the platform, grouped by severity.
-class DoctorAlertsScreen extends StatelessWidget {
+/// Alerts raised by the platform and pending connection requests.
+/// Clean, concise, and focused on urgent clinical items requiring triage.
+class DoctorAlertsScreen extends StatefulWidget {
   const DoctorAlertsScreen({super.key});
+
+  @override
+  State<DoctorAlertsScreen> createState() => _DoctorAlertsScreenState();
+}
+
+class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
+  late List<ConnectionRequest> _connectionRequests;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectionRequests = List<ConnectionRequest>.from(MockData.connectionRequests());
+  }
+
+  void _acceptConnection(String id) {
+    setState(() {
+      _connectionRequests.removeWhere((ConnectionRequest r) => r.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Connection accepted. Patient added to caseload.'),
+        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.success,
+      ),
+    );
+  }
+
+  void _declineConnection(String id) {
+    setState(() {
+      _connectionRequests.removeWhere((ConnectionRequest r) => r.id == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Connection request declined.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<DoctorAlert> alerts = state.alerts;
+    final List<DoctorAlert> urgentAlerts = state.alerts
+        .where((DoctorAlert a) => a.severity == AlertSeverity.urgent)
+        .toList();
 
-    final Map<AlertSeverity, List<DoctorAlert>> grouped =
-        <AlertSeverity, List<DoctorAlert>>{
-      for (final AlertSeverity s in AlertSeverity.values)
-        s: alerts.where((DoctorAlert a) => a.severity == s).toList(),
-    };
-    final List<AlertSeverity> order = <AlertSeverity>[
-      AlertSeverity.urgent,
-      AlertSeverity.watch,
-      AlertSeverity.info,
-    ];
+    final bool hasItems = _connectionRequests.isNotEmpty || urgentAlerts.isNotEmpty;
 
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        children: <Widget>[
-          ClinicTopBar(
-            title: l.doctorDetailAlertsTitle,
-            subtitle: l.doctorAlertsSubtitle(alerts.length),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
-              children: <Widget>[
-                FadeInUp(
-                  child: ClinicCard(
-                    padding: const EdgeInsets.all(Insets.lg),
-                    child: Row(
+    return Scaffold(
+      backgroundColor: AppColors.clinicBackground,
+      body: SafeArea(
+        child: Column(
+          children: <Widget>[
+            ClinicTopBar(
+              title: l.doctorDetailAlertsTitle,
+              showBack: true,
+              showAlerts: false,
+              showProfile: true,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, 32),
+                children: <Widget>[
+                  // ── Pending Connection Requests ──────────────────────
+                  if (_connectionRequests.isNotEmpty) ...<Widget>[
+                    Row(
                       children: <Widget>[
-                        for (final AlertSeverity s in order)
-                          Expanded(
-                            child: ClinicStat(
-                              label: s == AlertSeverity.urgent
-                                  ? l.doctorAlertsSeverityAssessment
-                                  : s == AlertSeverity.watch
-                                      ? l.doctorAlertsSeverityAttention
-                                      : l.doctorAlertsSeverityInformational,
-                              value: '${grouped[s]!.length}',
-                              color: severityColor(s),
-                            ),
+                        const Icon(Icons.person_add_outlined, size: 18, color: Color(0xFFD9962B)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l.doctorAlertsSectionConnection,
+                            style: CT.h3.sized(17),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9962B).withValues(alpha: 0.15),
+                            borderRadius: Corners.r(10),
+                          ),
+                          child: Text(
+                            '${_connectionRequests.length}',
+                            style: CT.caption.wght(700).tint(const Color(0xFFD9962B)),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: Insets.lg),
-                for (final AlertSeverity s in order) ...<Widget>[
-                  if (grouped[s]!.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 10),
+                    for (final ConnectionRequest req in _connectionRequests)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: ClinicCard(
+                          accentEdge: const Color(0xFFD9962B),
+                          padding: const EdgeInsets.all(Insets.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                children: <Widget>[
+                                  CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: const Color(0xFFD9962B).withValues(alpha: 0.15),
+                                    child: Text(
+                                      req.patientName[0],
+                                      style: CT.bodySmall.wght(700).tint(const Color(0xFFD9962B)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(req.patientName, style: CT.body.wght(800)),
+                                        Text('${req.patientAge} yrs · ${req.district}', style: CT.caption),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(req.timeAgo, style: CT.caption.sized(11)),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(req.requestedByLabel, style: CT.caption.wght(600)),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                alignment: WrapAlignment.end,
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: <Widget>[
+                                  OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      foregroundColor: AppColors.clinicInkSoft,
+                                    ),
+                                    onPressed: () => _declineConnection(req.id),
+                                    child: Text(l.doctorAlertsDecline, style: CT.caption),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.clinicAccent,
+                                      foregroundColor: Colors.white,
+                                      visualDensity: VisualDensity.compact,
+                                      elevation: 0,
+                                    ),
+                                    onPressed: () => _acceptConnection(req.id),
+                                    child: Text(l.doctorAlertsAccept, style: CT.caption.wght(700).tint(Colors.white)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: Insets.lg),
+                  ],
+
+                  // ── Clinical Assessment Required (Urgent Only) ────────
+                  if (urgentAlerts.isNotEmpty) ...<Widget>[
                     Row(
                       children: <Widget>[
                         Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: severityColor(s),
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: AppColors.danger,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 9),
                         Expanded(
-                          child: Text(s.localizedLabel(l),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: CT.h3.sized(17)),
+                          child: Text(
+                            l.doctorAlertsSeverityAssessment,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: CT.h3.sized(17),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.danger.withValues(alpha: 0.12),
+                            borderRadius: Corners.r(10),
+                          ),
+                          child: Text(
+                            '${urgentAlerts.length}',
+                            style: CT.caption.wght(700).tint(AppColors.danger),
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    for (int i = 0; i < grouped[s]!.length; i++)
+                    for (int i = 0; i < urgentAlerts.length; i++)
                       FadeInUp(
                         delayMs: i * 40,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: _AlertCard(
-                            alert: grouped[s]![i],
+                            alert: urgentAlerts[i],
                             onOpen: () {
                               final ClinicPatient? match = state.caseload
                                   .where((ClinicPatient c) =>
-                                      c.name == grouped[s]![i].patientName)
+                                      c.name == urgentAlerts[i].patientName)
                                   .firstOrNull;
                               if (match != null) {
                                 Nav.push(context, PatientDetailScreen(patientId: match.id));
@@ -109,13 +233,43 @@ class DoctorAlertsScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                    const SizedBox(height: Insets.md),
                   ],
+
+                  // ── Clean Empty State if nothing pending ─────────────
+                  if (!hasItems)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 60),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_circle_outline_rounded,
+                                  size: 36, color: AppColors.success),
+                            ),
+                            const SizedBox(height: 16),
+                            Text('All clear', style: CT.h3.wght(700)),
+                            const SizedBox(height: 6),
+                            Text(
+                              'No urgent alerts or pending connection requests.',
+                              style: CT.bodySmall,
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -128,11 +282,10 @@ class _AlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color c = severityColor(alert.severity);
     final AppLocalizations l = AppLocalizations.of(context);
     return ClinicCard(
       padding: const EdgeInsets.all(Insets.md),
-      accentEdge: c,
+      accentEdge: AppColors.danger,
       onTap: onOpen,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,33 +296,24 @@ class _AlertCard extends StatelessWidget {
               Text(alert.age, style: CT.caption),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(alert.title, style: CT.body.wght(600)),
-          const SizedBox(height: 7),
+          const SizedBox(height: 6),
           Text(alert.detail, style: CT.bodySmall),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Row(
             children: <Widget>[
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: <Widget>[
-                    if (alert.domain != null)
-                      PillTag(
-                        label: alert.domain!.localizedLabel(l),
-                        icon: alert.domain!.icon,
-                        color: AppColors.clinicInkSoft,
-                        dense: true,
-                      ),
-                  ],
+              if (alert.domain != null)
+                PillTag(
+                  label: alert.domain!.localizedLabel(l),
+                  color: AppColors.clinicInkSoft,
+                  dense: true,
                 ),
-              ),
-              const SizedBox(width: 10),
+              const Spacer(),
               Text(l.doctorAlertsOpenRecord,
                   style: CT.caption.wght(700).tint(AppColors.clinicAccent)),
               const Icon(Icons.chevron_right_rounded,
-                  size: 17, color: AppColors.clinicAccent),
+                  size: 16, color: AppColors.clinicAccent),
             ],
           ),
         ],

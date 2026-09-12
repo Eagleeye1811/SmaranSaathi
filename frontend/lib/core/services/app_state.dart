@@ -13,7 +13,9 @@ import '../models/assessment.dart';
 import '../models/onboarding.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
+import '../models/doctor.dart';
 import '../models/game.dart';
+import '../models/medical_report.dart';
 import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
 import '../models/mood_drawing.dart';
@@ -1838,6 +1840,90 @@ class AppState extends ChangeNotifier {
   }
 
   List<DoctorAlert> get alerts => MockData.alerts();
+
+  late final List<DoctorAppointment> _doctorAppointments =
+      List<DoctorAppointment>.from(MockData.doctorAppointments());
+
+  /// Doctor-facing appointments list.
+  List<DoctorAppointment> get doctorAppointments =>
+      List<DoctorAppointment>.unmodifiable(_doctorAppointments);
+
+  /// Doctor-authored care plan for the demo patient.
+  CarePlanEntry get activeCarePlan => MockData.careplan();
+
+  /// Medical reports for the demo patient (visible to the connected doctor).
+  List<MedicalReport> get patientMedicalReports => MockData.patientMedicalReports();
+
+  /// Pending connection requests for the doctor to accept or decline.
+  List<ConnectionRequest> get connectionRequests => MockData.connectionRequests();
+
+  late final List<DoctorSlot> _doctorSlots =
+      List<DoctorSlot>.from(MockData.doctorSlots());
+
+  /// Doctor availability slots.
+  List<DoctorSlot> get doctorSlots => List<DoctorSlot>.unmodifiable(_doctorSlots);
+
+  final Set<String> _doctorActiveDays = <String>{
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  };
+
+  /// Active consultation days selected by the doctor.
+  Set<String> get doctorActiveDays => Set<String>.unmodifiable(_doctorActiveDays);
+
+  void toggleDoctorDay(String day) {
+    if (_doctorActiveDays.contains(day)) {
+      if (_doctorActiveDays.length > 1) {
+        _doctorActiveDays.remove(day);
+      }
+    } else {
+      _doctorActiveDays.add(day);
+    }
+    notifyListeners();
+  }
+
+  void addDoctorSlot(DoctorSlot slot) {
+    _doctorSlots.add(slot);
+    notifyListeners();
+  }
+
+  void removeDoctorSlot(String slotId) {
+    _doctorSlots.removeWhere((DoctorSlot s) => s.id == slotId);
+    notifyListeners();
+  }
+
+  void bookAppointmentFromSlot({
+    required DoctorSlot slot,
+    required String patientName,
+    required String patientId,
+    bool isVirtual = true,
+  }) {
+    final int idx = _doctorSlots.indexWhere((DoctorSlot s) => s.id == slot.id);
+    if (idx != -1) {
+      _doctorSlots[idx] = DoctorSlot(
+        id: slot.id,
+        dayLabel: slot.dayLabel,
+        timeLabel: slot.timeLabel,
+        isBooked: true,
+        bookedByPatient: patientName,
+      );
+    }
+    final DoctorAppointment newAppt = DoctorAppointment(
+      id: 'apt_${DateTime.now().millisecondsSinceEpoch}',
+      patientId: patientId,
+      patientName: patientName,
+      patientAge: 72,
+      dateLabel: slot.dayLabel,
+      timeLabel: slot.timeLabel,
+      status: AppointmentStatus.upcoming,
+      isVirtual: isVirtual,
+    );
+    _doctorAppointments.insert(0, newAppt);
+    notifyListeners();
+  }
 
   Future<List<DailyQuestion>> loadQuestions() => _patients.dailyQuestions(_patient);
   Future<List<GameDefinition>> loadGames() => _games.catalogue();

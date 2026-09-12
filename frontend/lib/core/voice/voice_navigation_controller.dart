@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'assamese_speech_phonetics.dart';
 import 'speech_engines.dart';
 import 'voice_language.dart';
 import 'voice_models.dart';
@@ -394,9 +395,27 @@ class VoiceNavigationController extends ChangeNotifier {
     final ResolvedVoiceLanguage? output = _resolvedOutput;
     if (output == null || !output.isSupported) return;
 
+    final String speakText;
+    final String targetLocale;
+
+    if (output.requested == VoiceLanguage.assamese) {
+      if (output.isExactMatch) {
+        speakText = text;
+        targetLocale = output.localeId!;
+      } else if (output.resolved == VoiceLanguage.hindi) {
+        speakText = AssameseSpeechPhonetics.toIndicPhoneticText(text);
+        targetLocale = output.localeId!;
+      } else {
+        return;
+      }
+    } else {
+      speakText = text;
+      targetLocale = output.localeId!;
+    }
+
     _set(VoicePhase.speaking);
     try {
-      await _synthesizer.speak(text, localeId: output.localeId!);
+      await _synthesizer.speak(speakText, localeId: targetLocale);
     } catch (_) {
       // Deliberately swallowed — see above.
     }

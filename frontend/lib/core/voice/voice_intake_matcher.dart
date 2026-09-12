@@ -62,47 +62,65 @@ class VoiceIntakeMatcher {
     'done': VoiceIntakeCommand.next,
     'aage': VoiceIntakeCommand.next,
     'agla': VoiceIntakeCommand.next,
+    'আগবাঢ়ক': VoiceIntakeCommand.next,
+    'পৰৱৰ্তী': VoiceIntakeCommand.next,
+    'পিছৰ': VoiceIntakeCommand.next,
+    'আগলৈ': VoiceIntakeCommand.next,
+    'अगला': VoiceIntakeCommand.next,
+    'आगे': VoiceIntakeCommand.next,
     'back': VoiceIntakeCommand.back,
     'go back': VoiceIntakeCommand.back,
     'previous': VoiceIntakeCommand.back,
     'peeche': VoiceIntakeCommand.back,
+    'উভতি': VoiceIntakeCommand.back,
+    'পিছলৈ': VoiceIntakeCommand.back,
+    'पीछे': VoiceIntakeCommand.back,
+    'वापस': VoiceIntakeCommand.back,
     'repeat': VoiceIntakeCommand.repeat,
     'again': VoiceIntakeCommand.repeat,
     'say again': VoiceIntakeCommand.repeat,
     'pardon': VoiceIntakeCommand.repeat,
     'what': VoiceIntakeCommand.repeat,
     'phir se': VoiceIntakeCommand.repeat,
+    'আকৌ': VoiceIntakeCommand.repeat,
+    'দোহাৰক': VoiceIntakeCommand.repeat,
+    'दोबारा': VoiceIntakeCommand.repeat,
+    'फिर से': VoiceIntakeCommand.repeat,
     'stop': VoiceIntakeCommand.stop,
     'cancel': VoiceIntakeCommand.stop,
     'quit': VoiceIntakeCommand.stop,
     'exit': VoiceIntakeCommand.stop,
     'bas': VoiceIntakeCommand.stop,
+    'বন্ধ': VoiceIntakeCommand.stop,
+    'ৰখক': VoiceIntakeCommand.stop,
+    'रुको': VoiceIntakeCommand.stop,
+    'बंद': VoiceIntakeCommand.stop,
   };
 
   /// Spoken positions, 1-based. Longest forms first so "twenty" never eats
   /// the "two" inside it.
   static const List<List<String>> _positions = <List<String>>[
-    <String>['first', 'one', '1', 'number one', 'pehla'],
-    <String>['second', 'two', '2', 'number two', 'dusra'],
-    <String>['third', 'three', '3', 'number three', 'teesra'],
-    <String>['fourth', 'four', '4', 'number four', 'chautha'],
-    <String>['fifth', 'five', '5', 'number five'],
-    <String>['sixth', 'six', '6', 'number six'],
+    <String>['first', 'one', '1', 'number one', 'pehla', 'पहला', '১', 'প্ৰথম', 'এক'],
+    <String>['second', 'two', '2', 'number two', 'dusra', 'दूसरा', '২', 'দ্বিতীয়', 'দুই'],
+    <String>['third', 'three', '3', 'number three', 'teesra', 'तीसरा', '৩', 'তৃতীয়', 'তিনি'],
+    <String>['fourth', 'four', '4', 'number four', 'chautha', 'चौथा', '৪', 'চতুৰ্থ', 'চাৰি'],
+    <String>['fifth', 'five', '5', 'number five', 'पांचवां', '৫', 'পঞ্চম', 'পাঁচ'],
+    <String>['sixth', 'six', '6', 'number six', 'छठा', '৬', 'ষষ্ঠ', 'ছয়'],
   ];
 
   /// Words that mean the same as a Yes or a No option.
   static const Map<String, List<String>> _synonyms = <String, List<String>>{
-    'yes': <String>['yeah', 'yep', 'yes please', 'correct', 'right', 'true', 'haan', 'ha', 'ji'],
-    'no': <String>['nope', 'not really', 'never', 'wrong', 'false', 'nahi', 'nahin'],
-    'never': <String>['not at all', 'none', 'nothing', 'no', 'kabhi nahi'],
-    'rarely': <String>['seldom', 'hardly', 'once in a while', 'kabhi kabhi'],
-    'sometimes': <String>['occasionally', 'now and then', 'somewhat'],
-    'often': <String>['frequently', 'a lot', 'many times', 'always', 'all the time'],
+    'yes': <String>['yeah', 'yep', 'yes please', 'correct', 'right', 'true', 'haan', 'ha', 'ji', 'हाँ', 'हो', 'হয়', 'হয়', 'ঠিক'],
+    'no': <String>['nope', 'not really', 'never', 'wrong', 'false', 'nahi', 'nahin', 'नहीं', 'ना', 'নহয়', 'ভুল'],
+    'never': <String>['not at all', 'none', 'nothing', 'no', 'kabhi nahi', 'कभी नहीं', 'কেতিয়াও নহয়'],
+    'rarely': <String>['seldom', 'hardly', 'once in a while', 'kabhi kabhi', 'कभी कभी', 'কেতিয়াবা কেতিয়াবা'],
+    'sometimes': <String>['occasionally', 'now and then', 'somewhat', 'केতিয়াবা'],
+    'often': <String>['frequently', 'a lot', 'many times', 'always', 'all the time', 'হামেশা', 'সঘনাই', 'প্ৰায়েই'],
   };
 
   String _normalise(String raw) => raw
       .toLowerCase()
-      .replaceAll(RegExp(r"[^a-z0-9\s]"), ' ')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 

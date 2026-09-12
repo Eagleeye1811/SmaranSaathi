@@ -617,6 +617,7 @@ class _SafeZoneSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final SafeZone? zone = state.safeZone;
     final SafeZoneEvent? alert = state.activeWanderAlert;
 

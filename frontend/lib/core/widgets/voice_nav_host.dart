@@ -120,9 +120,7 @@ class _VoiceNavHostState extends State<VoiceNavHost> {
     final LocaleController? locale = LocaleScope.maybeOf(context);
     if (existing == null || locale == null) return;
     if (existing.language != locale.voiceLanguage) {
-      existing.removeListener(_onControllerChanged);
-      existing.dispose();
-      _controller = null;
+      existing.setLanguage(locale.voiceLanguage);
     }
   }
 
@@ -333,8 +331,8 @@ class _VoicePanel extends StatelessWidget {
                           padding: const EdgeInsets.only(top: Insets.sm),
                           child: Text(
                             l.voiceLanguageFallback(
-                              controller.resolvedInputLanguage!.requested.englishLabel,
-                              controller.resolvedInputLanguage!.resolved!.englishLabel,
+                              _languageName(l, controller.resolvedInputLanguage!.requested),
+                              _languageName(l, controller.resolvedInputLanguage!.resolved!),
                             ),
                             style: AppText.caption.tint(AppColors.warning),
                           ),
@@ -384,6 +382,12 @@ class _VoicePanel extends StatelessWidget {
       },
     );
   }
+
+  String _languageName(AppLocalizations l, VoiceLanguage v) => switch (v) {
+        VoiceLanguage.english => l.languageEnglish,
+        VoiceLanguage.hindi => l.languageHindi,
+        VoiceLanguage.assamese => l.languageAssamese,
+      };
 }
 
 /// A microphone that breathes while the device is listening — the one signal

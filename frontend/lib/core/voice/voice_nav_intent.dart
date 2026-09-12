@@ -509,7 +509,6 @@ String voiceDestinationLabel(VoiceDestination d, VoiceLanguage language) =>
       VoiceLanguage.english => _labelsEn[d]!,
       VoiceLanguage.hindi => _labelsHi[d]!,
       VoiceLanguage.assamese => _labelsAs[d]!,
-      VoiceLanguage.marathi => _labelsMr[d]!,
     };
 
 const Map<VoiceDestination, String> _labelsEn = <VoiceDestination, String>{
@@ -558,28 +557,6 @@ const Map<VoiceDestination, String> _labelsHi = <VoiceDestination, String>{
   VoiceDestination.alerts: 'चेतावनी',
 };
 
-const Map<VoiceDestination, String> _labelsMr = <VoiceDestination, String>{
-  VoiceDestination.home: 'घर',
-  VoiceDestination.today: 'आज',
-  VoiceDestination.activities: 'उपक्रम',
-  VoiceDestination.companion: 'सोबती',
-  VoiceDestination.profile: 'प्रोफाइल',
-  VoiceDestination.memories: 'आठवणी',
-  VoiceDestination.memoryLane: 'कुटुंब',
-  VoiceDestination.carePlan: 'काळजी योजना',
-  VoiceDestination.report: 'अहवाल',
-  VoiceDestination.progress: 'प्रगती',
-  VoiceDestination.settings: 'सेटिंग',
-  VoiceDestination.dashboard: 'डॅशबोर्ड',
-  VoiceDestination.patient: 'रुग्ण',
-  VoiceDestination.activityLog: 'हालचाल',
-  VoiceDestination.reminders: 'आठवण',
-  VoiceDestination.safeZone: 'सुरक्षित क्षेत्र',
-  VoiceDestination.overview: 'आढावा',
-  VoiceDestination.patients: 'रुग्ण यादी',
-  VoiceDestination.analytics: 'विश्लेषण',
-  VoiceDestination.alerts: 'सूचना',
-};
 
 const Map<VoiceDestination, String> _labelsAs = <VoiceDestination, String>{
   VoiceDestination.home: 'ঘৰ',
@@ -616,7 +593,6 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'What should I do for you?',
         VoiceLanguage.hindi => 'मैं आपके लिए क्या करूँ?',
         VoiceLanguage.assamese => 'মই আপোনাৰ বাবে কি কৰিম?',
-        VoiceLanguage.marathi => 'मी तुमच्यासाठी काय करू?',
       };
 
   /// Spoken as the screen changes.
@@ -624,7 +600,6 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'Opening $place.',
         VoiceLanguage.hindi => '$place खोल रहे हैं।',
         VoiceLanguage.assamese => '$place খুলি আছোঁ।',
-        VoiceLanguage.marathi => '$place उघडत आहे.',
       };
 
   /// The words were understood, but this shell cannot reach that place.
@@ -632,21 +607,18 @@ class VoiceNavSpeech {
         VoiceLanguage.english => 'I cannot open $place from here.',
         VoiceLanguage.hindi => 'यहाँ से मैं $place नहीं खोल सकती।',
         VoiceLanguage.assamese => 'ইয়াৰ পৰা মই $place খুলিব নোৱাৰোঁ।',
-        VoiceLanguage.marathi => 'येथून मी $place उघडू शकत नाही.',
       };
 
   static String notUnderstood(VoiceLanguage l) => switch (l) {
         VoiceLanguage.english => 'I did not catch a place name. Say help to hear the list.',
         VoiceLanguage.hindi => 'मुझे जगह समझ नहीं आई। सूची सुनने के लिए मदद कहिए।',
         VoiceLanguage.assamese => 'ঠাইৰ নাম বুজি নাপালোঁ। তালিকা শুনিবলৈ সহায় বুলি কওক।',
-        VoiceLanguage.marathi => 'मला जागा समजली नाही. यादी ऐकण्यासाठी मदत म्हणा.',
       };
 
   static String goingBack(VoiceLanguage l) => switch (l) {
         VoiceLanguage.english => 'Going back.',
         VoiceLanguage.hindi => 'वापस जा रहे हैं।',
         VoiceLanguage.assamese => 'উভতি যাওঁ।',
-        VoiceLanguage.marathi => 'मागे जात आहे.',
       };
 
   /// Read when someone asks what they can say. [places] is already localised.
@@ -656,7 +628,6 @@ class VoiceNavSpeech {
       VoiceLanguage.english => 'You can say: $list. Or say back, or stop.',
       VoiceLanguage.hindi => 'आप कह सकते हैं: $list। या पीछे, या रुको।',
       VoiceLanguage.assamese => 'আপুনি ক\'ব পাৰে: $list। বা উভতি, বা বন্ধ।',
-      VoiceLanguage.marathi => 'तुम्ही म्हणू शकता: $list. किंवा मागे, किंवा थांबा.',
     };
   }
 }

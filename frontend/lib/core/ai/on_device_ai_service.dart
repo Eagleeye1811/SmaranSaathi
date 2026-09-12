@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import '../../l10n/app_localizations.dart';
 import '../models/assessment.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
@@ -43,28 +46,28 @@ class OnDeviceAiService implements AiService {
   ///
   /// Synchronous so the remote service can reuse it as a fallback body.
   List<DailyQuestion> buildDailyQuestions(PatientAiContext context) {
+    final AppLocalizations l = AppLocalizations(Locale(context.replyLanguage ?? 'en'));
     final Patient p = context.patient;
-    final String name = p.shortName.isEmpty ? 'friend' : p.shortName;
+    final String name = p.shortName.isEmpty ? l.aiFriend : p.shortName;
     final IntakeRecord? intake = context.intake;
     final List<DailyQuestion> questions = <DailyQuestion>[];
 
     questions.add(DailyQuestion(
       id: 'ai_sleep',
       text: context.partOfDay == 'morning'
-          ? 'Good morning, $name. How did you sleep?'
-          : 'How has your rest been today, $name?',
-      journalLabel: 'Rest',
-      options: const <QuestionOption>[
+          ? l.aiMorning(name)
+          : l.aiRestQuestion(name),
+      journalLabel: l.aiRestLabel,
+      options: <QuestionOption>[
         QuestionOption(
-            label: 'Well', emoji: '😊', response: 'Wonderful. A good night helps everything.'),
+            label: l.aiRestWell, emoji: '😊', response: l.aiRestWellReply),
         QuestionOption(
-            label: 'So-so', emoji: '😐', response: 'That happens. We will take today gently.'),
+            label: l.aiRestSoSo, emoji: '😐', response: l.aiRestSoSoReply),
         QuestionOption(
-            label: 'Poorly',
+            label: l.aiRestPoorly,
             emoji: '😔',
             positive: false,
-            response: 'Thank you for telling me. Tiredness moves these numbers, '
-                'and I will remember that when we look at today.'),
+            response: l.aiRestPoorlyReply),
       ],
     ));
 
@@ -73,16 +76,15 @@ class OnDeviceAiService implements AiService {
     if (p.occupation.trim().isNotEmpty) {
       questions.add(DailyQuestion(
         id: 'ai_work',
-        text: 'You told me you worked as a ${p.occupation.toLowerCase()}. '
-            'Have you thought about those days recently?',
-        journalLabel: 'Work and skill',
-        options: const <QuestionOption>[
+        text: l.aiWorkQuestion(p.occupation.toLowerCase()),
+        journalLabel: l.aiWorkLabel,
+        options: <QuestionOption>[
           QuestionOption(
-              label: 'Yes, often', emoji: '💭', response: 'Those years are still yours.'),
+              label: l.aiWorkYes, emoji: '💭', response: l.aiWorkYesReply),
           QuestionOption(
-              label: 'Sometimes', emoji: '🙂', response: 'They come back when something reminds you.'),
+              label: l.aiWorkSometimes, emoji: '🙂', response: l.aiWorkSometimesReply),
           QuestionOption(
-              label: 'Not lately', emoji: '🌾', response: 'Perhaps today, then. Tell me one thing you were good at.'),
+              label: l.aiWorkNotLately, emoji: '🌾', response: l.aiWorkNotLatelyReply),
         ],
       ));
     }
@@ -91,19 +93,19 @@ class OnDeviceAiService implements AiService {
       final FamilyMember member = p.family.first;
       questions.add(DailyQuestion(
         id: 'ai_family',
-        text: 'Have you spoken with ${member.name} today?',
-        journalLabel: 'Family contact',
+        text: l.aiFamilyQuestion(member.name),
+        journalLabel: l.aiFamilyLabel,
         sceneId: member.sceneId,
         options: <QuestionOption>[
-          const QuestionOption(
-              label: 'Yes', emoji: '📞', response: 'That is the best medicine there is.'),
-          const QuestionOption(
-              label: 'Not yet', emoji: '🕐', response: 'There is still time today.'),
           QuestionOption(
-              label: 'Remind me',
+              label: l.aiFamilyYes, emoji: '📞', response: l.aiFamilyYesReply),
+          QuestionOption(
+              label: l.aiFamilyNotYet, emoji: '🕐', response: l.aiFamilyNotYetReply),
+          QuestionOption(
+              label: l.aiFamilyRemindMe,
               emoji: '💛',
               positive: false,
-              response: 'I will. ${member.name} would like to hear from you.'),
+              response: l.aiFamilyRemindMeReply(member.name)),
         ],
       ));
     }
@@ -120,15 +122,15 @@ class OnDeviceAiService implements AiService {
     if (kept != null) {
       questions.add(DailyQuestion(
         id: 'ai_function',
-        text: 'You manage ${kept.toLowerCase()} on your own. Did you today?',
-        journalLabel: 'Everyday living',
-        options: const <QuestionOption>[
+        text: l.aiFunctionQuestion(kept.toLowerCase()),
+        journalLabel: l.aiFunctionLabel,
+        options: <QuestionOption>[
           QuestionOption(
-              label: 'Yes, myself', emoji: '👍', response: 'That is worth noticing. Well done.'),
+              label: l.aiFunctionYes, emoji: '👍', response: l.aiFunctionYesReply),
           QuestionOption(
-              label: 'With a little help', emoji: '🤝', response: 'Asking for a hand is not losing anything.'),
+              label: l.aiFunctionHelp, emoji: '🤝', response: l.aiFunctionHelpReply),
           QuestionOption(
-              label: 'Not today', emoji: '🌤️', response: 'Some days are like that. Tomorrow is another one.'),
+              label: l.aiFunctionNotToday, emoji: '🌤️', response: l.aiFunctionNotTodayReply),
         ],
       ));
     }
@@ -144,6 +146,7 @@ class OnDeviceAiService implements AiService {
 
   /// Synchronous so the remote service can reuse it as a fallback body.
   CognitiveInsight buildInsight(PatientAiContext context) {
+    final AppLocalizations l = AppLocalizations(Locale(context.replyLanguage ?? 'en'));
     final double? average = context.averageAccuracy();
     final double? trend = context.accuracyTrend();
     final Map<GameId, double> byGame = context.accuracyByGame();
@@ -152,22 +155,25 @@ class OnDeviceAiService implements AiService {
     // ── summary ─────────────────────────────────────────────────────────
     final List<String> summary = <String>[];
     if (average == null) {
-      summary.add('$name has not played an activity in the last two weeks, '
-          'so there is nothing to compare yet.');
+      summary.add(l.aiInsightNoActivity(name));
     } else {
       final int sessions = context.recent().length;
-      summary.add('$name completed $sessions '
-          '${sessions == 1 ? 'activity' : 'activities'} in the last two weeks, '
-          'averaging ${average.round()}% accuracy.');
+      summary.add(l.aiInsightActivityCount(
+        name,
+        sessions.toString(),
+        sessions == 1 ? l.aiActivitySingular : l.aiActivityPlural,
+        average.round().toString(),
+      ));
       if (trend != null) {
         summary.add(switch (trend) {
-          > 3 => 'Recent sessions are stronger than the earlier ones.',
-          < -3 => 'Recent sessions have been weaker than the earlier ones.',
-          _ => 'Performance has held steady across the period.',
+          > 3 => l.aiInsightTrendStronger,
+          < -3 => l.aiInsightTrendWeaker,
+          _ => l.aiInsightTrendSteady,
         });
       }
       if (context.mood != null) {
-        summary.add('Today she reported feeling ${context.mood!.label.toLowerCase()}.');
+        final String pronoun = l.aiInsightPronounShe;
+        summary.add(l.aiInsightMood(pronoun, context.mood!.label.toLowerCase()));
       }
     }
 
@@ -179,47 +185,72 @@ class OnDeviceAiService implements AiService {
 
     if (ranked.isNotEmpty && ranked.first.value >= 70) {
       final MapEntry<GameId, double> best = ranked.first;
-      final String domainLabel =
-          PatientAiContext.domainOf(best.key)?.label.toLowerCase() ?? 'this';
-      strengths.add('${_activityName(best.key)} is her strongest activity at '
-          '${best.value.round()}% — $domainLabel work is holding up well.');
+      final String pronoun = l.aiInsightPronounHer;
+      strengths.add(l.aiInsightStrongestActivity(
+        _activityName(best.key, l),
+        pronoun,
+        best.value.round().toString(),
+        PatientAiContext.domainOf(best.key).label.toLowerCase(),
+      ));
     }
     final List<GameSession> unaided = context
         .recent()
         .where((GameSession s) => s.performance.hintsUsed == 0 && s.performance.completed)
         .toList(growable: false);
     if (unaided.isNotEmpty) {
-      strengths.add('${unaided.length} of ${context.recent().length} recent sessions '
-          'were finished with no hints at all.');
+      strengths.add(l.aiInsightUnaidedSessions(
+        unaided.length.toString(),
+        context.recent().length.toString(),
+      ));
     }
     if (context.adherencePercent >= 80 && context.reminders.isNotEmpty) {
-      strengths.add('Reminders are being kept up with — '
-          '${context.adherencePercent}% of today\'s are done.');
+      strengths.add(l.aiInsightReminders(context.adherencePercent.toString()));
     }
     final MapEntry<CognitiveDomain, int>? topDomain = _extremeDomain(context, best: true);
     if (topDomain != null && strengths.length < 3) {
-      strengths.add('${topDomain.key.label} scores highest across domains '
-          'at ${topDomain.value}.');
+      final int matches = context.cognitiveProfile.scores.values
+          .where((int s) => s == topDomain.value)
+          .length;
+      if (matches == 1) {
+        strengths.add(l.aiInsightTopDomain(topDomain.key.label, topDomain.value.toString()));
+      } else if (matches == 2) {
+        final CognitiveDomain other = context.cognitiveProfile.scores.entries
+            .firstWhere((MapEntry<CognitiveDomain, int> e) =>
+                e.value == topDomain.value && e.key != topDomain.key)
+            .key;
+        strengths.add(l.aiInsightTopDomainTied(
+          topDomain.key.label,
+          topDomain.value.toString(),
+          other.label.toLowerCase(),
+        ));
+      } else {
+        strengths.add(l.aiInsightTopDomainMultiple(topDomain.key.label, topDomain.value.toString()));
+      }
     }
     if (strengths.isEmpty) {
-      strengths.add('She is still engaging with the app, which is the thing that '
-          'matters most at this stage.');
+      strengths.add(l.aiInsightEngaging);
     }
 
     // ── areas needing attention ─────────────────────────────────────────
     final List<String> attention = <String>[];
     if (ranked.isNotEmpty && ranked.last.value < 60) {
       final MapEntry<GameId, double> worst = ranked.last;
-      attention.add('${_activityName(worst.key)} is sitting at '
-          '${worst.value.round()}%, the lowest of the activities she has played.');
+      final String pronoun = l.aiInsightPronounShe;
+      attention.add(l.aiInsightLowestActivity(
+        _activityName(worst.key, l),
+        worst.value.round().toString(),
+        pronoun,
+      ));
     }
     final List<GameSession> abandoned = context
         .recent()
         .where((GameSession s) => !s.performance.completed)
         .toList(growable: false);
     if (abandoned.isNotEmpty) {
-      attention.add('${abandoned.length} '
-          '${abandoned.length == 1 ? 'session was' : 'sessions were'} left unfinished.');
+      attention.add(l.aiInsightAbandoned(
+        abandoned.length.toString(),
+        abandoned.length == 1 ? l.aiInsightAbandonedSingular : l.aiInsightAbandonedPlural,
+      ));
     }
     final List<GameSession> slow = context.recent().where((GameSession s) {
       final int expected =
@@ -227,23 +258,26 @@ class OnDeviceAiService implements AiService {
       return s.performance.seconds > expected * 1.5;
     }).toList(growable: false);
     if (slow.isNotEmpty && attention.length < 3) {
-      attention.add('${slow.length} ${slow.length == 1 ? 'session took' : 'sessions took'} '
-          'noticeably longer than usual for their level.');
+      attention.add(l.aiInsightSlow(
+        slow.length.toString(),
+        slow.length == 1 ? l.aiInsightSlowSingular : l.aiInsightSlowPlural,
+      ));
     }
     if (context.untouchedActivities.isNotEmpty && attention.length < 3) {
       final List<String> names = context.untouchedActivities
           .take(2)
-          .map(_activityName)
+          .map((GameId g) => _activityName(g, l))
           .toList(growable: false);
-      attention.add('${names.join(' and ')} '
-          '${names.length == 1 ? 'has' : 'have'} not been played recently.');
+      attention.add(l.aiInsightNotPlayed(
+        names.join(' and '),
+        names.length == 1 ? l.aiInsightNotPlayedSingular : l.aiInsightNotPlayedPlural,
+      ));
     }
     if (trend != null && trend < -3 && attention.length < 3) {
-      attention.add('The downward movement in accuracy is worth watching over '
-          'the next week.');
+      attention.add(l.aiInsightDownwardTrend);
     }
     if (attention.isEmpty) {
-      attention.add('Nothing stands out as needing attention this period.');
+      attention.add(l.aiInsightNoAttention);
     }
 
     // ── recommendation ──────────────────────────────────────────────────
@@ -266,9 +300,7 @@ class OnDeviceAiService implements AiService {
   /// Prefer an activity that has not been done today, weakest domain first —
   /// but never one she is failing badly, which would be discouraging.
   (GameId, String) _recommend(PatientAiContext context, Map<GameId, double> byGame) {
-    // Mood Canvas has no domain to "cover" in this sense — this function is
-    // specifically about balancing coverage across the six cognitive
-    // domains, so it only ever considers activities that claim one.
+    final AppLocalizations l = AppLocalizations(Locale(context.replyLanguage ?? 'en'));
     final List<GameId> untouched = context.untouchedActivities
         .where((GameId g) =>
             !context.completedToday.contains(g) &&
@@ -279,8 +311,8 @@ class OnDeviceAiService implements AiService {
       final GameId pick = untouched.first;
       return (
         pick,
-        '${_activityName(pick)} has not been played in the last two weeks, so it '
-            'exercises ${PatientAiContext.domainOf(pick)!.label.toLowerCase()} work that '
+        '${_activityName(pick, l)} has not been played in the last two weeks, so it '
+            'exercises ${PatientAiContext.domainOf(pick).label.toLowerCase()} work that '
             'nothing else has covered recently.'
       );
     }
@@ -298,7 +330,7 @@ class OnDeviceAiService implements AiService {
       if (e.value >= 45 && e.value <= 75) {
         return (
           e.key,
-          '${_activityName(e.key)} sits at ${e.value.round()}% — enough room to '
+          '${_activityName(e.key, l)} sits at ${e.value.round()}% — enough room to '
               'improve without being discouraging, which is where practice helps most.'
         );
       }
@@ -307,7 +339,7 @@ class OnDeviceAiService implements AiService {
       final MapEntry<GameId, double> pick = candidates.first;
       return (
         pick.key,
-        '${_activityName(pick.key)} is the weakest recent activity at '
+        '${_activityName(pick.key, l)} is the weakest recent activity at '
             '${pick.value.round()}%, so it is where attention is most useful.'
       );
     }
@@ -500,19 +532,20 @@ class OnDeviceAiService implements AiService {
   }
 
   AssistantReply _scheduleReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     final List<Reminder> due = c.dueReminders;
     final StringBuffer b = StringBuffer();
     if (due.isEmpty) {
-      b.write('Everything on your list for today is done. ');
+      b.write(l.aiScheduleAllDone + ' ');
     } else {
       final Reminder next = due.first;
-      b.write('Next is ${next.title.toLowerCase()} at ${next.time}. ');
+      b.write(l.aiScheduleNext(next.title.toLowerCase(), next.time) + ' ');
       if (due.length > 1) {
         b.write('There ${due.length == 2 ? 'is' : 'are'} ${due.length - 1} more after that. ');
       }
     }
     if (c.completedToday.isEmpty) {
-      b.write('You have not done an activity yet today.');
+      b.write(l.aiScheduleNoActivity);
     } else {
       b.write('You have already done ${c.completedToday.length} '
           '${c.completedToday.length == 1 ? 'activity' : 'activities'} today. Well done.');
@@ -521,33 +554,34 @@ class OnDeviceAiService implements AiService {
       text: b.toString().trim(),
       intent: AssistantIntent.schedule,
       source: AiSource.onDevice,
-      followUps: const <String>['What activity should I do?', 'What are my reminders?'],
+      followUps: <String>[l.aiScheduleFollowUpActivity, l.aiScheduleFollowUpReminders],
     );
   }
 
   AssistantReply _activityReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     final CognitiveInsight insight = buildInsight(c);
     final GameId pick = insight.recommendedActivity;
     return AssistantReply(
-      text: 'Shall we try ${_activityName(pick)}? '
-          '${_activityInvitation(pick, c.patient)}',
+      text: l.aiActivityTry(_activityName(pick, l), _activityInvitation(pick, c.patient, l)),
       intent: AssistantIntent.activity,
       source: AiSource.onDevice,
       suggestedActivity: pick,
-      followUps: const <String>['What do I have today?', 'Maybe later'],
+      followUps: <String>[l.aiScheduleFollowUpToday, l.aiScheduleFollowUpLater],
     );
   }
 
   AssistantReply _remindersReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     final List<Reminder> due = c.dueReminders;
     if (due.isEmpty) {
       return AssistantReply(
         text: c.reminders.isEmpty
-            ? 'There is nothing on your list today.'
-            : 'You have done everything on your list today. Nothing is waiting.',
+            ? l.aiRemindersNothingToday
+            : l.aiRemindersAllDone,
         intent: AssistantIntent.reminders,
         source: AiSource.onDevice,
-        followUps: const <String>['What activity should I do?'],
+        followUps: <String>[l.aiScheduleFollowUpActivity],
       );
     }
     final List<String> lines = due
@@ -555,14 +589,15 @@ class OnDeviceAiService implements AiService {
         .map((Reminder r) => '${r.title.toLowerCase()} at ${r.time}')
         .toList(growable: false);
     return AssistantReply(
-      text: 'You still have ${_join(lines)}.',
+      text: l.aiRemindersStillHave(_join(lines, l)),
       intent: AssistantIntent.reminders,
       source: AiSource.onDevice,
-      followUps: const <String>['What do I have today?', 'What activity should I do?'],
+      followUps: <String>[l.aiScheduleFollowUpToday, l.aiScheduleFollowUpActivity],
     );
   }
 
   AssistantReply _peopleReply(String question, PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     final String q = question.toLowerCase();
     for (final FamilyMember f in c.patient.family) {
       if (q.contains(f.name.toLowerCase()) || q.contains(f.relation.toLowerCase())) {
@@ -580,9 +615,9 @@ class OnDeviceAiService implements AiService {
     }
     final String names = _join(
         c.patient.family.map((FamilyMember f) => '${f.name}, your ${f.relation.toLowerCase()}')
-            .toList(growable: false));
+            .toList(growable: false), l);
     return AssistantReply(
-      text: 'Your family here is $names.',
+      text: l.aiPeopleFamilyHere(names),
       intent: AssistantIntent.people,
       source: AiSource.onDevice,
       followUps: const <String>['What do I have today?'],
@@ -590,9 +625,9 @@ class OnDeviceAiService implements AiService {
   }
 
   AssistantReply _orientationReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     return AssistantReply(
-      text: 'It is ${c.clockLabel} in the ${c.partOfDay}'
-          '${c.patient.location.isEmpty ? '' : ', and you are at home in ${c.patient.location}'}.',
+      text: l.aiOrientationTime(c.clockLabel, c.partOfDay, c.patient.location.isEmpty ? '' : l.aiOrientationLocation(c.patient.location)),
       intent: AssistantIntent.orientation,
       source: AiSource.onDevice,
       followUps: const <String>['What do I have today?', 'What are my reminders?'],
@@ -600,59 +635,58 @@ class OnDeviceAiService implements AiService {
   }
 
   AssistantReply _companionshipReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
     final String opener = switch (c.mood) {
-      MoodLevel.low => 'I am here with you. We can take today slowly.',
-      MoodLevel.okay => 'I am glad you are here. We will go gently.',
-      MoodLevel.good => 'It is good to hear from you.',
-      null => 'It is good to hear from you.',
+      MoodLevel.low => l.aiCompanionshipLow,
+      MoodLevel.okay => l.aiCompanionshipOkay,
+      MoodLevel.good => l.aiCompanionshipGood,
+      null => l.aiCompanionshipGood,
     };
     return AssistantReply(
-      text: '$opener Would you like to see what is on for today?',
+      text: l.aiCompanionshipOffer(opener),
       intent: AssistantIntent.companionship,
       source: AiSource.onDevice,
-      followUps: const <String>['What do I have today?', 'What activity should I do?'],
+      followUps: <String>[l.aiScheduleFollowUpToday, l.aiScheduleFollowUpActivity],
     );
   }
 
   /// The guardrail. Anything the app does not know is declined warmly and the
   /// patient is steered back to something it *can* answer — never a guess.
-  AssistantReply _outOfScopeReply(PatientAiContext c) => AssistantReply(
-        text: 'I am not sure about that one. I can tell you about your day, '
-            'your reminders, or an activity we could do together.',
-        intent: AssistantIntent.outOfScope,
-        source: AiSource.onDevice,
-        followUps: const <String>[
-          'What do I have today?',
-          'What are my reminders?',
-          'What activity should I do?',
-        ],
-      );
-
-  static String _join(List<String> parts) {
-    if (parts.isEmpty) return '';
-    if (parts.length == 1) return parts.first;
-    return '${parts.sublist(0, parts.length - 1).join(', ')} and ${parts.last}';
+  AssistantReply _outOfScopeReply(PatientAiContext c) {
+    final AppLocalizations l = AppLocalizations(Locale(c.replyLanguage ?? 'en'));
+    return AssistantReply(
+      text: l.aiOutOfScope,
+      intent: AssistantIntent.outOfScope,
+      source: AiSource.onDevice,
+      followUps: <String>[
+        l.aiScheduleFollowUpToday,
+        l.aiScheduleFollowUpReminders,
+        l.aiScheduleFollowUpActivity,
+      ],
+    );
   }
 
-  static String _activityName(GameId id) => switch (id) {
-        GameId.procedure => 'Procedure Reconstruction',
-        GameId.story => 'Finish the Story',
-        GameId.familiarPlace => 'Familiar Place Explorer',
-        GameId.melody => 'Melody of the Valleys',
-        GameId.weaves => 'Weaves of the Hills',
-        GameId.memoryCards => 'NER Memory Cards',
-        GameId.villageMarket => 'The Village Market Adventure',
-        GameId.moodCanvas => 'Mood Canvas',
+  static String _join(List<String> parts, AppLocalizations l) {
+    if (parts.isEmpty) return '';
+    if (parts.length == 1) return parts.first;
+    return l.aiJoinAnd(parts.sublist(0, parts.length - 1).join(', '), parts.last);
+  }
+
+  static String _activityName(GameId id, AppLocalizations l) => switch (id) {
+        GameId.procedure => l.aiGameProcedure,
+        GameId.story => l.aiGameStory,
+        GameId.familiarPlace => l.aiGameFamiliarPlace,
+        GameId.melody => l.aiGameMelody,
+        GameId.weaves => l.aiGameWeaves,
+        GameId.memoryCards => l.aiGameMemoryCards,
       };
 
-  static String _activityInvitation(GameId id, Patient p) => switch (id) {
-        GameId.procedure => 'We will put the steps of something familiar back in order.',
-        GameId.story => 'I have a short story we can finish together.',
-        GameId.familiarPlace => 'We can walk through a house like yours and find a few things.',
-        GameId.melody => 'We can listen to a few sounds and play them back.',
-        GameId.weaves => 'We can finish a pattern together.',
-        GameId.memoryCards => 'We can find some matching pairs.',
-        GameId.villageMarket => "We're going to the market today. Shall we see what we can find?",
-        GameId.moodCanvas => 'Would you like to draw something today? Anything you like.',
+  static String _activityInvitation(GameId id, Patient p, AppLocalizations l) => switch (id) {
+        GameId.procedure => l.aiGameProcedureInvitation,
+        GameId.story => l.aiGameStoryInvitation,
+        GameId.familiarPlace => l.aiGameFamiliarPlaceInvitation,
+        GameId.melody => l.aiGameMelodyInvitation,
+        GameId.weaves => l.aiGameWeavesInvitation,
+        GameId.memoryCards => l.aiGameMemoryCardsInvitation,
       };
 }

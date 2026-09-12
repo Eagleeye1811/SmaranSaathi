@@ -64,8 +64,7 @@ class _AskSaathiButtonState extends State<AskSaathiButton> {
     final LocaleController? locale = LocaleScope.maybeOf(context);
     if (existing == null || locale == null) return;
     if (existing.language != locale.voiceLanguage) {
-      existing.dispose();
-      _controller = null;
+      existing.setLanguage(locale.voiceLanguage);
     }
   }
 

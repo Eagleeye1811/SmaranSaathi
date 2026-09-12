@@ -210,6 +210,120 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Medication Adherence by Patient ────────────────────
+                FadeInUp(
+                  delayMs: 190,
+                  child: _Card(
+                    title: l.doctorAnalyticsAdherenceTitle,
+                    caption: l.doctorAnalyticsAdherenceCaption,
+                    child: Column(
+                      children: <Widget>[
+                        for (final ClinicPatient p in caseload.take(5))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: <Widget>[
+                                SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    p.name,
+                                    style: CT.bodySmall.wght(600),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: MeterBar(
+                                    value: p.adherence / 100.0,
+                                    color: p.adherence >= 90
+                                        ? AppColors.success
+                                        : p.adherence >= 75
+                                            ? const Color(0xFF2F7FB8)
+                                            : const Color(0xFFD9962B),
+                                    height: 9,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 38,
+                                  child: Text(
+                                    '${p.adherence}%',
+                                    textAlign: TextAlign.right,
+                                    style: CT.caption.wght(700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Wellness Activity Participation ────────────────────
+                FadeInUp(
+                  delayMs: 210,
+                  child: _Card(
+                    title: l.doctorAnalyticsWellnessTitle,
+                    caption: l.doctorAnalyticsWellnessCaption,
+                    child: BarSeriesChart(
+                      points: const <SeriesPoint>[
+                        SeriesPoint('Breathing', 42),
+                        SeriesPoint('Chair Yoga', 35),
+                        SeriesPoint('Sounds', 28),
+                        SeriesPoint('Sleep Guide', 21),
+                      ],
+                      color: AppColors.seriesTeal,
+                      maxValue: 50,
+                      showValues: true,
+                      height: 160,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Mood & Wellbeing Distribution ──────────────────────
+                FadeInUp(
+                  delayMs: 230,
+                  child: _Card(
+                    title: l.doctorAnalyticsMoodTitle,
+                    caption: l.doctorAnalyticsMoodCaption,
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodHappy,
+                            value: '64%',
+                            color: AppColors.success,
+                            caption: 'Calm & Cheerful',
+                            icon: Icons.sentiment_satisfied_alt_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodNeutral,
+                            value: '24%',
+                            color: const Color(0xFF2F7FB8),
+                            caption: 'Steady',
+                            icon: Icons.sentiment_neutral_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodAnxious,
+                            value: '12%',
+                            color: const Color(0xFFE0913A),
+                            caption: 'Evening pauses',
+                            icon: Icons.sentiment_dissatisfied_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

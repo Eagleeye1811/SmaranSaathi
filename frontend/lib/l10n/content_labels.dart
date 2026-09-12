@@ -1,3 +1,4 @@
+import '../core/ai/health_assistant.dart';
 import '../core/models/clinical.dart';
 import '../core/models/daily.dart';
 import '../core/models/game.dart';
@@ -167,6 +168,14 @@ extension VoiceErrorLabel on VoiceError {
   String localizedMessage(AppLocalizations l) => kind.localizedMessage(l);
 }
 
+extension HealthQuickActionLabel on HealthQuickAction {
+  String localizedLabel(AppLocalizations l) => switch (this) {
+        HealthQuickAction.explainResults => l.actionExplainResults,
+        HealthQuickAction.whyChanged => l.actionWhyChanged,
+        HealthQuickAction.prepareForDoctor => l.actionPrepareForDoctor,
+        HealthQuickAction.whatToMonitor => l.actionWhatToMonitor,
+        HealthQuickAction.aboutDementia => l.actionAboutDementia,
+        HealthQuickAction.howAmIDoing => l.actionHowAmIDoing,
 /// Reuses the same short wording already shown on the doctor alerts KPI
 /// card, so a severity reads the same way everywhere it appears instead of
 /// the KPI card and the section header underneath it disagreeing.
