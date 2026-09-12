@@ -16,3 +16,14 @@ secrets/
 *serviceAccountKey*.json
 *firebase-adminsdk*.json
 *-firebase-*.json
+
+# Training run artifacts (backend/training/) — model weights, checkpoints and
+# logs, not source. Multi-GB in practice (the merged model and GGUF export
+# alone are ~2.4GB and ~800MB), so these must never be staged into git.
+# (*.log itself is already covered by the root .gitignore.)
+training/data/
+training/install_log.txt
+training/llama-3.2-1b-smaransaathi/
+training/llama-3.2-1b-smaransaathi_gguf/
+training/outputs/
+training/unsloth_compiled_cache/

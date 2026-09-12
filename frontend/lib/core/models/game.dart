@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 
-/// The six cognitive activities in the prototype.
-enum GameId { procedure, story, familiarPlace, melody, weaves, memoryCards }
+/// The activities in the prototype — most are scored cognitive exercises,
+/// but not all (see [GameDefinition.hasLevels]).
+///
+/// New values should still be appended at the end, matching every prior
+/// addition here: `Hive`'s `EnumAdapter<GameId>` (see `data/local/adapters.dart`)
+/// is actually name-based, not index-based, but appending last keeps this
+/// enum's history easy to read and costs nothing.
+enum GameId {
+  procedure,
+  story,
+  familiarPlace,
+  melody,
+  weaves,
+  memoryCards,
+  villageMarket,
+  moodCanvas,
+}
 
 /// The cognitive domain an activity mainly exercises.
 enum CognitiveDomain { memory, attention, reasoning, spatial, auditory, procedural }
@@ -61,13 +76,25 @@ extension CognitiveDomainX on CognitiveDomain {
 class GameDomains {
   const GameDomains._();
 
-  static CognitiveDomain of(GameId id) => switch (id) {
+  /// `null` for an activity that isn't a cognitive-skill test at all (see
+  /// [GameDefinition.hasLevels]) — returning a domain for it would either
+  /// misrepresent what it measures, or (if given its own new domain) add a
+  /// radar-chart wedge that can never have data, since nothing ever creates
+  /// a scored session for it. Callers that bucket sessions by domain (see
+  /// `CognitiveMonitoringService._bucket`) must skip a `null` result.
+  static CognitiveDomain? of(GameId id) => switch (id) {
         GameId.procedure => CognitiveDomain.procedural,
         GameId.story => CognitiveDomain.reasoning,
         GameId.familiarPlace => CognitiveDomain.spatial,
         GameId.melody => CognitiveDomain.auditory,
         GameId.weaves => CognitiveDomain.attention,
         GameId.memoryCards => CognitiveDomain.memory,
+        // Shares Procedure's domain rather than adding a new CognitiveDomain:
+        // both are "Executive function" clinically, and the monitoring
+        // service's executive-concerns pattern already reads `procedural`.
+        GameId.villageMarket => CognitiveDomain.procedural,
+        // Free drawing tests nothing on this list — see the doc comment.
+        GameId.moodCanvas => null,
       };
 
   static List<GameId> forDomain(CognitiveDomain domain) =>
@@ -87,17 +114,27 @@ class GameDefinition {
     required this.accent,
     required this.tint,
     required this.estimatedMinutes,
+    this.hasLevels = true,
   });
 
   final GameId id;
   final String name;
   final String tagline;
   final String description;
-  final CognitiveDomain domain;
+
+  /// `null` for an activity with no genuine cognitive-domain claim — see
+  /// [GameDomains.of], which this should always agree with.
+  final CognitiveDomain? domain;
   final String sceneId;
   final Color accent;
   final Color tint;
   final int estimatedMinutes;
+
+  /// False for an activity with no difficulty levels or adaptive scoring —
+  /// screens that show a level picker, a "Level N" indicator, or a
+  /// score-by-activity chart must gate on this rather than assume every
+  /// catalogue entry is a scored exercise.
+  final bool hasLevels;
 }
 
 /// The result of one play-through, fed to the adaptive engine.

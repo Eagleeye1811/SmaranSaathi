@@ -129,10 +129,12 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                     caption: l.doctorAnalyticsEngagementCaption,
                     child: BarSeriesChart(
                       points: <SeriesPoint>[
+                        // Engagement (how often/how long), not a score — this
+                        // one honestly applies to Mood Canvas too.
                         for (int i = 0; i < MockData.games.length; i++)
                           SeriesPoint(
                             doctorChartLabel(l, MockData.games[i].id),
-                            const <double>[24, 17, 14, 19, 15, 11][i],
+                            const <double>[24, 17, 14, 19, 15, 11, 13, 9][i],
                           ),
                       ],
                       color: AppColors.seriesOchre,

@@ -80,7 +80,11 @@ class GameShell extends StatelessWidget {
   });
 
   final GameDefinition game;
-  final int level;
+
+  /// Null for an activity with no difficulty levels — see
+  /// [GameDefinition.hasLevels]. The header simply omits the "Level N · dots"
+  /// segment rather than show a fake level for it.
+  final int? level;
   final Widget child;
   final String? stepLabel;
   final double? progress;
@@ -172,7 +176,7 @@ class _Header extends StatelessWidget {
   });
 
   final GameDefinition game;
-  final int level;
+  final int? level;
   final String? stepLabel;
   final int? hintsLeft;
   final int? hintsTotal;
@@ -205,14 +209,16 @@ class _Header extends StatelessWidget {
                 const SizedBox(height: 3),
                 Row(
                   children: <Widget>[
-                    Text(l.gamesLevel(level),
-                        style: AppText.caption.wght(700).tint(game.accent)),
-                    const SizedBox(width: 7),
-                    DifficultyDots(level: level, color: game.accent, size: 7),
+                    if (level != null) ...<Widget>[
+                      Text(l.gamesLevel(level!),
+                          style: AppText.caption.wght(700).tint(game.accent)),
+                      const SizedBox(width: 7),
+                      DifficultyDots(level: level!, color: game.accent, size: 7),
+                    ],
                     if (stepLabel != null) ...<Widget>[
-                      const SizedBox(width: 10),
+                      if (level != null) const SizedBox(width: 10),
                       Flexible(
-                        child: Text('· $stepLabel',
+                        child: Text(level != null ? '· $stepLabel' : stepLabel!,
                             style: AppText.caption,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
@@ -308,6 +314,111 @@ class FeedbackBubble extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(message, style: AppText.bodyLarge.wght(600).tint(AppColors.ink)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The level picker each activity's intro screen shows — one chip per level,
+/// "Level N" over a short title over a short subtitle, locked levels dimmed
+/// with a lock icon.
+///
+/// Was duplicated near-identically at the bottom of all seven game files;
+/// hoisted here so the "Level N" row can't silently overflow its chip width
+/// in one game without the fix reaching the other six. The "Level N" +
+/// lock-icon row is wrapped in [Flexible] with ellipsis specifically because
+/// a bare `Text` in a `Row` ignores its own `overflow`/`maxLines` unless
+/// something gives it a bounded width — that gap was the actual cause of a
+/// real (if rare) render overflow on narrower chips.
+class LevelOptionChip extends StatelessWidget {
+  const LevelOptionChip({
+    super.key,
+    required this.levelNum,
+    required this.title,
+    required this.subtitle,
+    required this.unlocked,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int levelNum;
+  final String title;
+  final String subtitle;
+  final bool unlocked;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: unlocked
+              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+              : AppColors.surfaceMuted.withValues(alpha: 0.4),
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(
+            color: unlocked
+                ? (selected ? AppColors.primary : AppColors.hairline)
+                : AppColors.hairline.withValues(alpha: 0.4),
+            width: selected ? 2.0 : 1.0,
+          ),
+        ),
+        child: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    l.gamesLevel(levelNum),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.wght(800).tint(
+                          unlocked
+                              ? (selected ? AppColors.primary : AppColors.inkMuted)
+                              : AppColors.inkMuted.withValues(alpha: 0.5),
+                        ),
+                  ),
+                ),
+                if (!unlocked) ...<Widget>[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 12,
+                    color: AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: AppText.caption.sized(12).wght(700).tint(
+                    unlocked
+                        ? (selected ? AppColors.primary : AppColors.ink)
+                        : AppColors.inkMuted.withValues(alpha: 0.5),
+                  ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              unlocked ? subtitle : l.gameLevelLocked,
+              style: AppText.caption
+                  .sized(10)
+                  .tint(unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5)),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

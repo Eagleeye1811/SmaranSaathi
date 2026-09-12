@@ -184,7 +184,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       Row(
                         children: <Widget>[
                           SoftIcon(
-                            icon: game.domain.icon,
+                            // Falls back for an activity with no cognitive
+                            // domain claim (Mood Canvas) — a plain recommended
+                            // activity, not a fake domain badge.
+                            icon: game.domain?.icon ?? Icons.brush_rounded,
                             color: game.accent,
                             background: Colors.white,
                             size: 54,
@@ -197,7 +200,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                                 Text(game.localizedName(l), style: AppText.h3),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${game.domain.clinicalLabel} · ${game.estimatedMinutes} min',
+                                  '${game.domain?.clinicalLabel ?? game.tagline} · ${game.estimatedMinutes} min',
                                   style: AppText.caption,
                                 ),
                               ],
@@ -370,7 +373,9 @@ class _JourneyCard extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final int day = state.baselineDayIndex;
-    final int totalDone = GameId.values.length - state.baselineRemaining.length;
+    final int baselineTotal =
+        AppState.baselinePlan.fold(0, (int sum, List<GameId> d) => sum + d.length);
+    final int totalDone = baselineTotal - state.baselineRemaining.length;
     final bool restingToday =
         !state.canStartBaselineSession() && !state.baselineRunComplete;
 
@@ -407,12 +412,12 @@ class _JourneyCard extends StatelessWidget {
                 color: AppColors.accent,
                 dense: true,
               ),
-              Text(l.dashboardActivitiesDone(totalDone, GameId.values.length),
+              Text(l.dashboardActivitiesDone(totalDone, baselineTotal),
                   style: AppText.caption),
             ],
           ),
           const SizedBox(height: Insets.sm),
-          MeterBar(value: totalDone / GameId.values.length, height: 8),
+          MeterBar(value: totalDone / baselineTotal, height: 8),
           const SizedBox(height: Insets.md),
           if (restingToday) ...<Widget>[
             Text(

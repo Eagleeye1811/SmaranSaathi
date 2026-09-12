@@ -72,6 +72,10 @@ void main() {
         'appName',
         'caregiverSessionMeta',
         'caregiverSessionLine',
+        // A currency symbol plus a raw number — nothing to translate.
+        'gameVillageMarketPriceTag',
+        // Punctuation and two placeholders — no actual words to translate.
+        'doctorMoodCanvasNotedByline',
       };
       final Map<String, dynamic> en = loadArb('en');
 

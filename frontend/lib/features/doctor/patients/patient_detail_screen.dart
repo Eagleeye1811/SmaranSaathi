@@ -6,6 +6,7 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/mood_drawing.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
@@ -15,6 +16,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../patient/health/report_screen.dart';
 import '../widgets/clinic_widgets.dart';
+import 'mood_drawing_detail_screen.dart';
 
 /// One patient's longitudinal picture. Framed throughout as *cognitive
 /// activity performance*, never as a diagnosis.
@@ -319,7 +321,10 @@ class PatientDetailScreen extends StatelessWidget {
                               const SizedBox(height: Insets.md),
                               BarSeriesChart(
                                 points: <SeriesPoint>[
-                                  for (final GameDefinition g in MockData.games)
+                                  // Only activities with a real score — Mood
+                                  // Canvas has none to plot honestly here.
+                                  for (final GameDefinition g
+                                      in MockData.games.where((GameDefinition g) => g.hasLevels))
                                     SeriesPoint(doctorChartLabel(l, g.id), _avg(state, g.id)),
                                 ],
                                 color: AppColors.seriesBlue,
@@ -385,6 +390,69 @@ class PatientDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: Insets.lg),
+                      if (state.moodDrawings.isNotEmpty) ...<Widget>[
+                        FadeInUp(
+                          delayMs: 165,
+                          child: ClinicCard(
+                            padding: const EdgeInsets.all(Insets.lg),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(l.doctorDetailMoodCanvasTitle, style: CT.h3),
+                                const SizedBox(height: 3),
+                                Text(l.doctorDetailMoodCanvasCaption, style: CT.caption),
+                                const SizedBox(height: Insets.md),
+                                SizedBox(
+                                  height: 96,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: state.moodDrawings.length,
+                                    separatorBuilder: (BuildContext context, int i) =>
+                                        const SizedBox(width: 10),
+                                    itemBuilder: (BuildContext context, int i) {
+                                      final MoodDrawing drawing = state.moodDrawings[i];
+                                      return GestureDetector(
+                                        onTap: () => Nav.push(
+                                          context,
+                                          MoodDrawingDetailScreen(drawingId: drawing.id),
+                                        ),
+                                        child: Stack(
+                                          children: <Widget>[
+                                            ClipRRect(
+                                              borderRadius: Corners.r(Corners.md),
+                                              child: Image.memory(
+                                                drawing.pngBytes,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            if (drawing.hasNote)
+                                              Positioned(
+                                                right: 4,
+                                                top: 4,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(3),
+                                                  decoration: const BoxDecoration(
+                                                    color: AppColors.clinicAccent,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.description_rounded,
+                                                      size: 12, color: Colors.white),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: Insets.lg),
+                      ],
                     ],
 
                     // ── Alerts ──────────────────────────────────────────

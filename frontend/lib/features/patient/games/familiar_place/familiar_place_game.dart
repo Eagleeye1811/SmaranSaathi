@@ -296,6 +296,12 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
     _selectedLevel = _state.levelOf(GameId.familiarPlace);
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   void _changeLevel(int lvl) {
     setState(() {
       _selectedLevel = lvl;
@@ -434,8 +440,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                     child: Row(
                       children: <Widget>[
                         SizedBox(
-                          width: 96,
-                          child: _LevelOptionChip(
+                          width: 104,
+                          child: LevelOptionChip(
                             levelNum: 1,
                             title: l.gameLevelEasy,
                             subtitle: l.gameFamiliarPlaceRoomsCount(3),
@@ -446,8 +452,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         ),
                         const SizedBox(width: 8),
                         SizedBox(
-                          width: 96,
-                          child: _LevelOptionChip(
+                          width: 104,
+                          child: LevelOptionChip(
                             levelNum: 2,
                             title: l.gameLevelMedium,
                             subtitle: l.gameFamiliarPlaceRoomsCount(4),
@@ -458,8 +464,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         ),
                         const SizedBox(width: 8),
                         SizedBox(
-                          width: 96,
-                          child: _LevelOptionChip(
+                          width: 104,
+                          child: LevelOptionChip(
                             levelNum: 3,
                             title: l.gameLevelHard,
                             subtitle: l.gameFamiliarPlaceRoomsCount(5),
@@ -470,8 +476,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         ),
                         const SizedBox(width: 8),
                         SizedBox(
-                          width: 96,
-                          child: _LevelOptionChip(
+                          width: 104,
+                          child: LevelOptionChip(
                             levelNum: 4,
                             title: l.gameLevelExpert,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
@@ -482,8 +488,8 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         ),
                         const SizedBox(width: 8),
                         SizedBox(
-                          width: 96,
-                          child: _LevelOptionChip(
+                          width: 104,
+                          child: LevelOptionChip(
                             levelNum: 5,
                             title: l.gameLevelMastery,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,
@@ -895,91 +901,3 @@ class _TimerPill extends StatelessWidget {
     );
   }
 }
-
-class _LevelOptionChip extends StatelessWidget {
-  const _LevelOptionChip({
-    required this.levelNum,
-    required this.title,
-    required this.subtitle,
-    required this.unlocked,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final int levelNum;
-  final String title;
-  final String subtitle;
-  final bool unlocked;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Pressable(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: unlocked
-              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
-              : AppColors.surfaceMuted.withValues(alpha: 0.4),
-          borderRadius: Corners.r(Corners.md),
-          border: Border.all(
-            color: unlocked
-                ? (selected ? AppColors.primary : AppColors.hairline)
-                : AppColors.hairline.withValues(alpha: 0.4),
-            width: selected ? 2.0 : 1.0,
-          ),
-        ),
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  l.gamesLevel(levelNum),
-                  style: AppText.caption.wght(800).tint(
-                        unlocked
-                            ? (selected ? AppColors.primary : AppColors.inkMuted)
-                            : AppColors.inkMuted.withValues(alpha: 0.5),
-                      ),
-                ),
-                if (!unlocked) ...<Widget>[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.lock_rounded,
-                    size: 12,
-                    color: AppColors.inkMuted.withValues(alpha: 0.5),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: AppText.caption.sized(12).wght(700).tint(
-                    unlocked
-                        ? (selected ? AppColors.primary : AppColors.ink)
-                        : AppColors.inkMuted.withValues(alpha: 0.5),
-                  ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              unlocked ? subtitle : l.gameLevelLocked,
-              style: AppText.caption.sized(10).tint(
-                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5),
-                  ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-

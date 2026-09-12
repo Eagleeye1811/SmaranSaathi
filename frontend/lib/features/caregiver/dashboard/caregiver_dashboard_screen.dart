@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
@@ -14,7 +15,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../core/models/safety.dart';
 import '../../../l10n/app_localizations.dart';
-import '../onboarding/patient_onboarding_flow.dart';
+import '../../../l10n/content_labels.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
 

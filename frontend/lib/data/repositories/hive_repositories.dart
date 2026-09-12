@@ -6,6 +6,7 @@ import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
 import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
 import '../local/hive_store.dart';
@@ -362,6 +363,55 @@ class HiveMemoryFragmentRepository implements MemoryFragmentRepository {
       timesResurfaced: existing.timesResurfaced + 1,
     );
     await _store.memories.put(key, updated.toJson());
+  }
+}
+
+/// Same `patientId|key` scoping as [HiveGameRepository], so two accounts on
+/// one device keep separate drawings.
+class HiveMoodDrawingRepository implements MoodDrawingRepository {
+  HiveMoodDrawingRepository(this._store);
+
+  final HiveStore _store;
+
+  static String _scoped(String patientId, String id) => '$patientId|$id';
+  static bool _belongsTo(String patientId, String key) => key.startsWith('$patientId|');
+
+  @override
+  Future<List<MoodDrawing>> all(String patientId) async {
+    // Ids are microsecond timestamps, so a plain descending sort of the keys
+    // is newest-first without reading every row to compare a field.
+    final List<String> keys = _store.moodDrawings.keys
+        .cast<String>()
+        .where((String k) => _belongsTo(patientId, k))
+        .toList()
+      ..sort((String a, String b) => b.compareTo(a));
+    return <MoodDrawing>[
+      for (final String k in keys)
+        if (_store.moodDrawings.get(k) != null) _store.moodDrawings.get(k)!,
+    ];
+  }
+
+  @override
+  Future<MoodDrawing> add(String patientId, MoodDrawing drawing) async {
+    await _store.moodDrawings.put(_scoped(patientId, drawing.id), drawing);
+    return drawing;
+  }
+
+  @override
+  Future<void> addDoctorNote(
+    String patientId,
+    String drawingId,
+    String note, {
+    required String notedBy,
+    required String notedAtIso,
+  }) async {
+    final String key = _scoped(patientId, drawingId);
+    final MoodDrawing? existing = _store.moodDrawings.get(key);
+    if (existing == null) return;
+    await _store.moodDrawings.put(
+      key,
+      existing.copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso),
+    );
   }
 }
 

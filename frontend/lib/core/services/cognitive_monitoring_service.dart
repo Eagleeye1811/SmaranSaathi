@@ -324,7 +324,12 @@ class CognitiveMonitoringService {
     final Map<CognitiveDomain, List<GameSession>> buckets =
         <CognitiveDomain, List<GameSession>>{};
     for (final GameSession s in sessions) {
-      buckets.putIfAbsent(GameDomains.of(s.gameId), () => <GameSession>[]).add(s);
+      // Not reachable today — nothing creates a GameSession for an activity
+      // with no domain — but a session-shaped record must still be skipped
+      // rather than crash if that invariant is ever broken later.
+      final CognitiveDomain? domain = GameDomains.of(s.gameId);
+      if (domain == null) continue;
+      buckets.putIfAbsent(domain, () => <GameSession>[]).add(s);
     }
     return buckets;
   }

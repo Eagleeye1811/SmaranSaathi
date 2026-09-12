@@ -172,22 +172,27 @@ class _TodayScreenState extends State<TodayScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          l.todayRemindersTitle,
-                          style: AppText.patientTitle.sized(24),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          dateLabel,
-                          style: AppText.caption.sized(12.5).wght(600),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            l.todayRemindersTitle,
+                            style: AppText.patientTitle.sized(24),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dateLabel,
+                            style: AppText.caption.sized(12.5).wght(600),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Text(
                       l.todayDoneCount(state.remindersDone, state.remindersTotal),
                       style: AppText.body.wght(700).tint(AppColors.primary),

@@ -7,6 +7,7 @@ import '../../../core/ai/ai_context_builder.dart';
 import '../../../core/ai/ai_models.dart';
 import '../../../core/ai/ai_service.dart';
 import '../../../core/ai/health_assistant.dart';
+import '../../../core/models/game.dart';
 import '../../../core/models/memory_fragment.dart';
 import '../../../core/models/monitoring.dart';
 import '../../../core/services/app_state.dart';
@@ -16,6 +17,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/locale_controller.dart';
 import '../../intake/intake_kit.dart';
+import '../games/game_launcher.dart';
 import '../health/report_screen.dart';
 import '../memory_home/memory_home_screen.dart';
 
@@ -27,7 +29,12 @@ import '../memory_home/memory_home_screen.dart';
 /// refuses to diagnose no matter how the question is phrased — that check runs
 /// before any model is consulted, so it cannot be talked around.
 class AssistantScreen extends StatefulWidget {
-  const AssistantScreen({super.key, this.initialAction, this.embedded = false});
+  const AssistantScreen({
+    super.key,
+    this.initialAction,
+    this.embedded = false,
+    this.seedTurns,
+  });
 
   /// Opens with one quick action already answered — used by the "Why did my
   /// score change?" link on the progress screen.
@@ -35,6 +42,13 @@ class AssistantScreen extends StatefulWidget {
 
   /// True when hosted inside the patient shell rather than pushed.
   final bool embedded;
+
+  /// A conversation already had elsewhere — used by the Mood Check-In's
+  /// "talk more with Mitra" hand-off, so the chat opens already showing that
+  /// exchange instead of resetting to a blank screen. Rendered once at
+  /// startup; `_turns` (built from `_messages`) then carries it into every
+  /// `ask()` call from here on, exactly as if it had happened in this screen.
+  final List<ConversationTurn>? seedTurns;
 
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
@@ -52,6 +66,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.seedTurns != null) {
+      for (final ConversationTurn t in widget.seedTurns!) {
+        _messages.add(t.fromUser ? _Message.user(t.text) : _Message.assistant(HealthAnswer(text: t.text)));
+      }
+    }
     if (widget.initialAction != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _run(widget.initialAction!));
     }
@@ -169,56 +188,85 @@ class _AssistantScreenState extends State<AssistantScreen> {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
+    // A `CustomScrollView` carries the header cluster and the message list
+    // (or the empty-state intro) as one scrollable region, rather than a
+    // fixed `Column` with an `Expanded` message list: at large accessibility
+    // text sizes the header, memory-home card and quick actions alone can
+    // grow taller than a small phone's viewport, which a fixed `Column`
+    // cannot absorb and reports as a `RenderFlex` overflow. Scrolling the
+    // whole cluster together can never overflow, at any text scale. Only the
+    // composer stays pinned outside it, which is also the correct chat UX.
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                  Insets.gutter, Insets.md, Insets.gutter, Insets.sm),
-              child: ScreenHeader(
-                eyebrow: l.assistantEyebrow,
-                title: l.assistantScreenTitle,
-                subtitle: l.assistantScreenSubtitle,
-                leading: widget.embedded
-                    ? null
-                    : RoundIconButton(
-                        icon: Icons.arrow_back_rounded,
-                        onPressed: () => Navigator.of(context).maybePop(),
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.sm),
-              child: _MemoryHomeEntry(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const MemoryHomeScreen()),
-                ),
-              ),
-            ),
-            _QuickActions(onSelected: _run),
             Expanded(
-              child: _messages.isEmpty
-                  ? _Intro(name: state.patient.shortName)
-                  : ListView.builder(
-                      controller: _scroll,
+              child: CustomScrollView(
+                controller: _scroll,
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                          Insets.gutter, Insets.md, Insets.gutter, Insets.sm),
+                      child: ScreenHeader(
+                        eyebrow: l.assistantEyebrow,
+                        title: l.assistantScreenTitle,
+                        subtitle: l.assistantScreenSubtitle,
+                        leading: widget.embedded
+                            ? null
+                            : RoundIconButton(
+                                icon: Icons.arrow_back_rounded,
+                                onPressed: () => Navigator.of(context).maybePop(),
+                              ),
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.sm),
+                      child: _MemoryHomeEntry(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(builder: (_) => const MemoryHomeScreen()),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.sm),
+                      child: _MoodCheckInEntry(
+                        onTap: () => GameLauncher.open(context, GameId.moodCanvas),
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(child: _QuickActions(onSelected: _run)),
+                  if (_messages.isEmpty)
+                    SliverToBoxAdapter(child: _Intro(name: state.patient.shortName))
+                  else
+                    SliverPadding(
                       padding: const EdgeInsets.fromLTRB(
                           Insets.gutter, Insets.sm, Insets.gutter, Insets.md),
-                      itemCount: _messages.length + (_thinking ? 1 : 0),
-                      itemBuilder: (BuildContext context, int i) {
-                        if (i >= _messages.length) return const _Thinking();
-                        return _Bubble(
-                          message: _messages[i],
-                          onFollowUp: _run,
-                          onOpenReport: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const ReportScreen(),
+                      sliver: SliverList.builder(
+                        itemCount: _messages.length + (_thinking ? 1 : 0),
+                        itemBuilder: (BuildContext context, int i) {
+                          if (i >= _messages.length) return const _Thinking();
+                          return _Bubble(
+                            message: _messages[i],
+                            onFollowUp: _run,
+                            onOpenReport: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const ReportScreen(),
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
+                ],
+              ),
             ),
             _Composer(controller: _input, enabled: !_thinking, onSubmit: _ask),
           ],
@@ -253,36 +301,41 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: ListView(
+    // `IntrinsicHeight` + a scrolling `Row`, not a fixed-height `ListView`:
+    // a hardcoded height clips these pills at large accessibility text
+    // sizes, since the label's rendered height grows with the text scale
+    // factor but a fixed SizedBox does not.
+    return IntrinsicHeight(
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-        children: <Widget>[
-          for (final HealthQuickAction a in HealthQuickAction.values)
-            Padding(
-              padding: const EdgeInsets.only(right: Insets.xs),
-              child: Pressable(
-                onTap: () => onSelected(a),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: Corners.r(Corners.pill),
-                    border: Border.all(color: AppColors.hairline),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Icon(a.icon, size: 18, color: AppColors.primary),
-                      const SizedBox(width: 8),
-                      Text(a.label,
-                          style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
-                    ],
+        child: Row(
+          children: <Widget>[
+            for (final HealthQuickAction a in HealthQuickAction.values)
+              Padding(
+                padding: const EdgeInsets.only(right: Insets.xs),
+                child: Pressable(
+                  onTap: () => onSelected(a),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: Corners.r(Corners.pill),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Icon(a.icon, size: 18, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Text(a.label,
+                            style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -341,6 +394,50 @@ class _MemoryHomeEntry extends StatelessWidget {
   }
 }
 
+/// A card that opens the Mood Check-In — a drawing, then a short guided
+/// conversation about how the patient is feeling, ending with an invitation
+/// to keep talking with Mitra. Placed here rather than in the activity hub:
+/// this isn't a scored game, and the point of finishing it is to arrive at
+/// exactly this screen.
+class _MoodCheckInEntry extends StatelessWidget {
+  const _MoodCheckInEntry({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.primaryTint,
+          borderRadius: Corners.r(Corners.lg),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.self_improvement_rounded, size: 22, color: AppColors.primaryDeep),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(l.gameMoodCanvasEntryTitle,
+                      style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+                  Text(l.gameMoodCanvasEntrySubtitle, style: AppText.caption),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.primaryDeep),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Intro extends StatelessWidget {
   const _Intro({required this.name});
 
@@ -349,18 +446,21 @@ class _Intro extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.lg, Insets.gutter, Insets.md),
-      children: <Widget>[
-        CompanionSpeech(
-          message: l.assistantIntroGreeting(name),
-          state: CompanionState.happy,
-        ),
-        const SizedBox(height: Insets.lg),
-        NotADiagnosisNote(
-          message: l.assistantIntroDisclaimer,
-        ),
-      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          CompanionSpeech(
+            message: l.assistantIntroGreeting(name),
+            state: CompanionState.happy,
+          ),
+          const SizedBox(height: Insets.lg),
+          NotADiagnosisNote(
+            message: l.assistantIntroDisclaimer,
+          ),
+        ],
+      ),
     );
   }
 }

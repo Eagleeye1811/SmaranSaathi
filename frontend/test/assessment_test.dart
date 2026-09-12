@@ -591,7 +591,11 @@ void main() {
       // shown on the day.
       expect(first.length, second.length);
       expect(first.first.performance.accuracy, second.first.performance.accuracy);
-      expect(first.length, DemoJourney.weeks * GameId.values.length);
+      // One session per scored activity per week — Mood Canvas has no domain
+      // and no score, so `DemoJourney.sessions()` deliberately skips it.
+      final int scoredGames =
+          GameId.values.where((GameId id) => GameDomains.of(id) != null).length;
+      expect(first.length, DemoJourney.weeks * scoredGames);
 
       final MonitoringSnapshot snapshot = monitor.snapshot(
         sessions: first,

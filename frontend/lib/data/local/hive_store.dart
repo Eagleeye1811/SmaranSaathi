@@ -4,6 +4,7 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import 'adapters.dart';
 import 'sync_operation.dart';
@@ -39,6 +40,12 @@ class HiveStore {
   /// (sentiment, richer categorisation) as the feature grows.
   static const String memoriesBox = 'mm_memories';
 
+  /// Mood Canvas drawings — a patient-authored PNG plus whatever a doctor
+  /// later writes about it. Its own box rather than the JSON-map boxes above:
+  /// this one carries binary image data, not a growing set of loosely-typed
+  /// fields.
+  static const String moodDrawingsBox = 'mm_mood_drawings';
+
   static bool _adaptersRegistered = false;
   static HiveStore? _instance;
 
@@ -60,6 +67,8 @@ class HiveStore {
       ..registerAdapter(PatientAdapter())
       ..registerAdapter(GamePerformanceAdapter())
       ..registerAdapter(GameSessionAdapter())
+      ..registerAdapter(MoodDrawingAdapter())
+      ..registerAdapter(MoodCheckInTurnAdapter())
       ..registerAdapter(CognitiveProfileAdapter())
       ..registerAdapter(JournalEntryAdapter())
       ..registerAdapter(ReminderAdapter())
@@ -100,6 +109,7 @@ class HiveStore {
     await Future.wait<void>(<Future<void>>[
       Hive.openBox<Patient>(patientsBox),
       Hive.openBox<GameSession>(sessionsBox),
+      Hive.openBox<MoodDrawing>(moodDrawingsBox),
       Hive.openBox<int>(levelsBox),
       Hive.openBox<CognitiveProfile>(profileBox),
       Hive.openBox<JournalEntry>(journalBox),
@@ -130,6 +140,7 @@ class HiveStore {
 
   Box<Patient> get patients => Hive.box<Patient>(patientsBox);
   Box<GameSession> get sessions => Hive.box<GameSession>(sessionsBox);
+  Box<MoodDrawing> get moodDrawings => Hive.box<MoodDrawing>(moodDrawingsBox);
   Box<int> get levels => Hive.box<int>(levelsBox);
   Box<CognitiveProfile> get cognitiveProfile => Hive.box<CognitiveProfile>(profileBox);
   Box<JournalEntry> get journal => Hive.box<JournalEntry>(journalBox);
@@ -151,6 +162,7 @@ class HiveStore {
     await Future.wait<void>(<Future<void>>[
       patients.clear(),
       sessions.clear(),
+      moodDrawings.clear(),
       levels.clear(),
       cognitiveProfile.clear(),
       journal.clear(),

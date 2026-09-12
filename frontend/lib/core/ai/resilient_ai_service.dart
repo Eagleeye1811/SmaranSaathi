@@ -9,32 +9,42 @@ import 'on_device_ai_service.dart';
 
 /// The service the app actually uses.
 ///
-/// Policy, in one place:
+/// Policy, in one place, three tiers:
 ///
-/// 1. If the device is offline, or the build has no AI configured, do not
-///    attempt a call — answer on-device immediately. A patient asking "what do
-///    I have today?" in a village with no signal gets an answer, not a spinner
-///    followed by an error.
-/// 2. Otherwise try the remote service.
-/// 3. If it fails for *any* reason, fall back to the on-device answer rather
-///    than surfacing an error. The failure is still reported through
-///    [lastFailure] so a caregiver screen can show "offline — generated on this
-///    device" honestly.
+/// 1. If the device is online and a remote model is configured, try it
+///    (Gemini today).
+/// 2. If that's unavailable or fails for any reason, fall through to the
+///    local tier — the fine-tuned on-device LLM when one is supplied and has
+///    been downloaded ([llamaOnDevice]), otherwise straight to rule-based
+///    templates.
+/// 3. Rule-based templates ([OnDeviceAiService]) are the final floor: they
+///    require no download, no model, and work on any device from the first
+///    launch — so they're never skipped entirely, only preferred less.
+///
+/// [llamaOnDevice] already knows how to fall back to its own internal
+/// [OnDeviceAiService] when the model isn't ready yet (see
+/// `LlamaOnDeviceAiService`'s class doc) — so this class doesn't need to
+/// separately check "is the model downloaded" itself; it just prefers
+/// whichever local tier was supplied and trusts it to degrade gracefully.
 ///
 /// The result always carries its [AiSource], so nothing on screen can pass a
-/// locally-computed sentence off as a model's work.
+/// locally-computed or on-device-generated sentence off as Gemini's work.
 class ResilientAiService implements AiService {
   ResilientAiService({
     required AiService remote,
     required ConnectivityService connectivity,
+    AiService? llamaOnDevice,
     OnDeviceAiService onDevice = const OnDeviceAiService(),
   })  : _remote = remote,
         _connectivity = connectivity,
-        _onDevice = onDevice;
+        _local = llamaOnDevice ?? onDevice;
 
   final AiService _remote;
   final ConnectivityService _connectivity;
-  final OnDeviceAiService _onDevice;
+
+  /// Whichever local tier is in play — the on-device LLM if one was supplied,
+  /// otherwise the rule-based [OnDeviceAiService] directly.
+  final AiService _local;
 
   AiFailure? _lastFailure;
 
@@ -49,7 +59,7 @@ class ResilientAiService implements AiService {
   @override
   void dispose() {
     _remote.dispose();
-    _onDevice.dispose();
+    _local.dispose();
   }
 
   @override
@@ -58,49 +68,45 @@ class ResilientAiService implements AiService {
       _lastFailure = AiFailure(
         _connectivity.isOnline ? AiErrorKind.notConfigured : AiErrorKind.offline,
       );
-      return AiSuccess<CognitiveInsight>(_onDevice.buildInsight(context));
+      return _local.cognitiveInsight(context);
     }
 
     final AiResult<CognitiveInsight> result = await _remote.cognitiveInsight(context);
-    return result.fold(
-      onSuccess: (CognitiveInsight value) {
+    switch (result) {
+      case AiSuccess<CognitiveInsight>(:final CognitiveInsight value):
         _lastFailure = null;
         return AiSuccess<CognitiveInsight>(value);
-      },
-      onError: (AiFailure failure) {
+      case AiError<CognitiveInsight>(:final AiFailure failure):
         _lastFailure = failure;
         debugPrint('ResilientAiService: insight fell back to device ($failure)');
-        return AiSuccess<CognitiveInsight>(_onDevice.buildInsight(context));
-      },
-    );
+        return _local.cognitiveInsight(context);
+    }
   }
 
   @override
   Future<AiResult<AssistantReply>> ask(String question, PatientAiContext context) async {
     if (question.trim().isEmpty) {
       // Not worth a round trip, and not worth an error screen either.
-      return AiSuccess<AssistantReply>(_onDevice.buildReply('', context));
+      return _local.ask('', context);
     }
 
     if (!isAvailable) {
       _lastFailure = AiFailure(
         _connectivity.isOnline ? AiErrorKind.notConfigured : AiErrorKind.offline,
       );
-      return AiSuccess<AssistantReply>(_onDevice.buildReply(question, context));
+      return _local.ask(question, context);
     }
 
     final AiResult<AssistantReply> result = await _remote.ask(question, context);
-    return result.fold(
-      onSuccess: (AssistantReply value) {
+    switch (result) {
+      case AiSuccess<AssistantReply>(:final AssistantReply value):
         _lastFailure = null;
         return AiSuccess<AssistantReply>(value);
-      },
-      onError: (AiFailure failure) {
+      case AiError<AssistantReply>(:final AiFailure failure):
         _lastFailure = failure;
         debugPrint('ResilientAiService: answer fell back to device ($failure)');
-        return AiSuccess<AssistantReply>(_onDevice.buildReply(question, context));
-      },
-    );
+        return _local.ask(question, context);
+    }
   }
 
   @override
@@ -109,20 +115,18 @@ class ResilientAiService implements AiService {
       _lastFailure = AiFailure(
         _connectivity.isOnline ? AiErrorKind.notConfigured : AiErrorKind.offline,
       );
-      return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
+      return _local.dailyQuestions(context);
     }
 
     final AiResult<List<DailyQuestion>> result = await _remote.dailyQuestions(context);
-    return result.fold(
-      onSuccess: (List<DailyQuestion> value) {
+    switch (result) {
+      case AiSuccess<List<DailyQuestion>>(:final List<DailyQuestion> value):
         _lastFailure = null;
         return AiSuccess<List<DailyQuestion>>(value);
-      },
-      onError: (AiFailure failure) {
+      case AiError<List<DailyQuestion>>(:final AiFailure failure):
         _lastFailure = failure;
         debugPrint('ResilientAiService: questions fell back to device ($failure)');
-        return AiSuccess<List<DailyQuestion>>(_onDevice.buildDailyQuestions(context));
-      },
-    );
+        return _local.dailyQuestions(context);
+    }
   }
 }

@@ -4,6 +4,7 @@ import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
 import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
 import '../local/sync_operation.dart';
@@ -95,6 +96,23 @@ abstract class MemoryFragmentRepository {
   Future<List<MemoryFragment>> all(String patientId);
   Future<MemoryFragment> add(String patientId, MemoryFragment fragment);
   Future<void> markResurfaced(String patientId, String fragmentId, DateTime at);
+}
+
+/// Mood Canvas drawings and whatever a doctor later writes about one.
+///
+/// Deliberately separate from [GameRepository]: a drawing is never a scored
+/// `GameSession`, and forcing it into that shape would mean fabricating an
+/// accuracy/focus/memory score for something that has none.
+abstract class MoodDrawingRepository {
+  Future<List<MoodDrawing>> all(String patientId);
+  Future<MoodDrawing> add(String patientId, MoodDrawing drawing);
+  Future<void> addDoctorNote(
+    String patientId,
+    String drawingId,
+    String note, {
+    required String notedBy,
+    required String notedAtIso,
+  });
 }
 
 abstract class SettingsRepository {
@@ -321,6 +339,32 @@ class MockMemoryFragmentRepository implements MemoryFragmentRepository {
       lastResurfacedAt: at,
       timesResurfaced: _fragments[i].timesResurfaced + 1,
     );
+  }
+}
+
+class MockMoodDrawingRepository implements MoodDrawingRepository {
+  final List<MoodDrawing> _drawings = <MoodDrawing>[];
+
+  @override
+  Future<List<MoodDrawing>> all(String patientId) async => List<MoodDrawing>.of(_drawings);
+
+  @override
+  Future<MoodDrawing> add(String patientId, MoodDrawing drawing) async {
+    _drawings.insert(0, drawing);
+    return drawing;
+  }
+
+  @override
+  Future<void> addDoctorNote(
+    String patientId,
+    String drawingId,
+    String note, {
+    required String notedBy,
+    required String notedAtIso,
+  }) async {
+    final int i = _drawings.indexWhere((MoodDrawing d) => d.id == drawingId);
+    if (i < 0) return;
+    _drawings[i] = _drawings[i].copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso);
   }
 }
 

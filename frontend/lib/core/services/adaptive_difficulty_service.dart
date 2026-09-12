@@ -21,6 +21,9 @@ class AdaptiveDifficultyService {
       GameId.melody => 45,
       GameId.weaves => 70,
       GameId.memoryCards => 70,
+      GameId.villageMarket => 90,
+      // Never actually consulted — Mood Canvas doesn't go through evaluate().
+      GameId.moodCanvas => 60,
     };
     return base + (level - 1) * (base * 0.28).round();
   }
@@ -140,6 +143,17 @@ class AdaptiveDifficultyService {
           3 => '8 pairs',
           _ => '12 pairs',
         };
+      case GameId.villageMarket:
+        return switch (level) {
+          1 => 'A calm first walk through the market',
+          2 => 'A short list to keep in mind',
+          3 => 'Market day, with a chance of rain',
+          4 => 'Market day, watching the coin purse',
+          _ => 'A full morning at the market, remembering it all',
+        };
+      // Never actually shown — Mood Canvas's GameShell has no level indicator.
+      case GameId.moodCanvas:
+        return 'Free drawing';
     }
   }
 }

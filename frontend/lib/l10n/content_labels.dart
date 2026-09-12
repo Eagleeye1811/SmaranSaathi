@@ -33,6 +33,8 @@ extension GameDefinitionLabel on GameDefinition {
         GameId.melody => l.gameMelodyName,
         GameId.weaves => l.gameWeavesName,
         GameId.memoryCards => l.gameMemoryCardsName,
+        GameId.villageMarket => l.gameVillageMarketName,
+        GameId.moodCanvas => l.gameMoodCanvasName,
       };
 
   String localizedTagline(AppLocalizations l) => switch (id) {
@@ -42,6 +44,8 @@ extension GameDefinitionLabel on GameDefinition {
         GameId.melody => l.gameMelodyTagline,
         GameId.weaves => l.gameWeavesTagline,
         GameId.memoryCards => l.gameMemoryCardsTagline,
+        GameId.villageMarket => l.gameVillageMarketTagline,
+        GameId.moodCanvas => l.gameMoodCanvasTagline,
       };
 }
 
@@ -102,6 +106,17 @@ String localizedLevelDescription(AppLocalizations l, GameId id, int level) {
         3 => l.levelDescMemoryCards3,
         _ => l.levelDescMemoryCardsDefault,
       };
+    case GameId.villageMarket:
+      return switch (level) {
+        1 => l.levelDescVillageMarket1,
+        2 => l.levelDescVillageMarket2,
+        3 => l.levelDescVillageMarket3,
+        4 => l.levelDescVillageMarket4,
+        _ => l.levelDescVillageMarketDefault,
+      };
+    // Never actually shown — Mood Canvas's GameShell has no level indicator.
+    case GameId.moodCanvas:
+      return l.gameMoodCanvasFreeDrawingLabel;
   }
 }
 
@@ -228,6 +243,10 @@ String doctorChartLabel(AppLocalizations l, GameId id) => switch (id) {
       GameId.melody => l.doctorDetailChartMelody,
       GameId.weaves => l.doctorDetailChartWeaves,
       GameId.memoryCards => l.doctorDetailChartCards,
+      GameId.villageMarket => l.doctorDetailChartMarket,
+      // Never actually charted — the activity-breakdown/engagement charts
+      // filter to `hasLevels` activities only.
+      GameId.moodCanvas => l.doctorDetailChartMoodCanvas,
     };
 
 /// The full month name for [month] (1 = January), reusing the

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:memory_mitra/app/theme/app_theme.dart';
+import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
+import 'package:memory_mitra/core/widgets/ui_kit.dart';
 import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
 import 'package:memory_mitra/features/caregiver/onboarding/patient_onboarding_flow.dart';
 import 'package:memory_mitra/features/doctor/doctor_shell.dart';
@@ -10,6 +12,8 @@ import 'package:memory_mitra/features/doctor/patients/patient_detail_screen.dart
 import 'package:memory_mitra/features/patient/games/familiar_place/familiar_place_game.dart';
 import 'package:memory_mitra/features/patient/games/melody/melody_game.dart';
 import 'package:memory_mitra/features/patient/games/memory_cards/memory_cards_game.dart';
+import 'package:memory_mitra/features/patient/games/mood_canvas/mood_canvas_game.dart';
+import 'package:memory_mitra/features/patient/games/mood_canvas/mood_canvas_painter.dart';
 import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
 import 'package:memory_mitra/features/patient/games/story/story_game.dart';
 import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
@@ -280,13 +284,7 @@ void main() {
 
       await tester.tap(find.text('Show me the steps'));
       await beat(tester);
-      for (int i = 0; i < 4; i++) {
-        final Finder next = find.text('Next step');
-        if (next.evaluate().isEmpty) break;
-        await tester.tap(next);
-        await beat(tester);
-      }
-      await tester.tap(find.text('I am ready'));
+      await tester.tap(find.text('I am ready to build'));
       await beat(tester);
       expect(find.text('THE SEQUENCE SO FAR'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -295,6 +293,8 @@ void main() {
     testWidgets('finish the story', (WidgetTester tester) async {
       tester.setSurface(kPhone);
       await tester.pumpWidget(harness(const StoryGame()));
+      await beat(tester);
+      await tester.tap(find.text('Start story'));
       await beat(tester);
       expect(find.text('CHOOSE WHAT HAPPENS NEXT'), findsOneWidget);
 
@@ -313,6 +313,8 @@ void main() {
         await tester.pumpWidget(
           harness(FamiliarPlaceGame(key: ValueKey<Size>(size))),
         );
+        await beat(tester);
+        await tester.tap(find.text('Start exploring'));
         await beat(tester);
         expect(find.text('REMEMBER THESE'), findsOneWidget);
 
@@ -352,8 +354,54 @@ void main() {
       tester.setSurface(kPhone);
       await tester.pumpWidget(harness(const MemoryCardsGame()));
       await beat(tester);
+      // Intro screen first, same as every other activity.
+      await tester.tap(find.text('Start game'));
+      await beat(tester);
       expect(find.text('Pairs found'), findsOneWidget);
       expect(find.text('0 / 6'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('mood check-in', (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState();
+      await tester.pumpWidget(harness(const MoodCanvasGame(), state: state));
+      await beat(tester);
+      await tester.tap(find.text('Start drawing'));
+      await beat(tester);
+
+      // Next starts disabled — nothing has been drawn yet.
+      expect(tester.widget<BigButton>(find.widgetWithText(BigButton, 'Next')).onPressed, isNull);
+
+      await tester.drag(
+        find.byWidgetPredicate((Widget w) => w is CustomPaint && w.painter is MoodCanvasPainter),
+        const Offset(60, 40),
+      );
+      await beat(tester);
+      expect(tester.widget<BigButton>(find.widgetWithText(BigButton, 'Next')).onPressed,
+          isNotNull);
+
+      // `toImage()`/`toByteData()` hit the real rasterizer, not a fake-clock
+      // timer — `runAsync` escapes the FakeAsync test zone so real engine
+      // work can actually complete, which plain `pump()` cannot drive.
+      await tester.tap(find.text('Next'));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+      await beat(tester);
+
+      // The check-in phase opens with the fixed opening question, and no
+      // network/model is configured in a test environment, so every answer
+      // is handled by the deterministic on-device fallback.
+      expect(find.text('How are you feeling right now?'), findsOneWidget);
+      for (int i = 0; i < 3; i++) {
+        await tester.enterText(find.byType(TextField), 'fine, thank you');
+        await tester.tap(find.byIcon(Icons.send_rounded));
+        await beat(tester);
+      }
+
+      expect(find.text('Talk more with Mitra'), findsOneWidget);
+      expect(state.moodDrawings, hasLength(1));
+      expect(state.moodDrawings.first.transcript, hasLength(3));
+      expect(state.completedToday, contains(GameId.moodCanvas));
       expect(tester.takeException(), isNull);
     });
   });

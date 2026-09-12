@@ -57,6 +57,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
     daily: HiveDailyRepository(store),
     assessment: HiveAssessmentRepository(store),
     memories: HiveMemoryFragmentRepository(store),
+    moodDrawings: HiveMoodDrawingRepository(store),
     settings: HiveSettingsRepository(store),
     sync: HiveSyncRepository(store),
     connectivity: _connectivityForPlatform(),

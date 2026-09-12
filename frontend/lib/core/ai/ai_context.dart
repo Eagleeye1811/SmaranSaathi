@@ -39,6 +39,8 @@ class PatientAiContext {
     this.memoryResurfaceCandidate,
     this.totalSharedMemories = 0,
     this.knownMemories = const <MemoryFragment>[],
+    this.moodCheckInActive = false,
+    this.moodCheckInTurn = 0,
   });
 
   final Patient patient;
@@ -108,6 +110,26 @@ class PatientAiContext {
   /// "never turn a memory into a quiz" risk the resurfacing budget exists to
   /// prevent.
   final List<MemoryFragment> knownMemories;
+
+  // ── Mood Check-In ───────────────────────────────────────────────────────
+  //
+  // Set only while the patient is inside the guided Mood Check-In
+  // conversation (see `MoodCheckInScreen`) — every other call into `ask()`
+  // leaves these at their defaults. When active, the assistant narrows to
+  // one caring follow-up question at a time about how the patient feels,
+  // instead of its usual schedule/reminders/companionship range, and reports
+  // back when it judges the check-in complete — see the "MOOD CHECK-IN MODE"
+  // section of `GeminiAiService._assistantSystem` and the equivalent branch
+  // in `OnDeviceAiService.ask`.
+
+  /// True for every turn of the check-in conversation, from the patient's
+  /// first answer to the closing message.
+  final bool moodCheckInActive;
+
+  /// How many of the patient's answers this check-in has already received —
+  /// 0 for the very first one. Used so the model (and the on-device fallback)
+  /// know when to stop asking and wrap up, rather than running indefinitely.
+  final int moodCheckInTurn;
 
   // ── Derived signals ────────────────────────────────────────────────────
 
@@ -284,7 +306,7 @@ class PatientAiContext {
             e.key.name: <String, dynamic>{
               'accuracy': e.value.round(),
               'level': levelOf(e.key),
-              'domain': _domainOf(e.key).name,
+              'domain': _domainOf(e.key)?.name,
               'levelMeaning': AdaptiveDifficultyService.levelDescription(e.key, levelOf(e.key)),
             },
         },
@@ -318,6 +340,10 @@ class PatientAiContext {
           for (final ConversationTurn t in recentTurns)
             <String, String>{'from': t.fromUser ? 'patient' : 'mitra', 'text': t.text},
         ],
+        'moodCheckIn': <String, dynamic>{
+          'active': moodCheckInActive,
+          'turnNumber': moodCheckInTurn,
+        },
       },
       'memoryCompanion': <String, dynamic>{
         'totalSharedMemories': totalSharedMemories,
@@ -352,7 +378,11 @@ class PatientAiContext {
   /// The domain an activity exercises, from the one canonical map in
   /// `models/game.dart`. This used to be a second copy here, and the copy
   /// disagreed — it filed the attention activity under memory.
-  static CognitiveDomain _domainOf(GameId id) => GameDomains.of(id);
+  ///
+  /// `null` for an activity with no cognitive-domain claim at all (Mood
+  /// Canvas) — in practice this is never actually reached for it, since it
+  /// never appears in a scored session that these callers iterate.
+  static CognitiveDomain? _domainOf(GameId id) => GameDomains.of(id);
 
-  static CognitiveDomain domainOf(GameId id) => _domainOf(id);
+  static CognitiveDomain? domainOf(GameId id) => _domainOf(id);
 }

@@ -484,8 +484,8 @@ void main() {
       harness(BaselineSessionScreen(onComplete: () {}), state: state),
     );
     await beat(tester);
-    expect(find.text('Day 1 of 3'), findsOneWidget);
-    expect(find.text('0 of 6 activities across the three days'), findsOneWidget);
+    expect(find.text('Day 1 of 4'), findsOneWidget);
+    expect(find.text('0 of 7 activities across the 4 days'), findsOneWidget);
     // Only the two planned for day one, not all six.
     for (final GameId id in AppState.baselinePlan.first) {
       expect(find.text(MockData.game(id).name), findsOneWidget);

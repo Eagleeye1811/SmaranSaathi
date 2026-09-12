@@ -32,6 +32,12 @@ class AppColors {
   static const Color plum = Color(0xFF7A5680);
   static const Color plumTint = Color(0xFFF1E9F3);
 
+  static const Color olive = Color(0xFF7C8B3E); // moss / market greens
+  static const Color oliveTint = Color(0xFFEEF1DE);
+
+  static const Color rose = Color(0xFFB2557A); // muted berry-rose
+  static const Color roseTint = Color(0xFFF7E6EE);
+
   // ── Neutrals ───────────────────────────────────────────────────────────
   static const Color background = Color(0xFFFBF7F1); // warm off-white
   static const Color backgroundAlt = Color(0xFFF5EFE6);

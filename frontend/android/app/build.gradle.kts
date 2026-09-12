@@ -34,6 +34,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // fllama bundles a native llama.cpp .so per ABI. Virtually every real
+        // device this app targets is arm64 — shipping armeabi-v7a/x86_64 too
+        // would multiply the size of the one bundled part of the app that is
+        // actually size-sensitive, for devices nobody has.
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {

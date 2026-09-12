@@ -318,6 +318,33 @@ class MockData {
       tint: AppColors.indigoTint,
       estimatedMinutes: 4,
     ),
+    GameDefinition(
+      id: GameId.villageMarket,
+      name: 'The Village Market Adventure',
+      tagline: 'See what we can find at the market today.',
+      description:
+          'Wander the market stalls with a basket, and see what catches your eye — '
+          'there are a few things for dinner worth remembering.',
+      domain: CognitiveDomain.procedural,
+      sceneId: 'market',
+      accent: AppColors.olive,
+      tint: AppColors.oliveTint,
+      estimatedMinutes: 6,
+    ),
+    GameDefinition(
+      id: GameId.moodCanvas,
+      name: 'Mood Canvas',
+      tagline: 'Draw whatever you like.',
+      description:
+          'A blank space to draw anything at all — no prompt, no right answer. '
+          'Your doctor may look at it later.',
+      domain: null,
+      hasLevels: false,
+      sceneId: 'orchid',
+      accent: AppColors.rose,
+      tint: AppColors.roseTint,
+      estimatedMinutes: 5,
+    ),
   ];
 
   static GameDefinition game(GameId id) => games.firstWhere((GameDefinition g) => g.id == id);
@@ -330,6 +357,7 @@ class MockData {
     GameId.melody: 2,
     GameId.weaves: 3,
     GameId.memoryCards: 2,
+    GameId.villageMarket: 1,
   };
 
   // ── Seven days of history so the charts look real ──────────────────────
@@ -370,6 +398,8 @@ class MockData {
       _s(GameId.procedure, 1, 2, 88, 85, 86, 1, 1, 46, '6:08 PM'),
       _s(GameId.story, 1, 2, 84, 80, 82, 0, 2, 140, '6:28 PM'),
       _s(GameId.weaves, 1, 3, 81, 79, 80, 1, 2, 124, '6:50 PM'),
+      _s(GameId.villageMarket, 2, 1, 78, 72, 85, 1, 0, 96, '6:18 PM'),
+      _s(GameId.villageMarket, 6, 1, 70, 65, 80, 2, 0, 112, '6:02 PM'),
     ];
   }
 
