@@ -36,6 +36,11 @@ class _UnreachableTransport implements SyncTransport {
   @override
   Future<void> send(PendingOperation operation) async =>
       throw const SocketException('no route to host');
+
+  /// Unreachable in both directions: a pull fails the same way a push does,
+  /// and reports nothing to restore rather than throwing at the caller.
+  @override
+  Future<Map<String, dynamic>?> restore(String patientId) async => null;
 }
 
 void main() {

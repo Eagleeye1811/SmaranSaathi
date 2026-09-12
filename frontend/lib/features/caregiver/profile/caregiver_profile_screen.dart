@@ -14,9 +14,9 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
-import '../../patient/patient_shell.dart';
 import '../widgets/caregiver_top_bar.dart';
 import '../life_profile/life_profile_screen.dart';
+import '../patient_view_screen.dart';
 
 /// Caregiver account, patient-side accessibility controls and the demo
 /// switches judges will want to press.
@@ -280,10 +280,11 @@ class CaregiverProfileScreen extends StatelessWidget {
                             subtitle: l.caregiverOpenHerExperienceSubtitle(state.patient.shortName),
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
-                            onTap: () {
-                              state.setRole(AppRole.patient);
-                              Nav.push(context, const PatientShell());
-                            },
+                            // Through the preview screen, never a raw
+                            // setRole + push: that left the caregiver holding
+                            // their own app with the patient's role the moment
+                            // they pressed back.
+                            onTap: () => Nav.open(context, const PatientViewScreen()),
                           ),
                           const Divider(color: AppColors.hairline),
                           ListRow(

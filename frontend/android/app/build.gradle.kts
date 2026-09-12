@@ -3,6 +3,10 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Reads app/google-services.json. Only Google sign-in needs it —
+    // email/password works without it, because Firebase is initialised with
+    // explicit options from firebase_options.dart rather than from this file.
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -25,7 +29,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.SmaranSaathi.smaran_saathi"
+        applicationId = "com.onecommitaway.smaransaathi"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // flutter_tts needs 24 and firebase_auth needs 23; Flutter's own

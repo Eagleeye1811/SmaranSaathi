@@ -14,6 +14,15 @@ import 'connectivity_service.dart';
 abstract class SyncTransport {
   /// Returns normally on success; throws to leave the operation queued.
   Future<void> send(PendingOperation operation);
+
+  /// Pulls everything the server holds for a patient, or null when there is
+  /// nothing to pull — a profile that has never synced, or no network.
+  ///
+  /// The mirror image of [send]: that drains this device's outbox upwards,
+  /// this fills a fresh device's local store back down. Default-implemented
+  /// so a transport that cannot restore (the loopback one) is still a valid
+  /// transport rather than a compile error.
+  Future<Map<String, dynamic>?> restore(String patientId);
 }
 
 /// Accepts everything after a short delay, standing in for a network round
@@ -25,6 +34,11 @@ class LoopbackTransport implements SyncTransport {
 
   @override
   Future<void> send(PendingOperation operation) => Future<void>.delayed(latency);
+  /// Nothing to restore from: this transport has no server behind it, so a
+  /// device using it is the only copy of its own record.
+  @override
+  Future<Map<String, dynamic>?> restore(String patientId) async => null;
+
 }
 
 /// Drains the durable outbox whenever the device is online.

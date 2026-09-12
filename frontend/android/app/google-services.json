@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "282914064806",
+    "project_id": "smaransaathi",
+    "storage_bucket": "smaransaathi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:282914064806:android:78eab34db170bc4ce1a767",
+        "android_client_info": {
+          "package_name": "com.onecommitaway.smaransaathi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "282914064806-64hnj9qp25abmvflest15i3iukv29nui.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2a9PgUOxsIsollGxo0u3I55teBD45cLM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "282914064806-64hnj9qp25abmvflest15i3iukv29nui.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

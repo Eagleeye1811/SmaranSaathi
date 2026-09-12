@@ -64,6 +64,7 @@ class Patient(APIModel):
     occupation: str
     favourite_activity: str
     favourite_food: str
+    favourite_music: str = ""
     tradition: str
     portrait_scene: str
     family: List[FamilyMember] = []

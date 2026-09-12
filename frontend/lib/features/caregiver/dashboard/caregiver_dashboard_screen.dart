@@ -19,6 +19,7 @@ import '../../../l10n/content_labels.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
 import '../patient_view_screen.dart';
+import '../pairing_widgets.dart';
 
 /// The caregiver's home: how the day has gone, and what needs attention.
 class CaregiverDashboardScreen extends StatelessWidget {
@@ -90,6 +91,12 @@ class CaregiverDashboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
+
+                  // ── A device is asking to sign in as the patient ──────
+                  //
+                  // Above everything else it could possibly be competing
+                  // with: somebody is standing there holding a phone.
+                  const PairingRequestBanner(),
 
                   // ── Into the patient's own app ────────────────────────
                   //
@@ -851,6 +858,23 @@ class _StatusCard extends StatelessWidget {
 /// the person whose app this is cannot be expected to hold a second password.
 /// Putting a lock here would mean the only people it ever stopped are the two
 /// it is meant to serve.
+/// Opens the patient's side of the app, claiming their username the first
+/// time.
+///
+/// The username is asked for here rather than during the onboarding because
+/// this is the moment it becomes meaningful: the caregiver is about to look at
+/// an account that, from now on, the patient can also reach from their own
+/// phone.
+Future<void> _openPatientApp(BuildContext context) async {
+  final AppState state = AppScope.read(context);
+  if (!state.hasPatientUsername) {
+    final String? claimed = await claimPatientUsername(context);
+    if (claimed == null || !context.mounted) return;
+    state.setPatientUsername(claimed);
+  }
+  if (context.mounted) await Nav.open(context, const PatientViewScreen());
+}
+
 class _ViewPatientCard extends StatelessWidget {
   const _ViewPatientCard({required this.name});
 
@@ -894,7 +918,7 @@ class _ViewPatientCard extends StatelessWidget {
             icon: Icons.arrow_forward_rounded,
             color: AppColors.terracotta,
             height: 54,
-            onPressed: () => Nav.open(context, const PatientViewScreen()),
+            onPressed: () => _openPatientApp(context),
           ),
         ],
       ),

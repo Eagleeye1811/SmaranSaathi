@@ -7,6 +7,7 @@ import 'package:smaran_saathi/core/services/adaptive_difficulty_service.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/patient/patient_shell.dart';
 import 'package:smaran_saathi/l10n/app_localizations.dart';
+import 'package:smaran_saathi/features/auth/patient_sign_in_screen.dart';
 
 /// Walks past the two-second splash.
 ///
@@ -77,7 +78,7 @@ void main() {
     expect(find.text('Step 1 of 12'), findsOneWidget);
   });
 
-  testWidgets('selecting Patient goes straight to the dashboard',
+  testWidgets('selecting Patient asks for their username, not a password',
       (WidgetTester tester) async {
     await tester.pumpWidget(const SmaranSaathiApp());
     await passSplash(tester);
@@ -85,13 +86,17 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    await chooseRole(tester, 'Patient');
+    // The patient card is the one role that does not go through the
+    // authenticate button: there is no account for them to sign into, so it
+    // opens the handshake their caregiver approves instead.
+    await tester.tap(find.text('Patient'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
-    // The onboarding is the caregiver's. Handing a person fifteen questions
-    // about their own decline is the wrong first thing to meet, so the
-    // patient side opens on their day instead.
-    expect(find.text('Before we begin'), findsNothing);
-    expect(find.byType(PatientShell), findsOneWidget);
+    expect(find.byType(PatientSignInScreen), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
+    // Nothing resembling a password is asked of them.
+    expect(find.textContaining('Password'), findsNothing);
   });
 
   testWidgets('the patient shell exposes the monitoring journey',

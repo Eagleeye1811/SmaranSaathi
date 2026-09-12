@@ -33,30 +33,40 @@ class PatientViewScreen extends StatefulWidget {
 
 class _PatientViewScreenState extends State<PatientViewScreen> {
   late final AppState _state = AppScope.read(context);
-  late final AppRole _cameFrom = _state.role;
 
   @override
   void initState() {
     super.initState();
-    // After the first frame: setRole notifies listeners, and notifying during
-    // a build is what throws "setState() called during build".
+    // After the first frame: this notifies listeners, and notifying during a
+    // build is what throws "setState() called during build".
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _state.setRole(AppRole.patient);
+      if (mounted) _state.beginPatientPreview();
     });
   }
 
   @override
   void dispose() {
     // Straight onto the state, not through setState — this widget is going
-    // away and only the caregiver's app is left to rebuild.
-    _state.setRole(_cameFrom);
+    // away and only the caregiver's app is left to rebuild. Ending the
+    // preview restores the role the caregiver arrived with, so backing out
+    // of here can never leave them in their own app as the patient.
+    _state.endPatientPreview();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Scaffold(
+    return PopScope(
+      // The hardware back button leaves the preview the same way the bar at
+      // the top does. Without this, a gesture could pop past this screen and
+      // unwind into whatever the caregiver's stack had underneath, with the
+      // preview never formally ended.
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (didPop) _state.endPatientPreview();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: <Widget>[
@@ -101,6 +111,7 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
           const Expanded(child: PatientShell()),
         ],
       ),
+    ),
     );
   }
 }

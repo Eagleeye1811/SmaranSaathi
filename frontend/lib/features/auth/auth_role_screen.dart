@@ -16,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../caregiver/caregiver_entry.dart';
 import '../doctor/doctor_shell.dart';
 import '../patient/patient_shell.dart';
+import 'patient_sign_in_screen.dart';
 import 'sign_in_screen.dart';
 
 /// Signing in and choosing a role, on one screen.
@@ -97,7 +98,11 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
     final AuthService? auth = AuthScope.maybeOf(context);
     final AppState state = AppScope.read(context);
 
-    if (auth != null && state.accountId == null) {
+    // Caregiver and doctor carry an account; the patient does not, and signs
+    // in through their caregiver instead (see `PatientSignInScreen`).
+    final bool needsAccount = role == AppRole.caregiver || role == AppRole.doctor;
+
+    if (needsAccount && auth != null && state.accountId == null) {
       setState(() => _busy = true);
       final AuthUser? existing = auth.currentUser;
       if (existing != null) {
@@ -255,11 +260,10 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               sceneId: 'portrait_aama',
                               title: l.authRolePatient,
                               who: l.authRolePatientWho,
-                              description: l.authRolePatientDetail,
+                              description: l.authPatientEntryBody,
                               accent: AppColors.terracotta,
                               tint: AppColors.terracottaTint,
-                              onTap: () => setState(() => _selected = AppRole.patient),
-                              selected: _selected == AppRole.patient,
+                              onTap: () => Nav.push(context, const PatientSignInScreen()),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -300,7 +304,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                           FadeInUp(
                             delayMs: 320,
                             child: Text(
-                              auth == null ? l.authNoAccountNeeded : l.authDeviceOnlyNote,
+                              auth == null ? l.authUnavailableHere : l.authRequiredBody,
                               textAlign: TextAlign.center,
                               style: AppText.caption.copyWith(height: 1.45),
                             ),

@@ -211,3 +211,162 @@ class Patient {
     );
   }
 }
+
+/// JSON for the sync contract.
+///
+/// Field names match `backend/app/models/patient.py` exactly — camelCase both
+/// ways — so a profile pushed from one device reconstructs byte-for-byte on
+/// another. Kept here rather than in a mapper because the day these two drift
+/// is the day a family's memories stop arriving on the second phone.
+extension PatientJson on Patient {
+  Map<String, dynamic> toSyncJson() => <String, dynamic>{
+        'patientId': id,
+        'name': name,
+        'shortName': shortName,
+        'age': age,
+        'location': location,
+        'language': language,
+        'occupation': occupation,
+        'favouriteActivity': favouriteActivity,
+        'favouriteFood': favouriteFood,
+        'favouriteMusic': favouriteMusic,
+        'tradition': tradition,
+        'portraitScene': portraitScene,
+        'stageNote': stageNote,
+        'joinedOn': joinedOn,
+        'phoneNumber': phoneNumber,
+        'family': <Map<String, dynamic>>[
+          for (final FamilyMember f in family)
+            <String, dynamic>{
+              'id': f.id,
+              'name': f.name,
+              'relation': f.relation,
+              'sceneId': f.sceneId,
+              'note': f.note,
+              'livesWithPatient': f.livesWithPatient,
+            },
+        ],
+        'memories': <Map<String, dynamic>>[
+          for (final LifeMemory m in memories)
+            <String, dynamic>{
+              'id': m.id,
+              'category': m.category,
+              'prompt': m.prompt,
+              'answer': m.answer,
+            },
+        ],
+        'assets': <Map<String, dynamic>>[
+          for (final MemoryAsset a in assets)
+            <String, dynamic>{
+              'id': a.id,
+              'title': a.title,
+              'sceneId': a.sceneId,
+              'kind': a.kind.name == 'object_' ? 'object' : a.kind.name,
+              'caption': a.caption,
+              if (a.year != null) 'year': a.year,
+            },
+        ],
+        'routine': <Map<String, dynamic>>[
+          for (final RoutineItem r in routine)
+            <String, dynamic>{
+              'time': r.time,
+              'title': r.title,
+              'kind': r.kind.name,
+              'detail': r.detail,
+            },
+        ],
+      };
+}
+
+/// Rebuilds a profile that came back from the server.
+///
+/// Every field falls back to [fallback]'s value rather than to a literal, so a
+/// server that has only ever seen a partial profile cannot blank what this
+/// device already knows.
+Patient patientFromSyncJson(Map<String, dynamic> j, {required Patient fallback}) {
+  T? enumByName<T extends Enum>(String? name, List<T> values) {
+    if (name == null) return null;
+    for (final T v in values) {
+      if (v.name == name || (v.name == 'object_' && name == 'object')) return v;
+    }
+    return null;
+  }
+
+  List<Map<String, dynamic>> listOf(Object? raw) => <Map<String, dynamic>>[
+        for (final Object? item in (raw as List<dynamic>?) ?? const <dynamic>[])
+          item! as Map<String, dynamic>,
+      ];
+
+  final List<Map<String, dynamic>> family = listOf(j['family']);
+  final List<Map<String, dynamic>> memories = listOf(j['memories']);
+  final List<Map<String, dynamic>> assets = listOf(j['assets']);
+  final List<Map<String, dynamic>> routine = listOf(j['routine']);
+
+  return Patient(
+    id: j['id'] as String? ?? fallback.id,
+    name: j['name'] as String? ?? fallback.name,
+    shortName: j['shortName'] as String? ?? fallback.shortName,
+    age: (j['age'] as num?)?.toInt() ?? fallback.age,
+    location: j['location'] as String? ?? fallback.location,
+    language: j['language'] as String? ?? fallback.language,
+    occupation: j['occupation'] as String? ?? fallback.occupation,
+    favouriteActivity: j['favouriteActivity'] as String? ?? fallback.favouriteActivity,
+    favouriteFood: j['favouriteFood'] as String? ?? fallback.favouriteFood,
+    favouriteMusic: j['favouriteMusic'] as String? ?? fallback.favouriteMusic,
+    tradition: j['tradition'] as String? ?? fallback.tradition,
+    portraitScene: j['portraitScene'] as String? ?? fallback.portraitScene,
+    stageNote: j['stageNote'] as String? ?? fallback.stageNote,
+    joinedOn: j['joinedOn'] as String? ?? fallback.joinedOn,
+    phoneNumber: j['phoneNumber'] as String? ?? fallback.phoneNumber,
+    family: family.isEmpty
+        ? fallback.family
+        : <FamilyMember>[
+            for (final Map<String, dynamic> f in family)
+              FamilyMember(
+                id: f['id'] as String? ?? '',
+                name: f['name'] as String? ?? '',
+                relation: f['relation'] as String? ?? '',
+                sceneId: f['sceneId'] as String? ?? 'portrait_priya',
+                note: f['note'] as String? ?? '',
+                livesWithPatient: f['livesWithPatient'] as bool? ?? false,
+              ),
+          ],
+    memories: memories.isEmpty
+        ? fallback.memories
+        : <LifeMemory>[
+            for (final Map<String, dynamic> m in memories)
+              LifeMemory(
+                id: m['id'] as String? ?? '',
+                category: m['category'] as String? ?? '',
+                prompt: m['prompt'] as String? ?? '',
+                answer: m['answer'] as String? ?? '',
+              ),
+          ],
+    assets: assets.isEmpty
+        ? fallback.assets
+        : <MemoryAsset>[
+            for (final Map<String, dynamic> a in assets)
+              MemoryAsset(
+                id: a['id'] as String? ?? '',
+                title: a['title'] as String? ?? '',
+                sceneId: a['sceneId'] as String? ?? '',
+                kind: enumByName(a['kind'] as String?, MemoryAssetKind.values) ??
+                    MemoryAssetKind.person,
+                caption: a['caption'] as String? ?? '',
+                year: a['year'] as String?,
+              ),
+          ],
+    routine: routine.isEmpty
+        ? fallback.routine
+        : <RoutineItem>[
+            for (final Map<String, dynamic> r in routine)
+              RoutineItem(
+                time: r['time'] as String? ?? '',
+                title: r['title'] as String? ?? '',
+                kind: enumByName(r['kind'] as String?, RoutineKind.values) ??
+                    RoutineKind.activity,
+                detail: r['detail'] as String? ?? '',
+              ),
+          ],
+  );
+}

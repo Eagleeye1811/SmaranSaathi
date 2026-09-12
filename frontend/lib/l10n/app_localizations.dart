@@ -1508,6 +1508,33 @@ class AppLocalizations {
   String get lifeNothingYet => _s('lifeNothingYet');
   String get lifeOpenAction => _s('lifeOpenAction');
 
+  // ── Pairing a patient's device ───────────────────────────────────────
+  String get pairUnsupported => _s('pairUnsupported');
+  String get authRequiredTitle => _s('authRequiredTitle');
+  String get authRequiredBody => _s('authRequiredBody');
+  String get authUnavailableHere => _s('authUnavailableHere');
+  String get authPatientEntry => _s('authPatientEntry');
+  String get authPatientEntryBody => _s('authPatientEntryBody');
+  String get pairUsernameLabel => _s('pairUsernameLabel');
+  String get pairChooseTitle => _s('pairChooseTitle');
+  String get pairChooseBody => _s('pairChooseBody');
+  String get pairChooseAction => _s('pairChooseAction');
+  String get pairTaken => _s('pairTaken');
+  String get pairUnknown => _s('pairUnknown');
+  String get pairOffline => _s('pairOffline');
+  String get pairAskAction => _s('pairAskAction');
+  String get pairWaitingTitle => _s('pairWaitingTitle');
+  String get pairWaitingBody => _s('pairWaitingBody');
+  String get pairDeclined => _s('pairDeclined');
+  String get pairExpired => _s('pairExpired');
+  String pairIncomingTitle(Object device, Object name) => _f('pairIncomingTitle', <String, Object?>{'device': device, 'name': name});
+  String get pairIncomingBody => _s('pairIncomingBody');
+  String get pairApprove => _s('pairApprove');
+  String get pairDecline => _s('pairDecline');
+  String get pairApproved => _s('pairApproved');
+  String pairSignedInAsPatient(Object name) => _f('pairSignedInAsPatient', <String, Object?>{'name': name});
+  String pairPatientUsernameIs(Object username) => _f('pairPatientUsernameIs', <String, Object?>{'username': username});
+
   // ── Authentication & role ────────────────────────────────────────────
   String get authChooseRoleFirst => _s('authChooseRoleFirst');
   String authContinueAs(Object role) => _f('authContinueAs', <String, Object?>{'role': role});
