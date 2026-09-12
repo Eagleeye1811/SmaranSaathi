@@ -122,6 +122,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: <Widget>[
               _Header(name: state.patient.shortName, state: state),
               const SizedBox(height: Insets.md),
+
+              // ── Today's session card — top of the feed ────────────────
+              // Shown immediately below the greeting so the call-to-action
+              // is the first thing the person sees.
               // Offline is a normal state here, not an error: everything keeps
               // working and the queue drains when the connection returns.
               if (state.offline) OfflineBanner(pending: state.pendingSync),
@@ -184,7 +188,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       Row(
                         children: <Widget>[
                           SoftIcon(
-                            icon: game.domain.icon,
+                            // Falls back for an activity with no cognitive
+                            // domain claim (Mood Canvas) — a plain recommended
+                            // activity, not a fake domain badge.
+                            icon: game.domain?.icon ?? Icons.brush_rounded,
                             color: game.accent,
                             background: Colors.white,
                             size: 54,
@@ -197,7 +204,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                                 Text(game.localizedName(l), style: AppText.h3),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${game.domain.clinicalLabel} · ${game.estimatedMinutes} min',
+                                  '${game.domain?.clinicalLabel ?? game.tagline} · ${game.estimatedMinutes} min',
                                   style: AppText.caption,
                                 ),
                               ],
@@ -222,6 +229,30 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 const SizedBox(height: Insets.lg),
               ],
 
+              // Offline banner
+              if (state.offline) OfflineBanner(pending: state.pendingSync),
+              const SizedBox(height: Insets.sm),
+
+              // The daily check-in stays on the home screen: mood is one of
+              // the ordinary things that moves a cognitive score, and asking
+              // for it every day is what makes it useful when explaining one.
+              _CheckIn(state: state),
+              const SizedBox(height: Insets.lg),
+              // Written for this person from their onboarding answers — by
+              // Gemini when it is reachable, on the device when it is not.
+              const _TodaysQuestions(),
+              const SizedBox(height: Insets.lg),
+
+              // Status card (only when baseline is ready)
+              if (state.baselineReady) ...<Widget>[
+                StatusCard(
+                  snapshot: snapshot,
+                  onViewProfile: () =>
+                      Nav.push(context, const CognitiveProfileScreen()),
+                ),
+                const SizedBox(height: Insets.lg),
+              ],
+
               // ── Progress, in place ────────────────────────────────────
               //
               // This used to be a separate tab. Trends that live one tap away
@@ -237,7 +268,9 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       label: l.dashboardAskCompanion,
                       detail: l.dashboardExplainResults,
                       color: AppColors.primary,
-                      onTap: () => Nav.push(context, const AssistantScreen()),
+                      onTap: () => widget.onOpenTab != null
+                          ? widget.onOpenTab!(2)
+                          : Nav.push(context, const AssistantScreen()),
                     ),
                   ),
                   const SizedBox(width: Insets.sm),
@@ -274,8 +307,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.favorite_outline_rounded,
-                      label: 'Memory wallet',
-                      detail: 'People and places',
+                      label: l.dashboardMemoryWallet,
+                      detail: l.dashboardPeopleAndPlaces,
                       color: AppColors.terracotta,
                       onTap: () => Nav.push(context, const MemoryWalletScreen()),
                     ),
@@ -284,8 +317,8 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.today_outlined,
-                      label: 'Today',
-                      detail: 'Check-in and reminders',
+                      label: l.patientNavToday,
+                      detail: l.dashboardCheckInReminders,
                       color: AppColors.plum,
                       onTap: () => widget.onOpenTab != null
                           ? widget.onOpenTab!(1)
@@ -368,7 +401,9 @@ class _JourneyCard extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final int day = state.baselineDayIndex;
-    final int totalDone = GameId.values.length - state.baselineRemaining.length;
+    final int baselineTotal =
+        AppState.baselinePlan.fold(0, (int sum, List<GameId> d) => sum + d.length);
+    final int totalDone = baselineTotal - state.baselineRemaining.length;
     final bool restingToday =
         !state.canStartBaselineSession() && !state.baselineRunComplete;
 
@@ -405,12 +440,12 @@ class _JourneyCard extends StatelessWidget {
                 color: AppColors.accent,
                 dense: true,
               ),
-              Text(l.dashboardActivitiesDone(totalDone, GameId.values.length),
+              Text(l.dashboardActivitiesDone(totalDone, baselineTotal),
                   style: AppText.caption),
             ],
           ),
           const SizedBox(height: Insets.sm),
-          MeterBar(value: totalDone / GameId.values.length, height: 8),
+          MeterBar(value: totalDone / baselineTotal, height: 8),
           const SizedBox(height: Insets.md),
           if (restingToday) ...<Widget>[
             Text(
@@ -428,7 +463,7 @@ class _JourneyCard extends StatelessWidget {
             ),
           ] else
             BigButton(
-              label: totalDone == 0 ? 'Start my first session' : "Start today's session",
+              label: totalDone == 0 ? l.dashboardStartFirstSession : l.dashboardStartTodaySession,
               icon: Icons.play_arrow_rounded,
               height: 62,
               onPressed: onStart,
@@ -642,11 +677,16 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
   List<DailyQuestion> _questions = const <DailyQuestion>[];
   int _index = 0;
   bool _loading = true;
+  String? _loadedLocale;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final String currentLocale = Localizations.localeOf(context).languageCode;
+    if (_loadedLocale != currentLocale) {
+      _loadedLocale = currentLocale;
+      _load(currentLocale);
+    }
   }
 
   @override
@@ -655,10 +695,11 @@ class _TodaysQuestionsState extends State<_TodaysQuestions> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load([String? localeCode]) async {
     final AppState state = AppScope.read(context);
+    final String activeLocale = localeCode ?? Localizations.localeOf(context).languageCode;
     final AiService ai = _ai ??= buildPatientAssistant(state);
-    final PatientAiContext context_ = state.aiContext();
+    final PatientAiContext context_ = state.aiContext(replyLanguage: activeLocale);
     final AiResult<List<DailyQuestion>> result = await ai.dailyQuestions(context_);
     if (!mounted) return;
     setState(() {
@@ -759,7 +800,7 @@ class _CheckIn extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Insets.md),
-          MoodPicker(selected: state.mood, onSelect: state.setMood),
+          MoodPicker(key: const Key('home_mood_picker'), selected: state.mood, onSelect: state.setMood),
         ],
       ),
     );

@@ -1,12 +1,14 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:http/http.dart' as http;
 
 import '../../data/local/sync_operation.dart';
 import 'sync_manager.dart';
 
-/// Sends the outbox to the real MemoryMitra backend (`backend/app/api/v1/sync.py`).
+/// Sends the outbox to the real SmaranSaathi backend (`backend/app/api/v1/sync.py`).
 ///
 /// Maps a [PendingOperation] 1:1 onto the backend's `SyncOperationRequest`
 /// (`operationId`, `kind`, `payload`, `createdAtMillis`) — the payload map is
@@ -15,7 +17,7 @@ import 'sync_manager.dart';
 ///
 /// Auth is a lightweight device token (`POST /api/v1/auth/device`), not
 /// Firebase Auth — the app has no login UI, so this proves "a copy of
-/// MemoryMitra is calling", not "this is a specific person". The token is
+/// SmaranSaathi is calling", not "this is a specific person". The token is
 /// minted once, cached in memory, and re-minted on a 401 (e.g. after the
 /// token's 30-day expiry). See `backend/app/core/device_auth.py`.
 ///
@@ -37,6 +39,15 @@ class HttpSyncTransport implements SyncTransport {
 
   /// Returns the current active base URL used for server sync.
   String get activeBaseUrl => _activeBaseUrl;
+
+  /// Exposed for the restore extension below, which needs the same client and
+  /// the same device token rather than minting a second of each.
+  http.Client get httpClient => _client;
+
+  Future<String> deviceTokenForRestore() async => _deviceToken ?? await _fetchDeviceToken();
+
+  @override
+  Future<Map<String, dynamic>?> restore(String patientId) => restoreBundle(patientId);
 
   List<String> get _candidateUrls {
     final List<String> list = <String>[];
@@ -130,5 +141,32 @@ class HttpSyncTransport implements SyncTransport {
       );
     }
     return (sent: false, reason: 'HTTP ${response.statusCode}');
+  }
+}
+
+/// Pulling a patient's whole record back down onto a new device.
+extension HttpSyncRestore on HttpSyncTransport {
+  /// One request, not five: a device coming online for the first time should
+  /// either get the whole record or none of it. Five separate calls can
+  /// half-succeed on a rural connection and leave a profile that looks
+  /// complete but has lost its history.
+  Future<Map<String, dynamic>?> restoreBundle(String patientId) async {
+    try {
+      final String token = await deviceTokenForRestore();
+      final http.Response response = await httpClient
+          .get(
+            Uri.parse('$activeBaseUrl/api/v1/sync/restore?patientId=$patientId'),
+            headers: <String, String>{'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } catch (error) {
+      // Offline is the normal case for this app, not an exception worth
+      // surfacing: the local record stays authoritative and the next sign-in
+      // tries again.
+      debugPrint('restore: could not reach the server ($error)');
+      return null;
+    }
   }
 }

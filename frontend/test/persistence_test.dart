@@ -1,17 +1,19 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
-import 'package:memory_mitra/app/bootstrap.dart';
-import 'package:memory_mitra/core/models/daily.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/services/connectivity_service.dart';
-import 'package:memory_mitra/core/services/sync_manager.dart';
-import 'package:memory_mitra/data/local/hive_store.dart';
-import 'package:memory_mitra/data/local/sync_operation.dart';
-import 'package:memory_mitra/data/repositories/hive_repositories.dart';
+import 'package:smaran_saathi/app/bootstrap.dart';
+import 'package:smaran_saathi/core/models/daily.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/models/mood_drawing.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/connectivity_service.dart';
+import 'package:smaran_saathi/core/services/sync_manager.dart';
+import 'package:smaran_saathi/data/local/hive_store.dart';
+import 'package:smaran_saathi/data/local/sync_operation.dart';
+import 'package:smaran_saathi/data/repositories/hive_repositories.dart';
 
 /// The four behaviours that decide whether "offline-first" is real or a label.
 ///
@@ -34,6 +36,11 @@ class _UnreachableTransport implements SyncTransport {
   @override
   Future<void> send(PendingOperation operation) async =>
       throw const SocketException('no route to host');
+
+  /// Unreachable in both directions: a pull fails the same way a push does,
+  /// and reports nothing to restore rather than throwing at the caller.
+  @override
+  Future<Map<String, dynamic>?> restore(String patientId) async => null;
 }
 
 void main() {
@@ -65,6 +72,7 @@ void main() {
       reminders: HiveReminderRepository(store),
       daily: HiveDailyRepository(store),
       assessment: HiveAssessmentRepository(store),
+      moodDrawings: HiveMoodDrawingRepository(store),
       settings: HiveSettingsRepository(store),
       sync: HiveSyncRepository(store),
       connectivity: net,
@@ -113,6 +121,42 @@ void main() {
     // And the day's progress came back with it.
     expect(state.completedToday, contains(GameId.procedure));
     expect(state.journeyDone, contains('game'));
+
+    await quit(store, state);
+  });
+
+  test('1b · a mood canvas drawing survives a restart, image and note both',
+      () async {
+    var (HiveStore store, AppState state, _) = await launch();
+    final Uint8List png = Uint8List.fromList(<int>[1, 2, 3, 4, 5]);
+
+    final MoodDrawing saved = await state.saveMoodDrawing(png);
+    await state.flush();
+
+    expect(state.completedToday, contains(GameId.moodCanvas));
+    expect(state.moodDrawings, hasLength(1));
+    await quit(store, state);
+
+    // ── relaunch ────────────────────────────────────────────────────────
+    (store, state, _) = await launch();
+
+    expect(state.moodDrawings, hasLength(1));
+    final MoodDrawing restored = state.moodDrawings.first;
+    expect(restored.id, saved.id);
+    expect(restored.pngBytes, png, reason: 'the drawing itself was not written to disk');
+    expect(restored.doctorNote, isNull);
+    expect(state.completedToday, contains(GameId.moodCanvas));
+
+    // A doctor's note, added after the fact, survives a restart too.
+    state.addDoctorNoteToDrawing(restored.id, 'Calm colours, steady lines.', notedBy: 'Dr. Test');
+    await state.flush();
+    await quit(store, state);
+
+    (store, state, _) = await launch();
+    final MoodDrawing withNote = state.moodDrawings.first;
+    expect(withNote.doctorNote, 'Calm colours, steady lines.');
+    expect(withNote.notedBy, 'Dr. Test');
+    expect(withNote.notedAtIso, isNotNull);
 
     await quit(store, state);
   });
@@ -227,7 +271,7 @@ void main() {
       ..textSize = TextSizePreference.extraLarge
       ..highContrast = true
       ..voicePrompts = false
-      ..localeCode = 'mr';
+      ..localeCode = 'hi';
     final String reminderId = state.reminders.firstWhere((Reminder r) => !r.done).id;
     state.toggleReminder(reminderId);
     final int doneAfterToggle = state.remindersDone;
@@ -239,7 +283,7 @@ void main() {
     expect(state.textSize, TextSizePreference.extraLarge);
     expect(state.highContrast, isTrue);
     expect(state.voicePrompts, isFalse);
-    expect(state.localeCode, 'mr',
+    expect(state.localeCode, 'hi',
         reason: 'the interface language must survive a restart, not just a live switch');
     expect(state.remindersDone, doneAfterToggle);
     expect(state.reminders.firstWhere((Reminder r) => r.id == reminderId).done, isTrue);

@@ -10,6 +10,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Account setup, reached from the welcome screen.
 ///
@@ -243,7 +244,7 @@ class _OrDivider extends StatelessWidget {
         const Expanded(child: Divider(color: AppColors.hairline)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('or', style: AppText.caption),
+          child: Text(AppLocalizations.of(context)!.orText, style: AppText.caption),
         ),
         const Expanded(child: Divider(color: AppColors.hairline)),
       ],
@@ -345,7 +346,7 @@ class _GoogleMarkPainter extends CustomPainter {
 }
 
 /// Wraps `child` (normally the existing role-selection flow, unchanged) with
-/// a real Firebase sign-in gate. Not used unless `MemoryMitraApp` is given a
+/// a real Firebase sign-in gate. Not used unless `SmaranSaathiApp` is given a
 /// real `authService` explicitly — see that widget's doc comment.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key, required this.authService, required this.child});

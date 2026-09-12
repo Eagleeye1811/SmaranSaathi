@@ -56,6 +56,18 @@ class VoiceNavHost extends StatefulWidget {
   /// above the bottom navigation bar the shell draws underneath.
   final double bottomInset;
 
+  /// Diameter of the resting microphone button.
+  static const double micDiameter = 62;
+
+  /// How much of the bottom of the body the microphone reserves.
+  ///
+  /// Screens inside a [VoiceNavHost] that float their own button — Today's
+  /// "Create reminder", say — must clear this, because a Scaffold's FAB and
+  /// this overlay know nothing about each other and will happily draw on top
+  /// of one another. Published as a constant rather than repeated as a magic
+  /// number, so moving the microphone moves everything that avoids it.
+  static const double micLaneHeight = micDiameter + 10 + 8;
+
   @override
   State<VoiceNavHost> createState() => _VoiceNavHostState();
 }
@@ -108,9 +120,7 @@ class _VoiceNavHostState extends State<VoiceNavHost> {
     final LocaleController? locale = LocaleScope.maybeOf(context);
     if (existing == null || locale == null) return;
     if (existing.language != locale.voiceLanguage) {
-      existing.removeListener(_onControllerChanged);
-      existing.dispose();
-      _controller = null;
+      existing.setLanguage(locale.voiceLanguage);
     }
   }
 
@@ -202,8 +212,8 @@ class _VoiceMicButton extends StatelessWidget {
             // 62 px: comfortably above the 48 px minimum, because a hand that
             // has lost fine control is the design case here.
             child: const SizedBox(
-              width: 62,
-              height: 62,
+              width: VoiceNavHost.micDiameter,
+              height: VoiceNavHost.micDiameter,
               child: Icon(Icons.mic_rounded, color: Colors.white, size: 30),
             ),
           ),
@@ -321,8 +331,8 @@ class _VoicePanel extends StatelessWidget {
                           padding: const EdgeInsets.only(top: Insets.sm),
                           child: Text(
                             l.voiceLanguageFallback(
-                              controller.resolvedInputLanguage!.requested.englishLabel,
-                              controller.resolvedInputLanguage!.resolved!.englishLabel,
+                              _languageName(l, controller.resolvedInputLanguage!.requested),
+                              _languageName(l, controller.resolvedInputLanguage!.resolved!),
                             ),
                             style: AppText.caption.tint(AppColors.warning),
                           ),
@@ -372,6 +382,12 @@ class _VoicePanel extends StatelessWidget {
       },
     );
   }
+
+  String _languageName(AppLocalizations l, VoiceLanguage v) => switch (v) {
+        VoiceLanguage.english => l.languageEnglish,
+        VoiceLanguage.hindi => l.languageHindi,
+        VoiceLanguage.assamese => l.languageAssamese,
+      };
 }
 
 /// A microphone that breathes while the device is listening — the one signal

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
+import '../../core/models/doctor.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/patient.dart';
 
 /// Every piece of demo content in the prototype lives here.
@@ -194,7 +196,7 @@ class MockData {
         time: '6:00 PM',
         title: 'Cognitive game',
         kind: RoutineKind.cognitive,
-        detail: 'With Mitra'),
+        detail: 'With Saathi'),
     RoutineItem(
         time: '7:00 PM',
         title: 'Call with Priya',
@@ -221,8 +223,54 @@ class MockData {
     assets: assets,
     routine: routine,
     stageNote: 'Early-stage memory changes',
-    joinedOn: 'On MemoryMitra since March 2026',
+    joinedOn: 'On SmaranSaathi since March 2026',
   );
+
+  static const Patient ramesh = Patient(
+    id: 'p_ramesh',
+    name: 'Ramesh Sharma',
+    shortName: 'Ramesh',
+    age: 78,
+    location: 'Guwahati, Assam',
+    language: 'Assamese',
+    occupation: 'Teacher',
+    favouriteActivity: 'Reading history books',
+    favouriteFood: 'Kheer',
+    tradition: 'Durga Puja',
+    portraitScene: 'portrait_bhaskar',
+    family: family,
+    memories: memories,
+    assets: assets,
+    routine: routine,
+    stageNote: 'Mild cognitive impairment',
+    joinedOn: 'On SmaranSaathi since June 2026',
+  );
+
+  static const Patient kamla = Patient(
+    id: 'p_kamla',
+    name: 'Kamla Patel',
+    shortName: 'Kamla',
+    age: 74,
+    location: 'Dibrugarh, Assam',
+    language: 'Hindi',
+    occupation: 'Homemaker',
+    favouriteActivity: 'Gardening & Flowers',
+    favouriteFood: 'Dhokla',
+    tradition: 'Diwali',
+    portraitScene: 'portrait_neighbour',
+    family: family,
+    memories: memories,
+    assets: assets,
+    routine: routine,
+    stageNote: 'Memory care & daily assistance',
+    joinedOn: 'On SmaranSaathi since January 2026',
+  );
+
+  static const List<Patient> caregiverPatients = <Patient>[
+    aama,
+    ramesh,
+    kamla,
+  ];
 
   /// A blank profile the caregiver fills in during onboarding.
   static const Patient emptyPatient = Patient(
@@ -318,6 +366,33 @@ class MockData {
       tint: AppColors.indigoTint,
       estimatedMinutes: 4,
     ),
+    GameDefinition(
+      id: GameId.villageMarket,
+      name: 'The Village Market Adventure',
+      tagline: 'See what we can find at the market today.',
+      description:
+          'Wander the market stalls with a basket, and see what catches your eye — '
+          'there are a few things for dinner worth remembering.',
+      domain: CognitiveDomain.procedural,
+      sceneId: 'market',
+      accent: AppColors.olive,
+      tint: AppColors.oliveTint,
+      estimatedMinutes: 6,
+    ),
+    GameDefinition(
+      id: GameId.moodCanvas,
+      name: 'Mood Canvas',
+      tagline: 'Draw whatever you like.',
+      description:
+          'A blank space to draw anything at all — no prompt, no right answer. '
+          'Your doctor may look at it later.',
+      domain: null,
+      hasLevels: false,
+      sceneId: 'orchid',
+      accent: AppColors.rose,
+      tint: AppColors.roseTint,
+      estimatedMinutes: 5,
+    ),
   ];
 
   static GameDefinition game(GameId id) => games.firstWhere((GameDefinition g) => g.id == id);
@@ -330,6 +405,7 @@ class MockData {
     GameId.melody: 2,
     GameId.weaves: 3,
     GameId.memoryCards: 2,
+    GameId.villageMarket: 1,
   };
 
   // ── Seven days of history so the charts look real ──────────────────────
@@ -370,6 +446,8 @@ class MockData {
       _s(GameId.procedure, 1, 2, 88, 85, 86, 1, 1, 46, '6:08 PM'),
       _s(GameId.story, 1, 2, 84, 80, 82, 0, 2, 140, '6:28 PM'),
       _s(GameId.weaves, 1, 3, 81, 79, 80, 1, 2, 124, '6:50 PM'),
+      _s(GameId.villageMarket, 2, 1, 78, 72, 85, 1, 0, 96, '6:18 PM'),
+      _s(GameId.villageMarket, 6, 1, 70, 65, 80, 2, 0, 112, '6:02 PM'),
     ];
   }
 
@@ -437,7 +515,7 @@ class MockData {
           minutesFromMidnight: 1020,
           title: 'Cognitive activity',
           kind: ReminderKind.cognitive,
-          detail: 'Mitra has something ready',
+          detail: 'Saathi has something ready',
         ),
         const Reminder(
           id: 'r6',
@@ -840,6 +918,163 @@ class MockData {
     ];
   }
 
+  // ── Doctor appointments ────────────────────────────────────────────────
+
+  static List<DoctorAppointment> doctorAppointments() => <DoctorAppointment>[
+        const DoctorAppointment(
+          id: 'da1',
+          patientId: 'p_rajan',
+          patientName: 'Rajan Mehta',
+          patientAge: 68,
+          dateLabel: 'Today',
+          timeLabel: '10:00 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: true,
+        ),
+        const DoctorAppointment(
+          id: 'da2',
+          patientId: 'p_aama',
+          patientName: 'Aama Devi',
+          patientAge: 72,
+          dateLabel: 'Today',
+          timeLabel: '11:30 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: false,
+        ),
+        const DoctorAppointment(
+          id: 'da3',
+          patientId: 'p_kamala',
+          patientName: 'Kamala Bora',
+          patientAge: 69,
+          dateLabel: 'Tomorrow',
+          timeLabel: '9:00 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: true,
+        ),
+        const DoctorAppointment(
+          id: 'da4',
+          patientId: 'p_ramesh',
+          patientName: 'Ramesh Deka',
+          patientAge: 74,
+          dateLabel: 'Sep 10',
+          timeLabel: '3:00 PM',
+          status: AppointmentStatus.completed,
+          isVirtual: false,
+          doctorNotes:
+              'Patient showed improvement in recall. Medication plan reviewed and adjusted. Recommended increasing cognitive game frequency to twice daily. Follow-up scheduled in 4 weeks.',
+        ),
+        const DoctorAppointment(
+          id: 'da5',
+          patientId: 'p_wanhun',
+          patientName: 'Wanhun Kharkongor',
+          patientAge: 71,
+          dateLabel: 'Sep 8',
+          timeLabel: '11:00 AM',
+          status: AppointmentStatus.completed,
+          isVirtual: true,
+          doctorNotes:
+              'Engagement dropped significantly over the past week. Caregiver noted restlessness at night. Consider a sleep assessment. Adjusted activity schedule to mornings only.',
+        ),
+      ];
+
+  // ── Doctor availability slots ──────────────────────────────────────────
+
+  static List<DoctorSlot> doctorSlots() => <DoctorSlot>[
+        const DoctorSlot(id: 'sl1', dayLabel: 'Monday', timeLabel: '9:00 – 10:00 AM'),
+        const DoctorSlot(id: 'sl2', dayLabel: 'Monday', timeLabel: '11:00 AM – 12:00 PM', isBooked: true, bookedByPatient: 'Rajan Mehta'),
+        const DoctorSlot(id: 'sl3', dayLabel: 'Tuesday', timeLabel: '10:00 – 11:00 AM'),
+        const DoctorSlot(id: 'sl4', dayLabel: 'Wednesday', timeLabel: '2:00 – 3:00 PM'),
+        const DoctorSlot(id: 'sl5', dayLabel: 'Thursday', timeLabel: '9:00 – 10:00 AM', isBooked: true, bookedByPatient: 'Aama Devi'),
+        const DoctorSlot(id: 'sl6', dayLabel: 'Thursday', timeLabel: '3:00 – 4:00 PM'),
+        const DoctorSlot(id: 'sl7', dayLabel: 'Friday', timeLabel: '10:00 – 11:00 AM'),
+      ];
+
+  // ── Medical reports ────────────────────────────────────────────────────
+
+  static List<MedicalReport> patientMedicalReports() => <MedicalReport>[
+        const MedicalReport(
+          id: 'mr1',
+          kind: ReportKind.mri,
+          dateLabel: '5 September 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.summarised,
+          fileName: 'brain_mri_sep2026.pdf',
+          aiSummary:
+              'The MRI shows mild cerebral atrophy consistent with the patient\'s age and clinical presentation. No acute infarcts or haemorrhage identified. White matter changes are minimal. The hippocampal volume appears mildly reduced bilaterally, which may correlate with the observed memory difficulties.\n\n⚠️ This plain-language summary is generated by AI for reference only. It does not replace professional radiological interpretation. Always refer to the original report.',
+        ),
+        const MedicalReport(
+          id: 'mr2',
+          kind: ReportKind.bloodTest,
+          dateLabel: '28 August 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.summarised,
+          fileName: 'blood_panel_aug2026.pdf',
+          aiSummary:
+              'Routine blood panel results show haemoglobin within normal range. Vitamin B12 is low-normal (210 pg/mL; reference 200–900). Thyroid function tests (TSH, T3, T4) are within normal limits. HbA1c is 6.1%, indicating pre-diabetic range — dietary guidance recommended.\n\n⚠️ AI summary for doctor reference only. Not a diagnosis. Please review original lab report.',
+        ),
+        const MedicalReport(
+          id: 'mr3',
+          kind: ReportKind.eeg,
+          dateLabel: '14 July 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.awaitingDoctor,
+          fileName: 'eeg_jul2026.pdf',
+        ),
+        const MedicalReport(
+          id: 'mr4',
+          kind: ReportKind.other,
+          dateLabel: '2 June 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.uploaded,
+          fileName: 'prescription_jun2026.pdf',
+        ),
+      ];
+
+  // ── Care plan ──────────────────────────────────────────────────────────
+
+  static CarePlanEntry careplan() => const CarePlanEntry(
+        patientId: 'p_aama',
+        updatedLabel: '10 September 2026',
+        recommendations: <String>[
+          'Encourage a 15-minute morning walk daily.',
+          'Reduce evening screen time to under 30 minutes.',
+          'Ensure 7–8 hours of uninterrupted sleep.',
+          'Maintain regular meal timings to support circadian rhythm.',
+          'Encourage social interaction — phone call with Priya every evening.',
+        ],
+        activities: <String>[
+          'Crossword or word puzzle daily (memory stimulation).',
+          'SmaranSaathi cognitive games twice daily — morning and afternoon.',
+          'Guided breathing or yoga session thrice a week.',
+          'Mood canvas drawing once a day as emotional expression.',
+        ],
+        instructions:
+            'Continue current medication schedule. Do not adjust dosage without next consultation. Caregiver (Priya) to monitor sleep quality and report any significant changes in mood or behaviour.',
+        followUpLabel: '10 October 2026',
+        sharedWithCaregiver: true,
+      );
+
+  // ── Connection requests ────────────────────────────────────────────────
+
+  static List<ConnectionRequest> connectionRequests() => <ConnectionRequest>[
+        const ConnectionRequest(
+          id: 'cr1',
+          patientName: 'Bhaskar Rao',
+          patientAge: 76,
+          district: 'Dibrugarh, Assam',
+          requestedByLabel: 'Caregiver: Sunita Rao (daughter)',
+          timeAgo: '2 hours ago',
+        ),
+        const ConnectionRequest(
+          id: 'cr2',
+          patientName: 'Meena Hazarika',
+          patientAge: 64,
+          district: 'Tezpur, Assam',
+          requestedByLabel: 'Self-referral via intake form',
+          timeAgo: '1 day ago',
+        ),
+      ];
+
   static const List<JourneyStep> journey = <JourneyStep>[
     JourneyStep(id: 'checkin', label: 'Morning check-in', icon: Icons.wb_sunny_rounded),
     JourneyStep(id: 'memory', label: 'Memory activity', icon: Icons.favorite_rounded),
@@ -847,3 +1082,4 @@ class MockData {
     JourneyStep(id: 'reflection', label: 'Evening reflection', icon: Icons.nightlight_round),
   ];
 }
+

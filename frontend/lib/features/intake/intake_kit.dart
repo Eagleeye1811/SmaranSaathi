@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/voice/voice_intake_controller.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../l10n/app_localizations.dart';
+import '../patient/settings/language_picker_button.dart';
 import 'voice_intake_panel.dart';
 
 /// Shared chrome for every step of the intake.
@@ -42,6 +43,7 @@ class IntakeScaffold extends StatelessWidget {
     this.eyebrow,
     this.stepIndex,
     this.stepCount,
+    this.partLabel,
     this.onContinue,
     this.continueLabel,
     this.secondaryLabel,
@@ -68,6 +70,12 @@ class IntakeScaffold extends StatelessWidget {
   /// line. People abandon questionnaires that do not say how long they are.
   final int? stepIndex;
   final int? stepCount;
+
+  /// Which half of the onboarding this screen belongs to — "Part A · Knowing
+  /// the person". Shown beside the step counter because two named parts read
+  /// as a conversation with a shape, while twelve numbered screens read as a
+  /// form someone has to survive.
+  final String? partLabel;
 
   final VoidCallback? onContinue;
   final String? continueLabel;
@@ -111,8 +119,17 @@ class IntakeScaffold extends StatelessWidget {
                           style: AppText.overline.copyWith(color: accent),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      const LanguagePickerButton(),
                     ],
                   ),
+                  if (partLabel != null) ...<Widget>[
+                    const SizedBox(height: Insets.xs),
+                    Text(
+                      partLabel!,
+                      style: AppText.caption.copyWith(color: AppColors.inkMuted),
+                    ),
+                  ],
                   if (hasProgress) ...<Widget>[
                     const SizedBox(height: Insets.sm),
                     MeterBar(value: stepIndex! / stepCount!, color: accent, height: 6),
@@ -410,6 +427,256 @@ class NotADiagnosisNote extends StatelessWidget {
                 style: AppText.caption.copyWith(height: 1.45)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A short label over a group of answers. Used wherever one screen carries
+/// more than one question — which, after the questionnaire was collapsed from
+/// forty questions into twelve screens, is most of them.
+class QuestionLabel extends StatelessWidget {
+  const QuestionLabel(this.text, {super.key, this.hint, this.number});
+
+  /// For a screen whose *title* already asks the question. Repeating the
+  /// wording underneath it reads as a stutter, so only the number and the
+  /// "how to answer" hint are shown.
+  const QuestionLabel.forTitle({super.key, required int this.number, this.hint})
+      : text = '';
+
+  final String text;
+  final String? hint;
+
+  /// The question's number in the printed questionnaire, when it has one.
+  /// Shown because a caregiver working from the paper form should be able to
+  /// see they are on the same question.
+  final int? number;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (text.isEmpty)
+            Text(
+              AppLocalizations.of(context).onbQuestionNumber(number ?? 0),
+              style: AppText.overline,
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (number != null) ...<Widget>[
+                  Container(
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: Corners.r(Corners.pill),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Text('$number',
+                        style: AppText.caption.copyWith(fontWeight: FontWeight.w800)),
+                  ),
+                  const SizedBox(width: Insets.sm),
+                ],
+                Expanded(
+                  child:
+                      Text(text, style: AppText.bodyLarge.copyWith(fontWeight: FontWeight.w700)),
+                ),
+              ],
+            ),
+          if (hint != null) ...<Widget>[
+            const SizedBox(height: 4),
+            Padding(
+              padding: EdgeInsets.only(left: number == null || text.isEmpty ? 0 : 32),
+              child: Text(hint!, style: AppText.caption),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A pill that toggles. The compact counterpart to [ChoiceTile], for lists
+/// long enough that a full-width row per option would turn one question into
+/// four screens of scrolling.
+class ChipChoice extends StatelessWidget {
+  const ChipChoice({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.accent = AppColors.primary,
+    this.enabled = true,
+    this.badge,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color accent;
+
+  /// A chip that cannot be chosen right now — the fourth pick when only three
+  /// are allowed — is dimmed rather than hidden, so the option a person is
+  /// looking for never disappears from under them.
+  final bool enabled;
+
+  /// A small number on a selected chip, used where the order of picking
+  /// carries meaning.
+  final int? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fill = selected ? accent : AppColors.surface;
+    final Color ink = selected ? Colors.white : AppColors.inkSoft;
+    return Opacity(
+      opacity: enabled || selected ? 1 : 0.4,
+      child: Pressable(
+        onTap: enabled || selected ? onTap : null,
+        child: AnimatedContainer(
+          duration: Motion.quick,
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: Corners.r(Corners.pill),
+            border: Border.all(
+              color: selected ? accent : AppColors.hairline,
+              width: selected ? 2 : 1.2,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (badge != null) ...<Widget>[
+                Container(
+                  width: 20,
+                  height: 20,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text('$badge',
+                      style: AppText.caption.copyWith(
+                          color: Colors.white, fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppText.bodySmall
+                      .copyWith(color: ink, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A labelled text box. Single-line by default; [lines] above one turns it
+/// into the free-text field the story questions use.
+class IntakeField extends StatelessWidget {
+  const IntakeField({
+    super.key,
+    required this.controller,
+    required this.onChanged,
+    this.label,
+    this.hint,
+    this.keyboardType,
+    this.lines = 1,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+  final String? label;
+  final String? hint;
+  final TextInputType? keyboardType;
+  final int lines;
+
+  @override
+  Widget build(BuildContext context) {
+    OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
+          borderRadius: Corners.r(Corners.md),
+          borderSide: BorderSide(color: color, width: width),
+        );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (label != null) ...<Widget>[
+            Text(label!, style: AppText.label),
+            const SizedBox(height: Insets.xs),
+          ],
+          TextField(
+            controller: controller,
+            keyboardType: lines > 1 ? TextInputType.multiline : keyboardType,
+            minLines: lines,
+            maxLines: lines == 1 ? 1 : lines + 3,
+            style: AppText.bodyLarge,
+            onChanged: (_) => onChanged(),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppText.body.copyWith(color: AppColors.inkMuted),
+              filled: true,
+              fillColor: AppColors.surface,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 16),
+              border: border(AppColors.hairline, 1),
+              enabledBorder: border(AppColors.hairline, 1),
+              focusedBorder: border(AppColors.primary, 2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The quiet aside that explains why a question is being asked.
+///
+/// Present on the screens where the reason is not obvious — education, who is
+/// answering, onset — because a person who understands why they are being
+/// asked something answers it more honestly, and is far less likely to stop
+/// halfway through.
+class WhyWeAsk extends StatelessWidget {
+  const WhyWeAsk(this.message, {super.key, this.icon = Icons.lightbulb_outline_rounded});
+
+  final String message;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Insets.md),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(Insets.md),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: Corners.r(Corners.md),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, size: 18, color: AppColors.inkMuted),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: Text(message, style: AppText.caption.copyWith(height: 1.45)),
+            ),
+          ],
+        ),
       ),
     );
   }

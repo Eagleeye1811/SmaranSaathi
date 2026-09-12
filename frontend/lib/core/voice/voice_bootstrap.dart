@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
@@ -6,6 +6,8 @@ import '../ai/ai_context.dart';
 import '../ai/ai_context_builder.dart';
 import '../ai/ai_service.dart';
 import '../ai/gemini_ai_service.dart';
+import '../ai/llama_on_device_ai_service.dart';
+import '../ai/model_download_service.dart';
 import '../ai/resilient_ai_service.dart';
 import '../services/app_state.dart';
 import '../services/connectivity_service.dart';
@@ -59,16 +61,21 @@ class AppStateConnectivity implements ConnectivityService {
 
 /// Builds the assistant the voice flow talks to.
 ///
-/// This is the *existing* assistant from the AI phase — Gemini when reachable,
-/// on-device otherwise. Voice does not introduce a second one.
+/// Three tiers — Gemini when reachable, the fine-tuned on-device LLM when it
+/// has been downloaded, rule-based templates otherwise/always as the floor.
+/// Voice does not introduce a second one; every screen shares this same
+/// fallback chain via [ResilientAiService].
 AiService buildPatientAssistant(AppState state) => ResilientAiService(
       remote: GeminiAiService(),
       connectivity: AppStateConnectivity(state),
+      llamaOnDevice: LlamaOnDeviceAiService(
+        modelDownload: ModelDownloadService.fromEnvironment(),
+      ),
     );
 
 /// Builds the controller that reads the intake aloud and takes spoken answers.
 ///
-/// Same two engines as the assistant, so a device that can talk to Mitra can
+/// Same two engines as the assistant, so a device that can Talk to Saathi can
 /// answer the questionnaire — there is no second voice stack.
 VoiceIntakeController buildVoiceIntakeController({
   required VoidCallback onAdvance,
@@ -101,15 +108,25 @@ VoiceAssistantController buildVoiceController(
   String? replyLanguage,
   bool autoSpeak = true,
 }) {
+  final String activeCode = replyLanguage ?? state.localeCode ?? 'en';
+  final VoiceLanguage effectiveLanguage = language ??
+      switch (activeCode) {
+        'hi' => VoiceLanguage.hindi,
+        'as' => VoiceLanguage.assamese,
+        _ => VoiceLanguage.english,
+      };
+
   return VoiceAssistantController(
     assistant: assistant ?? buildPatientAssistant(state),
     recognizer: recognizer ?? SpeechToTextRecognizer(),
     synthesizer: synthesizer ?? FlutterTtsSynthesizer(),
     // Rebuilt per turn so the assistant always sees the app as it is now.
-    contextBuilder: () => state.aiContext(replyLanguage: replyLanguage),
+    contextBuilder: () => state.aiContext(
+      replyLanguage: state.localeCode ?? activeCode,
+    ),
     // The interface language wins over the profile's: a patient who switched
     // the app to Hindi expects Mitra to answer in Hindi too.
-    language: language ?? VoiceLanguageX.fromPatientLanguage(state.patient.language),
+    language: effectiveLanguage,
     autoSpeak: autoSpeak,
   );
 }

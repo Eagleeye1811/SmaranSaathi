@@ -7,20 +7,27 @@ import '../../core/services/app_state.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/voice/voice_bootstrap.dart';
 import '../../core/voice/voice_intake_controller.dart';
+import '../../core/voice/voice_language.dart';
 import 'intake_kit.dart';
-import 'baseline_screens.dart';
+import 'onboarding_summary_screen.dart';
 import 'welcome_screens.dart';
 import 'steps_consent_profile.dart';
 import 'steps_medical_caregiver.dart';
 import 'steps_reason_safety.dart';
 import 'steps_symptoms_function.dart';
+import '../../l10n/app_localizations.dart';
+import '../../l10n/locale_controller.dart';
 
-/// The intake, start to finish.
+/// The onboarding, start to finish.
 ///
-/// Held in one widget rather than as nine pushed routes so that "where am I"
+/// Held in one widget rather than as twelve pushed routes so that "where am I"
 /// is a single integer: the flow can resume at the first unanswered step after
 /// the app is closed, and back never escapes into a half-built navigation
 /// stack. [AppState] owns the answers; this owns only the position.
+///
+/// The order is [IntakeRecord.order] rather than a second list kept here,
+/// because [IntakeRecord.nextStep] resumes against that list and two lists
+/// that disagreed would resume someone onto the wrong screen.
 class IntakeFlowScreen extends StatefulWidget {
   const IntakeFlowScreen({super.key, required this.onFinished});
 
@@ -32,26 +39,30 @@ class IntakeFlowScreen extends StatefulWidget {
 }
 
 class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
-  static const List<IntakeStep> _order = <IntakeStep>[
-    IntakeStep.consent,
-    IntakeStep.profile,
-    IntakeStep.reason,
-    IntakeStep.safety,
-    IntakeStep.symptoms,
-    IntakeStep.function,
-    IntakeStep.medical,
-    IntakeStep.caregiver,
-    IntakeStep.baseline,
-  ];
+  static const List<IntakeStep> _order = IntakeRecord.order;
 
   late int _index;
 
-  /// Owned by the flow, not by a step: saying "next" on the last question of a
-  /// screen has to move the flow on, which no single step can do for itself.
-  late final VoiceIntakeController _voice = buildVoiceIntakeController(
-    onAdvance: _advance,
-    onGoBack: _back,
-  );
+  VoiceIntakeController? _voice;
+
+  VoiceIntakeController _ensureVoice() {
+    if (_voice != null) return _voice!;
+    final LocaleController? locale = LocaleScope.maybeRead(context);
+    return _voice = buildVoiceIntakeController(
+      onAdvance: _advance,
+      onGoBack: _back,
+      language: locale?.voiceLanguage ?? VoiceLanguage.english,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final LocaleController? locale = LocaleScope.maybeOf(context);
+    if (_voice != null && locale != null && _voice!.language != locale.voiceLanguage) {
+      _voice!.setLanguage(locale.voiceLanguage);
+    }
+  }
 
   @override
   void initState() {
@@ -64,38 +75,57 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
 
   @override
   void dispose() {
-    _voice.dispose();
+    _voice?.dispose();
     super.dispose();
   }
 
   void _advance() {
-    if (_index < _order.length - 1) {
-      setState(() => _index++);
-    } else {
+    if (_index >= _order.length - 1) {
       widget.onFinished();
+      return;
     }
+    setState(() => _index = _skipEmpty(_index + 1, 1));
   }
 
   void _back() {
-    if (_index > 0) setState(() => _index--);
+    if (_index > 0) setState(() => _index = _skipEmpty(_index - 1, -1));
   }
 
-  /// Back on the *first* step leaves the intake instead of doing nothing.
+  /// Steps over a screen that has nothing to show.
   ///
-  /// Step 1 is reached by choosing "Patient" on the welcome screen, and
-  /// wanting to undo that choice is an ordinary thing to want. Nothing is
+  /// Only the follow-up screen can be empty, and it is empty whenever none of
+  /// the three named difficulties has follow-ups in [ProbeCatalogue] — which
+  /// includes the common case of "no major difficulties noticed". Skipping it
+  /// in both directions matters: a blank screen that reappears when you press
+  /// back is worse than one that never appeared.
+  int _skipEmpty(int index, int direction) {
+    int at = index;
+    while (at > 0 && at < _order.length - 1 && _isEmptyStep(_order[at])) {
+      at += direction;
+    }
+    return at.clamp(0, _order.length - 1);
+  }
+
+  bool _isEmptyStep(IntakeStep step) =>
+      step == IntakeStep.probes &&
+      AppScope.read(context).intake.onboarding.activeProbes.isEmpty;
+
+  /// Back on the *first* step leaves the onboarding instead of doing nothing.
+  ///
+  /// Step 1 is reached by choosing "Caregiver" on the authentication screen,
+  /// and wanting to undo that choice is an ordinary thing to want. Nothing is
   /// lost by leaving either way: every answer is already on disk, and coming
   /// back resumes at the first unanswered question via `nextIntakeStep`.
   ///
   /// There are two ways out because there are two ways in:
   ///
-  ///  - *Pushed* by the role picker, with the welcome screen underneath —
+  ///  - *Pushed* by the authentication screen, with the greeting underneath —
   ///    popping is all it takes, and nobody is signed out.
   ///  - *The root route*, which is where signing in lands a returning
-  ///    patient: `WelcomeScreen.continueFrom` uses `Nav.rootTo`, so the whole
-  ///    stack below is gone and there is nothing to pop. Getting back to the
-  ///    welcome screen then means ending the session, so we ask first — a
-  ///    back arrow that silently signs someone out would be a trap.
+  ///    caregiver: `WelcomeScreen.continueFrom` uses `Nav.rootTo`, so the
+  ///    whole stack below is gone and there is nothing to pop. Getting back to
+  ///    the greeting then means ending the session, so we ask first — a back
+  ///    arrow that silently signs someone out would be a trap.
   Future<void> _leave() async {
     final NavigatorState navigator = Navigator.of(context);
     if (navigator.canPop()) {
@@ -129,7 +159,7 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Go back and log out?'),
+            title: Text(AppLocalizations.of(context).goBackAndLogOutConfirm),
             content: const Text(
               'Going back to the start signs you out on this device. Your '
               'answers stay saved and come back when you sign in again.',
@@ -137,12 +167,12 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Stay here'),
+                child: Text(AppLocalizations.of(context).stayHere),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Go back and log out'),
+                child: Text(AppLocalizations.of(context).goBackAndLogOut),
               ),
             ],
           ),
@@ -157,7 +187,7 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
   @override
   Widget build(BuildContext context) {
     return VoiceIntakeScope(
-      controller: _voice,
+      controller: _ensureVoice(),
       child: _step,
     );
   }
@@ -165,22 +195,24 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
   Widget get _step {
     return switch (_order[_index]) {
       IntakeStep.consent => ConsentStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.profile => ProfileStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.reason => ReasonStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.safety => SafetyStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.symptoms => SymptomStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.function => FunctionStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.medical => MedicalStep(onDone: _advance, onBack: _onBack),
-      IntakeStep.caregiver => CaregiverStep(onDone: _advance, onBack: _onBack),
-      // The questionnaire ends here. The six activities are no longer run in
-      // one sitting off the back of it: the intro closes the intake, and the
-      // three daily sessions are invited by the companion on the dashboard.
-      IntakeStep.baseline || IntakeStep.done => BaselineIntroScreen(
+      // ── Part A · knowing the person ─────────────────────────────────
+      IntakeStep.person => PersonStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.health => HealthBackgroundStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.everyday => EverydayStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.probes => ProbesStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.example => RecentExampleStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.independence => IndependenceStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.behaviour => BehaviourStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.dailySafety => DailySafetyStep(onDone: _advance, onBack: _onBack),
+      // ── Part B · knowing their life ─────────────────────────────────
+      IntakeStep.strengths => StrengthsStep(onDone: _advance, onBack: _onBack),
+      IntakeStep.goals => GoalsStep(onDone: _advance, onBack: _onBack),
+      // The onboarding ends by reading the answers back. The six activities
+      // are not run off the back of it: the three daily baseline sessions are
+      // invited by the companion on the dashboard instead.
+      IntakeStep.summary || IntakeStep.done => OnboardingSummaryScreen(
           onBack: _onBack,
-          onBegin: () {
-            AppScope.read(context).completeIntakeQuestionnaire();
-            widget.onFinished();
-          },
+          onFinish: widget.onFinished,
         ),
     };
   }

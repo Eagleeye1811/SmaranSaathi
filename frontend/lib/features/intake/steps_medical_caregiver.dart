@@ -84,6 +84,17 @@ class _MedicalStepState extends State<MedicalStep> {
           onSelect: (int i) => setState(
               () => _history = _history.copyWith(lowMood: MoodFrequency.values[i])),
         ),
+        VoiceIntakeQuestion.dictated(
+          prompt: l.intakeMedicalAddMedicationPrompt,
+          onSpeak: (String value) {
+            final String v = value.trim();
+            if (v.isEmpty) return;
+            setState(() {
+              _history =
+                  _history.copyWith(medications: <String>[..._history.medications, v]);
+            });
+          },
+        ),
       ],
       title: l.intakeMedicalTitle,
       subtitle: l.intakeMedicalSubtitle,
@@ -323,6 +334,23 @@ class _CaregiverStepState extends State<CaregiverStep> {
       stepIndex: 8,
       stepCount: 8,
       onBack: () => setState(() => _invited = false),
+      voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion.dictated(
+          prompt: l.intakeCaregiverNamePrompt,
+          answered: _name.text,
+          onSpeak: (String value) => setState(() => _name.text = value),
+        ),
+        VoiceIntakeQuestion.dictated(
+          prompt: l.intakeCaregiverRelationPrompt,
+          answered: _relation.text,
+          onSpeak: (String value) => setState(() => _relation.text = value),
+        ),
+        VoiceIntakeQuestion.dictated(
+          prompt: l.intakeCaregiverNotePrompt,
+          answered: _note.text,
+          onSpeak: (String value) => setState(() => _note.text = value),
+        ),
+      ],
       title: l.intakeCaregiverObservationsTitle,
       subtitle: l.intakeCaregiverObservationsSubtitle,
       accent: AppColors.secondary,

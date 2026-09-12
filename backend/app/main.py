@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="MemoryMitra sync backend — SIH 2026 PS 26003.",
+    description="SmaranSaathi sync backend — SIH 2026 PS 26003.",
     lifespan=lifespan,
 )
 

@@ -4,6 +4,7 @@ import 'assessment.dart';
 import 'clinical.dart';
 import 'game.dart';
 import 'monitoring.dart';
+import 'onboarding.dart';
 import 'patient.dart';
 
 /// The clinician-ready summary — the artefact the whole journey produces.
@@ -57,6 +58,25 @@ class ClinicalReport {
   final List<ObservedPattern> patterns;
   final bool suggestsDiscussion;
 
+  static String _safetyLabel(SafetyConcern c) => switch (c) {
+        SafetyConcern.gettingLostOutside => 'Getting lost while outside',
+        SafetyConcern.leavingHomeUnannounced => 'Leaving home without telling anyone',
+        SafetyConcern.fallsOrBalance => 'Falls or loss of balance',
+        SafetyConcern.forgettingMedicines => 'Forgetting medicines',
+        SafetyConcern.stoveOrAppliances => 'Using the stove, gas or electrical appliances',
+        SafetyConcern.handlingMoney => 'Handling money',
+        SafetyConcern.travellingAlone => 'Driving or travelling alone',
+        SafetyConcern.noMajorConcerns => 'No major safety concerns',
+        SafetyConcern.other => 'Another concern',
+      };
+
+  static String _incidentLabel(IncidentFrequency f) => switch (f) {
+        IncidentFrequency.never => 'not yet',
+        IncidentFrequency.once => 'once',
+        IncidentFrequency.moreThanOnce => 'more than once',
+        IncidentFrequency.regularly => 'regularly',
+      };
+
   static const String disclaimer =
       'This report summarises self-reported symptoms, reported daily function '
       'and in-app activity performance. It is not a diagnosis and does not '
@@ -73,6 +93,7 @@ class ClinicalReport {
     required DateTime now,
   }) {
     final List<ReportSection> sections = <ReportSection>[];
+    final OnboardingRecord onboarding = intake.onboarding;
 
     // Reason for assessment.
     sections.add(ReportSection(
@@ -85,7 +106,23 @@ class ClinicalReport {
         if (intake.reason.onset != null) 'Onset: ${intake.reason.onset!.label}',
         if (intake.reason.progression != null)
           'Course: ${intake.reason.progression!.label}',
+        // The three named as affecting daily life the most. Reported in the
+        // order the family ranked them, because that order is their judgement
+        // of what matters and is not the app's to re-sort.
+        if (onboarding.topDifficulties.isNotEmpty)
+          'Reported as affecting daily life most: '
+              '${<String>[
+                for (int i = 0; i < onboarding.topDifficulties.length; i++)
+                  '${i + 1}. ${onboarding.topDifficulties[i].reportLabel.toLowerCase()}',
+              ].join('; ')}',
       ],
+      // A concrete recent episode, in the family's own words. Carried into the
+      // report verbatim: it is the only unstructured thing here and routinely
+      // the most informative, and paraphrasing it would lose exactly the
+      // detail that makes it worth reading.
+      note: onboarding.recentExample.trim().isEmpty
+          ? null
+          : 'Recent example, as described: "${onboarding.recentExample.trim()}"',
     ));
 
     // Reported symptoms, grouped, only what was reported at "often" or above.
@@ -111,9 +148,13 @@ class ClinicalReport {
       lines: caregiver == null
           ? <String>['No caregiver input was provided.']
           : <String>[
-              if (caregiver.caregiverName.isNotEmpty)
-                'Reported by ${caregiver.caregiverName}'
-                    '${caregiver.relation.isEmpty ? '' : ' (${caregiver.relation})'}',
+              // The relation is the part a clinician needs; the name is
+              // optional and often not collected, so it must not gate the
+              // line that says who the observations came from.
+              if (caregiver.caregiverName.isNotEmpty || caregiver.relation.isNotEmpty)
+                'Reported by '
+                    '${caregiver.caregiverName.isEmpty ? caregiver.relation : caregiver.caregiverName}'
+                    '${caregiver.caregiverName.isNotEmpty && caregiver.relation.isNotEmpty ? ' (${caregiver.relation})' : ''}',
               ...caregiver.present.map((String p) => 'Observed: $p'),
               ...caregiver.absent.map((String p) => 'Not observed: $p'),
               if (caregiver.note.trim().isNotEmpty) 'Note: ${caregiver.note.trim()}',
@@ -131,7 +172,18 @@ class ClinicalReport {
         else
           'Assistance reported with: '
               '${intake.function.needingHelp.map((FunctionalItem i) => i.label.toLowerCase()).join(', ')}',
+        // The support answers as they were actually given. The percentage
+        // above is derived from a three-point scale; this is the four-point
+        // one, and "needs reminders" — the earliest change there is — only
+        // survives here.
+        for (final DailyActivity a in DailyActivity.values)
+          if (onboarding.support.containsKey(a))
+            '${a.reportLabel}: ${onboarding.support[a]!.reportLabel}',
       ],
+      note: onboarding.support.isEmpty
+          ? null
+          : 'Reported on a four-point scale: independent, needs reminders, '
+              'needs some help, needs full help.',
     ));
 
     // Cognitive activity performance.
@@ -177,6 +229,45 @@ class ClinicalReport {
               '${intake.medical.reversibleContributors.join(', ')}',
       ],
     ));
+
+    // Everyday safety, as reported by the family.
+    if (onboarding.safetyConcerns.isNotEmpty &&
+        !onboarding.safetyConcerns.contains(SafetyConcern.noMajorConcerns)) {
+      sections.add(ReportSection(
+        title: 'Reported safety concerns',
+        lines: <String>[
+          for (final SafetyConcern c in onboarding.safetyConcerns)
+            if (c != SafetyConcern.noMajorConcerns) _safetyLabel(c),
+          if (onboarding.wanderingHistory != null)
+            'Leaving home or becoming lost has happened: '
+                '${_incidentLabel(onboarding.wanderingHistory!)}',
+        ],
+      ));
+    }
+
+    // Preserved abilities. Last of the reported sections on purpose: a
+    // clinician reading only deficits meets a list of losses, and the person
+    // in front of them is not that list.
+    final bool hasStrengths = onboarding.enjoys.isNotEmpty ||
+        onboarding.stillDoesWell.trim().isNotEmpty ||
+        onboarding.goals.isNotEmpty;
+    if (hasStrengths) {
+      sections.add(ReportSection(
+        title: 'Preserved abilities and priorities',
+        lines: <String>[
+          if (onboarding.enjoys.isNotEmpty)
+            'Still enjoys: '
+                '${onboarding.enjoys.map((EnjoyedActivity e) => e.reportLabel).join(', ')}',
+          if (onboarding.stillDoesWell.trim().isNotEmpty)
+            'Reported as still done independently: ${onboarding.stillDoesWell.trim()}',
+          if (onboarding.goals.isNotEmpty)
+            'The family asked for help with: '
+                '${onboarding.goals.map((SupportGoal g) => g.reportLabel).join(', ')}',
+          if (onboarding.anythingElse.trim().isNotEmpty)
+            'Also reported: ${onboarding.anythingElse.trim()}',
+        ],
+      ));
+    }
 
     // Safety.
     if (intake.safety.requiresUrgentReview || intake.safety.hasFluctuation) {

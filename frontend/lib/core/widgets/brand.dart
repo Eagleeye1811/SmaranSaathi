@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 
-/// The MemoryMitra mark — the shipped app icon, so the logo on screen and the
+/// The SmaranSaathi mark — the shipped app icon, so the logo on screen and the
 /// icon on the home screen are the same image.
 ///
 /// The painted mark (a woven gamosa diamond holding a small warm heart) stays
@@ -125,11 +125,11 @@ class BrandLockup extends StatelessWidget {
                 TextSpan(
                   children: <InlineSpan>[
                     TextSpan(
-                      text: 'Memory',
+                      text: 'Smaran',
                       style: AppText.h2.sized(size * 0.52).wght(800).tint(ink),
                     ),
                     TextSpan(
-                      text: 'Mitra',
+                      text: 'Saathi',
                       style: AppText.h2
                           .sized(size * 0.52)
                           .wght(800)

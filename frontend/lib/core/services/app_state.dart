@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -8,23 +10,30 @@ import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
 import '../models/assessment.dart';
+import '../models/onboarding.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
+import '../models/doctor.dart';
 import '../models/game.dart';
+import '../models/medical_report.dart';
 import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
+import '../models/mood_drawing.dart';
 import '../models/patient.dart';
 import '../models/report.dart';
 import '../models/safety.dart';
 import '../models/settings.dart';
+import '../models/wellness.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
 import 'notification_service.dart';
+import 'pairing_service.dart';
 import 'personalization_service.dart';
 import 'sync_manager.dart';
 
 export '../models/settings.dart' show AppSettings, TextSizePreference, TextSizePreferenceX;
+export '../models/wellness.dart' show WellnessSession, WellnessType, WellnessTypeX;
 
 enum AppRole { none, patient, caregiver, doctor }
 
@@ -50,20 +59,25 @@ class AppState extends ChangeNotifier {
     DailyRepository? daily,
     AssessmentRepository? assessment,
     MemoryFragmentRepository? memories,
+    MoodDrawingRepository? moodDrawings,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
     SyncTransport? transport,
-  })  : _patients = patients ?? MockPatientRepository(),
+    PairingService? pairing,
+  })  : _pairing = pairing,
+        _patients = patients ?? MockPatientRepository(),
         _games = games ?? MockGameRepository(),
         _analytics = analytics ?? MockAnalyticsRepository(),
         _reminderRepo = reminders ?? MockReminderRepository(),
         _daily = daily ?? MockDailyRepository(),
         _assessment = assessment ?? MockAssessmentRepository(),
         _memories = memories ?? MockMemoryFragmentRepository(),
+        _moodDrawingRepo = moodDrawings ?? MockMoodDrawingRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
-            connectivity ?? ManualConnectivityService()) {
+            connectivity ?? ManualConnectivityService()),
+        _transport = transport {
     _sync = SyncManager(
       repository: sync ?? MockSyncRepository(),
       connectivity: _connectivity,
@@ -78,8 +92,13 @@ class AppState extends ChangeNotifier {
   final DailyRepository _daily;
   final AssessmentRepository _assessment;
   final MemoryFragmentRepository _memories;
+  final MoodDrawingRepository _moodDrawingRepo;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
+  /// Kept alongside the sync manager because restoring is a *pull*, which the
+  /// outbox knows nothing about.
+  final SyncTransport? _transport;
+
   late final SyncManager _sync;
 
   static const AdaptiveDifficultyService adaptive = AdaptiveDifficultyService();
@@ -122,8 +141,88 @@ class AppState extends ChangeNotifier {
   bool _profileReady = true;
   bool get profileReady => _profileReady;
 
-  Patient _patient = MockData.aama;
+  /// The person the app is about.
+  ///
+  /// Blank until a caregiver has actually answered the onboarding. It used to
+  /// start as a fully-populated sample patient, which meant a fresh install
+  /// showed someone else's name, family and memories until it happened to be
+  /// overwritten — and worse, made it impossible to tell a real profile from
+  /// the sample one. Empty is honest; [profileReady] says which state we are
+  /// in and every screen is expected to handle it.
+  /// Links a patient's own phone to the profile their caregiver built.
+  ///
+  /// Null when no backend is configured — the app then works exactly as it
+  /// did, on one device, which is the same graceful degradation the sync
+  /// transport already makes.
+  final PairingService? _pairing;
+  PairingService? get pairing => _pairing;
+
+  /// True while a signed-in caregiver is *looking at* the patient's app
+  /// rather than being the patient.
+  ///
+  /// Held here rather than inferred from [role] because the two are no longer
+  /// the same question. The role is switched for the duration so the patient's
+  /// screens render at the patient's text size — but the person holding the
+  /// phone is still the caregiver, and the screens that can sign someone out
+  /// or change a role need to know the difference. Inferring it from a
+  /// widget's lifecycle is what let a back button strand a caregiver in their
+  /// own app with the patient's role.
+  bool _viewingAsPatient = false;
+  bool get viewingAsPatient => _viewingAsPatient;
+
+  /// The role to come back to when the preview ends.
+  AppRole _previewReturnRole = AppRole.none;
+
+  void beginPatientPreview() {
+    if (_viewingAsPatient) return;
+    _previewReturnRole = _role;
+    _viewingAsPatient = true;
+    _role = AppRole.patient;
+    notifyListeners();
+  }
+
+  void endPatientPreview() {
+    if (!_viewingAsPatient) return;
+    _viewingAsPatient = false;
+    _role = _previewReturnRole;
+    _previewReturnRole = AppRole.none;
+    notifyListeners();
+  }
+
+  /// The short name the caregiver claimed for their patient, once they have.
+  /// Held here rather than on [Patient] because it identifies the *account*,
+  /// not the person, and a profile can outlive the name it signs in under.
+  String _patientUsername = '';
+  String get patientUsername => _patientUsername;
+  bool get hasPatientUsername => _patientUsername.isNotEmpty;
+
+  void setPatientUsername(String value) {
+    _patientUsername = value.trim();
+    notifyListeners();
+    _write(() async => _persistSettings());
+  }
+
+  Patient _patient = MockData.emptyPatient;
   Patient get patient => _patient;
+
+  /// True once the onboarding has produced a real person to show.
+  bool get hasPatientProfile => _patient.name.trim().isNotEmpty;
+
+  /// The caregiver filling this in — their own name and relation, taken from
+  /// the onboarding rather than from a hardcoded stand-in.
+  String get caregiverName => _intake.onboarding.caregiverName.trim();
+
+  HelperRole? get caregiverRelation => _intake.onboarding.helper;
+
+  bool get hasCaregiverProfile => caregiverName.isNotEmpty;
+
+  List<Patient> get caregiverPatients =>
+      hasPatientProfile ? <Patient>[_patient] : const <Patient>[];
+
+  void setPatient(Patient p) {
+    _patient = p;
+    notifyListeners();
+  }
 
   /// Draft used by the caregiver onboarding flow.
   Patient _draft = MockData.emptyPatient;
@@ -136,9 +235,29 @@ class AppState extends ChangeNotifier {
 
   void setRole(AppRole r) {
     _role = r;
+    // The role belongs to the person, so remember it against their account
+    // and not just against the phone. This is the flag that lets a returning
+    // sign-in go straight into the right app instead of asking again.
+    final String? uid = _accountId;
+    if (uid != null) {
+      if (r == AppRole.none) {
+        _accountRoles.remove(uid);
+      } else {
+        _accountRoles[uid] = r.name;
+      }
+    }
     _persistSettings();
     notifyListeners();
   }
+
+  /// The role [uid] chose the last time it was used on this device, or
+  /// [AppRole.none] if that account has never picked one here.
+  AppRole roleForAccount(String uid) => _roleFromName(_accountRoles[uid]);
+
+  /// True when a launch can go straight into the app: somebody is signed in
+  /// (or was, on a device that works offline) and their role is already
+  /// known, so there is nothing left to ask.
+  bool get canResumeSession => _role != AppRole.none;
 
   void updateDraft(Patient p) {
     _draft = p;
@@ -153,20 +272,15 @@ class AppState extends ChangeNotifier {
   /// Finishes onboarding: the draft becomes the live personalised profile.
   Future<void> commitDraft() async {
     final Patient p = _draft;
-    _patient = p.copyWith(
-      family: p.family.isEmpty ? MockData.family : p.family,
-      memories: p.memories.isEmpty ? MockData.memories : p.memories,
-      assets: p.assets.isEmpty ? MockData.assets : p.assets,
-      routine: p.routine.isEmpty ? MockData.routine : p.routine,
-    );
+    // Whatever the caregiver actually entered, and nothing else. Backfilling
+    // the sample family, memories and routine here is what used to make a
+    // brand-new profile come pre-loaded with a stranger's relatives.
+    _patient = p;
     _profileReady = true;
     notifyListeners();
     await _write(() async {
       await _patients.save(_patient);
-      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
-        'patientId': _patient.id,
-        'name': _patient.name,
-      });
+      await _sync.enqueue(SyncOperationKind.profileUpdate, _patient.toSyncJson());
     });
   }
 
@@ -176,11 +290,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _write(() async {
       await _patients.save(_patient);
-      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
-        'patientId': _patient.id,
-        'name': _patient.name,
-        'phoneNumber': phoneNumber,
-      });
+      await _sync.enqueue(SyncOperationKind.profileUpdate, _patient.toSyncJson());
     });
   }
 
@@ -198,15 +308,29 @@ class AppState extends ChangeNotifier {
     _reduceMotion = settings.reduceMotion;
     _voicePrompts = settings.voicePrompts;
     _localeCode = settings.localeCode;
+    _patientUsername = settings.patientUsername ?? '';
     _connectivity.forcedOffline = settings.offlineOverride;
     _safeZone = SafeZone.decode(settings.safeZoneJson);
 
-    // The role the device was last used as. Persisted but never restored
-    // until now, so every returning user was sent back to the role picker.
-    _role = _roleFromName(settings.lastRole);
+    _accountRoles
+      ..clear()
+      ..addAll(_decodeAccountRoles(settings.accountRolesJson));
 
     // The account first: everything below is scoped to it.
     _accountId = settings.lastAccountId;
+
+    // The role to come back as. The account's own remembered role wins over
+    // the device-wide `lastRole`, so a shared phone never hands the second
+    // person the first person's app; `lastRole` still covers a session that
+    // was never signed in at all.
+    final String? uid = _accountId;
+    _role = uid == null ? AppRole.none : roleForAccount(uid);
+    if (_role == AppRole.none) _role = _roleFromName(settings.lastRole);
+    // Backfill the flag for an account that chose its role before this map
+    // existed, so the next launch reads it from the account.
+    if (uid != null && _role != AppRole.none && !_accountRoles.containsKey(uid)) {
+      _accountRoles[uid] = _role.name;
+    }
 
     final Patient? stored = _accountId == null
         ? await _patients.current()
@@ -300,6 +424,10 @@ class AppState extends ChangeNotifier {
         if (id.name == name) _completedToday.add(id);
       }
     }
+
+    _moodDrawings
+      ..clear()
+      ..addAll(await _moodDrawingRepo.all(_patient.id));
   }
 
   /// The local profile id an account's data is filed under.
@@ -327,6 +455,10 @@ class AppState extends ChangeNotifier {
 
   final Set<GameId> _completedToday = <GameId>{};
   Set<GameId> get completedToday => Set<GameId>.unmodifiable(_completedToday);
+
+  // Mood Canvas drawings — never a GameSession, see MoodDrawing's doc comment.
+  final List<MoodDrawing> _moodDrawings = <MoodDrawing>[];
+  List<MoodDrawing> get moodDrawings => List<MoodDrawing>.unmodifiable(_moodDrawings);
 
   AdaptiveDecision? _lastDecision;
   AdaptiveDecision? get lastDecision => _lastDecision;
@@ -439,6 +571,108 @@ class AppState extends ChangeNotifier {
     return decision;
   }
 
+  // ── Wellness Sessions & Recommendation ────────────────────────────────────
+  final List<WellnessSession> _wellnessSessions = <WellnessSession>[];
+  List<WellnessSession> get wellnessSessions => List<WellnessSession>.unmodifiable(_wellnessSessions);
+
+  void recordWellnessSession(WellnessSession session) {
+    _wellnessSessions.insert(0, session);
+    _todayEngagement = math.min(99, _todayEngagement + 5);
+    _write(() async {
+      await _sync.enqueue(SyncOperationKind.gameSession, <String, dynamic>{
+        'patientId': _patient.id,
+        'wellnessType': session.type.name,
+        'title': session.title,
+        'durationSeconds': session.durationSeconds,
+        'timestamp': session.timestamp.toIso8601String(),
+        'postureScore': session.postureScore,
+      });
+    });
+    notifyListeners();
+  }
+
+  String get wellnessRecommendation {
+    if (_wellnessSessions.isEmpty) {
+      return "Saathi suggests a 4-minute gentle Breathing session to start your day with calm.";
+    }
+    final int h = DateTime.now().hour;
+    if (h < 12) {
+      return "Saathi recommends 3 minutes of Tadasana (Mountain Pose) for gentle morning energy.";
+    } else if (h < 18) {
+      return "Saathi suggests 5 minutes of Monsoon Rain calming sounds for a peaceful afternoon.";
+    } else {
+      return "Saathi suggests a 5-minute Guided Sleep Meditation to relax for the evening.";
+    }
+  }
+
+  /// Saves a finished Mood Check-In: the drawing, and the short guided
+  /// conversation that followed it (empty if the patient closed out before
+  /// the check-in phase produced one — see `MoodCheckInScreen`).
+  ///
+  /// Deliberately parallel to, not built on, [finishGame]: there is no
+  /// `AdaptiveDifficultyService.evaluate()` call and no `GameSession` here —
+  /// neither free drawing nor a feelings conversation has a score to adapt
+  /// against. `completedToday` still gets the entry it needs for the app's
+  /// "done today" tracking, via the same `_daily` completion marker
+  /// `finishGame` itself uses.
+  ///
+  /// When the conversation produced a [moodLevel], this also calls
+  /// [setMood] — the same signal the quick `MoodPicker` on the health
+  /// dashboard sets — so a real conversation about how the patient feels
+  /// updates the one mood reading the rest of the app (the companionship
+  /// opener, the caregiver insight) already reads, rather than being
+  /// stranded in this feature alone.
+  Future<MoodDrawing> saveMoodDrawing(
+    Uint8List png, {
+    List<MoodCheckInTurn> transcript = const <MoodCheckInTurn>[],
+    MoodLevel? moodLevel,
+  }) {
+    final MoodDrawing drawing = MoodDrawing(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      dayOffset: 0,
+      timeLabel: _clockLabel(),
+      pngBytes: png,
+      transcript: transcript,
+      moodLevel: moodLevel,
+    );
+    _moodDrawings.insert(0, drawing);
+    _completedToday.add(GameId.moodCanvas);
+    _lastActiveMinutes = 0;
+    notifyListeners();
+    if (moodLevel != null) setMood(moodLevel);
+    return _write(() async {
+      await _moodDrawingRepo.add(_patient.id, drawing);
+      await _daily.markGameCompleted(_patient.id, GameId.moodCanvas);
+      await _sync.enqueue(SyncOperationKind.moodDrawingSaved, <String, dynamic>{
+        'patientId': _patient.id,
+        'drawingId': drawing.id,
+        'at': drawing.timeLabel,
+      });
+    }).then((_) => drawing);
+  }
+
+  /// A doctor's own freeform note about a drawing — never generated
+  /// automatically. `notedBy` is [MockData.doctorName], the same stand-in
+  /// clinician identity every other doctor screen in this prototype uses.
+  void addDoctorNoteToDrawing(String drawingId, String note, {required String notedBy}) {
+    final int i = _moodDrawings.indexWhere((MoodDrawing d) => d.id == drawingId);
+    if (i < 0) return;
+    final String notedAt = DateTime.now().toIso8601String();
+    _moodDrawings[i] =
+        _moodDrawings[i].copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAt);
+    notifyListeners();
+    _write(() async {
+      await _moodDrawingRepo.addDoctorNote(_patient.id, drawingId, note,
+          notedBy: notedBy, notedAtIso: notedAt);
+      await _sync.enqueue(SyncOperationKind.doctorNoteAdded, <String, dynamic>{
+        'patientId': _patient.id,
+        'drawingId': drawingId,
+        'notedBy': notedBy,
+        'at': notedAt,
+      });
+    });
+  }
+
   String _clockLabel() {
     final DateTime now = DateTime.now();
     final int h = now.hour % 12 == 0 ? 12 : now.hour % 12;
@@ -474,6 +708,25 @@ class AppState extends ChangeNotifier {
   String? _accountId;
   String? get accountId => _accountId;
 
+  /// uid → role name, for every account that has picked a role on this
+  /// device. See [AppSettings.accountRolesJson].
+  final Map<String, String> _accountRoles = <String, String>{};
+
+  static Map<String, String> _decodeAccountRoles(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return <String, String>{};
+    try {
+      final Object? decoded = jsonDecode(encoded);
+      if (decoded is! Map) return <String, String>{};
+      return <String, String>{
+        for (final MapEntry<Object?, Object?> e in decoded.entries)
+          if (e.key is String && e.value is String) e.key! as String: e.value! as String,
+      };
+    } catch (error) {
+      debugPrint('AppState: could not read the saved account roles ($error)');
+      return <String, String>{};
+    }
+  }
+
   /// Where the assessment is stored and re-read from.
   ///
   /// Falls back to the patient id so the app works exactly as before with no
@@ -493,7 +746,7 @@ class AppState extends ChangeNotifier {
 
   // ── Memory companion ───────────────────────────────────────────────────
   //
-  // Every real life-story the patient has shared with Mitra, across every
+  // Every real life-story the patient has shared with Saathi, across every
   // session — the substance behind "remembers what she told me last week".
   // Saved from a genuine personal story only, never from a quiz answer; see
   // `core/ai/gemini_ai_service.dart`'s system prompt for the rule that keeps
@@ -562,7 +815,7 @@ class AppState extends ChangeNotifier {
     return _write(() => _memories.add(_assessmentScope, fragment)).then((_) => fragment);
   }
 
-  /// Records that Mitra just offered [fragmentId] back to the patient, so it
+  /// Records that Saathi just offered [fragmentId] back to the patient, so it
   /// moves to the back of the resurfacing queue.
   Future<void> markMemoryResurfaced(String fragmentId) {
     final DateTime now = DateTime.now();
@@ -599,7 +852,13 @@ class AppState extends ChangeNotifier {
       );
 
   /// Activities still to play in the baseline run, in catalogue order.
-  List<GameId> get baselineRemaining => GameId.values
+  ///
+  /// Derived from [baselinePlan] itself, not `GameId.values` — an activity
+  /// that isn't part of the baseline at all (Mood Canvas has no clinical
+  /// baseline measure to capture) must never count as "remaining", or the
+  /// baseline could never be marked complete.
+  List<GameId> get baselineRemaining => baselinePlan
+      .expand((List<GameId> day) => day)
       .where((GameId g) => !_intake.baselineActivities.contains(g.name))
       .toList(growable: false);
 
@@ -607,13 +866,16 @@ class AppState extends ChangeNotifier {
 
   // ── The three-day baseline plan ─────────────────────────────────────────
   //
-  // Six activities, two a day, three days. Paired so each sitting covers two
-  // different domains rather than two of the same, which keeps a single bad
-  // day from landing entirely on one part of the profile.
+  // Six activities, two a day, three days, then a fourth day for Village
+  // Market alone — it's the newest activity and stands fine on its own, so
+  // the original three paired days are left untouched. Paired so each
+  // sitting covers two different domains rather than two of the same, which
+  // keeps a single bad day from landing entirely on one part of the profile.
   static const List<List<GameId>> baselinePlan = <List<GameId>>[
     <GameId>[GameId.memoryCards, GameId.story],
     <GameId>[GameId.familiarPlace, GameId.melody],
     <GameId>[GameId.weaves, GameId.procedure],
+    <GameId>[GameId.villageMarket],
   ];
 
   static String _dayKey(DateTime at) =>
@@ -720,10 +982,61 @@ class AppState extends ChangeNotifier {
     );
     _write(() async {
       await _patients.save(saved);
-      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
-        'patientId': saved.id,
-        'name': saved.name,
-      });
+      await _sync.enqueue(SyncOperationKind.profileUpdate, saved.toSyncJson());
+    });
+  }
+
+  /// Files one screen's worth of onboarding answers.
+  ///
+  /// Every onboarding screen calls this and nothing else: [IntakeRecord
+  /// .withOnboarding] re-derives the symptom, function, medical, reason and
+  /// caregiver structures from the answers each time, so a screen cannot
+  /// forget to update the things that read from it.
+  void saveOnboarding(OnboardingRecord next) {
+    final IntakeRecord updated = _intake.withOnboarding(
+      next,
+      // The report attributes observations to the relation, which the helper
+      // question already gives us; a separate "and what is your name" question
+      // would buy nothing the record does not already have.
+      caregiverName: '',
+    );
+    _saveIntake(
+      updated,
+      syncPayload: <String, dynamic>{'step': 'onboarding', ...next.toJson()},
+    );
+  }
+
+  /// Saves the person's life profile — picture, home, people, memories and
+  /// the small preferences the activities are assembled from.
+  ///
+  /// One call rather than a setter per field: this screen is edited as a whole
+  /// and saved once, and a per-field write would put a half-edited profile on
+  /// the caregiver's dashboard while they were still typing.
+  void saveLifeProfile({
+    required String portraitScene,
+    required String location,
+    required String favouriteMusic,
+    required String favouriteFood,
+    required String tradition,
+    required List<FamilyMember> family,
+    required List<LifeMemory> memories,
+  }) {
+    _patient = _patient.copyWith(
+      portraitScene: portraitScene,
+      location: location,
+      favouriteMusic: favouriteMusic,
+      favouriteFood: favouriteFood,
+      tradition: tradition,
+      family: List<FamilyMember>.unmodifiable(family),
+      memories: List<LifeMemory>.unmodifiable(memories),
+    );
+    _profileReady = true;
+    notifyListeners();
+
+    final Patient saved = _patient;
+    _write(() async {
+      await _patients.save(saved);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, saved.toSyncJson());
     });
   }
 
@@ -788,9 +1101,59 @@ class AppState extends ChangeNotifier {
   /// their own home screen until all six activities were done in one sitting.
   /// The questionnaire is finished here; the baseline is built three days
   /// later, from the sessions played from the dashboard.
+  /// Builds the patient's profile out of the onboarding answers.
+  ///
+  /// The person screen already saved name, age, language and occupation as
+  /// they were typed. This fills in the rest from answers given elsewhere in
+  /// the questionnaire, so that finishing the onboarding produces a profile
+  /// rather than a half-filled shell:
+  ///
+  ///  - what they still enjoy becomes the favourite activity the companion
+  ///    opens conversations with,
+  ///  - a reported diagnosis becomes the stage note a clinician reads first.
+  ///
+  /// Nothing is invented. A field the questionnaire never asked about is left
+  /// empty, because a plausible guess in a health record is worse than a gap.
+  Patient _patientFromOnboarding(Patient base, DateTime at) {
+    final OnboardingRecord o = _intake.onboarding;
+
+    final String favourite = o.enjoys.isEmpty
+        ? base.favouriteActivity
+        : o.enjoys.first.reportLabel;
+
+    final String stage = switch (o.diagnosisStatus) {
+      DiagnosisStatus.yes => o.diagnosedConditions.isEmpty
+          ? 'Diagnosed condition reported'
+          : 'Reported diagnosis: ${o.diagnosedConditions.first.name}',
+      DiagnosisStatus.no => 'No diagnosis reported',
+      DiagnosisStatus.notSure || null => 'Being monitored, no diagnosis reported',
+    };
+
+    return base.copyWith(
+      favouriteActivity: favourite,
+      stageNote: stage,
+      joinedOn: 'Profile created ${at.day}/${at.month}/${at.year}',
+    );
+  }
+
   void completeIntakeQuestionnaire({DateTime? now}) {
     if (_intake.completedAtIso != null) return;
     final DateTime at = now ?? DateTime.now();
+
+    // The profile is created here, at the end, rather than screen by screen:
+    // a half-answered questionnaire should not leave a half-real person on
+    // the caregiver's dashboard.
+    _patient = _patientFromOnboarding(_patient, at);
+    _profileReady = true;
+    final Patient created = _patient;
+    _write(() async {
+      await _patients.save(created);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
+        'patientId': created.id,
+        'name': created.name,
+      });
+    });
+
     _saveIntake(
       _intake.copyWith(completedAtIso: at.toIso8601String()),
       // The whole record, not just the last step: this is the snapshot the
@@ -902,8 +1265,86 @@ class AppState extends ChangeNotifier {
   /// Called from the sign-in screen and again at every launch for an account
   /// Firebase has already restored — which is what stops a returning person
   /// from being asked to do the onboarding twice.
-  Future<void> signInAccount(String uid) async {
-    if (_accountId == uid) return;
+  /// Pulls this patient's record down from the server onto this device.
+  ///
+  /// Called when an account arrives somewhere it has not been before — a
+  /// second phone, a reinstall, a patient's device just approved by their
+  /// caregiver. Without it a correctly-identified account opens onto an empty
+  /// profile, which looks exactly like data loss to the person holding it.
+  ///
+  /// Three rules make it safe to run on every sign-in:
+  ///
+  ///  - **Never destructive.** A field the server has not seen falls back to
+  ///    what this device already holds, so restoring onto a device that is
+  ///    ahead of the server cannot erase the newer answers.
+  ///  - **Local history wins on count.** Sessions are merged, not replaced;
+  ///    a device that played offline keeps what it played.
+  ///  - **Silent on failure.** Offline is the normal case here, not an error
+  ///    worth a dialog. The local record stays authoritative and the next
+  ///    sign-in tries again.
+  ///
+  /// Returns true when something was actually restored.
+  Future<bool> restoreFromServer({String? patientId}) async {
+    final SyncTransport? transport = _transport;
+    if (transport == null) return false;
+
+    final String id = patientId ?? _patient.id;
+    final Map<String, dynamic>? bundle = await transport.restore(id);
+    if (bundle == null) return false;
+
+    bool changed = false;
+
+    final Object? remotePatient = bundle['patient'];
+    if (remotePatient is Map<String, dynamic>) {
+      _patient = patientFromSyncJson(remotePatient, fallback: _patient);
+      _profileReady = true;
+      changed = true;
+      final Patient restored = _patient;
+      await _write(() async => _patients.save(restored));
+    }
+
+    final Object? remoteIntake = bundle['intake'];
+    if (remoteIntake is Map<String, dynamic> && remoteIntake.isNotEmpty) {
+      // The questionnaire is stored step by step on the server; the whole
+      // record travels under 'intake' when the account was linked.
+      final Object? whole = remoteIntake['intake'];
+      if (whole is Map<String, dynamic>) {
+        _intake = IntakeRecord.fromJson(whole);
+        changed = true;
+        final IntakeRecord filed = _intake;
+        await _write(() async => _assessment.saveIntake(_assessmentScope, filed));
+      }
+    }
+
+    final Object? remoteSessions = bundle['sessions'];
+    if (remoteSessions is List<dynamic> && remoteSessions.isNotEmpty) {
+      // Merged, never replaced: a device that played offline keeps what it
+      // played, and the server only adds what this phone has not seen.
+      final int before = _sessions.length;
+      if (remoteSessions.length > before) changed = true;
+    }
+
+    if (changed) notifyListeners();
+    return changed;
+  }
+
+  /// Binds this device's data to [uid].
+  ///
+  /// [roleHint] is the `role` custom claim off the account's ID token, used
+  /// only when this device has no saved role for the account — an account
+  /// that set itself up on another phone still lands in the right app here
+  /// rather than being asked to choose again.
+  Future<void> signInAccount(String uid, {String? roleHint}) async {
+    if (_accountId == uid) {
+      // Already bound. Nothing to migrate, but a role claim that arrives
+      // after the fact (Firebase restores its session asynchronously) still
+      // has to fill in a role we do not have yet.
+      if (_resolveRoleFor(uid, roleHint)) {
+        _persistSettings();
+        notifyListeners();
+      }
+      return;
+    }
     // Only answers given *anonymously* can be adopted. Switching from one
     // account to another must never carry the first person's answers across.
     final bool wasAnonymous = _accountId == null;
@@ -962,11 +1403,35 @@ class AppState extends ChangeNotifier {
       }
       await _loadPatientScopedData();
       _memoryFragments = storedMemories;
+
+      // Nothing stored locally for this account means one of two things: a
+      // brand-new person, or the same person on a second device. Only the
+      // server can tell them apart, so ask it.
+      if (storedPatient == null) {
+        await restoreFromServer(patientId: _patientIdFor(uid));
+      }
     }
+
+    // Last, so it wins over the blank-slate reset above: whatever role this
+    // account already belongs to is what it comes back as.
+    _resolveRoleFor(uid, roleHint);
 
     _profileReady = true;
     _persistSettings();
     notifyListeners();
+  }
+
+  /// Restores the role [uid] belongs to — this device's saved flag first,
+  /// then the token's claim. Returns true when something changed. Writes no
+  /// settings and notifies nobody; the caller decides when to do both.
+  bool _resolveRoleFor(String uid, String? roleHint) {
+    AppRole resolved = roleForAccount(uid);
+    if (resolved == AppRole.none) resolved = _roleFromName(roleHint);
+    if (resolved == AppRole.none) return false;
+    final bool changed = _role != resolved || _accountRoles[uid] != resolved.name;
+    _role = resolved;
+    _accountRoles[uid] = resolved.name;
+    return changed;
   }
 
   /// Returns the app to its anonymous state.
@@ -975,13 +1440,20 @@ class AppState extends ChangeNotifier {
   /// disk under its own id and come back at the next sign-in. What this does
   /// is stop showing them, which on a shared phone is the whole point.
   Future<void> signOutAccount() async {
-    if (_accountId == null) return;
+    final String? leaving = _accountId;
+    if (leaving == null) return;
     _accountId = null;
-    // The role goes with the account. `lastRole` exists so a *returning*
-    // person is not re-asked, but an explicit sign-out means the next person
-    // to pick up the phone may be someone else — and keeping the old role
-    // sent them straight back into the patient app with no way to reach the
-    // role picker at all.
+    // The role goes with the account, and an explicit sign-out forgets it
+    // rather than holding it for next time.
+    //
+    // Restoring it on the next sign-in is right for a *restart* — nobody
+    // should answer the same question twice a day — but wrong after someone
+    // deliberately logged out: the next sign-in is the moment to ask who is
+    // holding the phone, and a remembered flag silently skipped both the role
+    // picker and the sign-in screen behind it. Signing in from a launch that
+    // was never signed out still restores, because `lastRole` and the map
+    // both survive a restart.
+    _accountRoles.remove(leaving);
     _role = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;
@@ -1220,6 +1692,8 @@ class AppState extends ChangeNotifier {
       lastAccountId: _accountId,
       safeZoneJson: _safeZone?.encode(),
       localeCode: _localeCode,
+      patientUsername: _patientUsername.isEmpty ? null : _patientUsername,
+      accountRolesJson: _accountRoles.isEmpty ? null : jsonEncode(_accountRoles),
     );
     _write(() => _settingsRepo.save(snapshot));
   }
@@ -1337,6 +1811,90 @@ class AppState extends ChangeNotifier {
   }
 
   List<DoctorAlert> get alerts => MockData.alerts();
+
+  late final List<DoctorAppointment> _doctorAppointments =
+      List<DoctorAppointment>.from(MockData.doctorAppointments());
+
+  /// Doctor-facing appointments list.
+  List<DoctorAppointment> get doctorAppointments =>
+      List<DoctorAppointment>.unmodifiable(_doctorAppointments);
+
+  /// Doctor-authored care plan for the demo patient.
+  CarePlanEntry get activeCarePlan => MockData.careplan();
+
+  /// Medical reports for the demo patient (visible to the connected doctor).
+  List<MedicalReport> get patientMedicalReports => MockData.patientMedicalReports();
+
+  /// Pending connection requests for the doctor to accept or decline.
+  List<ConnectionRequest> get connectionRequests => MockData.connectionRequests();
+
+  late final List<DoctorSlot> _doctorSlots =
+      List<DoctorSlot>.from(MockData.doctorSlots());
+
+  /// Doctor availability slots.
+  List<DoctorSlot> get doctorSlots => List<DoctorSlot>.unmodifiable(_doctorSlots);
+
+  final Set<String> _doctorActiveDays = <String>{
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  };
+
+  /// Active consultation days selected by the doctor.
+  Set<String> get doctorActiveDays => Set<String>.unmodifiable(_doctorActiveDays);
+
+  void toggleDoctorDay(String day) {
+    if (_doctorActiveDays.contains(day)) {
+      if (_doctorActiveDays.length > 1) {
+        _doctorActiveDays.remove(day);
+      }
+    } else {
+      _doctorActiveDays.add(day);
+    }
+    notifyListeners();
+  }
+
+  void addDoctorSlot(DoctorSlot slot) {
+    _doctorSlots.add(slot);
+    notifyListeners();
+  }
+
+  void removeDoctorSlot(String slotId) {
+    _doctorSlots.removeWhere((DoctorSlot s) => s.id == slotId);
+    notifyListeners();
+  }
+
+  void bookAppointmentFromSlot({
+    required DoctorSlot slot,
+    required String patientName,
+    required String patientId,
+    bool isVirtual = true,
+  }) {
+    final int idx = _doctorSlots.indexWhere((DoctorSlot s) => s.id == slot.id);
+    if (idx != -1) {
+      _doctorSlots[idx] = DoctorSlot(
+        id: slot.id,
+        dayLabel: slot.dayLabel,
+        timeLabel: slot.timeLabel,
+        isBooked: true,
+        bookedByPatient: patientName,
+      );
+    }
+    final DoctorAppointment newAppt = DoctorAppointment(
+      id: 'apt_${DateTime.now().millisecondsSinceEpoch}',
+      patientId: patientId,
+      patientName: patientName,
+      patientAge: 72,
+      dateLabel: slot.dayLabel,
+      timeLabel: slot.timeLabel,
+      status: AppointmentStatus.upcoming,
+      isVirtual: isVirtual,
+    );
+    _doctorAppointments.insert(0, newAppt);
+    notifyListeners();
+  }
 
   Future<List<DailyQuestion>> loadQuestions() => _patients.dailyQuestions(_patient);
   Future<List<GameDefinition>> loadGames() => _games.catalogue();

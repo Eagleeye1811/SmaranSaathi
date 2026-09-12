@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from firebase_admin import auth as firebase_auth
 
 from app.core.device_auth import mint_device_token
@@ -31,7 +31,7 @@ async def set_role(data: SetRoleRequest, user: User = Depends(get_current_user))
 @router.post("/device", response_model=DeviceTokenResponse)
 async def issue_device_token(data: DeviceTokenRequest = DeviceTokenRequest()) -> DeviceTokenResponse:
     """Open enrollment, by design: the Flutter app has no login UI, so this
-    proves "a copy of MemoryMitra is calling", not "this is a specific
+    proves "a copy of SmaranSaathi is calling", not "this is a specific
     person" — see core/device_auth.py's module docstring. `deviceId`, when
     supplied, re-mints a token for the same device rather than minting a new
     identity."""

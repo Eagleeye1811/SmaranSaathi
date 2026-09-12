@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+﻿import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/services/app_state.dart';
@@ -6,6 +6,7 @@ import '../core/services/auth_service.dart';
 import '../core/services/connectivity_service.dart';
 import '../core/services/firebase_auth_service.dart';
 import '../core/services/http_sync_transport.dart';
+import '../core/services/pairing_service.dart';
 import '../core/services/sync_manager.dart';
 import '../core/services/notification_service.dart';
 import '../data/local/hive_store.dart';
@@ -40,11 +41,15 @@ String get _syncBaseUrl => _configuredSyncBaseUrl.isNotEmpty ? _configuredSyncBa
 Future<AppState> bootstrapAppState({String? storagePath}) async {
   await LocalNotificationService.instance.initialize();
   final SyncTransport? transport = _syncBaseUrl.isEmpty ? null : HttpSyncTransport(baseUrl: _syncBaseUrl);
+  // Same backend, same graceful degradation: with no URL there is no pairing,
+  // and the app works on one device exactly as it did before.
+  final PairingService? pairing =
+      _syncBaseUrl.isEmpty ? null : PairingService(baseUrl: _syncBaseUrl);
 
   final HiveStore? store = await HiveStore.tryOpen(path: storagePath);
 
   if (store == null) {
-    final AppState fallback = AppState(transport: transport);
+    final AppState fallback = AppState(transport: transport, pairing: pairing);
     await fallback.hydrate();
     return fallback;
   }
@@ -57,10 +62,12 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
     daily: HiveDailyRepository(store),
     assessment: HiveAssessmentRepository(store),
     memories: HiveMemoryFragmentRepository(store),
+    moodDrawings: HiveMoodDrawingRepository(store),
     settings: HiveSettingsRepository(store),
     sync: HiveSyncRepository(store),
     connectivity: _connectivityForPlatform(),
     transport: transport,
+    pairing: pairing,
   );
 
   await state.hydrate();
@@ -69,7 +76,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
 
 /// Attempts real Firebase sign-in; returns `null` on any failure — no
 /// platform config yet (web/iOS — see `firebase_options.dart`), no network
-/// at first launch, anything. `null` means [MemoryMitraApp] skips the
+/// at first launch, anything. `null` means [SmaranSaathiApp] skips the
 /// sign-in gate entirely and behaves exactly as it did before this existed,
 /// the same graceful-degradation contract [bootstrapAppState] already makes
 /// for Hive and connectivity.

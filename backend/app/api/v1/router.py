@@ -10,6 +10,7 @@ from . import (
     doctors,
     health,
     insights,
+    pairing,
     patients,
     reminders,
     sessions,
@@ -29,6 +30,7 @@ api_router.include_router(caregivers.router)
 api_router.include_router(doctors.router)
 api_router.include_router(alerts.router)
 api_router.include_router(insights.router)
+api_router.include_router(pairing.router)
 api_router.include_router(sync.router)
 api_router.include_router(telehealth.router)
 api_router.include_router(chat.router)

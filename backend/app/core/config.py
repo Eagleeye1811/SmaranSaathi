@@ -1,4 +1,4 @@
-"""Environment-driven configuration.
+﻿"""Environment-driven configuration.
 
 Every value here has a safe local-dev default so the app boots with zero
 setup. `firebase_project_id` and `google_application_credentials` resolve to
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # ── General ────────────────────────────────────────────────────────────
-    app_name: str = "MemoryMitra Backend"
+    app_name: str = "SmaranSaathi Backend"
     app_env: str = "development"
     api_v1_prefix: str = "/api/v1"
 
@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # ── Device sync auth (Phase 3) ────────────────────────────────────────
     device_jwt_secret: str = _INSECURE_DEVICE_JWT_SECRET
-    device_jwt_issuer: str = "memorymitra-backend"
+    device_jwt_issuer: str = "SmaranSaathi-backend"
     device_jwt_ttl_seconds: int = 60 * 60 * 24 * 30  # 30 days
 
     # ── SMS notifications via Twilio (Phase 4) ────────────────────────────

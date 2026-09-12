@@ -6,6 +6,7 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/mood_drawing.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
@@ -15,7 +16,13 @@ import '../../../l10n/app_localizations.dart';
 import '../../chat/doctor_patient_chat_screen.dart';
 import '../../patient/health/report_screen.dart';
 import '../../telehealth/video_consultation_screen.dart';
+import '../../../l10n/content_labels.dart';
+import '../../patient/health/report_screen.dart';
+import '../careplan/care_plan_screen.dart';
+import '../consultation/ai_preconsult_screen.dart';
+import '../reports/medical_reports_screen.dart';
 import '../widgets/clinic_widgets.dart';
+import 'mood_drawing_detail_screen.dart';
 
 /// One patient's longitudinal picture. Framed throughout as *cognitive
 /// activity performance*, never as a diagnosis.
@@ -33,9 +40,6 @@ class PatientDetailScreen extends StatelessWidget {
       orElse: () => state.caseload.first,
     );
     final bool isDemoPatient = patient.id == state.patient.id;
-    final List<DoctorAlert> alerts = state.alerts
-        .where((DoctorAlert a) => a.patientName == patient.name)
-        .toList();
 
     return Theme(
       data: AppTheme.clinic(),
@@ -65,13 +69,112 @@ class PatientDetailScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
                   children: <Widget>[
+                    // ── Patient Identity & Session Details Hero Card ─────
+                    FadeInUp(
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        child: Column(
+                          children: <Widget>[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                SceneImage(
+                                  sceneId: patient.sceneId,
+                                  size: 64,
+                                  circle: true,
+                                  borderColor: AppColors.clinicAccent.withValues(alpha: 0.25),
+                                  borderWidth: 2.5,
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text(
+                                        patient.name,
+                                        style: CT.h2.sized(20).wght(800),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        l.doctorDetailAgeDistrict(patient.age, patient.district),
+                                        style: CT.caption.wght(600),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        l.doctorDetailLanguageLine(patient.language),
+                                        style: CT.caption.sized(11),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: trendColor(patient.trend).withValues(alpha: 0.1),
+                                    borderRadius: Corners.r(8),
+                                  ),
+                                  child: Column(
+                                    children: <Widget>[
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Text('${patient.score}', style: CT.h3.wght(800).tint(trendColor(patient.trend))),
+                                          const SizedBox(width: 2),
+                                          Icon(patient.trend.icon, size: 14, color: trendColor(patient.trend)),
+                                        ],
+                                      ),
+                                      Text(l.doctorDetailOverallLabel, style: CT.caption.sized(10).wght(600)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: Insets.md),
+                            const Divider(color: AppColors.clinicHairline, height: 1),
+                            const SizedBox(height: Insets.md),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: _HeroStatTile(
+                                    icon: Icons.bolt_rounded,
+                                    iconColor: AppColors.seriesTeal,
+                                    label: l.doctorDetailEngagementLabel,
+                                    value: '${patient.engagement}%',
+                                  ),
+                                ),
+                                Container(width: 1, height: 28, color: AppColors.clinicHairline),
+                                Expanded(
+                                  child: _HeroStatTile(
+                                    icon: Icons.check_circle_outline_rounded,
+                                    iconColor: AppColors.seriesBlue,
+                                    label: l.doctorDetailAdherenceLabel,
+                                    value: '${patient.adherence}%',
+                                  ),
+                                ),
+                                Container(width: 1, height: 28, color: AppColors.clinicHairline),
+                                Expanded(
+                                  child: _HeroStatTile(
+                                    icon: Icons.history_rounded,
+                                    iconColor: AppColors.clinicInkSoft,
+                                    label: l.doctorDetailLastSessionLabel,
+                                    value: patient.lastSession.split(',').first,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.md),
+
                     // ── The patient's own summary ───────────────────────
-                    //
-                    // Only for the patient this device is actually
-                    // monitoring: the rest of the caseload is synthetic
-                    // demonstration data with no intake behind it, and a
-                    // report built from someone else's answers would be
-                    // worse than no report.
                     if (patient.id == state.patient.id && state.intakeComplete) ...<Widget>[
                       FadeInUp(
                         child: ClinicCard(
@@ -109,77 +212,320 @@ class PatientDetailScreen extends StatelessWidget {
                       const SizedBox(height: Insets.md),
                     ],
 
-                    // ── Identity ────────────────────────────────────────
+                    // ── 3 Full-Width Action Cards ────────────────────────
+                    // Card 1: Pre-Consultation Summary
                     FadeInUp(
+                      delayMs: 20,
                       child: ClinicCard(
-                        padding: const EdgeInsets.all(Insets.lg),
+                        accentEdge: AppColors.clinicAccent,
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => AIPreconsultScreen(
+                                patientName: patient.name,
+                                patientAge: patient.age,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: <Widget>[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.clinicAccent.withValues(alpha: 0.12),
+                                borderRadius: Corners.r(10),
+                              ),
+                              child: const Icon(Icons.auto_awesome_rounded, size: 22, color: AppColors.clinicAccent),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                    children: <Widget>[
+                                      Expanded(
+                                        child: Text(
+                                          l.doctorDetailAIPreconsult,
+                                          style: CT.body.wght(700),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.clinicAccent.withValues(alpha: 0.1),
+                                          borderRadius: Corners.r(4),
+                                        ),
+                                        child: Text('AI Digest', style: CT.caption.sized(9.5).wght(700).tint(AppColors.clinicAccent)),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '7-day cognitive trends, medication & mood insights',
+                                    style: CT.caption.sized(11.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Card 2: Medical Reports
+                    FadeInUp(
+                      delayMs: 30,
+                      child: ClinicCard(
+                        accentEdge: const Color(0xFF2F7FB8),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => MedicalReportsScreen(
+                                patientName: patient.name,
+                                patientId: patient.id,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: <Widget>[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2F7FB8).withValues(alpha: 0.12),
+                                borderRadius: Corners.r(10),
+                              ),
+                              child: const Icon(Icons.folder_shared_outlined, size: 22, color: Color(0xFF2F7FB8)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(l.doctorDetailMedicalReports, style: CT.body.wght(700)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Original MRI, EEG & blood panels · Request from caregiver',
+                                    style: CT.caption.sized(11.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Card 3: Care Plan
+                    FadeInUp(
+                      delayMs: 40,
+                      child: ClinicCard(
+                        accentEdge: const Color(0xFF7A5680),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CarePlanScreen(
+                                patientName: patient.name,
+                                patientId: patient.id,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Row(
+                          children: <Widget>[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF7A5680).withValues(alpha: 0.12),
+                                borderRadius: Corners.r(10),
+                              ),
+                              child: const Icon(Icons.assignment_outlined, size: 22, color: Color(0xFF7A5680)),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Text(l.doctorDetailCarePlan, style: CT.body.wght(700)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Clinical recommendations, activities & caregiver instructions',
+                                    style: CT.caption.sized(11.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── Medication & Routine (Visual schedule, not text walls) ───
+                    FadeInUp(
+                      delayMs: 50,
+                      child: ClinicCard(
+                        accentEdge: const Color(0xFFD9962B),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Row(
                               children: <Widget>[
-                                SceneImage(
-                                  sceneId: patient.sceneId,
-                                  size: 66,
-                                  circle: true,
-                                  borderColor: Colors.white,
-                                  borderWidth: 3,
-                                ),
-                                const SizedBox(width: 16),
+                                const Icon(Icons.medication_outlined, size: 18, color: Color(0xFFD9962B)),
+                                const SizedBox(width: 8),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text(patient.name, style: CT.h2.sized(22)),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        l.doctorDetailAgeDistrict(
-                                            patient.age, patient.district),
-                                        style: CT.caption,
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(l.doctorDetailLanguageLine(patient.language),
-                                          style: CT.caption),
-                                    ],
-                                  ),
+                                  child: Text(l.doctorDetailMedicationInfo, style: CT.h3.wght(700)),
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: <Widget>[
-                                    Text('${patient.score}',
-                                        style: CT.statLarge
-                                            .tint(trendColor(patient.trend))),
-                                    Text(l.doctorDetailOverallLabel, style: CT.caption.sized(10.5)),
-                                  ],
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.success.withValues(alpha: 0.12),
+                                    borderRadius: Corners.r(6),
+                                  ),
+                                  child: Text('${patient.adherence}% on-time', style: CT.caption.wght(700).tint(AppColors.success)),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: Insets.md),
-                            const Divider(color: AppColors.clinicHairline),
-                            const SizedBox(height: Insets.md),
+                            const SizedBox(height: 12),
                             Row(
                               children: <Widget>[
                                 Expanded(
-                                  child: ClinicStat(
-                                    label: l.doctorDetailEngagementLabel,
-                                    value: '${patient.engagement}%',
-                                    color: AppColors.seriesTeal,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0913A).withValues(alpha: 0.08),
+                                      borderRadius: Corners.r(8),
+                                      border: Border.all(color: const Color(0xFFE0913A).withValues(alpha: 0.2)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Row(
+                                          children: <Widget>[
+                                            const Icon(Icons.wb_sunny_rounded, size: 14, color: Color(0xFFE0913A)),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                l.doctorDetailMorning,
+                                                style: CT.caption.wght(700).tint(const Color(0xFFE0913A)),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Text('08:00 AM', style: CT.caption.sized(10).wght(600)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text('Donepezil · 5mg', style: CT.bodySmall.wght(700)),
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: Corners.r(4),
+                                          ),
+                                          child: Text('1 tab · With breakfast', style: CT.caption.sized(10.5)),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
+                                const SizedBox(width: 10),
                                 Expanded(
-                                  child: ClinicStat(
-                                    label: l.doctorDetailAdherenceLabel,
-                                    value: '${patient.adherence}%',
-                                    color: AppColors.seriesBlue,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: ClinicStat(
-                                    label: l.doctorDetailLastSessionLabel,
-                                    value: patient.lastSession.split(',').first,
-                                    color: AppColors.clinicInkSoft,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF7A5680).withValues(alpha: 0.08),
+                                      borderRadius: Corners.r(8),
+                                      border: Border.all(color: const Color(0xFF7A5680).withValues(alpha: 0.2)),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Row(
+                                          children: <Widget>[
+                                            const Icon(Icons.nightlight_round, size: 14, color: Color(0xFF7A5680)),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                l.doctorDetailEvening,
+                                                style: CT.caption.wght(700).tint(const Color(0xFF7A5680)),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Text('08:30 PM', style: CT.caption.sized(10).wght(600)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text('Memantine · 10mg', style: CT.bodySmall.wght(700)),
+                                        const SizedBox(height: 2),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: Corners.r(4),
+                                          ),
+                                          child: Text('1 tab · After dinner', style: CT.caption.sized(10.5)),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: const <Widget>[
+                                _RoutinePill(icon: Icons.directions_walk_rounded, label: 'Morning walk 15m'),
+                                _RoutinePill(icon: Icons.psychology_outlined, label: 'Game practice 2x'),
+                                _RoutinePill(icon: Icons.bedtime_outlined, label: 'Sleep schedule 10 PM'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── Caregiver Observations ──────────────────────────
+                    FadeInUp(
+                      delayMs: 60,
+                      child: ClinicCard(
+                        accentEdge: const Color(0xFF7A5680),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                const Icon(Icons.record_voice_over_outlined, size: 18, color: Color(0xFF7A5680)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(l.doctorDetailCaregiverObs, style: CT.h3.wght(700)),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            _CaregiverNoteBubble(
+                              author: 'Priya (Daughter)',
+                              note: l.doctorDetailCaregiverNote1,
+                            ),
+                            const SizedBox(height: 8),
+                            _CaregiverNoteBubble(
+                              author: 'Bhaskar (Son-in-law)',
+                              note: l.doctorDetailCaregiverNote2,
                             ),
                           ],
                         ),
@@ -345,7 +691,7 @@ class PatientDetailScreen extends StatelessWidget {
                               child: RadarChart(
                                 values: <String, int>{
                                   for (final CognitiveDomain d in CognitiveDomain.values)
-                                    d.label: patient.profile.score(d),
+                                    d.localizedLabel(l): patient.profile.score(d),
                                 },
                                 size: 280,
                                 color: AppColors.seriesTeal,
@@ -363,7 +709,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     const SizedBox(width: 9),
                                     SizedBox(
                                       width: 84,
-                                      child: Text(d.label, style: CT.bodySmall),
+                                      child: Text(d.localizedLabel(l), style: CT.bodySmall),
                                     ),
                                     Expanded(
                                       child: MeterBar(
@@ -384,22 +730,6 @@ class PatientDetailScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.clinicBackground,
-                                borderRadius: Corners.r(Corners.sm),
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  Text(l.doctorDetailOverallStat, style: CT.body.wght(700)),
-                                  const Spacer(),
-                                  Text('${patient.profile.overall}',
-                                      style: CT.stat.tint(AppColors.clinicAccent)),
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -424,7 +754,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     Icon(patient.trend.icon,
                                         size: 15, color: trendColor(patient.trend)),
                                     const SizedBox(width: 5),
-                                    Text(patient.trend.label,
+                                    Text(patient.trend.localizedLabel(l),
                                         style: CT.caption
                                             .wght(700)
                                             .tint(trendColor(patient.trend))),
@@ -478,8 +808,11 @@ class PatientDetailScreen extends StatelessWidget {
                               const SizedBox(height: Insets.md),
                               BarSeriesChart(
                                 points: <SeriesPoint>[
-                                  for (final GameDefinition g in MockData.games)
-                                    SeriesPoint(_short(l, g.name), _avg(state, g.id)),
+                                  // Only activities with a real score — Mood
+                                  // Canvas has none to plot honestly here.
+                                  for (final GameDefinition g
+                                      in MockData.games.where((GameDefinition g) => g.hasLevels))
+                                    SeriesPoint(doctorChartLabel(l, g.id), _avg(state, g.id)),
                                 ],
                                 color: AppColors.seriesBlue,
                                 showValues: true,
@@ -518,7 +851,7 @@ class PatientDetailScreen extends StatelessWidget {
                                       ),
                                       Expanded(
                                         child: Text(
-                                          MockData.game(state.sessions[i].gameId).name,
+                                          MockData.game(state.sessions[i].gameId).localizedName(l),
                                           style: CT.bodySmall.tint(AppColors.clinicInk),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -543,43 +876,69 @@ class PatientDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: Insets.lg),
-                    ],
-
-                    // ── Alerts ──────────────────────────────────────────
-                    if (alerts.isNotEmpty) ...<Widget>[
-                      FadeInUp(
-                        delayMs: 170,
-                        child: Text(l.doctorDetailAlertsTitle, style: CT.h3),
-                      ),
-                      const SizedBox(height: 10),
-                      for (final DoctorAlert a in alerts)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
+                      if (state.moodDrawings.isNotEmpty) ...<Widget>[
+                        FadeInUp(
+                          delayMs: 165,
                           child: ClinicCard(
-                            accentEdge: severityColor(a.severity),
+                            padding: const EdgeInsets.all(Insets.lg),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                        child: Text(a.title, style: CT.body.wght(700))),
-                                    Text(a.age, style: CT.caption),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(a.detail, style: CT.bodySmall),
-                                const SizedBox(height: 8),
-                                PillTag(
-                                  label: a.severity.label,
-                                  color: severityColor(a.severity),
-                                  dense: true,
+                                Text(l.doctorDetailMoodCanvasTitle, style: CT.h3),
+                                const SizedBox(height: 3),
+                                Text(l.doctorDetailMoodCanvasCaption, style: CT.caption),
+                                const SizedBox(height: Insets.md),
+                                SizedBox(
+                                  height: 96,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: state.moodDrawings.length,
+                                    separatorBuilder: (BuildContext context, int i) =>
+                                        const SizedBox(width: 10),
+                                    itemBuilder: (BuildContext context, int i) {
+                                      final MoodDrawing drawing = state.moodDrawings[i];
+                                      return GestureDetector(
+                                        onTap: () => Nav.push(
+                                          context,
+                                          MoodDrawingDetailScreen(drawingId: drawing.id),
+                                        ),
+                                        child: Stack(
+                                          children: <Widget>[
+                                            ClipRRect(
+                                              borderRadius: Corners.r(Corners.md),
+                                              child: Image.memory(
+                                                drawing.pngBytes,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            if (drawing.hasNote)
+                                              Positioned(
+                                                right: 4,
+                                                top: 4,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(3),
+                                                  decoration: const BoxDecoration(
+                                                    color: AppColors.clinicAccent,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.description_rounded,
+                                                      size: 12, color: Colors.white),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      const SizedBox(height: Insets.lg),
+                        const SizedBox(height: Insets.lg),
+                      ],
                     ],
 
                     // ── Suggested next steps ────────────────────────────
@@ -696,35 +1055,115 @@ class PatientDetailScreen extends StatelessWidget {
     return AppColors.danger;
   }
 
-  // Matches against MockData.games' own (English) GameDefinition.name values —
-  // that model layer is out of this screen's scope, so the match keys stay
-  // English regardless of interface language. Only the short chart label
-  // shown to the user is translated.
-  static String _short(AppLocalizations l, String name) => switch (name) {
-        'Procedure Reconstruction' => l.doctorDetailChartProcedure,
-        'Finish the Story' => l.doctorDetailChartStory,
-        'Familiar Place Explorer' => l.doctorDetailChartPlace,
-        'Melody of the Valleys' => l.doctorDetailChartMelody,
-        'Weaves of the Hills' => l.doctorDetailChartWeaves,
-        'NER Memory Cards' => l.doctorDetailChartCards,
-        _ => name,
-      };
-
   static double _avg(AppState state, GameId id) {
     final List<GameSession> list = state.sessionsFor(id);
     if (list.isEmpty) return 0;
     return list.fold<double>(0, (double a, GameSession s) => a + s.performance.overall) /
         list.length;
   }
+}
 
-  static List<String> _considerations(AppLocalizations l, ClinicPatient p) {
-    return <String>[
-      if (p.trend == TrendDirection.down) l.doctorDetailConsiderationDecreased,
-      if (p.adherence < 80) l.doctorDetailConsiderationLowAdherence(p.adherence),
-      if (p.engagement < 55) l.doctorDetailConsiderationLowEngagement,
-      if (p.trend == TrendDirection.up) l.doctorDetailConsiderationImproving,
-      if (p.status == ClinicalStatus.followUp) l.doctorDetailConsiderationReviewDue,
-      l.doctorDetailConsiderationFooter,
-    ];
+class _HeroStatTile extends StatelessWidget {
+  const _HeroStatTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 13, color: iconColor),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                value,
+                style: CT.body.wght(800),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: CT.caption.sized(10.5).tint(AppColors.clinicInkSoft),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+class _RoutinePill extends StatelessWidget {
+  const _RoutinePill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.clinicHairline.withValues(alpha: 0.35),
+        borderRadius: Corners.r(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 13, color: AppColors.clinicInkSoft),
+          const SizedBox(width: 5),
+          Text(label, style: CT.caption.sized(11).wght(600)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CaregiverNoteBubble extends StatelessWidget {
+  const _CaregiverNoteBubble({required this.author, required this.note});
+
+  final String author;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.clinicHairline.withValues(alpha: 0.25),
+        borderRadius: Corners.r(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(Icons.person_outline_rounded, size: 13, color: Color(0xFF7A5680)),
+              const SizedBox(width: 4),
+              Text(author, style: CT.caption.wght(700).tint(const Color(0xFF7A5680))),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(note, style: CT.bodySmall.copyWith(height: 1.35)),
+        ],
+      ),
+    );
   }
 }

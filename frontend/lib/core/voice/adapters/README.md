@@ -1,10 +1,10 @@
-# Speech plugin adapters
+﻿# Speech plugin adapters
 
 **Status: activated.** `speech_to_text_recognizer.dart` and
 `flutter_tts_synthesizer.dart` are the real, live implementations —
 `speech_to_text` and `flutter_tts` are in `pubspec.yaml`, and
 `buildVoiceController` (`../voice_bootstrap.dart`) defaults to these two
-classes, so every entry point (`AskMitraButton` included) gets real
+classes, so every entry point (`AskSaathiButton` included) gets real
 microphone input and real speech output with no extra wiring.
 
 (The `.template` files that used to sit alongside these before the packages

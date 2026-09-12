@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../app/routes/app_routes.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
+import '../../features/intake/welcome_screens.dart';
 import '../services/app_state.dart';
 import '../services/auth_service.dart';
 import 'ui_kit.dart';
 
 /// "Signed in as…" + log out, shown on the caregiver/doctor profile screens.
-///
-/// Renders nothing when there's no `AuthGate` above it in the tree
-/// (`AuthScope.maybeOf` returns `null`) — which is the case for every
-/// existing test and for any build without Firebase configured, so this is
-/// invisible everywhere it isn't relevant, not just conditionally styled.
 class AccountSection extends StatefulWidget {
   const AccountSection({super.key});
 
@@ -30,29 +28,25 @@ class _AccountSectionState extends State<AccountSection> {
     final AuthService? service = AuthScope.maybeOf(context);
     if (service != _service) {
       _service = service;
-      // Proves the whole chain for real: a real ID token, sent to the real
-      // backend, verified there, and the response's role/email displayed
-      // here — not just "the client thinks it's signed in".
       _me = service?.fetchMe();
     }
   }
 
-  /// Signs out of both halves at once.
-  ///
-  /// The local state first: the app must end up signed out even when Firebase
-  /// is unreachable, which on a rural connection it often is. Nothing is
-  /// deleted — the account's record stays on the device and returns at the
-  /// next sign-in.
-  Future<void> _logOut(BuildContext context, AuthService service) async {
+  /// Signs out of both halves at once and returns to WelcomeScreen.
+  Future<void> _logOut(BuildContext context, AuthService? service) async {
     final AppState state = AppScope.read(context);
     await state.signOutAccount();
-    try {
-      await service.signOut();
-    } catch (error) {
-      debugPrint('AccountSection: signing out of Firebase failed ($error)');
+    state.setRole(AppRole.none);
+    if (service != null) {
+      try {
+        await service.signOut();
+      } catch (error) {
+        debugPrint('AccountSection: signing out of Firebase failed ($error)');
+      }
     }
     if (!context.mounted) return;
     setState(() => _me = null);
+    Nav.rootTo(context, const WelcomeScreen());
   }
 
   @override
@@ -60,10 +54,12 @@ class _AccountSectionState extends State<AccountSection> {
     final AuthService? service = _service;
     if (service == null) return const SizedBox.shrink();
 
+    final AppLocalizations l = AppLocalizations.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        SectionHeader(title: 'Account', icon: Icons.badge_outlined),
+        SectionHeader(title: l.profileAccount, icon: Icons.badge_outlined),
         MmCard(
           child: FutureBuilder<Map<String, dynamic>?>(
             future: _me,
@@ -82,10 +78,10 @@ class _AccountSectionState extends State<AccountSection> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('Signed in as', style: AppText.caption),
+                            Text(l.accountSignedInAs, style: AppText.caption),
                             Text(email, style: AppText.body.wght(700)),
                             if (role != null)
-                              Text('Role: $role', style: AppText.bodySmall.tint(AppColors.inkMuted)),
+                              Text(l.accountRole(role), style: AppText.bodySmall.tint(AppColors.inkMuted)),
                           ],
                         ),
                       ),
@@ -93,7 +89,7 @@ class _AccountSectionState extends State<AccountSection> {
                   ),
                   const SizedBox(height: Insets.md),
                   SoftButton(
-                    label: 'Log out',
+                    label: l.actionLogOut,
                     icon: Icons.logout_rounded,
                     color: AppColors.danger,
                     onPressed: () => _logOut(context, service),

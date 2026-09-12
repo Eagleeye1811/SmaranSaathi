@@ -1,45 +1,36 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
-import '../../../core/services/app_state.dart';
-import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/mock_translator.dart';
+import '../settings/language_picker_button.dart';
+import '../today/today_screen.dart';
 
 /// The bar across the top of every patient screen.
-///
-/// Wordmark on the left, where a name belongs and where the eye starts; a
-/// status pill and the connection state on the right, where the things that
-/// change belong. The app icon used to sit beside the wordmark — it is on the
-/// home screen of the phone and in the launcher already, and repeating it
-/// inside the app spent the most valuable pixels on the screen saying
-/// something the person already knew.
 class PatientTopBar extends StatelessWidget {
   const PatientTopBar({
     super.key,
     this.trailing,
     this.onExit,
+    this.showExit = false,
     this.showStatus = true,
-    this.showExit = true,
+    this.showTodayButton = true,
   });
 
   final Widget? trailing;
   final VoidCallback? onExit;
-
-  /// Lets a screen suppress the switch-role button even when it passes an
-  /// [onExit]. Kept because screens in the reminders work rely on it.
   final bool showExit;
-
-  /// The progress pill. Off on screens that are already about one thing.
   final bool showStatus;
+  final bool showTodayButton;
 
   @override
   Widget build(BuildContext context) {
-    final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 6, Insets.gutter, 10),
@@ -48,10 +39,6 @@ class PatientTopBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          // A pushed screen needs a way back. The bar used to end in a
-          // switch-role icon that doubled as one; now that the right side
-          // carries status instead, the back arrow is explicit and only
-          // appears where there is something to go back to.
           if (Navigator.of(context).canPop()) ...<Widget>[
             RoundIconButton(
               icon: Icons.arrow_back_rounded,
@@ -63,23 +50,41 @@ class PatientTopBar extends StatelessWidget {
           ],
           const Expanded(child: _Wordmark()),
           if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 8)],
-          if (showStatus) const _StatusPill(),
-          // Only when there is something to say. "Online" is the normal state
-          // and a badge announcing it every second of every day is noise; a
-          // dropped connection or a queue that has not drained is not.
-          if (state.offline || state.pendingSync > 0 || state.syncing) ...<Widget>[
-            const SizedBox(width: 8),
-            ConnectivityChip(
-              offline: state.offline,
-              pending: state.pendingSync,
-              syncing: state.syncing,
-              onTap: () {
-                final bool goingOnline = state.offline;
-                state.setOffline(!state.offline);
-                if (goingOnline) state.syncNow();
-              },
+          if (showTodayButton) ...<Widget>[
+            Pressable(
+              onTap: () => Nav.open(context, const TodayScreen()),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: Corners.r(Corners.pill),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const Icon(Icons.notifications_active_rounded, size: 16, color: Colors.white),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Today',
+                      style: AppText.caption.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
+          const SizedBox(width: 4),
+          const LanguagePickerButton(),
           if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
@@ -105,7 +110,7 @@ class _Wordmark extends StatelessWidget {
       TextSpan(
         children: <InlineSpan>[
           TextSpan(text: 'Memory', style: AppText.h3.wght(800).tint(AppColors.ink)),
-          TextSpan(text: 'Mitra', style: AppText.h3.wght(800).tint(AppColors.primary)),
+          TextSpan(text: 'Saathi', style: AppText.h3.wght(800).tint(AppColors.primary)),
         ],
       ),
       maxLines: 1,
@@ -114,58 +119,6 @@ class _Wordmark extends StatelessWidget {
   }
 }
 
-/// What the person has actually done — the one number worth carrying on every
-/// screen. Before the baseline exists it counts the three-day journey; after
-/// it, today's activities.
-class _StatusPill extends StatelessWidget {
-  const _StatusPill();
-
-  @override
-  Widget build(BuildContext context) {
-    final AppState state = AppScope.of(context);
-    final AppLocalizations l = AppLocalizations.of(context);
-
-    final bool building = !state.baselineReady;
-    final int day = state.baselineDayIndex;
-    final String label = building
-        ? l.statusPillDay(
-            day >= AppState.baselinePlan.length ? AppState.baselinePlan.length : day + 1,
-            AppState.baselinePlan.length,
-          )
-        : l.statusPillCountToday(state.completedToday.length);
-    final IconData icon = building ? Icons.flag_rounded : Icons.check_circle_rounded;
-    final Color color = building ? AppColors.accent : AppColors.primary;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: Corners.r(Corners.pill),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: color.withValues(alpha: 0.30),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 15, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: AppText.caption.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 /// Three enormous mood buttons — the only "form control" a patient ever meets.
 class MoodPicker extends StatelessWidget {
@@ -176,6 +129,7 @@ class MoodPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     const List<(MoodLevel, Color)> moods = <(MoodLevel, Color)>[
       (MoodLevel.good, AppColors.success),
       (MoodLevel.okay, AppColors.accent),
@@ -207,7 +161,11 @@ class MoodPicker extends StatelessWidget {
                       Text(m.emoji, style: const TextStyle(fontSize: 34)),
                       const SizedBox(height: 6),
                       Text(
-                        m.label,
+                        switch (m) {
+                          MoodLevel.good => l.moodGood,
+                          MoodLevel.okay => l.moodOkay,
+                          MoodLevel.low => l.moodLow,
+                        },
                         textAlign: TextAlign.center,
                         style: AppText.body.wght(selected == m ? 800 : 600),
                       ),
@@ -404,6 +362,7 @@ class ReminderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context)!;
     final Color color = switch (reminder.kind) {
       ReminderKind.medicine => AppColors.terracotta,
       ReminderKind.hydration => AppColors.secondary,
@@ -415,13 +374,17 @@ class ReminderRow extends StatelessWidget {
 
     return AnimatedContainer(
       duration: Motion.normal,
-      padding: EdgeInsets.all(large ? 16 : 13),
+      padding: EdgeInsets.all(large ? 16 : 14),
       decoration: BoxDecoration(
-        color: reminder.done ? AppColors.successTint.withValues(alpha: 0.6) : Colors.white,
-        borderRadius: Corners.r(Corners.md),
+        color: reminder.done ? AppColors.primaryTint.withValues(alpha: 0.4) : Colors.white,
+        borderRadius: Corners.r(Corners.lg),
         border: Border.all(
-          color: reminder.done ? AppColors.success.withValues(alpha: 0.35) : AppColors.hairline,
+          color: reminder.done
+              ? AppColors.primary.withValues(alpha: 0.25)
+              : AppColors.hairline.withValues(alpha: 0.8),
+          width: 1.2,
         ),
+        boxShadow: AppColors.softShadow(y: 3, blur: 12, opacity: 0.05),
       ),
       child: Row(
         children: <Widget>[
@@ -429,12 +392,14 @@ class ReminderRow extends StatelessWidget {
             width: large ? 52 : 44,
             height: large ? 52 : 44,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: Corners.r(Corners.sm),
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: Corners.r(Corners.md),
             ),
             child: Center(
-              child: Text(reminder.kind.glyph,
-                  style: TextStyle(fontSize: large ? 24 : 20)),
+              child: Text(
+                reminder.kind.glyph,
+                style: TextStyle(fontSize: large ? 24 : 20),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -442,23 +407,31 @@ class ReminderRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(reminder.time, style: AppText.label.tint(color).wght(800)),
-                const SizedBox(height: 2),
+                Text(
+                  reminder.time,
+                  style: AppText.label.tint(accentColor).wght(800).sized(12),
+                ),
+                const SizedBox(height: 3),
                 Text(
                   reminder.title,
-                  style: (large ? AppText.bodyLarge : AppText.body).wght(700).copyWith(
+                  style: (large ? AppText.bodyLarge : AppText.body).wght(700).tint(
+                        reminder.done ? AppColors.inkSoft : AppColors.ink,
+                      ).copyWith(
                         decoration: reminder.done ? TextDecoration.lineThrough : null,
                         decorationColor: AppColors.inkMuted,
                       ),
                 ),
                 if (reminder.detail.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
-                  Text(reminder.detail, style: AppText.bodySmall),
+                  Text(
+                    reminder.detail,
+                    style: AppText.bodySmall.tint(AppColors.inkSoft),
+                  ),
                 ],
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Pressable(
             onTap: onToggle,
             child: AnimatedContainer(
@@ -467,11 +440,14 @@ class ReminderRow extends StatelessWidget {
               height: large ? 46 : 38,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: reminder.done ? AppColors.success : Colors.white,
+                color: reminder.done ? AppColors.primary : Colors.white,
                 border: Border.all(
-                  color: reminder.done ? AppColors.success : AppColors.hairline,
+                  color: reminder.done ? AppColors.primary : AppColors.hairline,
                   width: 2,
                 ),
+                boxShadow: reminder.done
+                    ? AppColors.softShadow(y: 2, blur: 6, opacity: 0.18)
+                    : null,
               ),
               child: Icon(
                 Icons.check_rounded,

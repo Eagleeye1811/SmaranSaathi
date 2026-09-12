@@ -5,9 +5,11 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/services/app_state.dart';
-import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
+import '../alerts/doctor_alerts_screen.dart';
+import '../profile/doctor_profile_screen.dart';
 
 /// Clinician typography — the warm palette's ink swapped for the cooler
 /// clinical one, so the two experiences never look like the same product.
@@ -83,39 +85,60 @@ class ClinicCard extends StatelessWidget {
   }
 }
 
-/// Header for clinician screens.
+/// Header for clinician screens, styled cleanly with circular Bell and Profile action buttons.
 class ClinicTopBar extends StatelessWidget {
-  const ClinicTopBar({super.key, required this.title, this.subtitle, this.trailing});
+  const ClinicTopBar({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.showBack = false,
+    this.showAlerts = true,
+    this.showProfile = true,
+    this.trailing,
+    this.onAlerts,
+    this.onProfile,
+  });
 
   final String title;
   final String? subtitle;
+  final bool showBack;
+  final bool showAlerts;
+  final bool showProfile;
   final Widget? trailing;
+  final VoidCallback? onAlerts;
+  final VoidCallback? onProfile;
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
+
+    final bool hasAlerts = state.alerts.any((DoctorAlert a) => a.severity == AlertSeverity.urgent) ||
+        state.connectionRequests.isNotEmpty;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Insets.gutter, 10, Insets.gutter, 14),
+      padding: const EdgeInsets.fromLTRB(Insets.gutter, 12, Insets.gutter, 10),
       child: Row(
         children: <Widget>[
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.clinicAccent.withValues(alpha: 0.12),
-              borderRadius: Corners.r(10),
+          if (showBack) ...<Widget>[
+            _CircularBarButton(
+              icon: Icons.arrow_back_rounded,
+              tooltip: 'Back',
+              onPressed: () => Navigator.of(context).maybePop(),
             ),
-            child: const Icon(Icons.monitor_heart_rounded,
-                size: 21, color: AppColors.clinicAccent),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(title,
-                    style: CT.h3.wght(800), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  title,
+                  style: CT.h1.sized(26).wght(800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 if (subtitle != null) ...<Widget>[
                   const SizedBox(height: 1),
                   Text(subtitle!, style: CT.caption),
@@ -123,26 +146,100 @@ class ClinicTopBar extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 8)],
-          ConnectivityChip(
-            offline: state.offline,
-            pending: state.pendingSync,
-            syncing: state.syncing,
-            onTap: () {
-              final bool goingOnline = state.offline;
-              state.setOffline(!state.offline);
-              if (goingOnline) state.syncNow();
-            },
-          ),
-          const SizedBox(width: 8),
-          RoundIconButton(
-            icon: Icons.logout_rounded,
-            size: 36,
-            color: AppColors.clinicInkSoft,
-            tooltip: l.actionSwitchRole,
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
+          if (trailing != null) ...<Widget>[
+            trailing!,
+            const SizedBox(width: 10),
+          ],
+          if (showAlerts) ...<Widget>[
+            _CircularBarButton(
+              icon: Icons.notifications_none_rounded,
+              tooltip: l.doctorTabAlerts,
+              hasBadge: hasAlerts,
+              onPressed: onAlerts ??
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DoctorAlertsScreen(),
+                      ),
+                    );
+                  },
+            ),
+          ],
+          if (showProfile) ...<Widget>[
+            const SizedBox(width: 10),
+            _CircularBarButton(
+              icon: Icons.person_outline_rounded,
+              tooltip: l.doctorTabProfile,
+              onPressed: onProfile ??
+                  () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const DoctorProfileScreen(),
+                      ),
+                    );
+                  },
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _CircularBarButton extends StatelessWidget {
+  const _CircularBarButton({
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+    this.hasBadge = false,
+  });
+
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? tooltip;
+  final bool hasBadge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onPressed,
+      child: Tooltip(
+        message: tooltip ?? '',
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.clinicSurface,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.clinicHairline),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Icon(icon, size: 22, color: AppColors.clinicInk),
+              if (hasBadge)
+                Positioned(
+                  top: 9,
+                  right: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE55D3E),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -213,6 +310,12 @@ Color severityColor(AlertSeverity s) => switch (s) {
       AlertSeverity.urgent => AppColors.danger,
     };
 
+IconData severityIcon(AlertSeverity s) => switch (s) {
+      AlertSeverity.info => Icons.info_outline_rounded,
+      AlertSeverity.watch => Icons.visibility_rounded,
+      AlertSeverity.urgent => Icons.priority_high_rounded,
+    };
+
 /// Status chip that always pairs colour with an icon and a word, never colour
 /// alone.
 class StatusChip extends StatelessWidget {
@@ -221,6 +324,7 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color c = statusColor(status);
     final IconData icon = switch (status) {
       ClinicalStatus.stable => Icons.check_circle_rounded,
@@ -239,7 +343,7 @@ class StatusChip extends StatelessWidget {
         children: <Widget>[
           Icon(icon, size: 13, color: c),
           const SizedBox(width: 5),
-          Text(status.label, style: CT.caption.sized(11.5).wght(700).tint(c)),
+          Text(status.localizedLabel(l), style: CT.caption.sized(11.5).wght(700).tint(c)),
         ],
       ),
     );

@@ -10,6 +10,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/safe_zone_monitor.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// What the patient sees when they have wandered out of their safe zone.
 ///
@@ -174,7 +175,7 @@ class _LetsHeadBack extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Shall we head back?', style: AppText.h3),
+                    Text(AppLocalizations.of(context)!.shallWeHeadBack, style: AppText.h3),
                     const SizedBox(height: 2),
                     Text(
                       'You are a little way from $zoneLabel — about '

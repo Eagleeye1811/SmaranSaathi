@@ -117,6 +117,7 @@ class AppTheme {
       scaffoldBackgroundColor: bg,
       canvasColor: bg,
       fontFamily: AppText.family,
+      fontFamilyFallback: AppText.familyFallback,
       textTheme: text,
       splashFactory: InkSparkle.splashFactory,
       visualDensity: VisualDensity.standard,

@@ -13,6 +13,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../widgets/patient_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
+import '../../../l10n/mock_translator.dart';
 
 /// "My Memories" — the memory wallet.
 ///
@@ -68,7 +69,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text('My Memories', style: AppText.patientTitle.sized(28)),
+                            Text(l.myMemories, style: AppText.patientTitle.sized(28)),
                             const SizedBox(height: 6),
                             Text(
                               'The people, places and things that are yours.',
@@ -137,8 +138,8 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
   }
 
   Widget _family(Patient p) {
+    final AppLocalizations l = AppLocalizations.of(context);
     if (p.family.isEmpty) {
-      final AppLocalizations l = AppLocalizations.of(context);
       return EmptyState(
         title: l.walletNoFamilyTitle,
         message: l.walletNoFamilyMessage,
@@ -177,13 +178,13 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                           Text(p.family[i].name, style: AppText.h2.sized(23)),
                           const SizedBox(height: 3),
                           PillTag(
-                            label: p.family[i].relation,
+                            label: MockTranslator.translateRelation(p.family[i].relation, l),
                             color: AppColors.terracotta,
                             dense: true,
                           ),
                           if (p.family[i].note.isNotEmpty) ...<Widget>[
                             const SizedBox(height: 8),
-                            Text(p.family[i].note, style: AppText.bodySmall),
+                            Text(MockTranslator.translateFamilyNote(p.family[i].note, l), style: AppText.bodySmall),
                           ],
                         ],
                       ),
@@ -246,7 +247,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                       spacing: 8,
                       runSpacing: 4,
                       children: <Widget>[
-                        Text(l.memoryHomeSharedOn(_shortDate(f.createdAt, l)),
+                        Text(l.memoryHomeSharedOn(shortDayMonth(l, f.createdAt)),
                             style: AppText.caption),
                         if (f.mentionedName != null)
                           Text('· ${f.mentionedName}', style: AppText.caption),
@@ -277,7 +278,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                           size: 38,
                         ),
                         const SizedBox(width: 12),
-                        Text(m.category, style: AppText.h3),
+                        Text(localizedLifeMemoryCategory(l, m.category), style: AppText.h3),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -293,14 +294,6 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
     );
   }
 
-  static String _shortDate(DateTime d, AppLocalizations l) {
-    final List<String> months = <String>[
-      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
-      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
-      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
-    ];
-    return '${d.day} ${months[d.month - 1]}';
-  }
 
   IconData _storyIcon(String category) => switch (category.toLowerCase()) {
         'work' => Icons.handyman_rounded,

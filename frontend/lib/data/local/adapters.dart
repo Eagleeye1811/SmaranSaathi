@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:hive_ce/hive.dart';
 
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import 'sync_operation.dart';
 
@@ -29,6 +32,8 @@ class HiveTypeIds {
   static const int reminder = 9;
   static const int cognitiveProfile = 10;
   static const int pendingOperation = 11;
+  static const int moodDrawing = 12;
+  static const int moodCheckInTurn = 13;
 
   static const int memoryAssetKind = 20;
   static const int routineKind = 21;
@@ -91,13 +96,14 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       sceneId: f[3] as String,
       note: f[4] as String? ?? '',
       livesWithPatient: f[5] as bool? ?? false,
+      photoPath: f[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FamilyMember obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -109,7 +115,9 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       ..writeByte(4)
       ..write(obj.note)
       ..writeByte(5)
-      ..write(obj.livesWithPatient);
+      ..write(obj.livesWithPatient)
+      ..writeByte(6)
+      ..write(obj.photoPath);
   }
 }
 
@@ -127,13 +135,14 @@ class MemoryAssetAdapter extends TypeAdapter<MemoryAsset> {
       kind: f[3] as MemoryAssetKind? ?? MemoryAssetKind.object,
       caption: f[4] as String? ?? '',
       year: f[5] as String?,
+      photoPath: f[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, MemoryAsset obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -145,7 +154,9 @@ class MemoryAssetAdapter extends TypeAdapter<MemoryAsset> {
       ..writeByte(4)
       ..write(obj.caption)
       ..writeByte(5)
-      ..write(obj.year);
+      ..write(obj.year)
+      ..writeByte(6)
+      ..write(obj.photoPath);
   }
 }
 
@@ -235,13 +246,16 @@ class PatientAdapter extends TypeAdapter<Patient> {
       stageNote: f[15] as String? ?? 'Early-stage memory changes',
       joinedOn: f[16] as String? ?? 'Profile created today',
       phoneNumber: f[17] as String? ?? '',
+      // Added after the first release: an older record has no field 18, and
+      // reads back as an empty preference rather than failing to load.
+      favouriteMusic: f[18] as String? ?? '',
     );
   }
 
   @override
   void write(BinaryWriter writer, Patient obj) {
     writer
-      ..writeByte(18)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -277,7 +291,9 @@ class PatientAdapter extends TypeAdapter<Patient> {
       ..writeByte(16)
       ..write(obj.joinedOn)
       ..writeByte(17)
-      ..write(obj.phoneNumber);
+      ..write(obj.phoneNumber)
+      ..writeByte(18)
+      ..write(obj.favouriteMusic);
   }
 }
 
@@ -482,6 +498,82 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..write(obj.done)
       ..writeByte(7)
       ..write(obj.smsEnabled);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Mood Check-In
+// ─────────────────────────────────────────────────────────────────────────
+
+class MoodCheckInTurnAdapter extends TypeAdapter<MoodCheckInTurn> {
+  @override
+  final int typeId = HiveTypeIds.moodCheckInTurn;
+
+  @override
+  MoodCheckInTurn read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return MoodCheckInTurn(
+      question: f[0] as String? ?? '',
+      answer: f[1] as String? ?? '',
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MoodCheckInTurn obj) {
+    writer
+      ..writeByte(2)
+      ..writeByte(0)
+      ..write(obj.question)
+      ..writeByte(1)
+      ..write(obj.answer);
+  }
+}
+
+class MoodDrawingAdapter extends TypeAdapter<MoodDrawing> {
+  @override
+  final int typeId = HiveTypeIds.moodDrawing;
+
+  @override
+  MoodDrawing read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return MoodDrawing(
+      id: f[0] as String,
+      dayOffset: f[1] as int? ?? 0,
+      timeLabel: f[2] as String? ?? '',
+      pngBytes: f[3] as Uint8List,
+      doctorNote: f[4] as String?,
+      notedAtIso: f[5] as String?,
+      notedBy: f[6] as String?,
+      // Added after the first release: a box written by an older build has
+      // no fields 7-8, which read back as null/empty rather than crashing.
+      transcript:
+          (f[7] as List<dynamic>?)?.cast<MoodCheckInTurn>() ?? const <MoodCheckInTurn>[],
+      moodLevel: f[8] as MoodLevel?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MoodDrawing obj) {
+    writer
+      ..writeByte(9)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.dayOffset)
+      ..writeByte(2)
+      ..write(obj.timeLabel)
+      ..writeByte(3)
+      ..write(obj.pngBytes)
+      ..writeByte(4)
+      ..write(obj.doctorNote)
+      ..writeByte(5)
+      ..write(obj.notedAtIso)
+      ..writeByte(6)
+      ..write(obj.notedBy)
+      ..writeByte(7)
+      ..write(obj.transcript)
+      ..writeByte(8)
+      ..write(obj.moodLevel);
   }
 }
 

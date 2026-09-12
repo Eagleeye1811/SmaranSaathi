@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -98,7 +99,23 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
   Future<List<String>> supportedLocales() async {
     if (!await initialize()) return const <String>[];
     final List<stt.LocaleName> locales = await _engine.locales();
-    return locales.map((stt.LocaleName l) => l.localeId).toList(growable: false);
+    final List<String> list =
+        locales.map((stt.LocaleName l) => l.localeId).toList(growable: true);
+    // On Web (and platforms where speech_to_text only returns the default locale):
+    // Web Speech API in Chromium connects to Google Cloud Speech which natively supports
+    // Hindi, Assamese, and English recognition regardless of whether locales() enumerated them.
+    if (kIsWeb || list.isEmpty || (list.length == 1 && list.first.toLowerCase().startsWith('en'))) {
+      if (!list.any((String s) => s.toLowerCase().startsWith('hi'))) {
+        list.add('hi_IN');
+      }
+      if (!list.any((String s) => s.toLowerCase().startsWith('as'))) {
+        list.add('as_IN');
+      }
+      if (!list.any((String s) => s.toLowerCase().startsWith('en'))) {
+        list.add('en_IN');
+      }
+    }
+    return list;
   }
 
   @override

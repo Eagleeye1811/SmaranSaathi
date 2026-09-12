@@ -15,6 +15,8 @@ enum SyncOperationKind {
   assessmentUpdate,
   baselineCaptured,
   reminderCreate,
+  moodDrawingSaved,
+  doctorNoteAdded,
   unknown,
 }
 
@@ -29,6 +31,8 @@ extension SyncOperationKindX on SyncOperationKind {
         SyncOperationKind.assessmentUpdate => 'Assessment answers',
         SyncOperationKind.baselineCaptured => 'Cognitive baseline',
         SyncOperationKind.reminderCreate => 'Reminder created',
+        SyncOperationKind.moodDrawingSaved => 'Mood drawing saved',
+        SyncOperationKind.doctorNoteAdded => 'Doctor note added',
         SyncOperationKind.unknown => 'Pending change',
       };
 }

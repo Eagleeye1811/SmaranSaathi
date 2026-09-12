@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -35,19 +35,42 @@ Future<void> main() async {
   final AppState state = await bootstrapAppState();
   // Real sign-in when Firebase is actually configured for this platform and
   // build (Android today — see firebase_options.dart); `null` otherwise, in
-  // which case MemoryMitraApp opens straight to role selection exactly as
+  // which case SmaranSaathiApp opens straight to role selection exactly as
   // it always has.
   final AuthService? auth = await bootstrapAuth();
 
-  // Firebase restores the previous session itself, so `currentUser` is already
-  // populated here for anyone who signed in before and never signed out.
-  // Binding it now — before the first frame — is what lets the app open
-  // straight onto that person's own dashboard instead of asking them to sign
-  // in and answer the questionnaire all over again.
-  final AuthUser? restored = auth?.currentUser;
+  // Firebase restores the previous session itself, but it does so
+  // *asynchronously*: `currentUser` is often still null in the first moments
+  // after `initializeApp`, which is what used to send a signed-in person back
+  // to the welcome screen. So wait for the auth stream's first event — with a
+  // short timeout, because an offline launch must still open the app, using
+  // the session already on disk.
+  final AuthUser? restored = await _restoreSession(auth);
   if (restored != null) {
-    await state.signInAccount(restored.uid);
+    // Binding the account before the first frame is what lets the app open
+    // straight onto that person's own dashboard instead of asking them to
+    // sign in and answer the questionnaire all over again. The role claim
+    // comes along so an account set up on another device still lands in the
+    // right app rather than back on the role picker.
+    await state.signInAccount(restored.uid, roleHint: restored.role);
   }
 
-  runApp(MemoryMitraApp(state: state, authService: auth));
+  runApp(SmaranSaathiApp(state: state, authService: auth));
+}
+
+/// The account Firebase has restored for this launch, or null if there is
+/// none — and also null if it takes too long to say, which on a cold start
+/// with no network it can. Never throws: a launch must not depend on a
+/// sign-in service answering.
+Future<AuthUser?> _restoreSession(AuthService? auth) async {
+  if (auth == null) return null;
+  final AuthUser? immediate = auth.currentUser;
+  if (immediate != null) return immediate;
+  try {
+    return await auth.authStateChanges.first
+        .timeout(const Duration(seconds: 3), onTimeout: () => auth.currentUser);
+  } catch (error) {
+    debugPrint('main: could not restore the previous session ($error)');
+    return auth.currentUser;
+  }
 }

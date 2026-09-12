@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../../core/models/assessment.dart';
+import '../../core/models/onboarding.dart';
 import '../../core/models/game.dart';
 import '../../core/models/monitoring.dart';
 
@@ -57,7 +58,10 @@ class DemoJourney {
     for (int week = weeks - 1; week >= 0; week--) {
       final int dayOffset = week * 7 + (week.isEven ? 1 : 0);
       for (final GameId id in GameId.values) {
-        final CognitiveDomain domain = GameDomains.of(id);
+        // Mood Canvas has no domain and no score to fabricate — it never
+        // gets a GameSession, synthetic history included.
+        final CognitiveDomain? domain = GameDomains.of(id);
+        if (domain == null) continue;
         final double start = _startingScore[domain] ?? 80;
         final double drift = (_weeklyDrift[domain] ?? 0) * (weeks - 1 - week);
         // Session-to-session noise: real performance is never a clean line.
@@ -99,92 +103,113 @@ class DemoJourney {
     return out;
   }
 
-  /// The intake that goes with the history: memory concerns noticed six to
-  /// twelve months ago, gradual course, early instrumental difficulty,
-  /// vascular risk present, corroborated by a daughter.
+  /// The onboarding that goes with the history: memory concerns noticed six
+  /// to twelve months ago, a gradual course, early instrumental difficulty,
+  /// vascular risk present, answered by a daughter.
+  ///
+  /// Seeded as an [OnboardingRecord] and passed through
+  /// [IntakeRecord.withOnboarding] rather than as hand-written symptom and
+  /// function maps: the demo then shows exactly what a real answer set
+  /// projects into, so a projection that drifted would be visible in the demo
+  /// rather than only in a report nobody looks at.
+  static OnboardingRecord onboarding() {
+    return const OnboardingRecord(
+      helper: HelperRole.child,
+      education: EducationLevel.secondary,
+      // No diagnosis yet — the daughter is monitoring, which is the situation
+      // most of these users are actually in.
+      diagnosisStatus: DiagnosisStatus.notSure,
+      professionals: <CareProfessional>{
+        CareProfessional.physician,
+        CareProfessional.familyCaregiver,
+      },
+      treatmentStatus: TreatmentStatus.yes,
+      medicines: <String>['Amlodipine 5 mg', 'Metformin 500 mg'],
+      sedatingMedicines: <SedatingMedicineClass>{SedatingMedicineClass.noneOfThese},
+      healthConditions: <MedicalCondition>{
+        MedicalCondition.hypertension,
+        MedicalCondition.diabetes,
+      },
+      difficulties: <DailyDifficulty>{
+        DailyDifficulty.recentConversations,
+        DailyDifficulty.repeatingQuestions,
+        DailyDifficulty.appointments,
+        DailyDifficulty.misplacingThings,
+        DailyDifficulty.managingMoney,
+        DailyDifficulty.managingMedicines,
+        DailyDifficulty.lostInterest,
+      },
+      topDifficulties: <DailyDifficulty>[
+        DailyDifficulty.recentConversations,
+        DailyDifficulty.appointments,
+        DailyDifficulty.managingMoney,
+      ],
+      onset: OnsetWindow.sixToTwelveMonths,
+      course: ProgressionPattern.graduallyWorse,
+      recentExample:
+          'Last Thursday she asked me three times whether the electricity bill '
+          'had been paid, within about an hour. She had paid it herself that '
+          'morning and had the receipt in her bag.',
+      probeAnswers: <String, Set<String>>{
+        'probe_memory_span': <String>{'laterSameDay'},
+        'probe_memory_awareness': <String>{'partlyAware'},
+      },
+      support: <DailyActivity, SupportLevel>{
+        DailyActivity.eating: SupportLevel.independent,
+        DailyActivity.dressing: SupportLevel.independent,
+        DailyActivity.bathing: SupportLevel.independent,
+        DailyActivity.toilet: SupportLevel.independent,
+        DailyActivity.medicines: SupportLevel.needsReminders,
+        DailyActivity.household: SupportLevel.independent,
+        DailyActivity.money: SupportLevel.needsSomeHelp,
+        DailyActivity.goingOut: SupportLevel.independent,
+      },
+      behaviourChanges: <BehaviourChange>{BehaviourChange.lessInterested},
+      safetyConcerns: <SafetyConcern>{
+        SafetyConcern.forgettingMedicines,
+        SafetyConcern.handlingMoney,
+      },
+      enjoys: <EnjoyedActivity>{
+        EnjoyedActivity.music,
+        EnjoyedActivity.talkingWithFamily,
+        EnjoyedActivity.gardening,
+        EnjoyedActivity.religious,
+      },
+      stillDoesWell:
+          'She still makes the morning tea, waters the tulsi and talks to her '
+          'grandchildren every evening.',
+      goals: <SupportGoal>[
+        SupportGoal.rememberingThings,
+        SupportGoal.dailyRoutines,
+        SupportGoal.sharingWithDoctor,
+      ],
+    );
+  }
+
   static IntakeRecord intake({required DateTime now}) {
     final DateTime start = now.subtract(const Duration(days: weeks * 7));
-    return IntakeRecord(
+    final IntakeRecord seeded = IntakeRecord(
       consent: ConsentRecord(understood: true, atIso: start.toIso8601String()),
-      completedBy: CompletedBy.caregiver,
-      reason: const ReasonForVisit(
-        concerns: <PresentingConcern>{
-          PresentingConcern.memoryProblems,
-          PresentingConcern.appointments,
-          PresentingConcern.familyNoticed,
-        },
-        onset: OnsetWindow.sixToTwelveMonths,
-        progression: ProgressionPattern.graduallyWorse,
-      ),
-      safety: const SafetyCheck(
-        suddenOnset: false,
-        fluctuatingAlertness: false,
-        neurologicalRedFlag: false,
-      ),
-      symptoms: const SymptomAssessment(responses: <String, SymptomFrequency>{
-        'mem_repeat': SymptomFrequency.often,
-        'mem_conv': SymptomFrequency.often,
-        'mem_appt': SymptomFrequency.often,
-        'mem_misplace': SymptomFrequency.sometimes,
-        'mem_new': SymptomFrequency.often,
-        'att_concentrate': SymptomFrequency.sometimes,
-        'att_follow': SymptomFrequency.sometimes,
-        'att_plan': SymptomFrequency.often,
-        'att_money': SymptomFrequency.often,
-        'att_solve': SymptomFrequency.sometimes,
-        'lang_words': SymptomFrequency.sometimes,
-        'lang_naming': SymptomFrequency.never,
-        'lang_understand': SymptomFrequency.never,
-        'beh_interest': SymptomFrequency.sometimes,
-        'beh_impulsive': SymptomFrequency.never,
-        'beh_social': SymptomFrequency.never,
-        'beh_eating': SymptomFrequency.never,
-        'mov_tremor': SymptomFrequency.never,
-        'mov_stiff': SymptomFrequency.never,
-        'mov_balance': SymptomFrequency.sometimes,
-        'mov_halluc': SymptomFrequency.never,
-        'mov_alert': SymptomFrequency.never,
-        'mov_dreams': SymptomFrequency.never,
-      }),
-      function: const FunctionalAssessment(levels: <String, FunctionLevel>{
-        'fn_money': FunctionLevel.needsHelp,
-        'fn_meds': FunctionLevel.needsHelp,
-        'fn_cooking': FunctionLevel.independent,
-        'fn_shopping': FunctionLevel.independent,
-        'fn_phone': FunctionLevel.independent,
-        'fn_transport': FunctionLevel.independent,
-        'fn_appointments': FunctionLevel.needsHelp,
-        'fn_bathing': FunctionLevel.independent,
-      }),
-      medical: const MedicalHistory(
-        conditions: <MedicalCondition>{
-          MedicalCondition.hypertension,
-          MedicalCondition.diabetes,
-        },
-        sleepHours: 6.5,
-        sleepQuality: SleepQuality.fair,
-        lowMood: MoodFrequency.sometimes,
-        medications: <String>['Amlodipine 5 mg', 'Metformin 500 mg'],
-      ),
-      caregiver: CaregiverObservation(
-        caregiverName: 'Priya',
-        relation: 'Daughter',
-        observations: const <String, bool>{
-          'cg_repeat': true,
-          'cg_appointments': true,
-          'cg_bills': true,
-          'cg_words': false,
-          'cg_lost': false,
-          'cg_personality': false,
-          'cg_halluc': false,
-          'cg_withdrawn': true,
-        },
-        note: 'Manages at home, but I now check the bills and the tablets each week.',
-        receivedAtIso: now.subtract(const Duration(days: 3)).toIso8601String(),
-      ),
       baselineActivities: <String>{for (final GameId g in GameId.values) g.name},
       startedAtIso: start.toIso8601String(),
       completedAtIso: start.add(const Duration(minutes: 22)).toIso8601String(),
+    ).withOnboarding(onboarding(), caregiverName: 'Priya');
+
+    return seeded.copyWith(
+      // Sleep duration is not one of the fifteen questions, so the projection
+      // leaves it at the model default. The demo sets it by hand because the
+      // report's "factors that can affect performance" line is one of the
+      // things the demo exists to show.
+      medical: seeded.medical.copyWith(sleepHours: 6.5),
+      caregiver: seeded.caregiver == null
+          ? null
+          : CaregiverObservation(
+              caregiverName: seeded.caregiver!.caregiverName,
+              relation: 'Daughter',
+              observations: seeded.caregiver!.observations,
+              note: seeded.caregiver!.note,
+              receivedAtIso: now.subtract(const Duration(days: 3)).toIso8601String(),
+            ),
     );
   }
 }

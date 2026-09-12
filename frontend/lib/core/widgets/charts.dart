@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'dart:ui' show PathMetric, PathMetrics, Tangent;
 
 import 'package:flutter/material.dart';
@@ -8,7 +8,7 @@ import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
 import '../models/clinical.dart';
 
-/// Charts for MemoryMitra.
+/// Charts for SmaranSaathi.
 ///
 /// House rules, applied consistently: one value axis only, recessive grid and
 /// axis ink, thin marks, direct labels instead of a number on every point, and
