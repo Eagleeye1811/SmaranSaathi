@@ -8,6 +8,7 @@ import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
 
 import '../features/patient/patient_shell.dart';
+import '../features/auth/auth_role_screen.dart';
 import '../features/auth/splash_screen.dart';
 
 import '../features/caregiver/caregiver_entry.dart';
@@ -91,16 +92,23 @@ class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
 
   /// Where a launch lands once the splash is done.
   ///
-  /// A signed-in person with a role already chosen goes straight to their own
-  /// app: `main` has bound their account and loaded their record before the
-  /// first frame, and `CaregiverEntry` then decides between the onboarding and
-  /// the dashboard from what they have actually answered. Everyone else gets
-  /// the greeting, which explains the product before asking who they are.
-  Widget get _afterSplash => _state.accountId == null
-      ? const WelcomeScreen()
-      // Signed in but never picked a role lands on the authentication screen —
-      // one question, not the whole journey again.
-      : WelcomeScreen.sessionHome(_state);
+  /// A person with a role already chosen goes straight to their own app:
+  /// `main` has bound their account and loaded their record before the first
+  /// frame, and `CaregiverEntry` then decides between the onboarding and the
+  /// dashboard from what they have actually answered.
+  ///
+  /// The test is the *role*, not the account. Gating this on `accountId`
+  /// meant anyone whose session could not be re-bound at launch — no network,
+  /// a build with no Firebase, or someone who chose "continue without an
+  /// account" — was sent back through the greeting and the role picker on
+  /// every single launch, even though the app knew perfectly well who they
+  /// were. A signed-in account with no role yet still gets asked the one
+  /// question it cannot answer for them; only a genuinely fresh device sees
+  /// the greeting.
+  Widget get _afterSplash {
+    if (_state.canResumeSession) return WelcomeScreen.sessionHome(_state);
+    return _state.accountId == null ? const WelcomeScreen() : const AuthRoleScreen();
+  }
 
   @override
   void dispose() {

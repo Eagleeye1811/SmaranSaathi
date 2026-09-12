@@ -1009,6 +1009,104 @@ void accountTests() {
       await store.close();
     });
 
+    test('a restart keeps the role, an explicit log out gives it up', () async {
+      var (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      state.setRole(AppRole.caregiver);
+      await state.flush();
+
+      state.dispose();
+      await store.close();
+
+      // A restart is not a sign-out: nobody should answer the same question
+      // twice a day.
+      (store, state) = await launch();
+      expect(state.role, AppRole.caregiver);
+      expect(state.canResumeSession, isTrue);
+
+      // Logging out is different — it is the moment to ask who is holding the
+      // phone, so the remembered flag goes with the account.
+      await state.signOutAccount();
+      expect(state.role, AppRole.none);
+      expect(state.roleForAccount('uid-anita'), AppRole.none,
+          reason: 'the flag is forgotten, not kept for next time');
+
+      await state.signInAccount('uid-anita');
+      expect(state.role, AppRole.none,
+          reason: 'signing in after a log out goes through the role picker');
+      expect(state.canResumeSession, isFalse);
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('a shared phone never hands the second person the first role',
+        () async {
+      var (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      state.setRole(AppRole.caregiver);
+      await state.signOutAccount();
+      await state.signInAccount('uid-rahul');
+      state.setRole(AppRole.doctor);
+      await state.flush();
+
+      state.dispose();
+      await store.close();
+
+      // A relaunch restores whoever was last signed in, with their own role —
+      // not whichever role the device happened to be used as last.
+      (store, state) = await launch();
+      expect(state.accountId, 'uid-rahul');
+      expect(state.role, AppRole.doctor);
+
+      // And the person who logged out earlier is asked again rather than
+      // being dropped into the app the previous holder was using.
+      await state.signOutAccount();
+      await state.signInAccount('uid-anita');
+      expect(state.role, AppRole.none);
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('an account set up on another device follows its role claim here',
+        () async {
+      final (HiveStore store, AppState state) = await launch();
+
+      // Nothing stored locally for this uid: the role claim on the ID token
+      // is the only thing that knows who they are, and it is enough.
+      await state.signInAccount('uid-elsewhere', roleHint: 'doctor');
+      expect(state.role, AppRole.doctor);
+      expect(state.canResumeSession, isTrue);
+
+      // After a log out this device knows nothing, so the claim is all there
+      // is to go on and it is honoured again.
+      await state.signOutAccount();
+      await state.signInAccount('uid-elsewhere', roleHint: 'patient');
+      expect(state.role, AppRole.patient);
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('a role claim that arrives after the account is already bound '
+        'still fills in a blank role', () async {
+      final (HiveStore store, AppState state) = await launch();
+
+      // `main` binds the persisted account first; Firebase reports the claim
+      // a moment later, against the uid that is already current.
+      await state.signInAccount('uid-late-claim');
+      expect(state.role, AppRole.none);
+
+      await state.signInAccount('uid-late-claim', roleHint: 'caregiver');
+      expect(state.role, AppRole.caregiver);
+
+      state.dispose();
+      await store.close();
+    });
+
     test('activities are filed under the account that played them', () async {
       final (HiveStore store, AppState state) = await launch();
 

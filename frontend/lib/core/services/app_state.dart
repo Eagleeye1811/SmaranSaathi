@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -230,9 +231,29 @@ class AppState extends ChangeNotifier {
 
   void setRole(AppRole r) {
     _role = r;
+    // The role belongs to the person, so remember it against their account
+    // and not just against the phone. This is the flag that lets a returning
+    // sign-in go straight into the right app instead of asking again.
+    final String? uid = _accountId;
+    if (uid != null) {
+      if (r == AppRole.none) {
+        _accountRoles.remove(uid);
+      } else {
+        _accountRoles[uid] = r.name;
+      }
+    }
     _persistSettings();
     notifyListeners();
   }
+
+  /// The role [uid] chose the last time it was used on this device, or
+  /// [AppRole.none] if that account has never picked one here.
+  AppRole roleForAccount(String uid) => _roleFromName(_accountRoles[uid]);
+
+  /// True when a launch can go straight into the app: somebody is signed in
+  /// (or was, on a device that works offline) and their role is already
+  /// known, so there is nothing left to ask.
+  bool get canResumeSession => _role != AppRole.none;
 
   void updateDraft(Patient p) {
     _draft = p;
@@ -287,12 +308,25 @@ class AppState extends ChangeNotifier {
     _connectivity.forcedOffline = settings.offlineOverride;
     _safeZone = SafeZone.decode(settings.safeZoneJson);
 
-    // The role the device was last used as. Persisted but never restored
-    // until now, so every returning user was sent back to the role picker.
-    _role = _roleFromName(settings.lastRole);
+    _accountRoles
+      ..clear()
+      ..addAll(_decodeAccountRoles(settings.accountRolesJson));
 
     // The account first: everything below is scoped to it.
     _accountId = settings.lastAccountId;
+
+    // The role to come back as. The account's own remembered role wins over
+    // the device-wide `lastRole`, so a shared phone never hands the second
+    // person the first person's app; `lastRole` still covers a session that
+    // was never signed in at all.
+    final String? uid = _accountId;
+    _role = uid == null ? AppRole.none : roleForAccount(uid);
+    if (_role == AppRole.none) _role = _roleFromName(settings.lastRole);
+    // Backfill the flag for an account that chose its role before this map
+    // existed, so the next launch reads it from the account.
+    if (uid != null && _role != AppRole.none && !_accountRoles.containsKey(uid)) {
+      _accountRoles[uid] = _role.name;
+    }
 
     final Patient? stored = _accountId == null
         ? await _patients.current()
@@ -635,6 +669,25 @@ class AppState extends ChangeNotifier {
   /// device. Everything the person *answers* is filed under it.
   String? _accountId;
   String? get accountId => _accountId;
+
+  /// uid → role name, for every account that has picked a role on this
+  /// device. See [AppSettings.accountRolesJson].
+  final Map<String, String> _accountRoles = <String, String>{};
+
+  static Map<String, String> _decodeAccountRoles(String? encoded) {
+    if (encoded == null || encoded.isEmpty) return <String, String>{};
+    try {
+      final Object? decoded = jsonDecode(encoded);
+      if (decoded is! Map) return <String, String>{};
+      return <String, String>{
+        for (final MapEntry<Object?, Object?> e in decoded.entries)
+          if (e.key is String && e.value is String) e.key! as String: e.value! as String,
+      };
+    } catch (error) {
+      debugPrint('AppState: could not read the saved account roles ($error)');
+      return <String, String>{};
+    }
+  }
 
   /// Where the assessment is stored and re-read from.
   ///
@@ -1237,8 +1290,23 @@ class AppState extends ChangeNotifier {
     return changed;
   }
 
-  Future<void> signInAccount(String uid) async {
-    if (_accountId == uid) return;
+  /// Binds this device's data to [uid].
+  ///
+  /// [roleHint] is the `role` custom claim off the account's ID token, used
+  /// only when this device has no saved role for the account — an account
+  /// that set itself up on another phone still lands in the right app here
+  /// rather than being asked to choose again.
+  Future<void> signInAccount(String uid, {String? roleHint}) async {
+    if (_accountId == uid) {
+      // Already bound. Nothing to migrate, but a role claim that arrives
+      // after the fact (Firebase restores its session asynchronously) still
+      // has to fill in a role we do not have yet.
+      if (_resolveRoleFor(uid, roleHint)) {
+        _persistSettings();
+        notifyListeners();
+      }
+      return;
+    }
     // Only answers given *anonymously* can be adopted. Switching from one
     // account to another must never carry the first person's answers across.
     final bool wasAnonymous = _accountId == null;
@@ -1306,9 +1374,26 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    // Last, so it wins over the blank-slate reset above: whatever role this
+    // account already belongs to is what it comes back as.
+    _resolveRoleFor(uid, roleHint);
+
     _profileReady = true;
     _persistSettings();
     notifyListeners();
+  }
+
+  /// Restores the role [uid] belongs to — this device's saved flag first,
+  /// then the token's claim. Returns true when something changed. Writes no
+  /// settings and notifies nobody; the caller decides when to do both.
+  bool _resolveRoleFor(String uid, String? roleHint) {
+    AppRole resolved = roleForAccount(uid);
+    if (resolved == AppRole.none) resolved = _roleFromName(roleHint);
+    if (resolved == AppRole.none) return false;
+    final bool changed = _role != resolved || _accountRoles[uid] != resolved.name;
+    _role = resolved;
+    _accountRoles[uid] = resolved.name;
+    return changed;
   }
 
   /// Returns the app to its anonymous state.
@@ -1317,13 +1402,20 @@ class AppState extends ChangeNotifier {
   /// disk under its own id and come back at the next sign-in. What this does
   /// is stop showing them, which on a shared phone is the whole point.
   Future<void> signOutAccount() async {
-    if (_accountId == null) return;
+    final String? leaving = _accountId;
+    if (leaving == null) return;
     _accountId = null;
-    // The role goes with the account. `lastRole` exists so a *returning*
-    // person is not re-asked, but an explicit sign-out means the next person
-    // to pick up the phone may be someone else — and keeping the old role
-    // sent them straight back into the patient app with no way to reach the
-    // role picker at all.
+    // The role goes with the account, and an explicit sign-out forgets it
+    // rather than holding it for next time.
+    //
+    // Restoring it on the next sign-in is right for a *restart* — nobody
+    // should answer the same question twice a day — but wrong after someone
+    // deliberately logged out: the next sign-in is the moment to ask who is
+    // holding the phone, and a remembered flag silently skipped both the role
+    // picker and the sign-in screen behind it. Signing in from a launch that
+    // was never signed out still restores, because `lastRole` and the map
+    // both survive a restart.
+    _accountRoles.remove(leaving);
     _role = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;
@@ -1563,6 +1655,7 @@ class AppState extends ChangeNotifier {
       safeZoneJson: _safeZone?.encode(),
       localeCode: _localeCode,
       patientUsername: _patientUsername.isEmpty ? null : _patientUsername,
+      accountRolesJson: _accountRoles.isEmpty ? null : jsonEncode(_accountRoles),
     );
     _write(() => _settingsRepo.save(snapshot));
   }

@@ -11,7 +11,6 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
-import '../widgets/caregiver_top_bar.dart';
 
 /// Reminder management for the caregiver, grouped by category.
 class CaregiverRemindersScreen extends StatelessWidget {
@@ -42,10 +41,6 @@ class CaregiverRemindersScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: l.caregiverRemindersTitle,
-              subtitle: l.caregiverSubtitleToday(state.patient.shortName),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),

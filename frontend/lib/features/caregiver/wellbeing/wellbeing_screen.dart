@@ -10,7 +10,6 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../widgets/caregiver_top_bar.dart';
 
 /// Wellbeing page — 7-day mood timeline, reminder adherence, activity level.
 /// Mood data comes from the patient's explicit check-in, never AI inference.
@@ -77,10 +76,6 @@ class WellbeingScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: 'Mood & Wellbeing',
-              subtitle: '${state.patient.shortName} — daily check-ins',
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(

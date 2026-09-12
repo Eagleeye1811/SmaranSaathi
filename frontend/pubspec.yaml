@@ -1,4 +1,4 @@
-﻿name: smaran_saathi
+name: smaran_saathi
 description: "SmaranSaathi — a gentle companion for every memory. An AI-based cognitive gaming and memory assistance prototype for elderly dementia patients in India's North Eastern Region."
 publish_to: 'none'
 
@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.4
   # Verifies the downloaded model file wasn't corrupted/truncated in transit.
   crypto: ^3.0.5
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:

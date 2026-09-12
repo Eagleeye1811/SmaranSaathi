@@ -96,13 +96,14 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       sceneId: f[3] as String,
       note: f[4] as String? ?? '',
       livesWithPatient: f[5] as bool? ?? false,
+      photoPath: f[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FamilyMember obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -114,7 +115,9 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       ..writeByte(4)
       ..write(obj.note)
       ..writeByte(5)
-      ..write(obj.livesWithPatient);
+      ..write(obj.livesWithPatient)
+      ..writeByte(6)
+      ..write(obj.photoPath);
   }
 }
 
@@ -132,13 +135,14 @@ class MemoryAssetAdapter extends TypeAdapter<MemoryAsset> {
       kind: f[3] as MemoryAssetKind? ?? MemoryAssetKind.object,
       caption: f[4] as String? ?? '',
       year: f[5] as String?,
+      photoPath: f[6] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, MemoryAsset obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -150,7 +154,9 @@ class MemoryAssetAdapter extends TypeAdapter<MemoryAsset> {
       ..writeByte(4)
       ..write(obj.caption)
       ..writeByte(5)
-      ..write(obj.year);
+      ..write(obj.year)
+      ..writeByte(6)
+      ..write(obj.photoPath);
   }
 }
 

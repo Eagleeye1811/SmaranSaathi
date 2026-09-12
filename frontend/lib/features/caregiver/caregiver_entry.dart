@@ -6,12 +6,18 @@ import 'caregiver_shell.dart';
 
 /// Decides what a caregiver sees when they open the app.
 ///
-/// Two states: the onboarding while it is unanswered, and the dashboard from
-/// then on. The onboarding is the caregiver's because it is written for
-/// someone answering *about* another person — who is helping to fill this in,
-/// what has changed in their everyday life, what they can still do well — and
-/// a person with cognitive change frequently under-reports exactly the things
+/// The onboarding is the caregiver's because it is written for someone
+/// answering *about* another person — who is helping to fill this in, what
+/// has changed in their everyday life, what they can still do well — and a
+/// person with cognitive change frequently under-reports exactly the things
 /// it asks about, while the person living with them does not.
+///
+/// It is no longer a gate in front of a signed-in account. Someone who has
+/// just proved who they are should land in their app, not in a fifteen-screen
+/// questionnaire they may have come back specifically to avoid; the dashboard
+/// offers it instead, and keeps offering until it is done. Only an anonymous
+/// session still opens on it, because with no account there is nothing else
+/// to show.
 ///
 /// Because every screen of it is written to disk as it is answered, a
 /// caregiver who closes the app halfway through comes back to the next
@@ -31,7 +37,10 @@ class _CaregiverEntryState extends State<CaregiverEntry> {
   @override
   void initState() {
     super.initState();
-    _phase = AppScope.read(context).intake.isComplete ? _Phase.shell : _Phase.onboarding;
+    final AppState state = AppScope.read(context);
+    _phase = state.intake.isComplete || state.accountId != null
+        ? _Phase.shell
+        : _Phase.onboarding;
   }
 
   @override

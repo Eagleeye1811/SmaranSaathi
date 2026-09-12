@@ -8,7 +8,6 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../widgets/caregiver_top_bar.dart';
 
 // ── Mock medical reports ──────────────────────────────────────────────────────
 
@@ -64,10 +63,6 @@ class ReportsScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: 'Reports & Insights',
-              subtitle: 'Weekly summaries, medical reports, AI observations',
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(

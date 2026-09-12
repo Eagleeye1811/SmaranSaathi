@@ -19,6 +19,7 @@ import 'package:smaran_saathi/features/patient/memories/memory_wallet_screen.dar
 import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
 import 'package:smaran_saathi/features/patient/patient_shell.dart';
 import 'package:smaran_saathi/core/widgets/ui_kit.dart';
+import 'package:smaran_saathi/l10n/locale_controller.dart';
 
 /// Layout regression suite.
 ///
@@ -44,10 +45,16 @@ extension _Sizing on WidgetTester {
 Widget harness(Widget child, {AppState? state}) {
   return AppScope(
     state: state ?? AppState(),
-    child: MaterialApp(
+    // The running app always provides one, and `LanguageSelector` renders
+    // nothing without it — so a harness that left it out could not see the
+    // language picker at all.
+    child: LocaleScope(
+      controller: LocaleController(),
+      child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.warm(),
-      home: child,
+        theme: AppTheme.warm(),
+        home: child,
+      ),
     ),
   );
 }
@@ -56,6 +63,40 @@ Widget harness(Widget child, {AppState? state}) {
 Future<void> beat(WidgetTester tester, [int ms = 500]) async {
   await tester.pump();
   await tester.pump(Duration(milliseconds: ms));
+}
+
+/// Taps a destination on the caregiver bottom bar.
+///
+/// There is no drawer any more, so this is how every caregiver test moves
+/// between pages.
+Future<void> goToTab(WidgetTester tester, String label) async {
+  final Finder tab = find.text(label);
+  expect(tab, findsWidgets, reason: '$label is not on the bottom bar');
+  await tester.tap(tab.last);
+  await beat(tester);
+}
+
+/// Scrolls the visible page's list until [text] is built.
+///
+/// A long page's `ListView` only builds what is near the viewport, so a row
+/// half a screen down is not merely off-screen — it does not exist yet, and
+/// `ensureVisible` throws rather than scrolling to it.
+Future<void> scrollTo(WidgetTester tester, String text) async {
+  final Finder list = find.byType(ListView).first;
+  for (int i = 0; i < 20 && find.text(text).evaluate().isEmpty; i++) {
+    await tester.drag(list, const Offset(0, -400));
+    await beat(tester);
+  }
+  expect(find.text(text), findsWidgets, reason: '$text never came into view');
+
+  // Built is not the same as tappable: a row that has just appeared sits at
+  // the bottom of the viewport, where the floating voice button covers it.
+  // Keep going until it is clear of that corner.
+  final double height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+  for (int i = 0; i < 6 && tester.getCenter(find.text(text).first).dy > height - 220; i++) {
+    await tester.drag(list, const Offset(0, -140));
+    await beat(tester);
+  }
 }
 
 /// Taps a chip in a horizontal chip row, scrolling it into view first.
@@ -145,42 +186,27 @@ void main() {
         await tester.pumpWidget(harness(const CaregiverShell(), state: state));
         await beat(tester);
 
-        final List<String> destinations = <String>[
-          'Patient Progress',
-          'Cognitive Activities',
-          'Mood & Wellbeing',
-          'Memories & Family',
-          'Safety',
-          'Doctor & Care',
+        // Every destination on the bar, then back to the dashboard.
+        for (final String dest in <String>[
+          'Family',
+          'Safe Zone',
+          'Doctors',
           'Reports',
-          'Reminders',
-          'Patient Profile',
-          'Overview',
-        ];
-
-        for (final String dest in destinations) {
-          final Finder menu = find.byIcon(Icons.menu_rounded);
-          if (menu.evaluate().isNotEmpty) {
-            await tester.tap(menu.first);
-            await beat(tester);
-          }
-          Finder item = find.text(dest);
-          if (item.evaluate().isEmpty) {
-            final Finder drawerList = find.descendant(
-              of: find.byType(Drawer),
-              matching: find.byType(ListView),
-            );
-            if (drawerList.evaluate().isNotEmpty) {
-              await tester.drag(drawerList.first, const Offset(0, -300));
-              await beat(tester);
-            }
-            item = find.text(dest);
-          }
-          if (item.evaluate().isNotEmpty) {
-            await tester.tap(item.last, warnIfMissed: false);
-          }
+          'Dashboard',
+        ]) {
+          await goToTab(tester, dest);
           await beat(tester, 1200);
           expect(tester.takeException(), isNull, reason: '$dest overflowed on $name');
+        }
+
+        // Reminders and the profile moved to the header.
+        for (final IconData icon in <IconData>[
+          Icons.notifications_none_rounded,
+          Icons.person_outline_rounded,
+        ]) {
+          await tester.tap(find.byIcon(icon).first);
+          await beat(tester, 1200);
+          expect(tester.takeException(), isNull, reason: '$icon overflowed on $name');
         }
       });
     }
@@ -190,13 +216,7 @@ void main() {
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
       await beat(tester);
-      final Finder menu = find.byIcon(Icons.menu_rounded);
-      if (menu.evaluate().isNotEmpty) {
-        await tester.tap(menu.first);
-        await beat(tester);
-      }
-      await tester.tap(find.text('Memories & Family').last);
-      await beat(tester);
+      await goToTab(tester, 'Family');
 
       final Finder chips = find.byKey(const Key('profile-tabs'));
       for (final String tab in <String>['Memories', 'Photographs', 'Routine', 'People']) {
@@ -205,20 +225,161 @@ void main() {
       }
     });
 
-    testWidgets('caregiver drawer displays Log Out option', (WidgetTester tester) async {
+    testWidgets('the overview leads with what needs attention, not a patient card',
+        (WidgetTester tester) async {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
       await beat(tester);
 
-      final Finder menu = find.byIcon(Icons.menu_rounded);
-      expect(menu, findsOneWidget);
-      await tester.tap(menu);
+      // The patient hero card is gone: the profile has its own tab, and the
+      // name now rides along in the greeting.
+      expect(find.text('YOUR PATIENT'), findsNothing);
+
+      // Today's numbers appear once, not twice — the glance grid replaced the
+      // duplicate overview rows underneath it.
+      expect(find.text('Activities completed'), findsOneWidget);
+
+      // The onboarding is offered rather than forced, so it leads the
+      // attention list until it is answered.
+      expect(find.text('Finish setting up'), findsOneWidget);
+
+      // Safe zone has a section of its own, in the state that matters most
+      // on a fresh install: there is no boundary yet, so no alert can fire.
+      await scrollTo(tester, 'No safe zone yet');
+      expect(find.text('Safe zone'), findsOneWidget);
+      expect(find.text('No safe zone yet'), findsOneWidget);
+      expect(find.text('Set a safe zone'), findsOneWidget);
+
+      // And nothing is invented: the old canned "improving" note is gone.
+      expect(find.text('Procedural activities are improving'), findsNothing);
+
+      // The Patient Progress tab is gone: with one patient to one caregiver
+      // its analytics belong on this screen, and they are all here — further
+      // down, so the list has to be scrolled to reach them. Scrolled last,
+      // because everything asserted above unmounts on the way past.
+      final Finder list = find.byType(ListView).first;
+      for (final String section in <String>[
+        'Engagement this week',
+        'Daily cognitive engagement',
+        'Activities completed each day',
+        'Recent sessions',
+      ]) {
+        while (find.text(section).evaluate().isEmpty) {
+          await tester.drag(list, const Offset(0, -400));
+          await beat(tester);
+        }
+        expect(find.text(section), findsOneWidget);
+      }
+    });
+
+    testWidgets('every memory-profile record can be created',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await beat(tester);
+      await goToTab(tester, 'Family');
+
+      final Finder chips = find.byKey(const Key('profile-tabs'));
+
+      // Each tab offers a way to add a record of its own — People could only
+      // pick from a fixed sample list, and the other three were read-only.
+      for (final (String, String) pair in <(String, String)>[
+        ('People', 'Add a person'),
+        ('Memories', 'Add a memory'),
+        ('Photographs', 'Add a picture'),
+        ('Routine', 'Add to the day'),
+      ]) {
+        await tapChip(tester, chips, pair.$1);
+        await scrollTo(tester, pair.$2);
+        expect(find.text(pair.$2), findsWidgets, reason: '${pair.$1} cannot add');
+      }
+
+      // And the create sheet really takes free text, rather than offering a
+      // list of sample relatives to choose from.
+      await tapChip(tester, chips, 'People');
+      await scrollTo(tester, 'Add a person');
+      await tester.tap(find.text('Add a person').last);
+      await beat(tester);
+      expect(find.text('Their name'), findsOneWidget);
+      expect(find.text('Relation'), findsOneWidget);
+
+      // A real photograph, with the drawing kept as the fallback for when
+      // the file is gone.
+      expect(find.text('Photograph'), findsOneWidget);
+      expect(find.text('Choose'), findsOneWidget);
+      expect(find.text('Camera'), findsOneWidget);
+      expect(find.text('How should they be drawn?'), findsOneWidget);
+    });
+
+    testWidgets('the safe zone page wears the app\'s own chrome',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const CaregiverShell(), state: state));
       await beat(tester);
 
-      expect(find.text('Log Out'), findsOneWidget);
-      expect(find.text('Switch Role'), findsOneWidget);
+      await goToTab(tester, 'Safe Zone');
+
+      // The shell already draws a header; the page must not add a second one.
+      expect(find.byType(AppBar), findsNothing);
+
+      // No stock Material buttons left on the one caregiver screen that had
+      // them — the app's own BigButton does the work now.
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byType(OutlinedButton), findsNothing);
+
+      // The map is the page: with no zone drawn, nothing is stacked above it
+      // explaining that none is drawn. The only thing offered is the action.
+      expect(find.text('No safe zone yet'), findsNothing);
+      expect(find.text('Set a safe zone'), findsWidgets);
+
+      // Every map control has to be on screen and clear of the controls
+      // sheet, not merely present in the tree — pinning one to `bottom`
+      // behind a full-width sheet drawn after it made it invisible.
+      final Rect sheet = tester.getRect(find.text('Set a safe zone'));
+      for (final IconData icon in <IconData>[
+        Icons.my_location_rounded,
+        Icons.add_rounded,
+        Icons.remove_rounded,
+      ]) {
+        final Finder button = find.byIcon(icon);
+        expect(button, findsOneWidget, reason: '$icon is missing');
+        expect(tester.getRect(button).bottom, lessThanOrEqualTo(sheet.top),
+            reason: '$icon is hidden behind the controls sheet');
+      }
     });
+
+    testWidgets('the caregiver profile names the caregiver and offers a way out',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await beat(tester);
+
+      await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
+      await beat(tester);
+
+      // Their own details, editable rather than fixed at onboarding time.
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+
+      // Language now lives here too — the caregiver sets the phone up, and
+      // the picker used to be reachable only from the patient's settings.
+      await scrollTo(tester, 'English');
+      expect(find.text('English'), findsWidgets);
+
+      // And a log out that does not depend on an auth service being wired:
+      // `AccountSection` collapses to nothing without one, so this section
+      // has to stand on its own.
+      // Exactly one of each: an "Account" heading, a signed-in email and a
+      // log out button all used to appear twice on this page.
+      await scrollTo(tester, 'Log out');
+      expect(find.text('Log out'), findsOneWidget);
+      expect(find.text('Switch to another role'), findsOneWidget);
+      expect(find.text('Account'), findsOneWidget);
+    });
+
   });
 
   group('doctor shell', () {

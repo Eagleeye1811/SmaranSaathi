@@ -35,6 +35,7 @@ class AppSettings {
     this.safeZoneJson,
     this.localeCode,
     this.patientUsername,
+    this.accountRolesJson,
   });
 
   final TextSizePreference textSize;
@@ -59,6 +60,16 @@ class AppSettings {
   /// Which role the app was last used as, so a returning caregiver is not sent
   /// back through the role picker.
   final String? lastRole;
+
+  /// Which role each account that has ever signed in on this device chose,
+  /// as a `{"<uid>":"caregiver"}` JSON object.
+  ///
+  /// [lastRole] alone is a property of the *device*, so on a shared phone it
+  /// would hand the second person the first person's role — and it says
+  /// nothing at all about an account that signed in here once, signed out,
+  /// and came back. This map is the per-account flag: sign in, and the role
+  /// that uid already picked is restored without asking again.
+  final String? accountRolesJson;
 
   /// The Firebase uid whose assessment this device last worked on.
   ///
@@ -86,6 +97,8 @@ class AppSettings {
     String? safeZoneJson,
     bool clearSafeZone = false,
     String? localeCode,
+    String? patientUsername,
+    String? accountRolesJson,
   }) {
     return AppSettings(
       textSize: textSize ?? this.textSize,
@@ -98,6 +111,8 @@ class AppSettings {
       safeZoneJson:
           clearSafeZone ? null : (safeZoneJson ?? this.safeZoneJson),
       localeCode: localeCode ?? this.localeCode,
+      patientUsername: patientUsername ?? this.patientUsername,
+      accountRolesJson: accountRolesJson ?? this.accountRolesJson,
     );
   }
 }
