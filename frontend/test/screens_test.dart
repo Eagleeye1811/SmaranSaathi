@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/doctor/chat/doctor_chat_conversation_screen.dart';
+import 'package:smaran_saathi/features/doctor/chat/doctor_chats_screen.dart';
 import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
 import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
 import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
@@ -388,7 +390,7 @@ void main() {
       ('phone', kPhone),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all three tabs · $name', (WidgetTester tester) async {
+      testWidgets('all tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.doctor);
         await tester.pumpWidget(harness(const DoctorShell(), state: state));
@@ -396,6 +398,7 @@ void main() {
 
         for (final String tab in <String>[
           'Patients',
+          'Chats',
           'Appointments',
           'Overview',
         ]) {
@@ -421,6 +424,24 @@ void main() {
       await beat(tester, 1200);
       await tester.drag(find.byType(ListView).first, const Offset(0, -2500));
       await beat(tester, 1200);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('doctor chat screen renders and sends message', (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.doctor);
+      await tester.pumpWidget(
+        harness(const DoctorChatConversationScreen(patientId: 'p_aama'), state: state),
+      );
+      await beat(tester, 1200);
+      expect(find.text('Aama Devi'), findsOneWidget);
+      expect(find.textContaining('Messages are end-to-end encrypted'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Hello from Doctor');
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await beat(tester, 1200);
+      expect(find.text('Hello from Doctor'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

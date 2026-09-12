@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_theme.dart';
+import '../../core/services/app_state.dart';
 import '../../core/voice/voice_nav_intent.dart';
 import '../../core/widgets/app_nav_bar.dart';
 import '../../core/widgets/voice_nav_host.dart';
 import '../../l10n/app_localizations.dart';
 import 'alerts/doctor_alerts_screen.dart';
 import 'appointments/doctor_appointments_screen.dart';
+import 'chat/doctor_chats_screen.dart';
 import 'overview/doctor_overview_screen.dart';
 import 'patients/doctor_patients_screen.dart';
 import 'profile/doctor_profile_screen.dart';
 
 /// The clinician application shell.
-/// Features a streamlined 3-tab navigation bar (Overview, Patients, Appointments),
+/// Features a streamlined navigation bar (Overview, Patients, Chats, Appointments),
 /// with Alerts and Profile accessible from the top bar header.
 class DoctorShell extends StatefulWidget {
   const DoctorShell({super.key});
@@ -62,9 +64,18 @@ class _DoctorShellState extends State<DoctorShell> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final AppState state = AppScope.of(context);
+    final int unreadChats = state.totalDoctorUnreadChats;
+
     final List<NavDestination> destinations = <NavDestination>[
       NavDestination(l.doctorTabOverview, Icons.dashboard_outlined, Icons.dashboard_rounded),
       NavDestination(l.doctorTabPatients, Icons.groups_outlined, Icons.groups_rounded),
+      NavDestination(
+        l.doctorTabChats,
+        Icons.chat_bubble_outline_rounded,
+        Icons.chat_rounded,
+        badgeCount: unreadChats,
+      ),
       NavDestination(l.doctorTabAppointments, Icons.calendar_month_outlined, Icons.calendar_month_rounded),
     ];
 
@@ -88,6 +99,7 @@ class _DoctorShellState extends State<DoctorShell> {
                 },
               ),
               const DoctorPatientsScreen(),
+              const DoctorChatsScreen(),
               const DoctorAppointmentsScreen(),
             ],
           ),

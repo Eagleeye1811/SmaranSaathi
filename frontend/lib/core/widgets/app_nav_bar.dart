@@ -6,10 +6,11 @@ import '../../app/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
 class NavDestination {
-  const NavDestination(this.label, this.icon, this.activeIcon);
+  const NavDestination(this.label, this.icon, this.activeIcon, {this.badgeCount = 0});
   final String label;
   final IconData icon;
   final IconData activeIcon;
+  final int badgeCount;
 }
 
 /// The app's bottom navigation.
@@ -111,10 +112,35 @@ class _NavItem extends StatelessWidget {
                 color: selected ? accent.withValues(alpha: 0.12) : Colors.transparent,
                 borderRadius: Corners.r(Corners.pill),
               ),
-              child: Icon(
-                selected ? destination.activeIcon : destination.icon,
-                size: large ? 27 : 23,
-                color: color,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  Icon(
+                    selected ? destination.activeIcon : destination.icon,
+                    size: large ? 27 : 23,
+                    color: color,
+                  ),
+                  if (destination.badgeCount > 0)
+                    Positioned(
+                      top: -4,
+                      right: -8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF25D366),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${destination.badgeCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             SizedBox(height: large ? 5 : 3),

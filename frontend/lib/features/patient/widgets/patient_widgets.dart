@@ -392,7 +392,7 @@ class ReminderRow extends StatelessWidget {
             width: large ? 52 : 44,
             height: large ? 52 : 44,
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: Corners.r(Corners.md),
             ),
             child: Center(
@@ -409,7 +409,7 @@ class ReminderRow extends StatelessWidget {
               children: <Widget>[
                 Text(
                   reminder.time,
-                  style: AppText.label.tint(accentColor).wght(800).sized(12),
+                  style: AppText.label.tint(color).wght(800).sized(12),
                 ),
                 const SizedBox(height: 3),
                 Text(

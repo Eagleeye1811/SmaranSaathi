@@ -216,6 +216,7 @@
   },
   "doctorTabOverview": "Overview",
   "doctorTabPatients": "Patients",
+  "doctorTabChats": "Chats",
   "doctorTabAnalytics": "Analytics",
   "doctorTabAlerts": "Alerts",
   "doctorTabProfile": "Profile",
@@ -223,6 +224,10 @@
   "doctorProfilePatientCount": "{count} patients",
   "doctorProfilePracticeHeading": "Practice",
   "doctorProfileClinicLabel": "Clinic",
+  "doctorSettingsSub": "Review permissions, connection status, and application preferences.",
+  "accountSignedInAs": "Signed in as",
+  "accountRole": "Role: {role}",
+  "safeZoneHomeLabel": "Home",
   "doctorProfileRegionLabel": "Region",
   "doctorProfileRegionValue": "North Eastern Region",
   "doctorProfileLanguagesLabel": "Languages supported",
@@ -1637,8 +1642,7 @@
   "alertSeverityWatch": "Requires attention",
   "alertSeverityUrgent": "Consider further assessment",
   "clinicGuwahati": "Guwahati Memory Clinic",
-  "clinicJorhat": "Jorhat Medical College — Memory Clinic"
-}
+  "clinicJorhat": "Jorhat Medical College — Memory Clinic",
   "onbPartKnowPerson": "Part A · Knowing the person",
   "onbPartKnowLife": "Part B · Knowing their life",
   "onbSelectAll": "Select everything that applies",

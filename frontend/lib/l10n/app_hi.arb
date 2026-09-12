@@ -129,6 +129,7 @@
   "languageMarathi": "मराठी",
   "doctorTabOverview": "अवलोकन",
   "doctorTabPatients": "मरीज़",
+  "doctorTabChats": "चैट",
   "doctorTabAnalytics": "विश्लेषण",
   "doctorTabAlerts": "चेतावनियाँ",
   "doctorTabProfile": "प्रोफ़ाइल",
@@ -1442,8 +1443,7 @@
   "alertSeverityWatch": "ध्यान देने की आवश्यकता",
   "alertSeverityUrgent": "अग्रिम मूल्यांकन पर विचार करें",
   "clinicGuwahati": "गुवाहाटी मेमोरी क्लिनिक",
-  "clinicJorhat": "जोरहाट मेडिकल कॉलेज — मेमोरी क्लिनिक"
-}
+  "clinicJorhat": "जोरहाट मेडिकल कॉलेज — मेमोरी क्लिनिक",
   "onbPartKnowPerson": "भाग A · व्यक्ति को जानना",
   "onbPartKnowLife": "भाग B · उनके जीवन को जानना",
   "onbSelectAll": "जो भी लागू हो, सब चुनें",

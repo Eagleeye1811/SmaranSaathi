@@ -393,6 +393,7 @@ class AppLocalizations {
   // ── Doctor — nav ─────────────────────────────────────────────────
   String get doctorTabOverview => _s('doctorTabOverview');
   String get doctorTabPatients => _s('doctorTabPatients');
+  String get doctorTabChats => _s('doctorTabChats');
   String get doctorTabAnalytics => _s('doctorTabAnalytics');
   String get doctorTabAlerts => _s('doctorTabAlerts');
   String get doctorTabProfile => _s('doctorTabProfile');
@@ -1874,18 +1875,14 @@ class AppLocalizations {
   String get caregiverProfileNotSetUp => _s('caregiverProfileNotSetUp');
   String get authTitle => _s('authTitle');
   String get authSubtitle => _s('authSubtitle');
-  String get authWhoAreYou => _s('authWhoAreYou');
   String get authContinueWithoutAccount => _s('authContinueWithoutAccount');
   String get authDeviceOnlyNote => _s('authDeviceOnlyNote');
   String get authSignOut => _s('authSignOut');
   String authSignedInAs(Object email) => _f('authSignedInAs', <String, Object?>{'email': email});
-  String get authRolePatient => _s('authRolePatient');
   String get authRolePatientWho => _s('authRolePatientWho');
   String get authRolePatientDetail => _s('authRolePatientDetail');
-  String get authRoleCaregiver => _s('authRoleCaregiver');
   String get authRoleCaregiverWho => _s('authRoleCaregiverWho');
   String get authRoleCaregiverDetail => _s('authRoleCaregiverDetail');
-  String get authRoleDoctor => _s('authRoleDoctor');
   String get authRoleDoctorWho => _s('authRoleDoctorWho');
   String get authRoleDoctorDetail => _s('authRoleDoctorDetail');
   String get authCaregiverSetsUp => _s('authCaregiverSetsUp');
@@ -2131,13 +2128,9 @@ class AppLocalizations {
       _f('profileSyncActivities', <String, Object?>{'count': count});
   String get profileChangeNumber => _s('profileChangeNumber');
   String get profileAddNumber => _s('profileAddNumber');
-  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
   String get dashboardStartTodaysSession => _s('dashboardStartTodaysSession');
 
   // ── Clinical status / reminder kind / life-memory category labels ───────
-  String get clinicalStatusStable => _s('clinicalStatusStable');
-  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
-  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
   String get reminderKindMedicine => _s('reminderKindMedicine');
   String get reminderKindHydration => _s('reminderKindHydration');
   String get reminderKindCognitive => _s('reminderKindCognitive');

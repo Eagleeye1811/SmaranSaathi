@@ -129,6 +129,7 @@
   "languageMarathi": "মাৰাঠী",
   "doctorTabOverview": "সাৰাংশ",
   "doctorTabPatients": "ৰোগী",
+  "doctorTabChats": "চাট",
   "doctorTabAnalytics": "বিশ্লেষণ",
   "doctorTabAlerts": "সতৰ্কবাৰ্তা",
   "doctorTabProfile": "প্ৰ'ফাইল",
@@ -1442,8 +1443,7 @@
   "alertSeverityWatch": "মনোযোগৰ প্ৰয়োজন",
   "alertSeverityUrgent": "অধিক মূল্যায়নৰ বিবেচনা কৰক",
   "clinicGuwahati": "গুৱাহাটী মেম'ৰী ক্লিনিক",
-  "clinicJorhat": "যোৰহাট মেডিকেল কলেজ — মেম'ৰী ক্লিনিক"
-}
+  "clinicJorhat": "যোৰহাট মেডিকেল কলেজ — মেম'ৰী ক্লিনিক",
   "onbPartKnowPerson": "ভাগ A · ব্যক্তিজনক জনা",
   "onbPartKnowLife": "ভাগ B · তেওঁৰ জীৱনক জনা",
   "onbSelectAll": "যিবোৰ প্ৰযোজ্য, সেই সকলো বাছনি কৰক",
