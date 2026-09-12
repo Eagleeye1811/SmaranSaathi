@@ -55,7 +55,9 @@ class Settings(BaseSettings):
     # sending silently — the scheduler still runs but no SMS is dispatched.
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
-    twilio_from_number: Optional[str] = None
+    # ── AI Services (Gemini AI Clinical Scribe) ───────────────────────────
+    gemini_api_key: Optional[str] = None
+
     # Set to False in .env to disable all outgoing SMS without removing creds.
     sms_enabled: bool = True
 

@@ -5,6 +5,7 @@ from . import (
     analytics,
     auth,
     caregivers,
+    chat,
     daily,
     doctors,
     health,
@@ -13,6 +14,7 @@ from . import (
     reminders,
     sessions,
     sync,
+    telehealth,
 )
 
 api_router = APIRouter()
@@ -28,3 +30,5 @@ api_router.include_router(doctors.router)
 api_router.include_router(alerts.router)
 api_router.include_router(insights.router)
 api_router.include_router(sync.router)
+api_router.include_router(telehealth.router)
+api_router.include_router(chat.router)
