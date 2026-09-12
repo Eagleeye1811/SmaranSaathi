@@ -271,7 +271,7 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
                   ),
                   Switch.adaptive(
                     value: _doctorVerified,
-                    activeThumbColor: AppColors.success,
+                    activeColor: AppColors.success,
                     onChanged: (bool v) => setState(() => _doctorVerified = v),
                   ),
                 ],

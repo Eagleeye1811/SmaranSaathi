@@ -443,6 +443,7 @@ class HiveSettingsRepository implements SettingsRepository {
       localeCode: b.get('localeCode') as String?,
       patientUsername: b.get('patientUsername') as String?,
       accountRolesJson: b.get('accountRoles') as String?,
+      registeredDoctorsJson: b.get('registeredDoctors') as String?,
     );
   }
 
@@ -460,6 +461,8 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.localeCode != null) 'localeCode': settings.localeCode,
       if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
       if (settings.accountRolesJson != null) 'accountRoles': settings.accountRolesJson,
+      if (settings.registeredDoctorsJson != null)
+        'registeredDoctors': settings.registeredDoctorsJson,
     });
     // `putAll` cannot express "remove this": a key left out of the map simply
     // keeps whatever it held. So every nullable setting has to be deleted
@@ -474,6 +477,7 @@ class HiveSettingsRepository implements SettingsRepository {
       'lastAccountId': settings.lastAccountId,
       'lastRole': settings.lastRole,
       'accountRoles': settings.accountRolesJson,
+      'registeredDoctors': settings.registeredDoctorsJson,
       'patientUsername': settings.patientUsername,
       'safeZone': settings.safeZoneJson,
       'localeCode': settings.localeCode,

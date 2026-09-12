@@ -977,6 +977,86 @@ class MockData {
         ),
       ];
 
+  // ── The doctor directory ───────────────────────────────────────────────
+  //
+  // Who a caregiver can actually connect to. Real clinics in the region the
+  // rest of this data is set in, and a spread of specialisations rather than
+  // six neurologists — a family looking for help with sleep, or with the
+  // strain of caring, is looking for a different person than one chasing a
+  // diagnosis.
+  //
+  // The statuses vary on purpose: a directory where everybody is one tap from
+  // connected never shows the caregiver what a pending invitation looks like.
+
+  static List<DoctorProfile> doctors() => <DoctorProfile>[
+        const DoctorProfile(
+          id: 'doc_sharma',
+          name: 'Neha Sharma',
+          specialization: 'Neurologist',
+          hospital: 'Jorhat Medical College — Memory Clinic',
+          email: 'neha.sharma@jorhatmc.in',
+          phone: '+91 94010 00001',
+          avatarInitials: 'NS',
+          status: InvitationStatus.connected,
+          registrationNumber: 'MCI-2891-AS',
+        ),
+        const DoctorProfile(
+          id: 'doc_barua',
+          name: 'Anil Barua',
+          specialization: 'Geriatrician',
+          hospital: 'Guwahati Memory Clinic',
+          email: 'anil.barua@gmcguwahati.in',
+          phone: '+91 94010 00002',
+          avatarInitials: 'AB',
+          status: InvitationStatus.pending,
+          registrationNumber: 'MCI-4417-AS',
+        ),
+        const DoctorProfile(
+          id: 'doc_hazarika',
+          name: 'Rupa Hazarika',
+          specialization: 'Psychiatrist',
+          hospital: 'Guwahati Memory Clinic',
+          email: 'rupa.hazarika@gmcguwahati.in',
+          phone: '+91 94010 00003',
+          avatarInitials: 'RH',
+          status: InvitationStatus.notSent,
+          registrationNumber: 'MCI-5023-AS',
+        ),
+        const DoctorProfile(
+          id: 'doc_das',
+          name: 'Bhaskar Das',
+          specialization: 'Neuropsychologist',
+          hospital: 'Jorhat Medical College — Memory Clinic',
+          email: 'bhaskar.das@jorhatmc.in',
+          phone: '+91 94010 00004',
+          avatarInitials: 'BD',
+          status: InvitationStatus.notSent,
+          registrationNumber: 'MCI-6188-AS',
+        ),
+        const DoctorProfile(
+          id: 'doc_gogoi',
+          name: 'Mitali Gogoi',
+          specialization: 'Physician · Sleep medicine',
+          hospital: 'Dibrugarh Civil Hospital',
+          email: 'mitali.gogoi@dibrugarhch.in',
+          phone: '+91 94010 00005',
+          avatarInitials: 'MG',
+          status: InvitationStatus.sent,
+          registrationNumber: 'MCI-7340-AS',
+        ),
+        const DoctorProfile(
+          id: 'doc_kalita',
+          name: 'Pranab Kalita',
+          specialization: 'Occupational therapist',
+          hospital: 'Tezpur Community Health Centre',
+          email: 'pranab.kalita@tezpurchc.in',
+          phone: '+91 94010 00006',
+          avatarInitials: 'PK',
+          status: InvitationStatus.notSent,
+          registrationNumber: 'AIOTA-2214-AS',
+        ),
+      ];
+
   // ── Doctor availability slots ──────────────────────────────────────────
 
   static List<DoctorSlot> doctorSlots() => <DoctorSlot>[

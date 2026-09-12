@@ -7,6 +7,7 @@ import '../../../core/models/doctor.dart';
 import '../../../core/services/app_state.dart';
 import '../../../l10n/app_localizations.dart';
 import '../widgets/clinic_widgets.dart';
+import 'availability_tab.dart';
 import 'appointment_detail_screen.dart';
 
 /// Appointments tab in Doctor module.
@@ -26,7 +27,7 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -82,6 +83,11 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen>
                   tabs: <Widget>[
                     Tab(text: '${l.doctorApptUpcoming} (${upcoming.length})'),
                     Tab(text: '${l.doctorApptPast} (${past.length})'),
+                    // When a clinician is free is part of their appointments,
+                    // not part of who they are — it used to live on the
+                    // profile page, two taps away from the bookings it
+                    // governs.
+                    const Tab(text: 'Availability'),
                   ],
                 ),
               ),
@@ -102,6 +108,14 @@ class _DoctorAppointmentsScreenState extends State<DoctorAppointmentsScreen>
                     isUpcoming: false,
                     emptyTitle: l.doctorApptEmptyPast,
                     emptyMessage: '',
+                  ),
+                  const SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(
+                        Insets.gutter, Insets.sm, Insets.gutter, Insets.xl),
+                    child: ClinicCard(
+                      padding: EdgeInsets.all(Insets.lg),
+                      child: DoctorAvailabilityTab(),
+                    ),
                   ),
                 ],
               ),

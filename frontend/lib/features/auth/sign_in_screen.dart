@@ -251,7 +251,7 @@ class _OrDivider extends StatelessWidget {
         const Expanded(child: Divider(color: AppColors.hairline)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(AppLocalizations.of(context)!.orText, style: AppText.caption),
+          child: Text(AppLocalizations.of(context).orText, style: AppText.caption),
         ),
         const Expanded(child: Divider(color: AppColors.hairline)),
       ],

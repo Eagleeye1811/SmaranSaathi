@@ -559,7 +559,7 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('Ask Saathi'), findsOneWidget);
+      expect(find.text('Ask Mitra'), findsOneWidget);
       expect(find.text('Tap the microphone and ask me'), findsOneWidget);
       expect(find.text('Talk to Saathi'), findsOneWidget);
 
@@ -647,10 +647,10 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('Ask Saathi'), findsOneWidget);
+      expect(find.text('Ask Mitra'), findsOneWidget);
       expect(find.text('Talk to me about your day'), findsOneWidget);
 
-      await tester.tap(find.text('Ask Saathi'));
+      await tester.tap(find.text('Ask Mitra'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 

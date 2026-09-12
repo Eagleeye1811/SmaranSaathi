@@ -36,12 +36,16 @@ class _PatientShellState extends State<PatientShell> {
   /// alongside reminders, matching where the caregiver's own two sit. Both
   /// are reached for at a moment rather than browsed, and four destinations
   /// leave the bar's targets as wide as this reader needs them.
-  static const List<NavDestination> _destinations = <NavDestination>[
-    NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
-    NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
-    NavDestination('Wellness', Icons.spa_outlined, Icons.spa_rounded),
-    NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
-  ];
+  static const int _destinationCount = 4;
+
+  /// Localised, so the bar reads in whatever language the app is set to.
+  static List<NavDestination> _destinationsFor(AppLocalizations l) => <NavDestination>[
+        NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
+        NavDestination(
+            l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
+        NavDestination(l.patientNavWellness, Icons.spa_outlined, Icons.spa_rounded),
+        NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
+      ];
 
   void _go(int i) => setState(() => _index = i);
 
@@ -90,13 +94,7 @@ class _PatientShellState extends State<PatientShell> {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<NavDestination> destinations = <NavDestination>[
-      NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
-      NavDestination(l.patientNavToday, Icons.notifications_outlined, Icons.notifications_rounded),
-      NavDestination(l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
-      NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
-      NavDestination(l.patientNavProfile, Icons.person_outline_rounded, Icons.person_rounded),
-    ];
+    final List<NavDestination> destinations = _destinationsFor(l);
     return Scaffold(
       backgroundColor: state.highContrast ? Colors.white : AppColors.background,
       body: ReturnHomeBanner(
@@ -116,7 +114,7 @@ class _PatientShellState extends State<PatientShell> {
                   Nav.open(context, const TodayScreen());
                 } else {
                   final int target = tabIndex > 1 ? tabIndex - 1 : tabIndex;
-                  _go(target.clamp(0, _destinations.length - 1));
+                  _go(target.clamp(0, _destinationCount - 1));
                 }
               }),
               const GameHubScreen(),

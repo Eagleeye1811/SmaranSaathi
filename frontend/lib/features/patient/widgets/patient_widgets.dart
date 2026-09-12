@@ -10,8 +10,6 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/services/app_state.dart';
 import '../profile/patient_profile_screen.dart';
-import '../../../l10n/mock_translator.dart';
-import '../settings/language_picker_button.dart';
 import '../today/today_screen.dart';
 
 /// The bar across the top of every patient screen.
@@ -76,8 +74,6 @@ class PatientTopBar extends StatelessWidget {
               onTap: () => Nav.open(context, const PatientProfileScreen()),
             ),
           ],
-          const SizedBox(width: 4),
-          const LanguagePickerButton(),
           if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
@@ -189,6 +185,7 @@ class MoodPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     // One colour for all three, and it is the app's own.
     //
     // A green, amber and blue tile said "right, middling, wrong" about an
@@ -429,7 +426,6 @@ class ReminderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context)!;
     final Color color = switch (reminder.kind) {
       ReminderKind.medicine => AppColors.terracotta,
       ReminderKind.hydration => AppColors.secondary,
@@ -459,7 +455,7 @@ class ReminderRow extends StatelessWidget {
             width: large ? 52 : 44,
             height: large ? 52 : 44,
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: Corners.r(Corners.md),
             ),
             child: Center(
@@ -476,7 +472,7 @@ class ReminderRow extends StatelessWidget {
               children: <Widget>[
                 Text(
                   reminder.time,
-                  style: AppText.label.tint(accentColor).wght(800).sized(12),
+                  style: AppText.label.tint(color).wght(800).sized(12),
                 ),
                 const SizedBox(height: 3),
                 Text(

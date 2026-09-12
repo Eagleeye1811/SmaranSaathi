@@ -12,8 +12,8 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
-import '../onboarding/patient_onboarding_flow.dart';
-import '../widgets/caregiver_top_bar.dart';
+import '../life_profile/life_profile_screen.dart';
+import 'memory_profile_editors.dart';
 
 /// The memory profile: everything personalisation is built from, editable in
 /// one place.
@@ -43,10 +43,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.terracottaTint.withValues(alpha: 0.7),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -239,35 +236,12 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
               ),
             ),
           ),
-        if (available.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(l.caregiverSuggestedToAddLabel, style: AppText.overline),
-          const SizedBox(height: 10),
-          for (final FamilyMember f in available)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: MmCard(
-                padding: const EdgeInsets.all(12),
-                color: AppColors.surfaceMuted,
-                onTap: () {
-                  final List<FamilyMember> next = List<FamilyMember>.from(p.family)..add(f);
-                  state.updateDraft(p.copyWith(family: next));
-                  state.commitDraft();
-                },
-                child: Row(
-                  children: <Widget>[
-                    SceneImage(sceneId: f.sceneId, size: 46, circle: true),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text('${f.name} · ${MockTranslator.translateRelation(f.relation, l)}',
-                          style: AppText.body.wght(600)),
-                    ),
-                    const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
-                  ],
-                ),
-              ),
-            ),
-        ],
+        const SizedBox(height: 4),
+        SoftButton(
+          label: 'Add a person',
+          icon: Icons.person_add_alt_rounded,
+          onPressed: () => _saveFamily(p, state),
+        ),
       ],
     );
   }

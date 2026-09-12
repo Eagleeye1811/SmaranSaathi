@@ -10,8 +10,8 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../l10n/mock_translator.dart';
-import '../widgets/caregiver_top_bar.dart';
 
 /// Reminder management for the caregiver, grouped by category.
 class CaregiverRemindersScreen extends StatelessWidget {
@@ -34,10 +34,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.accentTint.withValues(alpha: 0.75),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -168,7 +165,7 @@ class _KindSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reminders.isEmpty) return const SizedBox.shrink();
-    final AppLocalizations l = AppLocalizations.of(context)!;
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color color = CaregiverRemindersScreen.colorOf(kind);
     final int done = reminders.where((Reminder r) => r.done).length;
 

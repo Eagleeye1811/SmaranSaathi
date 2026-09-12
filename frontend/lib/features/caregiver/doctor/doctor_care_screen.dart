@@ -10,18 +10,6 @@ import '../../../core/widgets/ui_kit.dart';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const DoctorProfile _mockDoctor = DoctorProfile(
-  id: 'doc_sharma',
-  name: 'Neha Sharma',
-  specialization: 'Neurologist',
-  hospital: 'Jorhat Medical College — Memory Clinic',
-  email: 'neha.sharma@jorhatmc.in',
-  phone: '+91 94010 00001',
-  avatarInitials: 'NS',
-  status: InvitationStatus.connected,
-  registrationNumber: 'MCI-2891-AS',
-);
-
 const Appointment _upcoming = Appointment(
   id: 'apt_001',
   doctorId: 'doc_sharma',
@@ -74,7 +62,7 @@ class DoctorCareScreen extends StatefulWidget {
 
 class _DoctorCareScreenState extends State<DoctorCareScreen> {
   /// For demo: toggle between connected and no-doctor views.
-  bool _hasDoctor = true;
+
   bool _showAddForm = false;
 
   // Add-doctor form controllers
@@ -97,16 +85,14 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final DoctorProfile? doctor = state.connectedDoctor;
     final List<DoctorAppointment> bookedAppointments = state.doctorAppointments
         .where((DoctorAppointment a) => a.id.startsWith('apt_'))
         .toList();
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.indigoTint.withValues(alpha: 0.7),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -116,13 +102,42 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                 padding: const EdgeInsets.fromLTRB(
                     Insets.gutter, 0, Insets.gutter, 32),
                 children: <Widget>[
-                  if (!_hasDoctor) ...<Widget>[
+                  if (doctor == null) ...<Widget>[
                     _NoDoctorState(
                       onConnect: () =>
                           setState(() => _showAddForm = true),
                       onAddExisting: () =>
                           setState(() => _showAddForm = true),
                     ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── The directory ─────────────────────────────────
+                    //
+                    // Before this there was one doctor, hardcoded, and the
+                    // only way to "connect" was to type their details in
+                    // from memory. A family that has been given a clinic's
+                    // name should be able to find the person in it.
+                    FadeInUp(
+                      delayMs: 30,
+                      child: SectionHeader(
+                        title: 'Doctors near you',
+                        icon: Icons.medical_services_outlined,
+                        subtitle: 'Memory clinics and specialists in the region',
+                      ),
+                    ),
+                    for (final DoctorProfile d in state.doctorDirectory)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _DirectoryDoctorCard(
+                          doctor: d,
+                          onInvite: () {
+                            state.inviteDoctor(d.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Invitation sent to ${d.displayName}')),
+                            );
+                          },
+                        ),
+                      ),
                     if (_showAddForm) ...<Widget>[
                       const SizedBox(height: Insets.lg),
                       FadeInUp(
@@ -133,14 +148,22 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                           emailCtrl: _emailCtrl,
                           phoneCtrl: _phoneCtrl,
                           onSend: () {
-                            setState(() {
-                              _hasDoctor = true;
-                              _showAddForm = false;
-                            });
+                            final String name = _nameCtrl.text.trim().isEmpty
+                                ? 'Doctor'
+                                : _nameCtrl.text.trim();
+                            state.addDoctor(DoctorProfile(
+                              id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+                              name: name,
+                              specialization: _specCtrl.text.trim(),
+                              hospital: _hospitalCtrl.text.trim(),
+                              email: _emailCtrl.text.trim(),
+                              phone: _phoneCtrl.text.trim(),
+                              avatarInitials: name.isEmpty ? '' : name[0].toUpperCase(),
+                              status: InvitationStatus.sent,
+                            ));
+                            setState(() => _showAddForm = false);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content:
-                                      Text('Invitation sent to Dr. ${_nameCtrl.text.isNotEmpty ? _nameCtrl.text : "Doctor"}')),
+                              SnackBar(content: Text('Invitation sent to Dr. $name')),
                             );
                           },
                         ),
@@ -150,9 +173,8 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                     // ── Connected doctor card ──────────────────────────
                     FadeInUp(
                       child: _ConnectedDoctorCard(
-                        doctor: _mockDoctor,
-                        onDisconnect: () =>
-                            setState(() => _hasDoctor = false),
+                        doctor: doctor,
+                        onDisconnect: () => state.disconnectDoctor(doctor.id),
                       ),
                     ),
                     const SizedBox(height: Insets.lg),
@@ -161,7 +183,7 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                     FadeInUp(
                       delayMs: 40,
                       child: _BookAppointmentSection(
-                        doctor: _mockDoctor,
+                        doctor: doctor,
                         slots: state.doctorSlots,
                         activeDays: state.doctorActiveDays,
                         onBookSlot: (DoctorSlot slot, bool isVirtual) {
@@ -174,7 +196,7 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: AppColors.primary,
-                              content: Text('Appointment booked for ${slot.dayLabel} at ${slot.timeLabel} with Dr. ${_mockDoctor.name}'),
+                              content: Text('Appointment booked for ${slot.dayLabel} at ${slot.timeLabel} with ${doctor.displayName}'),
                             ),
                           );
                         },
@@ -429,6 +451,110 @@ class _Field extends StatelessWidget {
 
 // ── Connected doctor card ─────────────────────────────────────────────────────
 
+/// One doctor in the directory, with whatever action their status allows.
+///
+/// The status is the whole point of the card: "invitation sent" and "not sent"
+/// look identical until you can see which is which, and a caregiver who has
+/// already written to a clinic should not be invited to write again.
+class _DirectoryDoctorCard extends StatelessWidget {
+  const _DirectoryDoctorCard({required this.doctor, required this.onInvite});
+
+  final DoctorProfile doctor;
+  final VoidCallback onInvite;
+
+  @override
+  Widget build(BuildContext context) {
+    return MmCard(
+      padding: const EdgeInsets.all(Insets.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: AppColors.indigoTint,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  doctor.avatarInitials,
+                  style: AppText.body.wght(800).tint(AppColors.indigo),
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(doctor.displayName,
+                        style: AppText.body.wght(800),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(doctor.specialization,
+                        style: AppText.caption.wght(700).tint(AppColors.indigo),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(doctor.hospital,
+                        style: AppText.caption, maxLines: 2),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              PillTag(
+                label: doctor.status.label,
+                color: doctor.status.color,
+                icon: doctor.status.icon,
+                dense: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.sm),
+          switch (doctor.status) {
+            // Nothing sent yet, so the only thing to offer is sending it —
+            // and it is the same button, in the same green, as the one on the
+            // form for a doctor the family already has.
+            InvitationStatus.notSent => SoftButton(
+                label: 'Send Invitation',
+                icon: Icons.send_rounded,
+                color: AppColors.primary,
+                filled: true,
+                onPressed: onInvite,
+              ),
+            // Waiting on them, and that is all the caregiver can do.
+            //
+            // There was a "Connect now" button here. It was a demo shortcut
+            // standing in for the doctor's own device — but on the caregiver's
+            // screen it meant a family could add a clinician to their record
+            // without that clinician ever agreeing, which is the wrong way
+            // round for a consent this side does not own. The invitation now
+            // goes to the doctor's own app, and they accept it there.
+            InvitationStatus.sent || InvitationStatus.pending => Row(
+                children: <Widget>[
+                  const Icon(Icons.hourglass_bottom_rounded,
+                      size: 16, color: AppColors.inkMuted),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Invitation sent. They will appear here once they accept.',
+                      style: AppText.caption.tint(AppColors.inkSoft),
+                    ),
+                  ),
+                ],
+              ),
+            InvitationStatus.connected => const SizedBox.shrink(),
+          },
+        ],
+      ),
+    );
+  }
+}
+
 class _ConnectedDoctorCard extends StatelessWidget {
   const _ConnectedDoctorCard(
       {required this.doctor, required this.onDisconnect});
@@ -499,9 +625,50 @@ class _ConnectedDoctorCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: Insets.md),
+          // The way out. `onDisconnect` was declared and passed in but never
+          // wired to anything, so a caregiver could connect to a doctor and
+          // then had no way to change their mind — and no way to reach the
+          // directory again, since it only shows when nobody is connected.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _confirmDisconnect(context),
+              icon: const Icon(Icons.link_off_rounded, size: 18),
+              label: const Text('Disconnect'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Asked first: disconnecting stops the person treating this patient from
+  /// seeing anything the app records, which is not a thing to do by mistap.
+  Future<void> _confirmDisconnect(BuildContext context) async {
+    final bool yes = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: Text('Disconnect ${doctor.displayName}?'),
+            content: const Text(
+                'They will stop seeing this record. You can invite them again '
+                'at any time.'),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Keep connected'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                child: const Text('Disconnect'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (yes) onDisconnect();
   }
 }
 
@@ -860,7 +1027,7 @@ class _BookAppointmentSectionState extends State<_BookAppointmentSection> {
                   Text('Reason for Consultation', style: AppText.label),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    initialValue: reason,
+                    value: reason,
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       border: OutlineInputBorder(borderRadius: Corners.r(Corners.md)),

@@ -28,6 +28,7 @@ import '../assistant/assistant_screen.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
 import '../memories/memory_wallet_screen.dart';
+import '../today/today_screen.dart';
 import '../widgets/patient_widgets.dart';
 import 'cognitive_profile_screen.dart';
 import 'health_widgets.dart';

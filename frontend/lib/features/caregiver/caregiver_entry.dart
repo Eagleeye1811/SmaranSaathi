@@ -31,6 +31,13 @@ class CaregiverEntry extends StatefulWidget {
 
   @override
   State<CaregiverEntry> createState() => _CaregiverEntryState();
+
+  /// Whether this account has been through setup already.
+  ///
+  /// Its own function so it can be tested without building the whole
+  /// caregiver shell — which, inside a test harness, never settles.
+  static bool isAlreadySetUp(AppState state, {bool justFinished = false}) =>
+      justFinished || state.intake.isComplete || state.hasPatientProfile;
 }
 
 class _CaregiverEntryState extends State<CaregiverEntry> {
@@ -51,7 +58,20 @@ class _CaregiverEntryState extends State<CaregiverEntry> {
     // it. Now the answers arriving is a rebuild, and the rebuild shows the
     // dashboard.
     final AppState state = AppScope.of(context);
-    if (_justFinished || state.intake.isComplete) return const CaregiverShell();
+
+    // Three ways to be past the onboarding, not one.
+    //
+    // `intake.isComplete` alone was too strict: it is only true once the very
+    // last screen of the questionnaire has been submitted, so a caregiver who
+    // answered enough to produce a real profile — and who has been using the
+    // app since — was sent back to question one every time they signed in.
+    // Someone whose account already names the person they care for has
+    // plainly done this before.
+    //
+    // The dashboard still offers to finish it, for as long as it is unfinished.
+    if (CaregiverEntry.isAlreadySetUp(state, justFinished: _justFinished)) {
+      return const CaregiverShell();
+    }
 
     return IntakeFlowScreen(
       onFinished: () => setState(() => _justFinished = true),

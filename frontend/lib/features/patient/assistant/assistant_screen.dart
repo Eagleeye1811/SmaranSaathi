@@ -331,8 +331,8 @@ class _QuickActions extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -508,58 +508,18 @@ class _Bubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
-                  const SizedBox(width: 6),
-                  Text(l.assistantMemorySavedChip,
-                      style: AppText.caption.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w700,
-                      )),
-                ],
-              ),
-            ],
-            if (answer.bullets.isNotEmpty) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              for (final String b in answer.bullets)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Padding(
-                        padding: EdgeInsets.only(top: 5, right: 8),
-                        child: Icon(Icons.chevron_right_rounded,
-                            size: 16, color: AppColors.primary),
-                      ),
-                      Expanded(
-                        child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-            if (!answer.grounded) ...<Widget>[
-              const SizedBox(height: Insets.sm),
-              Text(l.assistantGeneralInfoNote, style: AppText.caption),
-            ],
-            if (answer.followUps.isNotEmpty) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              Wrap(
-                spacing: Insets.xs,
-                runSpacing: Insets.xs,
-                children: <Widget>[
-                  for (final HealthQuickAction f in answer.followUps)
-                    Pressable(
-                      onTap: () => onFollowUp(f),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryTint,
-                          borderRadius: Corners.r(Corners.pill),
-                        ),
-                        child: Text(f.localizedLabel(l),
-                            style: AppText.bodySmall.copyWith(
-                              color: AppColors.primaryDeep,
+                  Text(answer.text, style: AppText.body.copyWith(height: 1.5)),
+                  if (message.memoryCaptured) ...<Widget>[
+                    const SizedBox(height: Insets.sm),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 15, color: AppColors.accent),
+                        const SizedBox(width: 6),
+                        Text(l.assistantMemorySavedChip,
+                            style: AppText.caption.copyWith(
+                              color: AppColors.accent,
                               fontWeight: FontWeight.w700,
                             )),
                       ],
@@ -579,7 +539,8 @@ class _Bubble extends StatelessWidget {
                                   size: 16, color: AppColors.primary),
                             ),
                             Expanded(
-                              child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
+                              child: Text(b,
+                                  style: AppText.bodySmall.copyWith(height: 1.45)),
                             ),
                           ],
                         ),
@@ -599,12 +560,13 @@ class _Bubble extends StatelessWidget {
                           Pressable(
                             onTap: () => onFollowUp(f),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 9),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryTint,
                                 borderRadius: Corners.r(Corners.pill),
                               ),
-                              child: Text(f.label,
+                              child: Text(f.localizedLabel(l),
                                   style: AppText.bodySmall.copyWith(
                                     color: AppColors.primaryDeep,
                                     fontWeight: FontWeight.w700,
@@ -614,7 +576,8 @@ class _Bubble extends StatelessWidget {
                         Pressable(
                           onTap: onOpenReport,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 9),
                             decoration: BoxDecoration(
                               color: AppColors.accentTint,
                               borderRadius: Corners.r(Corners.pill),
