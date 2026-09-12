@@ -11,13 +11,12 @@ import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
-import '../../patient/patient_shell.dart';
-import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
+import '../life_profile/life_profile_screen.dart';
+import '../patient_view_screen.dart';
 
 /// Caregiver account, patient-side accessibility controls and the demo
 /// switches judges will want to press.
@@ -61,7 +60,12 @@ class CaregiverProfileScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text(MockData.caregiverName, style: AppText.h2.sized(22)),
+                                Text(
+                                  state.hasCaregiverProfile
+                                      ? state.caregiverName
+                                      : l.caregiverProfileNotSetUp,
+                                  style: AppText.h2.sized(22),
+                                ),
                                 const SizedBox(height: 3),
                                 Text(l.caregiverRelationLabel,
                                     style: AppText.bodySmall),
@@ -249,17 +253,21 @@ class CaregiverProfileScreen extends StatelessWidget {
                     child: MmCard(
                       child: Column(
                         children: <Widget>[
+                          // "Add patient" is gone: this app follows one person,
+                          // and the way to describe them is the life profile
+                          // rather than a second onboarding that created a
+                          // second, competing record.
                           ListRow(
                             leading: const SoftIcon(
-                              icon: Icons.person_add_alt_1_rounded,
+                              icon: Icons.favorite_border_rounded,
                               color: AppColors.plum,
                               size: 46,
                             ),
-                            title: l.caregiverSetupPatientProfileTitle,
-                            subtitle: l.caregiverSetupPatientProfileSubtitle,
+                            title: l.lifeTitle,
+                            subtitle: l.lifeOpenAction,
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
-                            onTap: () => Nav.open(context, const PatientOnboardingFlow()),
+                            onTap: () => Nav.open(context, const LifeProfileScreen()),
                           ),
                           const Divider(color: AppColors.hairline),
                           ListRow(
@@ -272,10 +280,11 @@ class CaregiverProfileScreen extends StatelessWidget {
                             subtitle: l.caregiverOpenHerExperienceSubtitle(state.patient.shortName),
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
-                            onTap: () {
-                              state.setRole(AppRole.patient);
-                              Nav.push(context, const PatientShell());
-                            },
+                            // Through the preview screen, never a raw
+                            // setRole + push: that left the caregiver holding
+                            // their own app with the patient's role the moment
+                            // they pressed back.
+                            onTap: () => Nav.open(context, const PatientViewScreen()),
                           ),
                           const Divider(color: AppColors.hairline),
                           ListRow(
@@ -352,7 +361,7 @@ class _Toggle extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
+            activeColor: Colors.white,
             activeTrackColor: AppColors.primary,
           ),
         ],

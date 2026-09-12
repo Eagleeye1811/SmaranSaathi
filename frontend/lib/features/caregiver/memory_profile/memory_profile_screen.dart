@@ -11,8 +11,8 @@ import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
-import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
+import '../life_profile/life_profile_screen.dart';
 
 /// The memory profile: everything personalisation is built from, editable in
 /// one place.
@@ -172,7 +172,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
                 child: SoftButton(
                   label: l.caregiverRerunOnboardingButton,
                   icon: Icons.tune_rounded,
-                  onPressed: () => Nav.open(context, const PatientOnboardingFlow()),
+                  onPressed: () => Nav.open(context, const LifeProfileScreen()),
                 ),
               ),
             ],

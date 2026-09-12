@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
-import 'package:smaran_saathi/features/caregiver/onboarding/patient_onboarding_flow.dart';
 import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
 import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
 import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
@@ -266,59 +265,6 @@ void main() {
     });
   });
 
-  group('onboarding', () {
-    testWidgets('walks all six steps and creates the profile',
-        (WidgetTester tester) async {
-      tester.setSurface(kPhone);
-      final AppState state = AppState()..setRole(AppRole.caregiver);
-      await tester.pumpWidget(harness(const PatientOnboardingFlow(), state: state));
-      await beat(tester);
-
-      expect(find.text('STEP 1 / 6'), findsOneWidget);
-      await tester.tap(find.text('Continue'));
-      await beat(tester);
-
-      // Step 2 requires at least one person.
-      expect(find.text('STEP 2 / 6'), findsOneWidget);
-      await tester.dragUntilVisible(
-        find.text('Add everyone at once'),
-        find.byType(ListView).last,
-        const Offset(0, -120),
-      );
-      await beat(tester);
-      await tester.tap(find.text('Add everyone at once'));
-      await beat(tester);
-      await tester.tap(find.text('Continue'));
-      await beat(tester);
-
-      // Step 3 requires at least one memory.
-      expect(find.text('STEP 3 / 6'), findsOneWidget);
-      await tester.tap(find.text('Fill in the suggested answers'));
-      await beat(tester);
-      await tester.tap(find.text('Continue'));
-      await beat(tester);
-
-      // Step 4 requires at least one photograph.
-      expect(find.text('STEP 4 / 6'), findsOneWidget);
-      await tester.tap(find.text('Select all'));
-      await beat(tester);
-      await tester.tap(find.text('Continue'));
-      await beat(tester);
-
-      expect(find.text('STEP 5 / 6'), findsOneWidget);
-      await tester.tap(find.text('Continue'));
-      await beat(tester);
-
-      expect(find.text('STEP 6 / 6'), findsOneWidget);
-      await tester.tap(find.text('Create her companion'));
-      await beat(tester, 1200);
-
-      expect(find.textContaining('companion is ready'), findsOneWidget);
-      expect(state.patient.family.length, 4);
-      expect(state.patient.assets.length, 12);
-      expect(tester.takeException(), isNull);
-    });
-  });
 
   group('every activity opens and plays', () {
     testWidgets('procedure reconstruction', (WidgetTester tester) async {

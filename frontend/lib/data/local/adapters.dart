@@ -240,13 +240,16 @@ class PatientAdapter extends TypeAdapter<Patient> {
       stageNote: f[15] as String? ?? 'Early-stage memory changes',
       joinedOn: f[16] as String? ?? 'Profile created today',
       phoneNumber: f[17] as String? ?? '',
+      // Added after the first release: an older record has no field 18, and
+      // reads back as an empty preference rather than failing to load.
+      favouriteMusic: f[18] as String? ?? '',
     );
   }
 
   @override
   void write(BinaryWriter writer, Patient obj) {
     writer
-      ..writeByte(18)
+      ..writeByte(19)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -282,7 +285,9 @@ class PatientAdapter extends TypeAdapter<Patient> {
       ..writeByte(16)
       ..write(obj.joinedOn)
       ..writeByte(17)
-      ..write(obj.phoneNumber);
+      ..write(obj.phoneNumber)
+      ..writeByte(18)
+      ..write(obj.favouriteMusic);
   }
 }
 

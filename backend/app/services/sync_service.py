@@ -118,31 +118,37 @@ class SyncService:
 
         elif kind == "profileUpdate":
             payload = ProfileUpdatePayload.model_validate(raw_payload)
+            # Only the fields the device actually sent. A screen that edits a
+            # phone number must not blank the family and memories another
+            # screen — or another device — supplied.
+            updates = payload.model_dump(
+                by_alias=False, exclude={"patient_id"}, exclude_none=True
+            )
             existing_patient = await self._patients.get(patient_id)
             if existing_patient is not None:
-                updates = {}
-                if payload.name is not None:
-                    updates["name"] = payload.name
-                if payload.phone_number is not None:
-                    updates["phone_number"] = payload.phone_number
                 if updates:
                     await self._patients.update(existing_patient.model_copy(update=updates))
             else:
-                new_patient = Patient(
-                    id=patient_id,
-                    name=payload.name or "Aama Devi",
-                    short_name=payload.name or "Aama",
-                    age=72,
-                    location="Assam",
-                    language="Assamese",
-                    occupation="Weaver",
-                    favourite_activity="Weaving",
-                    favourite_food="Pitha",
-                    tradition="Magh Bihu",
-                    portrait_scene="portrait_aama",
-                    phone_number=payload.phone_number or "",
+                # A profile arriving for the first time. Nothing is invented
+                # for the gaps: a blank name is a blank name, not a stand-in
+                # person, because a placeholder here is indistinguishable from
+                # a real answer once it is stored.
+                await self._patients.create(
+                    Patient(
+                        id=patient_id,
+                        name=updates.pop("name", ""),
+                        short_name=updates.pop("short_name", ""),
+                        age=updates.pop("age", 0),
+                        location=updates.pop("location", ""),
+                        language=updates.pop("language", ""),
+                        occupation=updates.pop("occupation", ""),
+                        favourite_activity=updates.pop("favourite_activity", ""),
+                        favourite_food=updates.pop("favourite_food", ""),
+                        tradition=updates.pop("tradition", ""),
+                        portrait_scene=updates.pop("portrait_scene", ""),
+                        **updates,
+                    )
                 )
-                await self._patients.create(new_patient)
 
         elif kind == "assessmentUpdate":
             payload = AssessmentUpdatePayload.model_validate(raw_payload)

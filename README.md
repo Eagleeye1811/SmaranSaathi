@@ -643,14 +643,6 @@ The suite covers five layers:
   send staying retryable, and settings, reminders, profile and cognitive scores
   round-tripping.
 
-To render every screen for design review:
-
-```bash
-flutter test test_goldens --update-goldens
-```
-
-Output lands in `test_goldens/goldens/`.
-
 ---
 
 ## Roadmap

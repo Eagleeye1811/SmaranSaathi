@@ -40,9 +40,13 @@ class HivePatientRepository implements PatientRepository {
   @override
   Future<Patient?> current() async => _store.patients.get(_key);
 
+  /// Falls back to a *blank* profile, never to the sample one. Returning
+  /// `MockData.aama` here is what used to make a fresh install open on
+  /// somebody else's name and family: nothing had been saved yet, so every
+  /// read came back as her.
   @override
   Future<Patient> load(String id) async =>
-      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.aama;
+      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.emptyPatient;
 
   @override
   Future<Patient?> byId(String id) async => _store.patients.get(id);
@@ -437,6 +441,7 @@ class HiveSettingsRepository implements SettingsRepository {
       lastAccountId: b.get('lastAccountId') as String?,
       safeZoneJson: b.get('safeZone') as String?,
       localeCode: b.get('localeCode') as String?,
+      patientUsername: b.get('patientUsername') as String?,
     );
   }
 
@@ -452,6 +457,7 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
       if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
       if (settings.localeCode != null) 'localeCode': settings.localeCode,
+      if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
     });
     // A null account means "signed out", which has to *remove* the key —
     // skipping the write would leave the previous uid in the box and reopen

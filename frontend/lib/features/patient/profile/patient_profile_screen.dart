@@ -14,7 +14,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../../core/models/auth_user.dart';
 import '../../../core/services/auth_service.dart';
-import '../../auth/role_selection_screen.dart';
+import '../../auth/auth_role_screen.dart';
 import '../../auth/sign_in_screen.dart';
 import '../../intake/welcome_screens.dart';
 import '../settings/language_selector.dart';
@@ -237,8 +237,14 @@ class PatientProfileScreen extends StatelessWidget {
                                 const Icon(Icons.check_circle_rounded,
                                     color: AppColors.success, size: 20),
                                 const SizedBox(width: 10),
-                                Text(l.settingsAllSynced,
-                                    style: AppText.body.wght(600).tint(AppColors.success)),
+                                // Wrapped because this line is translated and
+                                // rendered at the patient's own text size:
+                                // "All activities synced" fits in English at
+                                // 100%, and overflows in Marathi at 130%.
+                                Expanded(
+                                  child: Text(l.settingsAllSynced,
+                                      style: AppText.body.wght(600).tint(AppColors.success)),
+                                ),
                               ],
                             ),
                           ],
@@ -288,8 +294,16 @@ class PatientProfileScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 190,
                     child: BigButton(
-                      label: l.actionSwitchRole,
-                      icon: Icons.swap_horiz_rounded,
+                      // A caregiver previewing this screen is not the patient
+                      // and must not be able to change the patient's role from
+                      // inside it — the only thing that button can honestly do
+                      // for them is go back to their own app.
+                      label: state.viewingAsPatient
+                          ? l.caregiverBackToCaregiver
+                          : l.actionSwitchRole,
+                      icon: state.viewingAsPatient
+                          ? Icons.arrow_back_rounded
+                          : Icons.swap_horiz_rounded,
                       color: AppColors.inkSoft,
                       outlined: true,
                       height: 62,
@@ -299,8 +313,12 @@ class PatientProfileScreen extends StatelessWidget {
                       // here through `Nav.rootTo`. Clearing the role and
                       // going to the picker works from either entry.
                       onPressed: () {
+                        if (state.viewingAsPatient) {
+                          Navigator.of(context).maybePop();
+                          return;
+                        }
                         AppScope.read(context).setRole(AppRole.none);
-                        Nav.rootTo(context, const RoleSelectionScreen());
+                        Nav.rootTo(context, const AuthRoleScreen());
                       },
                     ),
                   ),
@@ -398,7 +416,10 @@ class _AccountCard extends StatelessWidget {
                     : l.profileSignInToKeepRecord,
               ),
               const SizedBox(height: Insets.md),
-              if (signedIn)
+              // Hidden entirely during a caregiver's preview. The account
+              // signed in here is the *caregiver's*, so this button would sign
+              // them out of their own app from inside somebody else's screen.
+              if (signedIn && !state.viewingAsPatient)
                 BigButton(
                   label: l.profileLogOut,
                   icon: Icons.logout_rounded,
@@ -407,7 +428,7 @@ class _AccountCard extends StatelessWidget {
                   height: 62,
                   onPressed: () => _logOut(context),
                 )
-              else if (service != null)
+              else if (service != null && !state.viewingAsPatient)
                 BigButton(
                   label: l.profileSignIn,
                   icon: Icons.login_rounded,
@@ -558,7 +579,7 @@ class _SwitchRow extends StatelessWidget {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeThumbColor: Colors.white,
+              activeColor: Colors.white,
               activeTrackColor: AppColors.primary,
             ),
           ),

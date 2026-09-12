@@ -23,7 +23,7 @@ import 'wellbeing/wellbeing_screen.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../intake/welcome_screens.dart';
-import 'onboarding/patient_onboarding_flow.dart';
+import '../../l10n/app_localizations.dart';
 
 /// The caregiver application shell with a bottom navigation bar and drawer navigation.
 class CaregiverShell extends StatefulWidget {
@@ -181,7 +181,6 @@ class _CaregiverShellState extends State<CaregiverShell> {
       bottomNavigationBar: _CaregiverBottomNavBar(
         currentIndex: _index,
         onSelectIndex: _go,
-        onAddPatientTap: () => Nav.open(context, const PatientOnboardingFlow()),
       ),
       body: VoiceNavHost(
         destinations: _voiceDestinations,
@@ -522,12 +521,10 @@ class _CaregiverBottomNavBar extends StatelessWidget {
   const _CaregiverBottomNavBar({
     required this.currentIndex,
     required this.onSelectIndex,
-    required this.onAddPatientTap,
   });
 
   final int currentIndex;
   final ValueChanged<int> onSelectIndex;
-  final VoidCallback onAddPatientTap;
 
   @override
   Widget build(BuildContext context) {
@@ -550,6 +547,16 @@ class _CaregiverBottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
+              // Home first. The dashboard is where a caregiver actually lives
+              // and it was previously reachable only through the drawer.
+              _BottomNavItem(
+                icon: Icons.space_dashboard_outlined,
+                activeIcon: Icons.space_dashboard_rounded,
+                label: AppLocalizations.of(context).caregiverNavDashboard,
+                selected: currentIndex == 0,
+                color: AppColors.plum,
+                onTap: () => onSelectIndex(0),
+              ),
               _BottomNavItem(
                 icon: Icons.shield_outlined,
                 activeIcon: Icons.shield_rounded,
@@ -557,14 +564,6 @@ class _CaregiverBottomNavBar extends StatelessWidget {
                 selected: currentIndex == 5,
                 color: AppColors.primary,
                 onTap: () => onSelectIndex(5),
-              ),
-              _BottomNavItem(
-                icon: Icons.person_add_outlined,
-                activeIcon: Icons.person_add_rounded,
-                label: 'Add Patient',
-                selected: false,
-                color: AppColors.plum,
-                onTap: onAddPatientTap,
               ),
               _BottomNavItem(
                 icon: Icons.medical_services_outlined,

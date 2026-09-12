@@ -10,11 +10,10 @@ import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
-import '../auth/role_selection_screen.dart';
-import '../caregiver/caregiver_shell.dart';
+import '../auth/auth_role_screen.dart';
+import '../caregiver/caregiver_entry.dart';
 import '../doctor/doctor_shell.dart';
-import '../patient/patient_entry.dart';
-import '../auth/sign_in_screen.dart';
+import '../patient/patient_shell.dart';
 import '../../l10n/app_localizations.dart';
 import 'intake_kit.dart';
 
@@ -24,63 +23,53 @@ import 'intake_kit.dart';
 /// looks like it might diagnose dementia has to say that it does not, before
 /// the first tap rather than in a settings page.
 ///
-/// This is also where account setup happens. Sign-in sits *after* the welcome
-/// and *before* the intake, so a person sees what the product is before being
-/// asked for an email, and every answer they then give is filed under their
-/// uid. When no auth service is configured — no Firebase, or a pure demo
-/// build — the sign-in step is skipped and the journey is unchanged.
+/// This is the greeting, and the only thing it asks for is a tap. Signing in
+/// and choosing a role both happen on the next screen, [AuthRoleScreen], so a
+/// person sees what the product is before being asked who they are — and the
+/// account stays an offer rather than a gate, because every screen in this app
+/// works without one.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key, this.onGetStarted});
 
   final VoidCallback? onGetStarted;
 
-  /// Sign in if we can, then continue to the role picker.
+  /// Continue to the authentication and role screen.
   ///
-  /// Already signed in from a previous launch? The account is re-bound and the
-  /// sign-in screen is skipped — nobody types their password twice a day.
+  /// Already signed in from a previous launch? The account is re-bound and,
+  /// if that account already chose a role, the screen is skipped entirely —
+  /// nobody answers the same question twice a day. Everyone else lands on
+  /// [AuthRoleScreen], which offers the account and takes the role together.
   static Future<void> continueFrom(BuildContext context) async {
     final AuthService? auth = AuthScope.maybeOf(context);
     final AppState state = AppScope.read(context);
 
-    if (auth == null) {
-      Nav.rootTo(context, const RoleSelectionScreen());
-      return;
-    }
-
-    final AuthUser? existing = auth.currentUser;
+    final AuthUser? existing = auth?.currentUser;
     if (existing != null) {
+      // Bind the assessment to this uid *before* anything is answered, so the
+      // first answer is already filed under the right account.
       await state.signInAccount(existing.uid);
       if (!context.mounted) return;
       Nav.rootTo(context, sessionHome(state));
       return;
     }
 
-    Nav.push(
-      context,
-      SignInScreen(
-        authService: auth,
-        onSkip: () => Nav.rootTo(context, const RoleSelectionScreen()),
-        onSignedIn: (AuthUser user) async {
-          // Bind the assessment to this uid *before* the intake opens, so the
-          // first answer is already filed under the right account.
-          await state.signInAccount(user.uid);
-          if (!context.mounted) return;
-          Nav.rootTo(context, sessionHome(state));
-        },
-      ),
-    );
+    Nav.rootTo(context, const AuthRoleScreen());
   }
 
   /// Where a signed-in person belongs.
   ///
   /// A returning account already chose a role, and asking again is asking a
   /// question the app can answer itself. Only an account with no role yet
-  /// sees the picker.
+  /// sees the authentication screen.
+  ///
+  /// The caregiver goes through [CaregiverEntry] rather than straight to the
+  /// shell, so a returning caregiver who abandoned the onboarding half way
+  /// resumes it instead of landing on a dashboard with nothing behind it.
   static Widget sessionHome(AppState state) => switch (state.role) {
-        AppRole.patient => const PatientEntry(),
-        AppRole.caregiver => const CaregiverShell(),
+        AppRole.patient => const PatientShell(),
+        AppRole.caregiver => const CaregiverEntry(),
         AppRole.doctor => const DoctorShell(),
-        AppRole.none => const RoleSelectionScreen(),
+        AppRole.none => const AuthRoleScreen(),
       };
 
   static List<({IconData icon, String title, String detail})> _pillars(AppLocalizations l) =>

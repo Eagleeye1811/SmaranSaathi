@@ -5,6 +5,7 @@ import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
 import '../models/memory_fragment.dart';
+import '../models/onboarding.dart';
 import '../models/patient.dart';
 import '../services/adaptive_difficulty_service.dart';
 import 'ai_models.dart';
@@ -240,6 +241,20 @@ class PatientAiContext {
       'sleepQuality': intake.medical.sleepQuality?.name,
       'sleepHours': intake.medical.sleepHours,
       'lowMood': intake.medical.lowMood?.name,
+      // The strengths half of the onboarding. This is the part that actually
+      // changes what the companion says: a question built from what someone
+      // still enjoys lands as interest, and the same question built from a
+      // deficit list lands as a test.
+      'stillEnjoys': <String>[
+        for (final EnjoyedActivity e in intake.onboarding.enjoys) e.reportLabel,
+      ],
+      if (intake.onboarding.stillDoesWell.trim().isNotEmpty)
+        'stillDoesWell': intake.onboarding.stillDoesWell.trim(),
+      // What the family asked for, so the companion's suggestions answer their
+      // priorities rather than the product's.
+      'familyAskedForHelpWith': <String>[
+        for (final SupportGoal g in intake.onboarding.goals) g.reportLabel,
+      ],
       if (!redacted) 'hasCaregiver': intake.caregiver != null,
     };
   }

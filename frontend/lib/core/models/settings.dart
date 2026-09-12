@@ -34,6 +34,7 @@ class AppSettings {
     this.lastAccountId,
     this.safeZoneJson,
     this.localeCode,
+    this.patientUsername,
   });
 
   final TextSizePreference textSize;
@@ -45,6 +46,11 @@ class AppSettings {
   /// last picked in `LanguageSelector`. Null means it has never been changed
   /// from the default (English), not that a choice was lost.
   final String? localeCode;
+
+  /// The short name the caregiver claimed for their patient's account. Kept
+  /// with the settings rather than the profile because it identifies the
+  /// account, not the person.
+  final String? patientUsername;
 
   /// The caregiver's manual "work offline" switch, distinct from the device
   /// actually having no connection.

@@ -7,10 +7,10 @@ import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
 
-import '../features/patient/patient_entry.dart';
+import '../features/patient/patient_shell.dart';
 import '../features/auth/splash_screen.dart';
 
-import '../features/caregiver/caregiver_shell.dart';
+import '../features/caregiver/caregiver_entry.dart';
 import '../features/doctor/doctor_shell.dart';
 import 'theme/app_theme.dart';
 
@@ -55,7 +55,8 @@ class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
   late final LocaleController _locale =
       LocaleController(initial: _state.localeCode == null ? null : Locale(_state.localeCode!));
 
-  /// Lets a demo boot straight into one role, skipping the role picker:
+  /// Lets a demo boot straight into one role, skipping the greeting and the
+  /// authentication screen:
   ///
   ///     flutter run --dart-define=MM_START=patient
   ///
@@ -77,12 +78,13 @@ class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
 
   Widget get _home {
     return switch (_startRole) {
-      'patient' => const PatientEntry(),
-      'caregiver' => const CaregiverShell(),
+      'patient' => const PatientShell(),
+      'caregiver' => const CaregiverEntry(),
       'doctor' => const DoctorShell(),
-      // Everyone else starts at the splash. Where it goes next depends on
-      // whether there is a session to return to — `MM_START` skips both, so a
-      // kiosk build and the test suite are unaffected.
+      // Everyone else starts at the splash, then the greeting. Where that
+      // goes next depends on whether there is a session to return to —
+      // `MM_START` skips all of it, so a kiosk build and the test suite are
+      // unaffected.
       _ => SplashScreen(next: _afterSplash),
     };
   }
@@ -91,14 +93,13 @@ class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
   ///
   /// A signed-in person with a role already chosen goes straight to their own
   /// app: `main` has bound their account and loaded their record before the
-  /// first frame, and `PatientEntry` then decides between the questionnaire
-  /// and the dashboard from what they have actually answered. Everyone else
-  /// gets the welcome screen, which explains the product before asking for an
-  /// email.
+  /// first frame, and `CaregiverEntry` then decides between the onboarding and
+  /// the dashboard from what they have actually answered. Everyone else gets
+  /// the greeting, which explains the product before asking who they are.
   Widget get _afterSplash => _state.accountId == null
       ? const WelcomeScreen()
-      // Signed in but never picked a role lands on the picker — one question,
-      // not the whole journey again.
+      // Signed in but never picked a role lands on the authentication screen —
+      // one question, not the whole journey again.
       : WelcomeScreen.sessionHome(_state);
 
   @override
