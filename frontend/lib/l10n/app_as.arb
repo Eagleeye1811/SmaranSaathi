@@ -1678,6 +1678,7 @@
   "onbQuestionNumber": "প্ৰশ্ন {number}",
   "authTitle": "SmaranSaathi-লৈ আপোনাক স্বাগতম",
   "authSubtitle": "মই মিত্ৰা। আপুনি মনত ৰাখিব ভাল পোৱা কথাবোৰৰ লগত মই থাকোঁ।",
+  "authWhoAreYou": "আপুনি কোন?",
   "authContinueWithoutAccount": "একাউণ্ট নোহোৱাকৈ আগবাঢ়ক",
   "authDeviceOnlyNote": "একাউণ্ট নোহোৱাকৈও সকলো কাম কৰে — ছাইন ইন নকৰালৈকে আপোনাৰ উত্তৰবোৰ এই ফোনটোতে থাকে।",
   "authSignOut": "ছাইন আউট",

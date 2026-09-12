@@ -81,13 +81,14 @@ class _DoctorShellState extends State<DoctorShell> {
 
     return Theme(
       data: AppTheme.clinic(),
-      child: Scaffold(
-        backgroundColor: AppColors.clinicBackground,
-        body: VoiceNavHost(
-          destinations: _voiceDestinations,
-          onNavigate: _onVoiceNavigate,
-          accent: AppColors.clinicAccent,
-          child: IndexedStack(
+      child: VoiceNavHost(
+        destinations: _voiceDestinations,
+        onNavigate: _onVoiceNavigate,
+        accent: AppColors.clinicAccent,
+        showFloatingMic: false,
+        child: Scaffold(
+          backgroundColor: AppColors.clinicBackground,
+          body: IndexedStack(
             index: _index,
             children: <Widget>[
               DoctorOverviewScreen(
@@ -103,12 +104,12 @@ class _DoctorShellState extends State<DoctorShell> {
               const DoctorAppointmentsScreen(),
             ],
           ),
-        ),
-        bottomNavigationBar: AppNavBar(
-          destinations: destinations,
-          index: _index,
-          onChanged: _go,
-          accent: AppColors.clinicAccent,
+          bottomNavigationBar: AppNavBar(
+            destinations: destinations,
+            index: _index,
+            onChanged: _go,
+            accent: AppColors.clinicAccent,
+          ),
         ),
       ),
     );

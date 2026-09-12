@@ -723,7 +723,7 @@ class _PermissionNotice extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => onRetry(),
-            child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
+            child: Text(AppLocalizations.of(context).retry),
           ),
         ],
       ),

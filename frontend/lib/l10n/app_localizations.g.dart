@@ -1773,10 +1773,6 @@ const Map<String, String> _strings_as = <String, String>{
   'onbSummaryAnsweredBy': 'উত্তৰ দিয়া জন: {relation}',
   'onbSummaryHelpWith': 'আপুনি এইবোৰত সহায় বিচাৰিছে',
   'onbQuestionNumber': 'প্ৰশ্ন {number}',
-  'doctorSettingsSub': 'অনুমতি, সংযোগৰ অৱস্থা আৰু এপ্লিকেচনৰ পছন্দসমূহ পৰীক্ষা কৰক।',
-  'accountSignedInAs': 'লগ ইন হৈ আছে',
-  'accountRole': 'ভূমিকা: {role}',
-  'safeZoneHomeLabel': 'ঘৰ',
   'authTitle': 'SmaranSaathi-লৈ আপোনাক স্বাগতম',
   'authSubtitle': 'মই মিত্ৰা। আপুনি মনত ৰাখিব ভাল পোৱা কথাবোৰৰ লগত মই থাকোঁ।',
   'authWhoAreYou': 'আপুনি কোন?',
@@ -1877,10 +1873,6 @@ const Map<String, String> _strings_as = <String, String>{
   'pairSignedInAsPatient': '{name} হিচাপে ছাইন ইন',
   'pairPatientUsernameIs': 'তেওঁৰ ব্যৱহাৰকাৰী নাম {username}',
   'pairUnsupported': 'এই চাৰ্ভাৰে এতিয়াও ডিভাইচ ছাইন ইন সমৰ্থন নকৰে। ইয়াক আপডেট কৰিব লাগিব।',
-  'accountSignedInAs': 'লগ ইন হৈ আছে',
-  'accountRole': 'ভূমিকা: {role}',
-  'doctorSettingsSub': 'অনুমতি, সংযোগৰ অৱস্থা আৰু এপ্লিকেচনৰ পছন্দসমূহ পৰীক্ষা কৰক।',
-  'safeZoneHomeLabel': 'ঘৰ',
 };
 
 const Map<String, String> _strings_en = <String, String>{
@@ -3652,10 +3644,6 @@ const Map<String, String> _strings_en = <String, String>{
   'onbSummaryAnsweredBy': 'Answered by: {relation}',
   'onbSummaryHelpWith': 'You asked for help with',
   'onbQuestionNumber': 'Question {number}',
-  'doctorSettingsSub': 'Review permissions, connection status, and application preferences.',
-  'accountSignedInAs': 'Signed in as',
-  'accountRole': 'Role: {role}',
-  'safeZoneHomeLabel': 'Home',
   'authTitle': 'Welcome to SmaranSaathi',
   'authSubtitle': 'I am Mitra. I keep company with the things you love to remember.',
   'authWhoAreYou': 'Who are you?',
@@ -3756,10 +3744,6 @@ const Map<String, String> _strings_en = <String, String>{
   'pairSignedInAsPatient': 'Signed in as {name}',
   'pairPatientUsernameIs': 'Their username is {username}',
   'pairUnsupported': 'This server does not support device sign-in yet. It needs updating.',
-  'accountSignedInAs': 'Signed in as',
-  'accountRole': 'Role: {role}',
-  'doctorSettingsSub': 'Review permissions, connection status and app preferences.',
-  'safeZoneHomeLabel': 'Home',
 };
 
 const Map<String, String> _strings_hi = <String, String>{
@@ -5531,10 +5515,6 @@ const Map<String, String> _strings_hi = <String, String>{
   'onbSummaryAnsweredBy': 'उत्तर देने वाले: {relation}',
   'onbSummaryHelpWith': 'आपने इनमें मदद माँगी',
   'onbQuestionNumber': 'सवाल {number}',
-  'doctorSettingsSub': 'अनुमतियों, कनेक्शन की स्थिति और एप्लिकेशन प्राथमिकताओं की समीक्षा करें।',
-  'accountSignedInAs': 'इस रूप में साइन इन हैं',
-  'accountRole': 'भूमिका: {role}',
-  'safeZoneHomeLabel': 'घर',
   'authTitle': 'SmaranSaathi में आपका स्वागत है',
   'authSubtitle': 'मैं मित्रा हूँ। जो यादें आपको प्यारी हैं, मैं उनके साथ रहती हूँ।',
   'authWhoAreYou': 'आप कौन हैं?',
@@ -5635,10 +5615,6 @@ const Map<String, String> _strings_hi = <String, String>{
   'pairSignedInAsPatient': '{name} के रूप में साइन इन',
   'pairPatientUsernameIs': 'उनका उपयोगकर्ता नाम {username} है',
   'pairUnsupported': 'यह सर्वर अभी डिवाइस साइन इन का समर्थन नहीं करता। इसे अपडेट करना होगा।',
-  'accountSignedInAs': 'इस रूप में साइन इन हैं',
-  'accountRole': 'भूमिका: {role}',
-  'doctorSettingsSub': 'अनुमतियों, कनेक्शन की स्थिति और एप्लिकेशन प्राथमिकताओं की समीक्षा करें।',
-  'safeZoneHomeLabel': 'घर',
 };
 
 const Map<String, Map<String, String>> _byLocale =

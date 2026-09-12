@@ -33,7 +33,7 @@ class DoctorPatientChatService extends ChangeNotifier {
 
     try {
       final Uri uri = Uri.parse('$baseUrl/api/v1/chat/$doctorId/$patientId/messages');
-      final http.Response res = await _client.get(uri);
+      final http.Response res = await _client.get(uri).timeout(const Duration(seconds: 2));
       if (res.statusCode == 200) {
         final List<dynamic> list = jsonDecode(res.body) as List<dynamic>;
         messages = list
@@ -41,7 +41,7 @@ class DoctorPatientChatService extends ChangeNotifier {
             .toList();
       }
     } catch (e) {
-      debugPrint('[ChatService] loadMessages error: $e');
+      debugPrint('[ChatService] loadMessages notice: $e');
       if (messages.isEmpty) {
         // Mock fallback messages for preview
         messages = <ChatMessage>[
@@ -107,9 +107,9 @@ class DoctorPatientChatService extends ChangeNotifier {
           'sender_name': currentUserName,
           'content': text.trim(),
         }),
-      );
+      ).timeout(const Duration(seconds: 2));
     } catch (e) {
-      debugPrint('[ChatService] sendMessage error: $e');
+      debugPrint('[ChatService] sendMessage notice: $e');
     }
   }
 }

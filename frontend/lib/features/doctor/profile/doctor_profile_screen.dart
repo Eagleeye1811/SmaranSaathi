@@ -250,57 +250,6 @@ class DoctorProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: Insets.lg),
 
-
-                FadeInUp(
-                  delayMs: 110,
-                  child: ClinicCard(
-                    padding: const EdgeInsets.all(Insets.lg),
-                    child: Column(
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Icon(
-                              state.offline
-                                  ? Icons.cloud_off_rounded
-                                  : Icons.cloud_done_rounded,
-                              color: state.offline ? AppColors.warning : AppColors.success,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    state.offline ? l.settingsOfflineMode : l.doctorProfileConnected,
-                                    style: CT.body.wght(700),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    state.offline
-                                        ? l.doctorProfileRecordsWaitingSync(state.pendingSync)
-                                        : l.doctorProfileRecordsUpToDate,
-                                    style: CT.caption,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: state.offline,
-                              onChanged: (bool v) {
-                                state.setOffline(v);
-                                if (!v) state.syncNow();
-                              },
-                              activeColor: Colors.white,
-                              activeTrackColor: AppColors.warning,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: Insets.lg),
-
                 // ── The listing families see ──────────────────────────
                 //
                 // Signing up puts a clinician in the caregiver's directory

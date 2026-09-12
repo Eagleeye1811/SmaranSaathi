@@ -195,20 +195,11 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
             const Icon(Icons.event_available_rounded, size: 20, color: AppColors.clinicAccent),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('Availability & Appointment Slots', style: CT.h3.wght(700)),
+              child: Text('Consultation Days', style: CT.h3.wght(700)),
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Select your available consultation days and set slots for caregiver bookings.',
-          style: CT.caption,
-        ),
-        const SizedBox(height: 16),
-        Text('Available Consultation Days', style: CT.body.wght(700)),
-        const SizedBox(height: 2),
-        Text('Tap days to toggle your availability on/off', style: CT.caption),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -234,19 +225,13 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
             );
           }).toList(),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         const Divider(color: AppColors.clinicHairline),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           children: <Widget>[
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('Configured Slots (${slots.length})', style: CT.body.wght(700)),
-                  Text('Live and bookable by caregivers', style: CT.caption),
-                ],
-              ),
+              child: Text('Slots (${slots.length})', style: CT.body.wght(700)),
             ),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -263,7 +248,7 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         // Day filter chips
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -273,7 +258,7 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
               return Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: ChoiceChip(
-                  label: Text(d == 'All' ? 'All Days' : d.substring(0, 3)),
+                  label: Text(d == 'All' ? 'All' : d.substring(0, 3)),
                   selected: isSel,
                   visualDensity: VisualDensity.compact,
                   labelStyle: CT.caption.wght(isSel ? 700 : 500).tint(
@@ -304,7 +289,7 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'No consultation slots for ${_filterDay == "All" ? "any day" : _filterDay}. Tap "+ Add Slot" above to set slots.',
+              'No slots.',
               style: CT.caption,
               textAlign: TextAlign.center,
             ),
@@ -341,15 +326,10 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
                       children: <Widget>[
                         Text(slot.timeLabel, style: CT.bodySmall.wght(700)),
                         const SizedBox(height: 2),
-                        // A patient's name makes this label as long as the
-                        // name is, and a `Row` gives a `PillTag` all the width
-                        // it asks for — 117 px past the edge, for a long one.
                         Align(
                           alignment: Alignment.centerLeft,
                           child: PillTag(
-                            label: slot.isBooked
-                                ? 'Booked by ${slot.bookedByPatient}'
-                                : 'Available for Booking',
+                            label: slot.isBooked ? 'Booked' : 'Available',
                             color: slot.isBooked ? const Color(0xFF2F7FB8) : AppColors.success,
                             dense: true,
                           ),
@@ -358,15 +338,10 @@ class DoctorAvailabilityTabState extends State<DoctorAvailabilityTab> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Delete Slot',
+                    tooltip: 'Delete',
                     icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.clinicInkSoft),
                     onPressed: () {
                       state.removeDoctorSlot(slot.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Removed slot: ${slot.dayLabel} ${slot.timeLabel}'),
-                        ),
-                      );
                     },
                   ),
                 ],

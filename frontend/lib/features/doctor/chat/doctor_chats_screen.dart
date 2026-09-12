@@ -9,7 +9,7 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../widgets/clinic_widgets.dart';
-import 'doctor_chat_conversation_screen.dart';
+import '../../chat/doctor_patient_chat_screen.dart';
 
 /// Conversation list screen for clinicians to connect with patients and caregivers.
 /// Fully aligned with SmaranSaathi clinic design system and aesthetic standards.
@@ -53,7 +53,13 @@ class _DoctorChatsScreenState extends State<DoctorChatsScreen> {
     state.markDoctorConversationRead(conv.patientId);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => DoctorChatConversationScreen(patientId: conv.patientId),
+        builder: (_) => DoctorPatientChatScreen(
+          doctorId: 'doc_001',
+          patientId: conv.patientId,
+          patientName: conv.patientName,
+          doctorName: 'Dr. Sharma',
+          isDoctor: true,
+        ),
       ),
     );
   }
@@ -147,7 +153,7 @@ class _DoctorChatsScreenState extends State<DoctorChatsScreen> {
             ),
           ),
 
-          // Conversation List
+          // Conversation List (WhatsApp-style single list with thin divider between patients)
           Expanded(
             child: filtered.isEmpty
                 ? EmptyState(
@@ -155,168 +161,194 @@ class _DoctorChatsScreenState extends State<DoctorChatsScreen> {
                     message: 'Try a different search query or filter to find patient messages.',
                     icon: Icons.chat_bubble_outline_rounded,
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(Insets.gutter, 4, Insets.gutter, 32),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (BuildContext context, int i) {
-                      final DoctorConversation conv = filtered[i];
-                      final ChatMessage? last = conv.lastMessage;
-                      final bool hasUnread = conv.unreadCount > 0;
+                : Container(
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        top: BorderSide(color: AppColors.clinicHairline, width: 1),
+                      ),
+                    ),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 32),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(
+                        height: 1,
+                        thickness: 0.8,
+                        indent: 78,
+                        endIndent: Insets.gutter,
+                        color: AppColors.clinicHairline,
+                      ),
+                      itemBuilder: (BuildContext context, int i) {
+                        final DoctorConversation conv = filtered[i];
+                        final ChatMessage? last = conv.lastMessage;
+                        final bool hasUnread = conv.unreadCount > 0;
 
-                      return ClinicCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        accentEdge: conv.isAttention
-                            ? AppColors.danger
-                            : (hasUnread ? AppColors.clinicAccent : null),
-                        onTap: () => _openChat(context, conv),
-                        child: Row(
-                          children: <Widget>[
-                            // Profile Avatar: Clean circular portrait with NO circular status outline
-                            Stack(
-                              children: <Widget>[
-                                SceneImage(
-                                  sceneId: conv.sceneId,
-                                  size: 48,
-                                  circle: true,
-                                ),
-                                if (conv.isOnline)
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: Container(
-                                      width: 11,
-                                      height: 11,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.success,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 1.5),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(width: 14),
-
-                            // Conversation Details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _openChat(context, conv),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: Insets.gutter,
+                                vertical: 12,
+                              ),
+                              child: Row(
                                 children: <Widget>[
-                                  // Patient name & timestamp
-                                  Row(
+                                  // Profile Avatar: Clean circular portrait with NO status outline ring
+                                  Stack(
                                     children: <Widget>[
-                                      Expanded(
-                                        child: Text(
-                                          conv.patientName,
-                                          style: CT.body.wght(700),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      SceneImage(
+                                        sceneId: conv.sceneId,
+                                        size: 48,
+                                        circle: true,
                                       ),
-                                      if (last != null)
-                                        Text(
-                                          _formatTime(last.timestamp),
-                                          style: CT.caption.sized(11.5).copyWith(
-                                            color: hasUnread
-                                                ? AppColors.clinicAccent
-                                                : AppColors.clinicInkSoft,
-                                            fontWeight:
-                                                hasUnread ? FontWeight.w700 : FontWeight.w500,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2),
-
-                                  // Caregiver & demographics
-                                  Text.rich(
-                                    TextSpan(
-                                      children: <InlineSpan>[
-                                        TextSpan(
-                                          text: conv.caregiverName,
-                                          style: CT.caption.sized(12).copyWith(
-                                            color: AppColors.clinicAccent,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        TextSpan(
-                                          text: ' · ${conv.patientAge}y · ${conv.district}',
-                                          style: CT.caption.sized(11.5),
-                                        ),
-                                      ],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 5),
-
-                                  // Message preview & badges
-                                  Row(
-                                    children: <Widget>[
-                                      if (last != null && last.isFromDoctor) ...<Widget>[
-                                        Icon(
-                                          Icons.done_all_rounded,
-                                          size: 15,
-                                          color: last.status == MessageStatus.read
-                                              ? AppColors.secondary
-                                              : AppColors.inkMuted,
-                                        ),
-                                        const SizedBox(width: 4),
-                                      ],
-                                      Expanded(
-                                        child: Text(
-                                          last != null
-                                              ? (last.attachmentType != null
-                                                  ? '📎 ${last.attachmentTitle ?? 'Clinical Resource'}'
-                                                  : last.text)
-                                              : 'No messages yet · Tap to start',
-                                          style: CT.caption.sized(12.5).copyWith(
-                                            color: hasUnread
-                                                ? AppColors.clinicInk
-                                                : AppColors.clinicInkSoft,
-                                            fontWeight:
-                                                hasUnread ? FontWeight.w700 : FontWeight.w400,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      if (hasUnread) ...<Widget>[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 7, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.clinicAccent,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            '${conv.unreadCount}',
-                                            style: CT.caption.sized(11).copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
+                                      if (conv.isOnline)
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: AppColors.success,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: Colors.white,
+                                                width: 1.8,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ],
-                                      if (conv.isAttention && !hasUnread) ...<Widget>[
-                                        const SizedBox(width: 8),
-                                        PillTag(
-                                          label: 'Attention',
-                                          color: AppColors.danger,
-                                          dense: true,
+                                    ],
+                                  ),
+                                  const SizedBox(width: 14),
+
+                                  // Conversation Details
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        // Patient name & timestamp
+                                        Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: Text(
+                                                conv.patientName,
+                                                style: CT.body.wght(700),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (last != null) ...<Widget>[
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                _formatTime(last.timestamp),
+                                                style: CT.caption.sized(11.5).copyWith(
+                                                  color: hasUnread
+                                                      ? AppColors.clinicAccent
+                                                      : AppColors.clinicInkSoft,
+                                                  fontWeight: hasUnread
+                                                      ? FontWeight.w700
+                                                      : FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 2),
+
+                                        // Caregiver & demographics
+                                        Text.rich(
+                                          TextSpan(
+                                            children: <InlineSpan>[
+                                              TextSpan(
+                                                text: conv.caregiverName,
+                                                style: CT.caption.sized(12).copyWith(
+                                                  color: AppColors.clinicAccent,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              TextSpan(
+                                                text: ' · ${conv.patientAge}y · ${conv.district}',
+                                                style: CT.caption.sized(11.5),
+                                              ),
+                                            ],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 5),
+
+                                        // Message preview & badges
+                                        Row(
+                                          children: <Widget>[
+                                            if (last != null && last.isFromDoctor) ...<Widget>[
+                                              Icon(
+                                                Icons.done_all_rounded,
+                                                size: 15,
+                                                color: last.status == MessageStatus.read
+                                                    ? AppColors.secondary
+                                                    : AppColors.inkMuted,
+                                              ),
+                                              const SizedBox(width: 4),
+                                            ],
+                                            Expanded(
+                                              child: Text(
+                                                last != null
+                                                    ? (last.attachmentType != null
+                                                        ? '📎 ${last.attachmentTitle ?? 'Clinical Resource'}'
+                                                        : last.text)
+                                                    : 'No messages yet · Tap to start',
+                                                style: CT.caption.sized(12.5).copyWith(
+                                                  color: hasUnread
+                                                      ? AppColors.clinicInk
+                                                      : AppColors.clinicInkSoft,
+                                                  fontWeight: hasUnread
+                                                      ? FontWeight.w700
+                                                      : FontWeight.w400,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            if (hasUnread) ...<Widget>[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                    horizontal: 7, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.clinicAccent,
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Text(
+                                                  '${conv.unreadCount}',
+                                                  style: CT.caption.sized(11).copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                            if (conv.isAttention && !hasUnread) ...<Widget>[
+                                              const SizedBox(width: 8),
+                                              PillTag(
+                                                label: 'Attention',
+                                                color: AppColors.danger,
+                                                dense: true,
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],

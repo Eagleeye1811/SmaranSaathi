@@ -133,17 +133,18 @@ class _CaregiverShellState extends State<CaregiverShell> {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: _CaregiverBottomNavBar(
-        currentIndex: _index,
-        onSelectIndex: _go,
-      ),
-      body: VoiceNavHost(
-        destinations: _voiceDestinations,
-        onNavigate: _onVoiceNavigate,
-        accent: AppColors.primary,
-        child: Column(
+    return VoiceNavHost(
+      destinations: _voiceDestinations,
+      onNavigate: _onVoiceNavigate,
+      accent: AppColors.primary,
+      showFloatingMic: false,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        bottomNavigationBar: _CaregiverBottomNavBar(
+          currentIndex: _index,
+          onSelectIndex: _go,
+        ),
+        body: Column(
           children: <Widget>[
             // ── Top app bar ─────────────────────────────────────────────
             SafeArea(
@@ -344,7 +345,12 @@ class _CaregiverBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final VoiceNavHostState? voiceNav = VoiceNavScope.maybeOf(context);
+    const double bulge = 22.0;
+    const double micDiameter = 64.0;
+    final List<_BottomDest> dests = destinations(context);
+
+    final Widget barContent = Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(top: BorderSide(color: AppColors.hairline)),
@@ -361,31 +367,66 @@ class _CaregiverBottomNavBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
-              for (final _BottomDest d in destinations(context))
+              // Left side: Dashboard, Family
+              for (int i = 0; i < 2 && i < dests.length; i++)
                 _BottomNavItem(
-                  icon: d.icon,
-                  activeIcon: d.activeIcon,
-                  label: d.label,
-                  selected: currentIndex == d.index,
-                  color: d.color,
-                  onTap: () => onSelectIndex(d.index),
+                  icon: dests[i].icon,
+                  activeIcon: dests[i].activeIcon,
+                  label: dests[i].label,
+                  selected: currentIndex == dests[i].index,
+                  color: dests[i].color,
+                  onTap: () => onSelectIndex(dests[i].index),
+                ),
+              if (voiceNav != null) const SizedBox(width: 74),
+              // Right side: Doctors, Reports
+              for (int i = 2; i < dests.length; i++)
+                _BottomNavItem(
+                  icon: dests[i].icon,
+                  activeIcon: dests[i].activeIcon,
+                  label: dests[i].label,
+                  selected: currentIndex == dests[i].index,
+                  color: dests[i].color,
+                  onTap: () => onSelectIndex(dests[i].index),
                 ),
             ],
           ),
         ),
       ),
     );
+
+    if (voiceNav == null) {
+      return barContent;
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(top: bulge),
+          child: barContent,
+        ),
+        Positioned(
+          top: 0,
+          child: VoiceMicButton(
+            accent: AppColors.primary,
+            diameter: micDiameter,
+            iconSize: 32,
+            elevation: 6,
+            borderWidth: 4.0,
+            borderColor: Colors.white,
+            onTap: voiceNav.openPanel,
+          ),
+        ),
+      ],
+    );
   }
 
-  /// The bar's five destinations, in the order a caregiver's day runs: today,
-  /// who is around them, where they are, who is treating them, the record.
-  ///
-  /// Reminders and the caregiver's own profile sit in the header instead —
-  /// both are things you reach for at a moment rather than places you browse,
-  /// and five is what a thumb can pick between on a 360 px phone. Mood &
-  /// Wellbeing opens from the mood tile on the dashboard.
+  /// The bar's four destinations, arranged symmetrically around the center mic:
+  /// Left: Dashboard, Family
+  /// Center: Voice Mic
+  /// Right: Doctors, Reports
   static List<_BottomDest> destinations(BuildContext context) => <_BottomDest>[
         _BottomDest(
           index: 0,
@@ -400,13 +441,6 @@ class _CaregiverBottomNavBar extends StatelessWidget {
           activeIcon: Icons.groups_2_rounded,
           label: 'Family',
           color: AppColors.terracotta,
-        ),
-        const _BottomDest(
-          index: 3,
-          icon: Icons.location_on_outlined,
-          activeIcon: Icons.location_on_rounded,
-          label: 'Safe Zone',
-          color: AppColors.primary,
         ),
         const _BottomDest(
           index: 4,

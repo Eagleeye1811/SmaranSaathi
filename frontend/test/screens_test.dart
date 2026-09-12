@@ -365,7 +365,6 @@ void main() {
         // Every destination on the bar, then back to the dashboard.
         for (final String dest in <String>[
           'Family',
-          'Safe Zone',
           'Doctors',
           'Reports',
           'Dashboard',
@@ -494,9 +493,9 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await scrollTo(tester, 'Set a safe zone');
+      await tester.tap(find.text('Set a safe zone'));
       await beat(tester);
-
-      await goToTab(tester, 'Safe Zone');
 
       // The shell already draws a header; the page must not add a second one.
       expect(find.byType(AppBar), findsNothing);
@@ -778,7 +777,7 @@ void main() {
       await beat(tester);
       expect(tester.takeException(), isNull);
 
-      for (final String tab in <String>['Activities', 'Companion', 'Profile']) {
+      for (final String tab in <String>['Activities', 'Wellness', 'Companion']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
         final dynamic err = tester.takeException();

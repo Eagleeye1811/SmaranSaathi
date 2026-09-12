@@ -31,13 +31,6 @@ class DoctorOverviewScreen extends StatelessWidget {
   final ValueChanged<int>? onOpenTab;
   final VoidCallback? onOpenProfile;
 
-  String _greetingText() {
-    final int hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
-
   String _dateLabel() {
     final DateTime now = DateTime.now();
     const List<String> weekdays = <String>[
@@ -63,6 +56,9 @@ class DoctorOverviewScreen extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
+    final String docName = (state.myDoctorProfile?.displayName.trim().isNotEmpty ?? false)
+        ? state.myDoctorProfile!.displayName.trim()
+        : MockData.doctorName;
 
     final List<DoctorAppointment> todayAppts = state.doctorAppointments
         .where((DoctorAppointment a) => a.dateLabel.toLowerCase() == 'today')
@@ -125,8 +121,8 @@ class DoctorOverviewScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
                               Text(
-                                _greetingText(),
-                                style: CT.h1.sized(26).wght(800),
+                                'Good morning, $docName',
+                                style: CT.h1.sized(24).wght(800),
                               ),
                               const SizedBox(height: 3),
                               Text(
@@ -310,29 +306,7 @@ class DoctorOverviewScreen extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                if (appt.isVirtual)
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.clinicAccent,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      visualDensity: VisualDensity.compact,
-                                      elevation: 0,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) => AppointmentDetailScreen(
-                                            appointment: appt,
-                                            autoLaunchVideo: true,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(l.doctorApptJoin, style: CT.caption.wght(700).tint(Colors.white)),
-                                  )
-                                else
-                                  const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
+                                const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
                               ],
                             ),
                           ),

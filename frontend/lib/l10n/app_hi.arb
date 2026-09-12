@@ -1678,6 +1678,7 @@
   "onbQuestionNumber": "सवाल {number}",
   "authTitle": "SmaranSaathi में आपका स्वागत है",
   "authSubtitle": "मैं मित्रा हूँ। जो यादें आपको प्यारी हैं, मैं उनके साथ रहती हूँ।",
+  "authWhoAreYou": "आप कौन हैं?",
   "authContinueWithoutAccount": "बिना खाते के आगे बढ़ें",
   "authDeviceOnlyNote": "बिना खाते के भी सब काम करता है — साइन इन करने तक आपके जवाब इसी फ़ोन पर रहते हैं।",
   "authSignOut": "साइन आउट",

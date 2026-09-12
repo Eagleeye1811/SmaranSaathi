@@ -1463,6 +1463,51 @@ class MockData {
           ),
         ],
       ),
+      DoctorConversation(
+        patientId: 'p_atsu',
+        patientName: 'Atsuho Zhimomi',
+        caregiverName: 'Kikheto Zhimomi (Son)',
+        patientAge: 73,
+        district: 'Dimapur, Nagaland',
+        sceneId: 'portrait_priya',
+        isOnline: true,
+        lastSeen: 'Online',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_atsu_1',
+            conversationId: 'p_atsu',
+            text: 'Good morning Dr. Sharma. Atsuho completed his morning reasoning activity today.',
+            timestamp: now.subtract(const Duration(hours: 4, minutes: 15)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_2',
+            conversationId: 'p_atsu',
+            text: 'Hello Kikheto. His cognitive stability score looks consistent at 66%. How is his orientation in the evenings?',
+            timestamp: now.subtract(const Duration(hours: 3, minutes: 50)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_3',
+            conversationId: 'p_atsu',
+            text: 'He was calm yesterday evening after we played the melody activity together. Sleeping soundly through the night.',
+            timestamp: now.subtract(const Duration(hours: 2, minutes: 10)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_4',
+            conversationId: 'p_atsu',
+            text: 'Excellent. Let us schedule our regular video check-in this Thursday at 4 PM to review progress.',
+            timestamp: now.subtract(const Duration(minutes: 40)),
+            isFromDoctor: true,
+            status: MessageStatus.delivered,
+          ),
+        ],
+      ),
     ];
   }
 }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -12,7 +12,6 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../../l10n/mock_translator.dart';
-import '../../../l10n/content_labels.dart';
 
 /// Reminder management for the caregiver, grouped by category.
 class CaregiverRemindersScreen extends StatelessWidget {
