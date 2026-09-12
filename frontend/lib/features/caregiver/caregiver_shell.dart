@@ -3,29 +3,29 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
+import '../../core/models/daily.dart';
 import '../../core/services/app_state.dart';
-import '../../core/services/auth_service.dart';
 import '../../core/voice/voice_nav_intent.dart';
-import '../../core/widgets/brand.dart';
-import '../../core/widgets/illustration.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/widgets/voice_nav_host.dart';
-import 'activity/caregiver_activity_screen.dart';
 import 'dashboard/caregiver_dashboard_screen.dart';
 import 'doctor/doctor_care_screen.dart';
 import 'memory_profile/memory_profile_screen.dart';
 import 'profile/caregiver_profile_screen.dart';
-import 'progress/patient_progress_screen.dart';
 import 'reminders/caregiver_reminders_screen.dart';
 import 'reports/reports_screen.dart';
 import 'safety/safe_zone_screen.dart';
 import 'wellbeing/wellbeing_screen.dart';
 
-import '../../app/routes/app_routes.dart';
-import '../intake/welcome_screens.dart';
 import '../../l10n/app_localizations.dart';
 
-/// The caregiver application shell with a bottom navigation bar and drawer navigation.
+/// The caregiver application shell.
+///
+/// Every destination is on the bottom bar. There is no drawer: it held the
+/// same list one scroll further away, and the two items that only lived there
+/// — the caregiver's own profile, and the way out of the account — were the
+/// ones people could not find. Signing out now belongs to that profile page,
+/// which the bar reaches in one tap.
 class CaregiverShell extends StatefulWidget {
   const CaregiverShell({super.key});
 
@@ -35,32 +35,6 @@ class CaregiverShell extends StatefulWidget {
 
 class _CaregiverShellState extends State<CaregiverShell> {
   int _index = 0;
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  Future<void> _handleLogout(BuildContext context) async {
-    Navigator.of(context).maybePop();
-    final AppState state = AppScope.read(context);
-    final AuthService? service = AuthScope.maybeOf(context);
-    await state.signOutAccount();
-    state.setRole(AppRole.none);
-    if (service != null) {
-      try {
-        await service.signOut();
-      } catch (error) {
-        debugPrint('CaregiverShell: sign out failed ($error)');
-      }
-    }
-    if (!context.mounted) return;
-    Nav.rootTo(context, const WelcomeScreen());
-  }
-
-  Future<void> _handleSwitchRole(BuildContext context) async {
-    Navigator.of(context).maybePop();
-    final AppState state = AppScope.read(context);
-    state.setRole(AppRole.none);
-    if (!context.mounted) return;
-    Nav.rootTo(context, const WelcomeScreen());
-  }
 
   // ── Navigation destinations ──────────────────────────────────────────────
 
@@ -69,14 +43,6 @@ class _CaregiverShellState extends State<CaregiverShell> {
         label: 'Overview',
         icon: Icons.space_dashboard_outlined,
         activeIcon: Icons.space_dashboard_rounded),
-    _NavDest(
-        label: 'Patient Progress',
-        icon: Icons.show_chart_outlined,
-        activeIcon: Icons.show_chart_rounded),
-    _NavDest(
-        label: 'Cognitive Activities',
-        icon: Icons.insights_outlined,
-        activeIcon: Icons.insights_rounded),
     _NavDest(
         label: 'Mood & Wellbeing',
         icon: Icons.sentiment_satisfied_outlined,
@@ -101,16 +67,16 @@ class _CaregiverShellState extends State<CaregiverShell> {
         label: 'Reminders',
         icon: Icons.notifications_none_rounded,
         activeIcon: Icons.notifications_rounded),
+    // The caregiver's own page, not the patient's — it holds their name and
+    // relation, the patient-facing accessibility settings they control, and
+    // the way out of the account.
     _NavDest(
-        label: 'Patient Profile',
+        label: 'My Profile',
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded),
   ];
 
-  void _go(int i) {
-    setState(() => _index = i);
-    _scaffoldKey.currentState?.closeDrawer();
-  }
+  void _go(int i) => setState(() => _index = i);
 
   // ── Voice navigation ─────────────────────────────────────────────────────
 
@@ -130,16 +96,19 @@ class _CaregiverShellState extends State<CaregiverShell> {
       case VoiceDestination.dashboard:
       case VoiceDestination.home:
         _go(0);
+      // "show me the patient" lands on their profile, and "the activity log"
+      // on the dashboard: the progress and activity analytics that used to
+      // answer both now sit on the dashboard itself.
       case VoiceDestination.patient:
-        _go(1);
+        _go(7);
       case VoiceDestination.activityLog:
-        _go(2);
+        _go(0);
       case VoiceDestination.reminders:
-        _go(8);
+        _go(6);
       case VoiceDestination.profile:
-        _go(9);
+        _go(7);
       case VoiceDestination.safeZone:
-        _go(5);
+        _go(3);
       default:
         return false;
     }
@@ -150,15 +119,13 @@ class _CaregiverShellState extends State<CaregiverShell> {
 
   Widget _page(int i) => switch (i) {
         0 => CaregiverDashboardScreen(onOpenTab: _go),
-        1 => const PatientProgressScreen(),
-        2 => const CaregiverActivityScreen(),
-        3 => const WellbeingScreen(),
-        4 => const MemoryProfileScreen(),
-        5 => const SafeZoneScreen(),
-        6 => const DoctorCareScreen(),
-        7 => const ReportsScreen(),
-        8 => const CaregiverRemindersScreen(),
-        9 => const CaregiverProfileScreen(),
+        1 => const WellbeingScreen(),
+        2 => const MemoryProfileScreen(),
+        3 => const SafeZoneScreen(),
+        4 => const DoctorCareScreen(),
+        5 => const ReportsScreen(),
+        6 => const CaregiverRemindersScreen(),
+        7 => CaregiverProfileScreen(onOpenTab: _go),
         _ => const CaregiverDashboardScreen(),
       };
 
@@ -167,17 +134,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
     final AppState state = AppScope.of(context);
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      drawer: _CaregiverDrawer(
-        patient: state.patient,
-        caregiverName: 'Priya',
-        index: _index,
-        destinations: _destinations,
-        onSelect: _go,
-        onSignOut: () => _handleSwitchRole(context),
-        onLogOut: () => _handleLogout(context),
-      ),
       bottomNavigationBar: _CaregiverBottomNavBar(
         currentIndex: _index,
         onSelectIndex: _go,
@@ -188,14 +145,14 @@ class _CaregiverShellState extends State<CaregiverShell> {
         accent: AppColors.primary,
         child: Column(
           children: <Widget>[
-            // ── Top app bar with hamburger ──────────────────────────────
+            // ── Top app bar ─────────────────────────────────────────────
             SafeArea(
               bottom: false,
               child: _CaregiverTopAppBar(
                 title: _destinations[_index].label,
-                onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-                onHomeTap: _index != 0 ? () => _go(0) : null,
                 state: state,
+                index: _index,
+                onGo: _go,
               ),
             ),
             // ── Page body ───────────────────────────────────────────────
@@ -218,37 +175,24 @@ class _CaregiverShellState extends State<CaregiverShell> {
 class _CaregiverTopAppBar extends StatelessWidget {
   const _CaregiverTopAppBar({
     required this.title,
-    required this.onMenuTap,
-    this.onHomeTap,
     required this.state,
+    required this.index,
+    required this.onGo,
   });
+
   final String title;
-  final VoidCallback onMenuTap;
-  final VoidCallback? onHomeTap;
   final AppState state;
+
+  /// The destination currently showing, so the header can mark its own two.
+  final int index;
+  final ValueChanged<int> onGo;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+      padding: const EdgeInsets.fromLTRB(Insets.gutter, 4, 12, 4),
       child: Row(
         children: <Widget>[
-          RoundIconButton(
-            icon: Icons.menu_rounded,
-            size: 34,
-            onPressed: onMenuTap,
-            tooltip: 'Open navigation',
-          ),
-          if (onHomeTap != null) ...<Widget>[
-            const SizedBox(width: 2),
-            RoundIconButton(
-              icon: Icons.home_rounded,
-              size: 34,
-              onPressed: onHomeTap!,
-              tooltip: 'Overview dashboard',
-            ),
-          ],
-          const SizedBox(width: 6),
           Expanded(
             child: Text(
               title,
@@ -258,36 +202,6 @@ class _CaregiverTopAppBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          // Notification bell (mock badge)
-          Stack(
-            clipBehavior: Clip.none,
-            children: <Widget>[
-              RoundIconButton(
-                icon: Icons.notifications_outlined,
-                size: 34,
-                tooltip: 'Notifications',
-                onPressed: () {},
-              ),
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  width: 15,
-                  height: 15,
-                  decoration: const BoxDecoration(
-                    color: AppColors.terracotta,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text('3',
-                        style: AppText.caption
-                            .tint(Colors.white)
-                            .copyWith(fontSize: 9)),
-                  ),
-                ),
-              ),
-            ],
-          ),
           // Connectivity indicator
           if (state.offline)
             const Padding(
@@ -300,203 +214,104 @@ class _CaregiverTopAppBar extends StatelessWidget {
               child: SyncStatusChip(
                   label: 'Syncing…', isOffline: false),
             ),
+
+          // ── Reminders and the account ───────────────────────────────
+          //
+          // Top right rather than on the bar: both are reached for at a
+          // moment — "mark the tablets done", "log out" — rather than
+          // browsed, and taking them off the bar leaves five destinations,
+          // which is what a thumb can pick between on a small phone.
+          const SizedBox(width: 4),
+          _HeaderAction(
+            icon: Icons.notifications_none_rounded,
+            activeIcon: Icons.notifications_rounded,
+            selected: index == 6,
+            color: AppColors.terracotta,
+            tooltip: 'Reminders',
+            // The count of what is still owed today, so the header answers
+            // the question without being opened.
+            badge: state.reminders.where((Reminder r) => !r.done).length,
+            onTap: () => onGo(6),
+          ),
+          const SizedBox(width: 6),
+          _HeaderAction(
+            icon: Icons.person_outline_rounded,
+            activeIcon: Icons.person_rounded,
+            selected: index == 7,
+            color: AppColors.indigo,
+            tooltip: 'My profile',
+            onTap: () => onGo(7),
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Navigation Drawer ─────────────────────────────────────────────────────────
-
-class _CaregiverDrawer extends StatelessWidget {
-  const _CaregiverDrawer({
-    required this.patient,
-    required this.caregiverName,
-    required this.index,
-    required this.destinations,
-    required this.onSelect,
-    required this.onSignOut,
-    required this.onLogOut,
+/// A round header button, marked when its own page is showing.
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.activeIcon,
+    required this.selected,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = 0,
   });
 
-  final dynamic patient; // Patient
-  final String caregiverName;
-  final int index;
-  final List<_NavDest> destinations;
-  final ValueChanged<int> onSelect;
-  final VoidCallback onSignOut;
-  final VoidCallback onLogOut;
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.background,
-      width: 280,
-      child: Column(
-        children: <Widget>[
-          // ── Drawer header ────────────────────────────────────────────
-          SafeArea(
-            bottom: false,
-            child: _DrawerHeader(
-                patient: patient, caregiverName: caregiverName),
-          ),
-          const Divider(color: AppColors.hairline, height: 1),
-          // ── Nav items ─────────────────────────────────────────────────
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              children: <Widget>[
-                for (int i = 0; i < destinations.length; i++)
-                  _NavItem(
-                    dest: destinations[i],
-                    selected: index == i,
-                    onTap: () => onSelect(i),
-                  ),
-              ],
-            ),
-          ),
-          const Divider(color: AppColors.hairline, height: 1),
-          // ── Footer ────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.all(Insets.md),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListRow(
-                  leading: const SoftIcon(
-                      icon: Icons.swap_horiz_rounded,
-                      color: AppColors.inkMuted,
-                      size: 38),
-                  title: 'Switch Role',
-                  subtitle: 'Return to role selector',
-                  onTap: onSignOut,
-                ),
-                const SizedBox(height: 4),
-                ListRow(
-                  leading: const SoftIcon(
-                      icon: Icons.logout_rounded,
-                      color: AppColors.danger,
-                      size: 38),
-                  title: 'Log Out',
-                  subtitle: 'Sign out of your account',
-                  onTap: onLogOut,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _DrawerHeader extends StatelessWidget {
-  const _DrawerHeader({required this.patient, required this.caregiverName});
-  final dynamic patient;
-  final String caregiverName;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(Insets.lg, Insets.lg, Insets.lg, 14),
-      color: AppColors.primaryTint.withValues(alpha: 0.5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const BrandMark(size: 30),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('SmaranSaathi', style: AppText.h3.tint(AppColors.primaryDeep)),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.md),
-          Text('CARING FOR', style: AppText.overline),
-          const SizedBox(height: 6),
-          Row(
-            children: <Widget>[
-              SceneImage(
-                sceneId: patient.portraitScene as String,
-                size: 44,
-                circle: true,
-                borderColor: Colors.white,
-                borderWidth: 2,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(patient.name as String,
-                        style: AppText.body.wght(700),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    Text('${patient.age} years · ${patient.location}',
-                        style: AppText.caption,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text('Caregiver: $caregiverName', style: AppText.caption),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem(
-      {required this.dest, required this.selected, required this.onTap});
-  final _NavDest dest;
+  final IconData icon;
+  final IconData activeIcon;
   final bool selected;
+  final Color color;
+  final String tooltip;
   final VoidCallback onTap;
 
+  /// Drawn as a dot in the corner when non-zero; no number, because the
+  /// number is on the page and a two-digit badge on a 38 px circle is not
+  /// readable anyway.
+  final int badge;
+
   @override
   Widget build(BuildContext context) {
-    final Color color =
-        selected ? AppColors.primary : AppColors.inkSoft;
-    final Color bg =
-        selected ? AppColors.primary.withValues(alpha: 0.10) : Colors.transparent;
-
-    return Pressable(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: Corners.r(Corners.md),
-        ),
-        child: Row(
+    return Tooltip(
+      message: tooltip,
+      child: Pressable(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
           children: <Widget>[
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
+            AnimatedContainer(
+              duration: Motion.quick,
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: selected ? color : AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected ? color : AppColors.hairline,
+                ),
+              ),
               child: Icon(
-                selected ? dest.activeIcon : dest.icon,
-                key: ValueKey<bool>(selected),
-                size: 22,
-                color: color,
+                selected ? activeIcon : icon,
+                size: 19,
+                color: selected ? Colors.white : AppColors.inkSoft,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                dest.label,
-                style: AppText.body
-                    .wght(selected ? 700 : 500)
-                    .tint(color),
+            if (badge > 0 && !selected)
+              Positioned(
+                right: -1,
+                top: -1,
+                child: Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.background, width: 2),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -504,7 +319,6 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-@immutable
 class _NavDest {
   const _NavDest(
       {required this.label,
@@ -547,54 +361,84 @@ class _CaregiverBottomNavBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
-              // Home first. The dashboard is where a caregiver actually lives
-              // and it was previously reachable only through the drawer.
-              _BottomNavItem(
-                icon: Icons.space_dashboard_outlined,
-                activeIcon: Icons.space_dashboard_rounded,
-                label: AppLocalizations.of(context).caregiverNavDashboard,
-                selected: currentIndex == 0,
-                color: AppColors.plum,
-                onTap: () => onSelectIndex(0),
-              ),
-              _BottomNavItem(
-                icon: Icons.shield_outlined,
-                activeIcon: Icons.shield_rounded,
-                label: 'Safe Zone',
-                selected: currentIndex == 5,
-                color: AppColors.primary,
-                onTap: () => onSelectIndex(5),
-              ),
-              _BottomNavItem(
-                icon: Icons.medical_services_outlined,
-                activeIcon: Icons.medical_services_rounded,
-                label: 'Doctors',
-                selected: currentIndex == 6,
-                color: AppColors.secondary,
-                onTap: () => onSelectIndex(6),
-              ),
-              _BottomNavItem(
-                icon: Icons.insert_chart_outlined_rounded,
-                activeIcon: Icons.insert_chart_rounded,
-                label: 'Reports',
-                selected: currentIndex == 7,
-                color: AppColors.seriesTeal,
-                onTap: () => onSelectIndex(7),
-              ),
-              _BottomNavItem(
-                icon: Icons.notifications_none_rounded,
-                activeIcon: Icons.notifications_rounded,
-                label: 'Reminders',
-                selected: currentIndex == 8,
-                color: AppColors.terracotta,
-                onTap: () => onSelectIndex(8),
-              ),
+              for (final _BottomDest d in destinations(context))
+                _BottomNavItem(
+                  icon: d.icon,
+                  activeIcon: d.activeIcon,
+                  label: d.label,
+                  selected: currentIndex == d.index,
+                  color: d.color,
+                  onTap: () => onSelectIndex(d.index),
+                ),
             ],
           ),
         ),
       ),
     );
   }
+
+  /// The bar's five destinations, in the order a caregiver's day runs: today,
+  /// who is around them, where they are, who is treating them, the record.
+  ///
+  /// Reminders and the caregiver's own profile sit in the header instead —
+  /// both are things you reach for at a moment rather than places you browse,
+  /// and five is what a thumb can pick between on a 360 px phone. Mood &
+  /// Wellbeing opens from the mood tile on the dashboard.
+  static List<_BottomDest> destinations(BuildContext context) => <_BottomDest>[
+        _BottomDest(
+          index: 0,
+          icon: Icons.space_dashboard_outlined,
+          activeIcon: Icons.space_dashboard_rounded,
+          label: AppLocalizations.of(context).caregiverNavDashboard,
+          color: AppColors.plum,
+        ),
+        const _BottomDest(
+          index: 2,
+          icon: Icons.groups_2_outlined,
+          activeIcon: Icons.groups_2_rounded,
+          label: 'Family',
+          color: AppColors.terracotta,
+        ),
+        const _BottomDest(
+          index: 3,
+          icon: Icons.location_on_outlined,
+          activeIcon: Icons.location_on_rounded,
+          label: 'Safe Zone',
+          color: AppColors.primary,
+        ),
+        const _BottomDest(
+          index: 4,
+          icon: Icons.medical_services_outlined,
+          activeIcon: Icons.medical_services_rounded,
+          label: 'Doctors',
+          color: AppColors.secondary,
+        ),
+        const _BottomDest(
+          index: 5,
+          icon: Icons.insert_chart_outlined_rounded,
+          activeIcon: Icons.insert_chart_rounded,
+          label: 'Reports',
+          color: AppColors.seriesTeal,
+        ),
+      ];
+}
+
+@immutable
+class _BottomDest {
+  const _BottomDest({
+    required this.index,
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.color,
+  });
+
+  /// Index into `CaregiverShell._destinations`.
+  final int index;
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final Color color;
 }
 
 class _BottomNavItem extends StatelessWidget {

@@ -11,6 +11,7 @@ class FamilyMember {
     required this.sceneId,
     this.note = '',
     this.livesWithPatient = false,
+    this.photoPath,
   });
 
   final String id;
@@ -22,7 +23,21 @@ class FamilyMember {
   final String note;
   final bool livesWithPatient;
 
-  FamilyMember copyWith({String? name, String? relation, String? sceneId, String? note}) {
+  /// A real photograph of this person, copied into the app's documents
+  /// directory. Null when they are drawn. Recognising an actual face is the
+  /// point of showing family at all, so this matters more here than anywhere
+  /// else in the app.
+  final String? photoPath;
+
+  bool get hasPhoto => photoPath != null && photoPath!.isNotEmpty;
+
+  FamilyMember copyWith({
+    String? name,
+    String? relation,
+    String? sceneId,
+    String? note,
+    String? photoPath,
+  }) {
     return FamilyMember(
       id: id,
       name: name ?? this.name,
@@ -30,6 +45,7 @@ class FamilyMember {
       sceneId: sceneId ?? this.sceneId,
       note: note ?? this.note,
       livesWithPatient: livesWithPatient,
+      photoPath: photoPath ?? this.photoPath,
     );
   }
 }
@@ -57,14 +73,40 @@ class MemoryAsset {
     required this.kind,
     this.caption = '',
     this.year,
+    this.photoPath,
   });
 
   final String id;
   final String title;
+
+  /// The drawing to fall back on. Always set, so a picture still has
+  /// something to show if the photo file is ever gone — a restored backup, a
+  /// cleared cache, a phone the record synced to but the file did not.
   final String sceneId;
+
   final MemoryAssetKind kind;
   final String caption;
   final String? year;
+
+  /// Absolute path to a real photograph the caregiver added, copied into the
+  /// app's own documents directory. Null when this is a drawing.
+  ///
+  /// A path rather than the bytes: family photographs run to several
+  /// megabytes each, and a Hive box holding a dozen of them would be loaded
+  /// into memory in full every time the profile is read.
+  final String? photoPath;
+
+  bool get hasPhoto => photoPath != null && photoPath!.isNotEmpty;
+
+  MemoryAsset copyWith({String? photoPath, bool clearPhoto = false}) => MemoryAsset(
+        id: id,
+        title: title,
+        sceneId: sceneId,
+        kind: kind,
+        caption: caption,
+        year: year,
+        photoPath: clearPhoto ? null : (photoPath ?? this.photoPath),
+      );
 }
 
 /// A life story / biographical fact captured during onboarding.

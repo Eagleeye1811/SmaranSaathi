@@ -106,7 +106,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
       setState(() => _busy = true);
       final AuthUser? existing = auth.currentUser;
       if (existing != null) {
-        await state.signInAccount(existing.uid);
+        await state.signInAccount(existing.uid, roleHint: existing.role);
       } else {
         final bool signedIn = await _promptSignIn(auth, state);
         if (!mounted) return;
@@ -121,8 +121,12 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
 
     if (!mounted) return;
     AuthScope.maybeOf(context)?.declareRole(role.name);
+    // Recorded against the account as well as the device, so the next launch
+    // resumes straight into this role instead of asking again.
     state.setRole(role);
-    Nav.push(context, _homeFor(role));
+    // `rootTo`, not `push`: once someone is inside their app, backing out to
+    // the role picker is backing out to a question they have answered.
+    Nav.rootTo(context, _homeFor(role));
   }
 
   /// Opens the sign-in form and reports whether it produced an account.
@@ -133,7 +137,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
       SignInScreen(
         authService: auth,
         onSignedIn: (AuthUser user) async {
-          await state.signInAccount(user.uid);
+          await state.signInAccount(user.uid, roleHint: user.role);
           signedIn = true;
           if (mounted) Navigator.of(context).pop();
         },

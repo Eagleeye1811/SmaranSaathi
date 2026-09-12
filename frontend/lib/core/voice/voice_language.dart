@@ -6,7 +6,7 @@
 /// exists: it is the patient's own language in the target region and it is the
 /// one least likely to be installed, so "what happens when it is missing" has
 /// to be a designed behaviour rather than a crash.
-enum VoiceLanguage { english, hindi, assamese, marathi }
+enum VoiceLanguage { english, hindi, assamese }
 
 extension VoiceLanguageX on VoiceLanguage {
   /// Shown in the language picker, in the language itself.
@@ -14,14 +14,12 @@ extension VoiceLanguageX on VoiceLanguage {
         VoiceLanguage.english => 'English',
         VoiceLanguage.hindi => 'हिन्दी',
         VoiceLanguage.assamese => 'অসমীয়া',
-        VoiceLanguage.marathi => 'मराठी',
       };
 
   String get englishLabel => switch (this) {
         VoiceLanguage.english => 'English',
         VoiceLanguage.hindi => 'Hindi',
         VoiceLanguage.assamese => 'Assamese',
-        VoiceLanguage.marathi => 'Marathi',
       };
 
   /// BCP-47-ish candidates, best first.
@@ -33,7 +31,6 @@ extension VoiceLanguageX on VoiceLanguage {
         VoiceLanguage.english => const <String>['en_IN', 'en_US', 'en_GB', 'en'],
         VoiceLanguage.hindi => const <String>['hi_IN', 'hi'],
         VoiceLanguage.assamese => const <String>['as_IN', 'as'],
-        VoiceLanguage.marathi => const <String>['mr_IN', 'mr'],
       };
 
   /// The two-letter code, for a loose match against an engine's list.
@@ -41,20 +38,15 @@ extension VoiceLanguageX on VoiceLanguage {
         VoiceLanguage.english => 'en',
         VoiceLanguage.hindi => 'hi',
         VoiceLanguage.assamese => 'as',
-        VoiceLanguage.marathi => 'mr',
       };
 
   /// Which language to try when this one is unavailable.
   ///
-  /// Assamese and Marathi both degrade to Hindi before English: a speaker of
-  /// either is far more likely to follow Hindi than English, so the fallback
-  /// chain is ordered by who the user actually is.
+  /// Assamese degrades to Hindi before English: a speaker is far more likely
+  /// to follow Hindi than English, so the fallback chain is ordered by who
+  /// the user actually is.
   List<VoiceLanguage> get fallbacks => switch (this) {
         VoiceLanguage.assamese => const <VoiceLanguage>[
-            VoiceLanguage.hindi,
-            VoiceLanguage.english,
-          ],
-        VoiceLanguage.marathi => const <VoiceLanguage>[
             VoiceLanguage.hindi,
             VoiceLanguage.english,
           ],
@@ -66,7 +58,6 @@ extension VoiceLanguageX on VoiceLanguage {
   static VoiceLanguage fromPatientLanguage(String raw) {
     final String s = raw.toLowerCase().trim();
     if (s.contains('assam') || s.contains('অসম')) return VoiceLanguage.assamese;
-    if (s.contains('marathi') || s.contains('मराठ')) return VoiceLanguage.marathi;
     if (s.contains('hindi') || s.contains('हिन')) return VoiceLanguage.hindi;
     return VoiceLanguage.english;
   }
@@ -113,7 +104,11 @@ class VoiceLanguageResolver {
   /// Tries exact candidates first, then a loose language-code match (so an
   /// engine advertising only `hi-IN-x-variant` still counts as Hindi), then
   /// walks the fallback chain.
-  ResolvedVoiceLanguage resolve(VoiceLanguage wanted, List<String> available) {
+  ResolvedVoiceLanguage resolve(
+    VoiceLanguage wanted,
+    List<String> available, {
+    bool allowFallback = true,
+  }) {
     if (available.isEmpty) {
       return ResolvedVoiceLanguage(requested: wanted, resolved: null, localeId: null);
     }
@@ -121,7 +116,11 @@ class VoiceLanguageResolver {
     final List<String> normalised =
         available.map((String s) => s.replaceAll('-', '_')).toList(growable: false);
 
-    for (final VoiceLanguage attempt in <VoiceLanguage>[wanted, ...wanted.fallbacks]) {
+    final List<VoiceLanguage> attempts = allowFallback
+        ? <VoiceLanguage>[wanted, ...wanted.fallbacks]
+        : <VoiceLanguage>[wanted];
+
+    for (final VoiceLanguage attempt in attempts) {
       // Exact candidate.
       for (final String candidate in attempt.candidates) {
         final int i = normalised.indexWhere(

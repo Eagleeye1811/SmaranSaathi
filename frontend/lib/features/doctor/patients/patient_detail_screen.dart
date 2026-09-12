@@ -706,8 +706,7 @@ class PatientDetailScreen extends StatelessWidget {
                                       ),
                                       Expanded(
                                         child: Text(
-                                          MockData.game(state.sessions[i].gameId)
-                                              .localizedName(l),
+                                          MockData.game(state.sessions[i].gameId).localizedName(l),
                                           style: CT.bodySmall.tint(AppColors.clinicInk),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,

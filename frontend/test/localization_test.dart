@@ -16,7 +16,7 @@ import 'package:smaran_saathi/features/patient/settings/language_selector.dart';
 import 'package:smaran_saathi/l10n/app_localizations.dart';
 import 'package:smaran_saathi/l10n/locale_controller.dart';
 
-const List<String> kLocales = <String>['en', 'hi', 'as', 'mr'];
+const List<String> kLocales = <String>['en', 'hi', 'as'];
 
 Map<String, dynamic> loadArb(String locale) =>
     jsonDecode(File('lib/l10n/app_$locale.arb').readAsStringSync())
@@ -110,7 +110,6 @@ void main() {
       expect(const AppLocalizations(Locale('en')).todayTitle, 'Today');
       expect(const AppLocalizations(Locale('hi')).todayTitle, 'आज');
       expect(const AppLocalizations(Locale('as')).todayTitle, 'আজি');
-      expect(const AppLocalizations(Locale('mr')).todayTitle, 'आज');
     });
 
     test('substitutes placeholders in every language', () {
@@ -134,10 +133,10 @@ void main() {
       expect(l.voiceAskSaathi, isNotEmpty);
     });
 
-    test('supports exactly the four declared languages', () {
+    test('supports exactly the three declared languages', () {
       expect(
         AppLocalizations.supportedLocales.map((Locale l) => l.languageCode),
-        <String>['en', 'hi', 'as', 'mr'],
+        <String>['en', 'hi', 'as'],
       );
     });
   });
@@ -165,17 +164,12 @@ void main() {
       c.setVoiceLanguage(VoiceLanguage.hindi);
       expect(c.locale.languageCode, 'hi');
       expect(c.voiceLanguage, VoiceLanguage.hindi);
-
-      c.setVoiceLanguage(VoiceLanguage.marathi);
-      expect(c.locale.languageCode, 'mr');
-      expect(c.voiceLanguage, VoiceLanguage.marathi);
       c.dispose();
     });
 
     test('starts from the patient profile language', () {
       expect(LocaleController.fromPatientLanguage('Assamese').languageCode, 'as');
       expect(LocaleController.fromPatientLanguage('Hindi').languageCode, 'hi');
-      expect(LocaleController.fromPatientLanguage('Marathi').languageCode, 'mr');
       expect(LocaleController.fromPatientLanguage('Bodo').languageCode, 'en');
     });
   });
@@ -226,11 +220,10 @@ void main() {
 
       // Starts in English.
       expect(find.text('Language'), findsOneWidget);
-      // Each language is offered in its own script.
+      // Each language is offered in its own script (English, Hindi, Assamese).
       expect(find.text('English'), findsOneWidget);
       expect(find.text('हिन्दी'), findsOneWidget);
       expect(find.text('অসমীয়া'), findsOneWidget);
-      expect(find.text('मराठी'), findsOneWidget);
 
       // Switch to Hindi — the same widget tree, relabelled.
       await tester.tap(find.text('हिन्दी'));
@@ -246,13 +239,6 @@ void main() {
       expect(locale.locale.languageCode, 'as');
       expect(find.text('ভাষা'), findsOneWidget);
       expect(state.localeCode, 'as');
-
-      // And on to Marathi.
-      await tester.tap(find.text('मराठी'));
-      await tester.pumpAndSettle();
-      expect(locale.locale.languageCode, 'mr');
-      expect(find.text('भाषा'), findsOneWidget, reason: 'Marathi and Hindi share this word');
-      expect(state.localeCode, 'mr');
     });
 
     testWidgets('the patient shell renders in every language without overflow',
@@ -292,11 +278,11 @@ void main() {
           reason: 'the mood question follows the language');
       expect(find.text('How are you feeling today?'), findsNothing);
 
-      locale.setLocale(const Locale('mr'));
+      locale.setLocale(const Locale('as'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 700));
-      expect(find.text('आज तुम्हाला कसं वाटतंय?'), findsOneWidget,
-          reason: 'Marathi is its own translation, not a Hindi fallback');
+      expect(find.text('আজি আপুনি কেনে অনুভৱ কৰিছে?'), findsOneWidget,
+          reason: 'Assamese is its own translation, not an English fallback');
     });
 
     // The patient shell already got this stress test above. Caregiver,

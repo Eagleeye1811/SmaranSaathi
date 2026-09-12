@@ -27,7 +27,6 @@ class AppLocalizations {
     Locale('en'),
     Locale('hi'),
     Locale('as'),
-    Locale('mr'),
   ];
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
@@ -70,6 +69,168 @@ class AppLocalizations {
   }
 
   /// Every key, for tests and the language picker preview.
+  String get aiFriend => _s('aiFriend');
+  String aiMorning(String name) => _f('aiMorning', <String, Object?>{'name': name});
+  String aiRestQuestion(String name) => _f('aiRestQuestion', <String, Object?>{'name': name});
+  String get aiRestLabel => _s('aiRestLabel');
+  String get aiRestWell => _s('aiRestWell');
+  String get aiRestWellReply => _s('aiRestWellReply');
+  String get aiRestSoSo => _s('aiRestSoSo');
+  String get aiRestSoSoReply => _s('aiRestSoSoReply');
+  String get aiRestPoorly => _s('aiRestPoorly');
+  String get aiRestPoorlyReply => _s('aiRestPoorlyReply');
+  String aiWorkQuestion(String occupation) => _f('aiWorkQuestion', <String, Object?>{'occupation': occupation});
+  String get aiWorkLabel => _s('aiWorkLabel');
+  String get aiWorkYes => _s('aiWorkYes');
+  String get aiWorkYesReply => _s('aiWorkYesReply');
+  String get aiWorkSometimes => _s('aiWorkSometimes');
+  String get aiWorkSometimesReply => _s('aiWorkSometimesReply');
+  String get aiWorkNotLately => _s('aiWorkNotLately');
+  String get aiWorkNotLatelyReply => _s('aiWorkNotLatelyReply');
+  String aiFamilyQuestion(String name) => _f('aiFamilyQuestion', <String, Object?>{'name': name});
+  String get aiFamilyLabel => _s('aiFamilyLabel');
+  String get aiFamilyYes => _s('aiFamilyYes');
+  String get aiFamilyYesReply => _s('aiFamilyYesReply');
+  String get aiFamilyNotYet => _s('aiFamilyNotYet');
+  String get aiFamilyNotYetReply => _s('aiFamilyNotYetReply');
+  String get aiFamilyRemindMe => _s('aiFamilyRemindMe');
+  String aiFamilyRemindMeReply(String name) => _f('aiFamilyRemindMeReply', <String, Object?>{'name': name});
+  String aiFunctionQuestion(String function) => _f('aiFunctionQuestion', <String, Object?>{'function': function});
+  String get aiFunctionLabel => _s('aiFunctionLabel');
+  String get aiFunctionYes => _s('aiFunctionYes');
+  String get aiFunctionYesReply => _s('aiFunctionYesReply');
+  String get aiFunctionHelp => _s('aiFunctionHelp');
+  String get aiFunctionHelpReply => _s('aiFunctionHelpReply');
+  String get aiFunctionNotToday => _s('aiFunctionNotToday');
+  String get aiFunctionNotTodayReply => _s('aiFunctionNotTodayReply');
+  String get authWelcomeTitle => _s('authWelcomeTitle');
+  String get authWelcomeSubtitle => _s('authWelcomeSubtitle');
+  String get authRolePatient => _s('authRolePatient');
+  String get authRolePatientName => _s('authRolePatientName');
+  String get authRolePatientDesc => _s('authRolePatientDesc');
+  String get authRoleCaregiver => _s('authRoleCaregiver');
+  String get authRoleCaregiverName => _s('authRoleCaregiverName');
+  String get authRoleCaregiverDesc => _s('authRoleCaregiverDesc');
+  String get authRoleDoctor => _s('authRoleDoctor');
+  String get authRoleDoctorName => _s('authRoleDoctorName');
+  String get authRoleDoctorDesc => _s('authRoleDoctorDesc');
+  String get actionLogOut => _s('actionLogOut');
+  String get doctorSettingsSub => _s('doctorSettingsSub');
+  String get authWhoAreYou => _s('authWhoAreYou');
+  String get accountSignedInAs => _s('accountSignedInAs');
+  String accountRole(String role) => _f('accountRole', <String, Object?>{'role': role});
+  String get safeZoneHomeLabel => _s('safeZoneHomeLabel');
+  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
+  String get dashboardStartTodaySession => _s('dashboardStartTodaySession');
+  String get mockReminderMorningMedicine => _s('mockReminderMorningMedicine');
+  String get shallWeHeadBack => _s('shallWeHeadBack');
+  String get myMemories => _s('myMemories');
+  String get goBackAndLogOutConfirm => _s('goBackAndLogOutConfirm');
+  String get stayHere => _s('stayHere');
+  String get goBackAndLogOut => _s('goBackAndLogOut');
+  String get removeSafeZoneConfirm => _s('removeSafeZoneConfirm');
+  String get keepIt => _s('keepIt');
+  String get remove => _s('remove');
+  String get safeZone => _s('safeZone');
+  String get tapMapToMoveMiddle => _s('tapMapToMoveMiddle');
+  String get howFarCanTheyGo => _s('howFarCanTheyGo');
+  String get cancel => _s('cancel');
+  String get saveSafeZone => _s('saveSafeZone');
+  String get retry => _s('retry');
+  String get orText => _s('orText');
+  String get mockReminderDrinkWater => _s('mockReminderDrinkWater');
+  String get mockReminderRestAndRadio => _s('mockReminderRestAndRadio');
+  String get mockReminderEveningWalk => _s('mockReminderEveningWalk');
+  String get mockReminderCallPriya => _s('mockReminderCallPriya');
+  String get mockReminderMemoryClinic => _s('mockReminderMemoryClinic');
+  String get mockDetailOneTablet => _s('mockDetailOneTablet');
+  String get mockDetailFullGlass => _s('mockDetailFullGlass');
+  String get mockDetailWithLunch => _s('mockDetailWithLunch');
+  String get mockDetailVividhBharati => _s('mockDetailVividhBharati');
+  String get mockDetailParkWithNirmali => _s('mockDetailParkWithNirmali');
+  String get mockDetailCheckInDay => _s('mockDetailCheckInDay');
+  String get mockDetailBhaskarDrive => _s('mockDetailBhaskarDrive');
+  String get mockTimeThursday11 => _s('mockTimeThursday11');
+  String aiInsightNoActivity(String name) => _f('aiInsightNoActivity', <String, Object?>{'name': name});
+  String aiInsightActivityCount(String name, String sessions, String activityWord, String accuracy) => _f('aiInsightActivityCount', <String, Object?>{'name': name, 'sessions': sessions, 'activityWord': activityWord, 'accuracy': accuracy});
+  String get aiActivitySingular => _s('aiActivitySingular');
+  String get aiActivityPlural => _s('aiActivityPlural');
+  String get aiInsightTrendStronger => _s('aiInsightTrendStronger');
+  String get aiInsightTrendWeaker => _s('aiInsightTrendWeaker');
+  String get aiInsightTrendSteady => _s('aiInsightTrendSteady');
+  String aiInsightMood(String pronoun, String mood) => _f('aiInsightMood', <String, Object?>{'pronoun': pronoun, 'mood': mood});
+  String get aiInsightPronounShe => _s('aiInsightPronounShe');
+  String get aiInsightPronounHe => _s('aiInsightPronounHe');
+  String get aiInsightPronounThey => _s('aiInsightPronounThey');
+  String aiInsightStrongestActivity(String activityName, String pronoun, String accuracy, String domain) => _f('aiInsightStrongestActivity', <String, Object?>{'activityName': activityName, 'pronoun': pronoun, 'accuracy': accuracy, 'domain': domain});
+  String get aiInsightPronounHer => _s('aiInsightPronounHer');
+  String get aiInsightPronounHis => _s('aiInsightPronounHis');
+  String get aiInsightPronounTheir => _s('aiInsightPronounTheir');
+  String aiInsightUnaidedSessions(String unaided, String total) => _f('aiInsightUnaidedSessions', <String, Object?>{'unaided': unaided, 'total': total});
+  String aiInsightReminders(String percent) => _f('aiInsightReminders', <String, Object?>{'percent': percent});
+  String aiInsightTopDomain(String domain, String score) => _f('aiInsightTopDomain', <String, Object?>{'domain': domain, 'score': score});
+  String aiInsightTopDomainTied(String domain, String score, String otherDomain) => _f('aiInsightTopDomainTied', <String, Object?>{'domain': domain, 'score': score, 'otherDomain': otherDomain});
+  String aiInsightTopDomainMultiple(String domain, String score) => _f('aiInsightTopDomainMultiple', <String, Object?>{'domain': domain, 'score': score});
+  String aiInsightDecliningDomain(String domain, String trend) => _f('aiInsightDecliningDomain', <String, Object?>{'domain': domain, 'trend': trend});
+  String aiInsightGap(String domain) => _f('aiInsightGap', <String, Object?>{'domain': domain});
+  String aiInsightLevelDown(String activityName, String level) => _f('aiInsightLevelDown', <String, Object?>{'activityName': activityName, 'level': level});
+  String aiInsightLevelUp(String activityName, String level, String pronoun) => _f('aiInsightLevelUp', <String, Object?>{'activityName': activityName, 'level': level, 'pronoun': pronoun});
+  String get aiInsightEngaging => _s('aiInsightEngaging');
+  String aiInsightLowestActivity(String activityName, String accuracy, String pronoun) => _f('aiInsightLowestActivity', <String, Object?>{'activityName': activityName, 'accuracy': accuracy, 'pronoun': pronoun});
+  String get aiInsightAbandonedSingular => _s('aiInsightAbandonedSingular');
+  String get aiInsightAbandonedPlural => _s('aiInsightAbandonedPlural');
+  String aiInsightAbandoned(String count, String sessionWord) => _f('aiInsightAbandoned', <String, Object?>{'count': count, 'sessionWord': sessionWord});
+  String get aiInsightSlowSingular => _s('aiInsightSlowSingular');
+  String get aiInsightSlowPlural => _s('aiInsightSlowPlural');
+  String aiInsightSlow(String count, String sessionWord) => _f('aiInsightSlow', <String, Object?>{'count': count, 'sessionWord': sessionWord});
+  String get aiInsightNotPlayedSingular => _s('aiInsightNotPlayedSingular');
+  String get aiInsightNotPlayedPlural => _s('aiInsightNotPlayedPlural');
+  String aiInsightNotPlayed(String names, String hasHaveWord) => _f('aiInsightNotPlayed', <String, Object?>{'names': names, 'hasHaveWord': hasHaveWord});
+  String get aiInsightDownwardTrend => _s('aiInsightDownwardTrend');
+  String get aiInsightNoAttention => _s('aiInsightNoAttention');
+  String aiRecommendUntouched(String domain) => _f('aiRecommendUntouched', <String, Object?>{'domain': domain});
+  String aiRecommendWeakest(String domain) => _f('aiRecommendWeakest', <String, Object?>{'domain': domain});
+  String get aiRecommendGeneral => _s('aiRecommendGeneral');
+  String aiEvidence(String count, String sessionWord, String accuracy, String level) => _f('aiEvidence', <String, Object?>{'count': count, 'sessionWord': sessionWord, 'accuracy': accuracy, 'level': level});
+  String get aiScheduleAllDone => _s('aiScheduleAllDone');
+  String aiScheduleNext(String title, String time) => _f('aiScheduleNext', <String, Object?>{'title': title, 'time': time});
+  String get aiScheduleMoreSingular => _s('aiScheduleMoreSingular');
+  String get aiScheduleMorePlural => _s('aiScheduleMorePlural');
+  String aiScheduleMore(String isAreWord, String count) => _f('aiScheduleMore', <String, Object?>{'isAreWord': isAreWord, 'count': count});
+  String get aiScheduleNoActivity => _s('aiScheduleNoActivity');
+  String get aiScheduleActivitySingular => _s('aiScheduleActivitySingular');
+  String get aiScheduleActivityPlural => _s('aiScheduleActivityPlural');
+  String aiScheduleActivities(String count, String activityWord) => _f('aiScheduleActivities', <String, Object?>{'count': count, 'activityWord': activityWord});
+  String get aiScheduleFollowUpActivity => _s('aiScheduleFollowUpActivity');
+  String get aiScheduleFollowUpReminders => _s('aiScheduleFollowUpReminders');
+  String get aiScheduleFollowUpToday => _s('aiScheduleFollowUpToday');
+  String get aiScheduleFollowUpLater => _s('aiScheduleFollowUpLater');
+  String aiActivityTry(String activityName, String invitation) => _f('aiActivityTry', <String, Object?>{'activityName': activityName, 'invitation': invitation});
+  String get aiRemindersNothingToday => _s('aiRemindersNothingToday');
+  String get aiRemindersAllDone => _s('aiRemindersAllDone');
+  String aiRemindersStillHave(String reminders) => _f('aiRemindersStillHave', <String, Object?>{'reminders': reminders});
+  String aiPeopleRelation(String name, String relation) => _f('aiPeopleRelation', <String, Object?>{'name': name, 'relation': relation});
+  String aiPeopleFamilyHere(String names) => _f('aiPeopleFamilyHere', <String, Object?>{'names': names});
+  String aiOrientationLocation(String location) => _f('aiOrientationLocation', <String, Object?>{'location': location});
+  String aiOrientationTime(String time, String partOfDay, String locationText) => _f('aiOrientationTime', <String, Object?>{'time': time, 'partOfDay': partOfDay, 'locationText': locationText});
+  String get aiCompanionshipLow => _s('aiCompanionshipLow');
+  String get aiCompanionshipOkay => _s('aiCompanionshipOkay');
+  String get aiCompanionshipGood => _s('aiCompanionshipGood');
+  String aiCompanionshipOffer(String opener) => _f('aiCompanionshipOffer', <String, Object?>{'opener': opener});
+  String get aiOutOfScope => _s('aiOutOfScope');
+  String aiJoinAnd(String list, String last) => _f('aiJoinAnd', <String, Object?>{'list': list, 'last': last});
+  String get aiGameProcedure => _s('aiGameProcedure');
+  String get aiGameStory => _s('aiGameStory');
+  String get aiGameFamiliarPlace => _s('aiGameFamiliarPlace');
+  String get aiGameMelody => _s('aiGameMelody');
+  String get aiGameWeaves => _s('aiGameWeaves');
+  String get aiGameMemoryCards => _s('aiGameMemoryCards');
+  String get aiGameProcedureInvitation => _s('aiGameProcedureInvitation');
+  String get aiGameStoryInvitation => _s('aiGameStoryInvitation');
+  String get aiGameFamiliarPlaceInvitation => _s('aiGameFamiliarPlaceInvitation');
+  String get aiGameMelodyInvitation => _s('aiGameMelodyInvitation');
+  String get aiGameWeavesInvitation => _s('aiGameWeavesInvitation');
+  String get aiGameMemoryCardsInvitation => _s('aiGameMemoryCardsInvitation');
   @visibleForTesting
   static Map<String, Map<String, String>> get allStrings => _byLocale;
 
@@ -1578,6 +1739,67 @@ class AppLocalizations {
   String get healthTodaysActivity => _s('healthTodaysActivity');
   String get healthAnotherActivity => _s('healthAnotherActivity');
 
+  // ── Patient navigation ────────────────────────────────────────────────
+  String get patientNavHome => _s('patientNavHome');
+  String get patientNavToday => _s('patientNavToday');
+  String get patientNavActivities => _s('patientNavActivities');
+  String get patientNavCompanion => _s('patientNavCompanion');
+  String get patientNavProfile => _s('patientNavProfile');
+
+  // ── Connectivity & Sync chip ──────────────────────────────────────────
+  String get syncChipOffline => _s('syncChipOffline');
+  String syncChipOfflineCount(int count) => _f('syncChipOfflineCount', <String, Object?>{'count': count});
+  String get syncChipSyncing => _s('syncChipSyncing');
+  String syncChipPending(int count) => _f('syncChipPending', <String, Object?>{'count': count});
+  String get syncChipOnline => _s('syncChipOnline');
+  String get syncChipTooltipOffline => _s('syncChipTooltipOffline');
+  String get syncChipTooltipOnline => _s('syncChipTooltipOnline');
+
+  // ── Mock reminders ───────────────────────────────────────────────────
+  String get mockReminderCognitiveActivity => _s('mockReminderCognitiveActivity');
+  String get mockDetailMitraReady => _s('mockDetailMitraReady');
+  String get mockReminderEveningMedicine => _s('mockReminderEveningMedicine');
+  String get mockDetailTwoTablets => _s('mockDetailTwoTablets');
+  String get mockDetailAfternoonBihu => _s('mockDetailAfternoonBihu');
+
+  // ── Health assistant quick actions ────────────────────────────────────
+  String get actionExplainResults => _s('actionExplainResults');
+  String get actionWhyChanged => _s('actionWhyChanged');
+  String get actionPrepareForDoctor => _s('actionPrepareForDoctor');
+  String get actionWhatToMonitor => _s('actionWhatToMonitor');
+  String get actionAboutDementia => _s('actionAboutDementia');
+  String get actionHowAmIDoing => _s('actionHowAmIDoing');
+
+  // ── Caregiver safe zone card ──────────────────────────────────────────
+  String get caregiverSetSafeZone => _s('caregiverSetSafeZone');
+  String get caregiverSafeZoneWanderDetail => _s('caregiverSafeZoneWanderDetail');
+  String caregiverSafeZoneLeft(String name, String zone) => _f('caregiverSafeZoneLeft', <String, Object?>{'name': name, 'zone': zone});
+  String caregiverSafeZoneOutsideDetail(int meters) => _f('caregiverSafeZoneOutsideDetail', <String, Object?>{'meters': meters});
+  String caregiverSafeZoneRadiusDetail(int meters, String zone) => _f('caregiverSafeZoneRadiusDetail', <String, Object?>{'meters': meters, 'zone': zone});
+  String caregiverSafeZoneLabel(String zone) => _f('caregiverSafeZoneLabel', <String, Object?>{'zone': zone});
+
+  // ── Family relations & notes ──────────────────────────────────────────
+  String get relationDaughter => _s('relationDaughter');
+  String get relationGrandson => _s('relationGrandson');
+  String get relationSonInLaw => _s('relationSonInLaw');
+  String get relationNeighbourFriend => _s('relationNeighbourFriend');
+  String get familyNotePriya => _s('familyNotePriya');
+  String get familyNoteAarav => _s('familyNoteAarav');
+  String get familyNoteBhaskar => _s('familyNoteBhaskar');
+  String get familyNoteNirmali => _s('familyNoteNirmali');
+
+  // ── Clinical status, trend & alert severity ───────────────────────────
+  String get clinicalStatusStable => _s('clinicalStatusStable');
+  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
+  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
+  String get clinicalTrendImproving => _s('clinicalTrendImproving');
+  String get clinicalTrendStable => _s('clinicalTrendStable');
+  String get clinicalTrendDeclining => _s('clinicalTrendDeclining');
+  String get alertSeverityInfo => _s('alertSeverityInfo');
+  String get alertSeverityWatch => _s('alertSeverityWatch');
+  String get alertSeverityUrgent => _s('alertSeverityUrgent');
+  String get clinicGuwahati => _s('clinicGuwahati');
+  String get clinicJorhat => _s('clinicJorhat');
 
   // ── The person's life profile ────────────────────────────────────────
   String get lifeTitle => _s('lifeTitle');

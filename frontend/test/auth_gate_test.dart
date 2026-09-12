@@ -226,7 +226,12 @@ void main() {
     expect(state.accountId, 'fake-uid');
     expect(find.byType(SignInScreen), findsNothing);
     expect(state.role, AppRole.caregiver);
-    expect(find.text('Before we begin'), findsOneWidget);
+
+    // Into their app, not into the questionnaire. Proving who you are should
+    // not be immediately followed by fifteen screens of questions — the
+    // dashboard offers the onboarding instead, and keeps offering it.
+    expect(find.text('Before we begin'), findsNothing);
+    expect(find.text('Finish setting up'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',

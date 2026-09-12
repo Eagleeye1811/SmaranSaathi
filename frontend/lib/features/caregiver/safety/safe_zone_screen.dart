@@ -12,6 +12,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/services/safe_zone_monitor.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// The caregiver's safe-zone map.
 ///
@@ -114,7 +115,7 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Remove the safe zone?'),
+            title: Text(AppLocalizations.of(context)!.removeSafeZoneConfirm),
             content: const Text(
               'You will stop being told when they leave. You can draw a new '
               'zone at any time.',
@@ -122,12 +123,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Keep it'),
+                child: Text(AppLocalizations.of(context)!.keepIt),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: const Text('Remove'),
+                child: Text(AppLocalizations.of(context)!.remove),
               ),
             ],
           ),
@@ -141,60 +142,161 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Safe zone'),
-        backgroundColor: AppColors.background,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: AnimatedBuilder(
-        animation: _monitor,
-        builder: (BuildContext context, _) {
-          final SafeZone? shown = _editing ? _draft : _monitor.zone;
-          return Column(
-            children: <Widget>[
-              if (_monitor.permission != null && !_monitor.permission!.isGranted)
-                _PermissionNotice(outcome: _monitor.permission!, onRetry: _monitor.start),
-              _StatusStrip(monitor: _monitor),
-              Expanded(
-                child: _MapView(
-                  controller: _map,
-                  zone: shown,
-                  fix: _monitor.lastFix,
-                  outside: _monitor.isOutside,
-                  // Tapping only moves the centre while editing, so a
-                  // caregiver panning the map cannot silently redraw the
-                  // boundary they are trying to look at.
-                  onTap: _editing
-                      ? (GeoPoint p) => setState(() => _draft = _draft?.copyWith(centre: p))
-                      : null,
+    // No `Scaffold` and no `AppBar`: `CaregiverShell` already draws the
+    // header above every page it hosts, and this screen wearing one of its
+    // own put two titles on top of each other.
+    //
+    // The map is the page. It fills every pixel below the header — no wash,
+    // no gutter, no card stacked above it pushing it down — and everything
+    // else floats on top of it. A map of where someone is should not be a
+    // panel in the middle of a screen about a map of where someone is.
+    return AnimatedBuilder(
+      animation: _monitor,
+      builder: (BuildContext context, _) {
+        final SafeZone? shown = _editing ? _draft : _monitor.zone;
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: _MapView(
+                controller: _map,
+                zone: shown,
+                fix: _monitor.lastFix,
+                outside: _monitor.isOutside,
+                // Tapping only moves the centre while editing, so a caregiver
+                // panning the map cannot silently redraw the boundary they
+                // are trying to look at.
+                onTap: _editing
+                    ? (GeoPoint p) => setState(() => _draft = _draft?.copyWith(centre: p))
+                    : null,
+              ),
+            ),
+
+            // ── Floating over the top ────────────────────────────────────
+            //
+            // Only what has something to say. With no zone drawn yet there is
+            // nothing here at all: the button below already reads "Set a safe
+            // zone", and a card repeating that in longer words was covering
+            // the map to tell the caregiver what the map was for.
+            Positioned(
+              top: Insets.sm,
+              left: Insets.gutter,
+              right: Insets.gutter,
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  children: <Widget>[
+                    if (_monitor.permission != null && !_monitor.permission!.isGranted) ...<Widget>[
+                      _PermissionNotice(
+                        outcome: _monitor.permission!,
+                        onRetry: _monitor.start,
+                      ),
+                      const SizedBox(height: Insets.sm),
+                    ],
+                    _StatusOverlay(monitor: _monitor),
+                    if (_editing) ...<Widget>[
+                      const SizedBox(height: Insets.sm),
+                      const _HintPill(),
+                    ],
+                  ],
                 ),
               ),
-              _Controls(
-                editing: _editing,
-                draft: _draft,
-                zone: _monitor.zone,
-                onStartEditing: _startEditing,
-                onRadiusChanged: (double r) =>
-                    setState(() => _draft = _draft?.copyWith(radiusMetres: r)),
-                onSave: _save,
-                onCancel: () => setState(() => _editing = false),
-                onRemove: _remove,
-                onRecentre: () {
-                  final GeoPoint? here = _monitor.lastFix?.point;
-                  if (here != null) _map.move(ll.LatLng(here.latitude, here.longitude), 16);
-                },
+            ),
+
+            // ── The map's own controls, then the sheet ───────────────────
+            //
+            // One bottom-anchored column, not two overlapping `Positioned`s.
+            // The controls sheet is drawn last and is full width, so a
+            // recentre button pinned to `bottom` sat *behind* it — present in
+            // the tree, invisible on the screen. Stacking them means the
+            // button clears the sheet whatever height it happens to be, which
+            // changes between the idle and editing states.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 0, Insets.gutter, Insets.sm),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        _MapButton(
+                          icon: Icons.add_rounded,
+                          tooltip: 'Zoom in',
+                          onPressed: () => _map.move(_map.camera.center, _map.camera.zoom + 1),
+                        ),
+                        const SizedBox(height: 8),
+                        _MapButton(
+                          icon: Icons.remove_rounded,
+                          tooltip: 'Zoom out',
+                          onPressed: () => _map.move(_map.camera.center, _map.camera.zoom - 1),
+                        ),
+                        const SizedBox(height: 8),
+                        _MapButton(
+                          icon: Icons.my_location_rounded,
+                          tooltip: 'Centre on them',
+                          onPressed: () {
+                            final GeoPoint? here = _monitor.lastFix?.point;
+                            if (here != null) {
+                              _map.move(ll.LatLng(here.latitude, here.longitude), 16);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _Controls(
+                    editing: _editing,
+                    draft: _draft,
+                    zone: _monitor.zone,
+                    onStartEditing: _startEditing,
+                    onRadiusChanged: (double r) =>
+                        setState(() => _draft = _draft?.copyWith(radiusMetres: r)),
+                    onSave: _save,
+                    onCancel: () => setState(() => _editing = false),
+                    onRemove: _remove,
+                  ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// A round control floating on the map: white, lifted, thumb-sized.
+class _MapButton extends StatelessWidget {
+  const _MapButton({required this.icon, required this.tooltip, required this.onPressed});
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: AppColors.softShadow(y: 3, blur: 12, opacity: 0.18),
+      ),
+      child: RoundIconButton(
+        icon: icon,
+        size: 46,
+        background: AppColors.surface,
+        color: AppColors.primary,
+        tooltip: tooltip,
+        onPressed: onPressed,
       ),
     );
   }
 }
 
-/// The map itself — the only widget that knows `flutter_map` exists.
+/// The tiles themselves — the only widget that knows `flutter_map` exists.
 class _MapView extends StatelessWidget {
   const _MapView({
     required this.controller,
@@ -285,59 +387,88 @@ class _PatientPin extends StatelessWidget {
   }
 }
 
-/// One line saying the thing the caregiver actually came to find out.
-class _StatusStrip extends StatelessWidget {
-  const _StatusStrip({required this.monitor});
+/// What the caregiver came to find out, floating over the map.
+///
+/// Deliberately small, and absent entirely when there is nothing to report.
+/// A zone that has never been drawn says nothing here — the button at the
+/// bottom of the screen already offers to draw one, and a card explaining
+/// that was covering the very map it was explaining.
+class _StatusOverlay extends StatelessWidget {
+  const _StatusOverlay({required this.monitor});
 
   final SafeZoneMonitor monitor;
 
   @override
   Widget build(BuildContext context) {
-    late final Color color;
-    late final IconData icon;
-    late final String title;
-    late final String detail;
+    // Nothing drawn yet: the map speaks for itself.
+    if (monitor.zone == null) return const SizedBox.shrink();
 
-    if (monitor.zone == null) {
-      color = AppColors.inkMuted;
-      icon = Icons.add_location_alt_outlined;
-      title = 'No safe zone yet';
-      detail = 'Draw one so you are told if they wander.';
-    } else if (monitor.isOutside) {
-      color = AppColors.danger;
-      icon = Icons.warning_amber_rounded;
-      title = 'Outside the safe zone';
-      detail = '${monitor.metresOutside!.round()} m beyond ${monitor.zone!.label}.';
-    } else if (monitor.lastFix == null) {
-      color = AppColors.inkMuted;
-      icon = Icons.location_searching_rounded;
-      title = 'Looking for them…';
-      detail = 'Waiting for the first location.';
-    } else {
-      color = AppColors.success;
-      icon = Icons.check_circle_outline_rounded;
-      title = 'Inside ${monitor.zone!.label}';
-      detail = 'Last seen ${_ago(monitor.lastFix!.at)}.';
+    // ── Out of bounds — the one state that earns a full-width alarm ─────
+    if (monitor.isOutside) {
+      return MmCard(
+        padding: const EdgeInsets.all(Insets.md),
+        color: AppColors.dangerTint,
+        border: Border.all(color: AppColors.danger.withValues(alpha: 0.35)),
+        shadow: AppColors.softShadow(y: 4, blur: 16, opacity: 0.14),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.warning_amber_rounded, color: AppColors.danger, size: 24),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Outside the safe zone',
+                      style: AppText.body.wght(800).tint(AppColors.danger)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${monitor.metresOutside!.round()} m beyond ${monitor.zone!.label}.',
+                    style: AppText.caption.tint(AppColors.inkSoft),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
-    return Container(
-      width: double.infinity,
-      color: color.withValues(alpha: 0.10),
-      padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.sm, Insets.gutter, Insets.sm),
-      child: Row(
-        children: <Widget>[
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: Insets.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(title, style: AppText.body.wght(800).tint(color)),
-                Text(detail, style: AppText.caption.tint(AppColors.inkSoft)),
-              ],
+    // ── Everything else is one quiet line ───────────────────────────────
+    final bool searching = monitor.lastFix == null;
+    final Color color = searching ? AppColors.inkMuted : AppColors.success;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: AppColors.surface.withValues(alpha: 0.95),
+          borderRadius: Corners.r(Corners.pill),
+          boxShadow: AppColors.softShadow(y: 3, blur: 12, opacity: 0.14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              searching
+                  ? Icons.location_searching_rounded
+                  : Icons.check_circle_rounded,
+              color: color,
+              size: 18,
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                searching
+                    ? 'Looking for them…'
+                    : 'Inside ${monitor.zone!.label} · ${_ago(monitor.lastFix!.at)}',
+                style: AppText.caption.wght(700).tint(AppColors.ink),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -351,6 +482,43 @@ class _StatusStrip extends StatelessWidget {
   }
 }
 
+/// Says what a tap does, while a tap does something.
+class _HintPill extends StatelessWidget {
+  const _HintPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.95),
+        borderRadius: Corners.r(Corners.pill),
+        boxShadow: AppColors.softShadow(y: 3, blur: 12, opacity: 0.16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(Icons.touch_app_rounded, size: 16, color: Colors.white),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              'Tap the map to move the middle',
+              style: AppText.caption.wght(700).tint(Colors.white),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The bottom sheet of controls.
+///
+/// A rounded card lifted off the page rather than a flat white slab, and the
+/// app's own buttons instead of Material's defaults, so the one screen that
+/// used stock `FilledButton`/`OutlinedButton` now matches the rest.
 class _Controls extends StatelessWidget {
   const _Controls({
     required this.editing,
@@ -361,7 +529,6 @@ class _Controls extends StatelessWidget {
     required this.onSave,
     required this.onCancel,
     required this.onRemove,
-    required this.onRecentre,
   });
 
   final bool editing;
@@ -372,90 +539,168 @@ class _Controls extends StatelessWidget {
   final VoidCallback onSave;
   final VoidCallback onCancel;
   final VoidCallback onRemove;
-  final VoidCallback onRecentre;
+
+  /// The three distances a family actually picks between: the house and its
+  /// yard, the street, the neighbourhood. The slider still covers everything
+  /// in between — these just save a caregiver dragging to find them.
+  static const List<(String, double)> _presets = <(String, double)>[
+    ('House', 100),
+    ('Street', 200),
+    ('Area', 500),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      elevation: 8,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(Corners.lg)),
+        boxShadow: AppColors.softShadow(y: -4, blur: 22, opacity: 0.08),
+      ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(Insets.md),
-          child: editing && draft != null
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text('Tap the map to move the middle',
-                        style: AppText.bodySmall.tint(AppColors.inkSoft)),
-                    const SizedBox(height: Insets.xs),
-                    Row(
-                      children: <Widget>[
-                        Text('How far can they go?', style: AppText.body.wght(700)),
-                        const Spacer(),
-                        Text('${draft!.radiusMetres.round()} m',
-                            style: AppText.body.wght(800).tint(AppColors.primary)),
-                      ],
-                    ),
-                    Slider(
-                      value: draft!.radiusMetres,
-                      min: SafeZone.minRadiusMetres,
-                      max: SafeZone.maxRadiusMetres,
-                      divisions: 39,
-                      onChanged: onRadiusChanged,
-                    ),
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: onCancel,
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: Insets.sm),
-                        Expanded(
-                          child: FilledButton(
-                            onPressed: onSave,
-                            child: const Text('Save safe zone'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                )
-              : Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: onStartEditing,
-                        icon: Icon(zone == null
-                            ? Icons.add_location_alt_rounded
-                            : Icons.edit_location_alt_rounded),
-                        label: Text(zone == null ? 'Set a safe zone' : 'Change zone'),
-                      ),
-                    ),
-                    const SizedBox(width: Insets.sm),
-                    IconButton.filledTonal(
-                      onPressed: onRecentre,
-                      tooltip: 'Centre on them',
-                      icon: const Icon(Icons.my_location_rounded),
-                    ),
-                    if (zone != null)
-                      IconButton(
-                        onPressed: onRemove,
-                        tooltip: 'Remove the zone',
-                        icon: const Icon(Icons.delete_outline_rounded,
-                            color: AppColors.danger),
-                      ),
-                  ],
+          padding: const EdgeInsets.fromLTRB(
+              Insets.gutter, Insets.md, Insets.gutter, Insets.md),
+          child: editing && draft != null ? _editor(context) : _idle(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _editor(BuildContext context) {
+    final double radius = draft!.radiusMetres;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text('How far can they go?', style: AppText.body.wght(800)),
+            ),
+            Text('${radius.round()} m',
+                style: AppText.h3.sized(19).tint(AppColors.primary)),
+          ],
+        ),
+        const SizedBox(height: Insets.xs),
+        Row(
+          children: <Widget>[
+            for (final (String label, double metres) preset in _presets)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _PresetChip(
+                  label: preset.$1,
+                  metres: preset.$2,
+                  selected: radius.round() == preset.$2.round(),
+                  onTap: () => onRadiusChanged(preset.$2),
                 ),
+              ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.primary.withValues(alpha: 0.15),
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withValues(alpha: 0.12),
+            trackHeight: 6,
+          ),
+          child: Slider(
+            value: radius,
+            min: SafeZone.minRadiusMetres,
+            max: SafeZone.maxRadiusMetres,
+            divisions: 39,
+            onChanged: onRadiusChanged,
+          ),
+        ),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: SoftButton(
+                label: 'Cancel',
+                color: AppColors.inkSoft,
+                onPressed: onCancel,
+              ),
+            ),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              flex: 2,
+              child: BigButton(
+                label: 'Save safe zone',
+                icon: Icons.check_rounded,
+                height: 54,
+                onPressed: onSave,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _idle(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        BigButton(
+          label: zone == null ? 'Set a safe zone' : 'Change zone',
+          icon: zone == null
+              ? Icons.add_location_alt_rounded
+              : Icons.edit_location_alt_rounded,
+          height: 54,
+          onPressed: onStartEditing,
+        ),
+        if (zone != null) ...<Widget>[
+          const SizedBox(height: Insets.xs),
+          TextButton.icon(
+            onPressed: onRemove,
+            icon: const Icon(Icons.delete_outline_rounded, size: 19),
+            label: const Text('Remove the zone'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.label,
+    required this.metres,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final double metres;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: Motion.normal,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: Corners.r(Corners.pill),
+        ),
+        child: Text(
+          '$label · ${metres.round()} m',
+          style: AppText.caption
+              .wght(800)
+              .tint(selected ? Colors.white : AppColors.primary),
         ),
       ),
     );
   }
 }
 
+/// Location is off, and nothing on this screen can work until it is not.
 class _PermissionNotice extends StatelessWidget {
   const _PermissionNotice({required this.outcome, required this.onRetry});
 
@@ -464,19 +709,32 @@ class _PermissionNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: AppColors.warningTint,
+    return MmCard(
       padding: const EdgeInsets.all(Insets.md),
+      color: AppColors.warningTint,
+      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.location_off_rounded, color: AppColors.warning),
+          const SoftIcon(
+            icon: Icons.location_off_rounded,
+            color: AppColors.warning,
+            size: 40,
+          ),
           const SizedBox(width: Insets.sm),
           Expanded(
             child: Text(outcome.message,
-                style: AppText.bodySmall.tint(const Color(0xFF8A5D08))),
+                style: AppText.bodySmall.tint(AppColors.inkSoft)),
           ),
-          TextButton(onPressed: () => onRetry(), child: const Text('Retry')),
+          const SizedBox(width: 6),
+          SoftButton(
+            label: 'Retry',
+            color: AppColors.warning,
+            onPressed: () => onRetry(),
+          ),
+<<<<<<< HEAD
+          TextButton(onPressed: () => onRetry(), child: Text(AppLocalizations.of(context)!.retry)),
+=======
+>>>>>>> ce72ec09b002d700761960d969c16ac76c28e441
         ],
       ),
     );

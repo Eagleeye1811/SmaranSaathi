@@ -10,7 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../l10n/content_labels.dart';
+import '../../../l10n/mock_translator.dart';
 import '../widgets/caregiver_top_bar.dart';
 
 /// Reminder management for the caregiver, grouped by category.
@@ -42,10 +42,6 @@ class CaregiverRemindersScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: l.caregiverRemindersTitle,
-              subtitle: l.caregiverSubtitleToday(state.patient.shortName),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -172,7 +168,7 @@ class _KindSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (reminders.isEmpty) return const SizedBox.shrink();
-    final AppLocalizations l = AppLocalizations.of(context);
+    final AppLocalizations l = AppLocalizations.of(context)!;
     final Color color = CaregiverRemindersScreen.colorOf(kind);
     final int done = reminders.where((Reminder r) => r.done).length;
 
@@ -209,12 +205,12 @@ class _KindSection extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text(r.time, style: AppText.caption.wght(800).tint(color)),
+                          Text(MockTranslator.translateTime(r.time, l), style: AppText.caption.wght(800).tint(color)),
                           const SizedBox(height: 2),
-                          Text(r.title, style: AppText.body.wght(700)),
+                          Text(MockTranslator.translateTitle(r.title, l), style: AppText.body.wght(700)),
                           if (r.detail.isNotEmpty) ...<Widget>[
                             const SizedBox(height: 2),
-                            Text(r.detail, style: AppText.caption),
+                            Text(MockTranslator.translateDetail(r.detail, l), style: AppText.caption),
                           ],
                         ],
                       ),

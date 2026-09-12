@@ -46,9 +46,18 @@ class WelcomeScreen extends StatelessWidget {
     final AuthUser? existing = auth?.currentUser;
     if (existing != null) {
       // Bind the assessment to this uid *before* anything is answered, so the
-      // first answer is already filed under the right account.
-      await state.signInAccount(existing.uid);
+      // first answer is already filed under the right account. The role the
+      // account already belongs to comes back with it.
+      await state.signInAccount(existing.uid, roleHint: existing.role);
       if (!context.mounted) return;
+      Nav.rootTo(context, sessionHome(state));
+      return;
+    }
+
+    // No account to re-bind — but a role this device already knows is still
+    // an answer, so a returning patient (who never signs in with an email) or
+    // anyone on a build without Firebase goes straight back in.
+    if (state.canResumeSession) {
       Nav.rootTo(context, sessionHome(state));
       return;
     }

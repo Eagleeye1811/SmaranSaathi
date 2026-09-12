@@ -7,7 +7,6 @@ import '../../../core/models/doctor.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../widgets/caregiver_top_bar.dart';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -112,10 +111,6 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: 'Doctor & Care',
-              subtitle: 'Connect, book and coordinate with your doctor',
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(

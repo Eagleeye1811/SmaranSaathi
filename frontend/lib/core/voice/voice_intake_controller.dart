@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'assamese_speech_phonetics.dart';
 import 'speech_engines.dart';
 import 'voice_intake_matcher.dart';
 import 'voice_language.dart';
@@ -104,7 +105,7 @@ class VoiceIntakeController extends ChangeNotifier {
   final VoidCallback _onAdvance;
   final VoidCallback? _onGoBack;
 
-  final VoiceLanguage _language;
+  VoiceLanguage _language;
 
   List<VoiceIntakeQuestion> _questions = const <VoiceIntakeQuestion>[];
   int _index = 0;
@@ -170,6 +171,18 @@ class VoiceIntakeController extends ChangeNotifier {
   /// false mean anything.
   bool get probed => _probed;
 
+  VoiceLanguage get language => _language;
+
+  /// Switches language and re-resolves against the device.
+  Future<void> setLanguage(VoiceLanguage value) async {
+    if (_language == value) return;
+    await stop();
+    _language = value;
+    _initialised = false;
+    _probed = false;
+    await initialize();
+  }
+
   // ── Setup ──────────────────────────────────────────────────────────────
 
   Future<void> initialize() async {
@@ -178,10 +191,18 @@ class VoiceIntakeController extends ChangeNotifier {
     const VoiceLanguageResolver resolver = VoiceLanguageResolver();
 
     if (await _recognizer.initialize()) {
-      _input = resolver.resolve(_language, await _recognizer.supportedLocales());
+      _input = resolver.resolve(
+        _language,
+        await _recognizer.supportedLocales(),
+        allowFallback: true,
+      );
     }
     if (await _synthesizer.initialize()) {
-      _output = resolver.resolve(_language, await _synthesizer.supportedLanguages());
+      _output = resolver.resolve(
+        _language,
+        await _synthesizer.supportedLanguages(),
+        allowFallback: true,
+      );
     }
     _probed = true;
     _notify();
@@ -245,13 +266,13 @@ class VoiceIntakeController extends ChangeNotifier {
       script.write('. ${i + 1}. ${question.options[i]}');
     }
     if (question.onNumber != null) {
-      script.write('. Say the number.');
+      script.write('. ${VoiceIntakeSpeech.sayNumber(_language)}');
     } else if (question.onDictate != null) {
-      script.write('. Say it after the beep, then I will read it back.');
+      script.write('. ${VoiceIntakeSpeech.sayAfterBeep(_language)}');
     } else if (question.options.isEmpty) {
-      script.write('. Say next when you are ready.');
+      script.write('. ${VoiceIntakeSpeech.sayNext(_language)}');
     } else {
-      script.write('. Say your answer, or say the number.');
+      script.write('. ${VoiceIntakeSpeech.sayAnswerOrNumber(_language)}');
     }
 
     await _say(script.toString(), turn: turn);
@@ -270,12 +291,33 @@ class VoiceIntakeController extends ChangeNotifier {
     final ResolvedVoiceLanguage? out = _output;
     _spoken = text;
     _set(VoicePhase.speaking);
-    if (out == null || !out.isSupported) return;
+    if (out == null || !out.isSupported) {
+      _set(VoicePhase.idle);
+      return;
+    }
+
+    final String speakText;
+    final String targetLocale;
+
+    if (out.requested == VoiceLanguage.assamese) {
+      if (out.isExactMatch) {
+        speakText = text;
+        targetLocale = out.localeId!;
+      } else if (out.resolved == VoiceLanguage.hindi) {
+        speakText = AssameseSpeechPhonetics.toIndicPhoneticText(text);
+        targetLocale = out.localeId!;
+      } else {
+        _set(VoicePhase.idle);
+        return;
+      }
+    } else {
+      speakText = text;
+      targetLocale = out.localeId!;
+    }
+
     try {
-      await _synthesizer.speak(text, localeId: out.localeId!);
+      await _synthesizer.speak(speakText, localeId: targetLocale);
     } catch (error) {
-      // A failed utterance must not stop the flow: the question is on screen
-      // as well, and listening is still worth doing.
       debugPrint('VoiceIntakeController: speaking failed ($error)');
     }
   }
@@ -327,8 +369,7 @@ class VoiceIntakeController extends ChangeNotifier {
     _misses++;
     if (_misses > _maxMisses) {
       await _say(
-        'I am having trouble hearing you. You can tap your answer on the '
-        'screen instead.',
+        VoiceIntakeSpeech.hearingTrouble(_language),
         turn: turn,
       );
       // Reported, not just switched off. Silently reverting to the "answer by
@@ -343,7 +384,7 @@ class VoiceIntakeController extends ChangeNotifier {
       _set(VoicePhase.error);
       return;
     }
-    await _say('I did not catch that. Please say it again.', turn: turn);
+    await _say(VoiceIntakeSpeech.didNotCatch(_language), turn: turn);
     if (_stale(turn) || !_active) return;
     await _listen(turn);
   }
@@ -367,7 +408,7 @@ class VoiceIntakeController extends ChangeNotifier {
         case VoiceIntakeCommand.repeat:
           await repeat();
         case VoiceIntakeCommand.stop:
-          await _say('Voice off. You can still tap your answers.', turn: turn);
+          await _say(VoiceIntakeSpeech.voiceOff(_language), turn: turn);
           await stop();
       }
       return;
@@ -496,4 +537,54 @@ class VoiceIntakeController extends ChangeNotifier {
     _synthesizer.dispose();
     super.dispose();
   }
+}
+
+/// Localized speech utterances used during voice intake across English, Hindi, and Assamese.
+class VoiceIntakeSpeech {
+  const VoiceIntakeSpeech._();
+
+  static String sayNumber(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say the number.',
+        VoiceLanguage.hindi => 'संख्या बोलिए।',
+        VoiceLanguage.assamese => 'নম্বৰটো কওক।',
+      };
+
+  static String sayAfterBeep(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say it after the beep, then I will read it back.',
+        VoiceLanguage.hindi => 'बीप के बाद बोलिए, फिर मैं इसे पढ़कर सुनाऊँगी।',
+        VoiceLanguage.assamese => 'শব্দটোৰ পিছত কওক, তাৰ পিছত মই পঢ়ি শুনাম।',
+      };
+
+  static String sayNext(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say next when you are ready.',
+        VoiceLanguage.hindi => 'तैयार होने पर अगला बोलिए।',
+        VoiceLanguage.assamese => 'প্ৰস্তুত হ\'লে পৰৱৰ্তী বুলি কওক।',
+      };
+
+  static String sayAnswerOrNumber(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say your answer, or say the number.',
+        VoiceLanguage.hindi => 'अपना उत्तर बोलिए, या संख्या बोलिए।',
+        VoiceLanguage.assamese => 'আপোনাৰ উত্তৰ কওক, বা নম্বৰটো কওক।',
+      };
+
+  static String hearingTrouble(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english =>
+          'I am having trouble hearing you. You can tap your answer on the screen instead.',
+        VoiceLanguage.hindi =>
+          'मुझे आपको सुनने में कठिनाई हो रही है। आप स्क्रीन पर अपना उत्तर चुन सकते हैं।',
+        VoiceLanguage.assamese =>
+          'মই আপোনাক শুনাত অসুবিধা পাইছোঁ। আপুনি পৰ্দাত উত্তৰ বাছি ল\'ব পাৰে।',
+      };
+
+  static String didNotCatch(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'I did not catch that. Please say it again.',
+        VoiceLanguage.hindi => 'मैं समझ नहीं पाई। कृपया दोबारा बोलिए।',
+        VoiceLanguage.assamese => 'মই বুজি নাপালোঁ। অনুগ্ৰহ কৰি আকৌ কওক।',
+      };
+
+  static String voiceOff(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Voice off. You can still tap your answers.',
+        VoiceLanguage.hindi => 'आवाज़ बंद। आप स्क्रीन पर उत्तर दे सकते हैं।',
+        VoiceLanguage.assamese => 'ভইচ বন্ধ। আপুনি পৰ্দাত উত্তৰ দিব পাৰে।',
+      };
 }

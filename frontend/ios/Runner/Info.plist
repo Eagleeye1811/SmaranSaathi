@@ -53,5 +53,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photographs of family and familiar places, so activities can show faces and scenes the person recognises.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photograph of family or a familiar place to add to the memory profile.</string>
 </dict>
 </plist>

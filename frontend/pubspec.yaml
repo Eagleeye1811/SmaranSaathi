@@ -46,6 +46,7 @@ dependencies:
   path_provider: ^2.1.4
   # Verifies the downloaded model file wasn't corrupted/truncated in transit.
   crypto: ^3.0.5
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:
