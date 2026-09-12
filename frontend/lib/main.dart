@@ -67,10 +67,20 @@ Future<AuthUser?> _restoreSession(AuthService? auth) async {
   final AuthUser? immediate = auth.currentUser;
   if (immediate != null) return immediate;
   try {
-    return await auth.authStateChanges.first
-        .timeout(const Duration(seconds: 3), onTimeout: () => auth.currentUser);
+    // `firstWhere`, not `first`. On a cold start `authStateChanges` emits
+    // `null` straight away and only then the user it has restored from disk —
+    // so taking the first event meant taking the null, every single launch,
+    // and concluding nobody was signed in. The account was never rebound, and
+    // a person who had never logged out was shown the greeting and the
+    // sign-in screen again.
+    return await auth.authStateChanges
+        .firstWhere((AuthUser? user) => user != null)
+        .timeout(const Duration(seconds: 4), onTimeout: () => auth.currentUser);
   } catch (error) {
-    debugPrint('main: could not restore the previous session ($error)');
+    // Nobody is signed in, or the service never answered. Either way the app
+    // opens on whatever the local session says — it is offline-first, and a
+    // launch must not wait on a network round trip.
+    debugPrint('main: no previous session to restore ($error)');
     return auth.currentUser;
   }
 }

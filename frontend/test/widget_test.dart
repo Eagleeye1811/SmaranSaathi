@@ -124,11 +124,13 @@ void main() {
     );
     expect(find.text('How are you feeling today?'), findsOneWidget);
     // The four patient destinations are always labelled, never icon-only.
+    // The profile is not among them any more — it sits top right with
+    // reminders, where the caregiver's own two sit.
     for (final String label in <String>[
       'Home',
       'Activities',
+      'Wellness',
       'Companion',
-      'Profile',
     ]) {
       expect(find.text(label), findsWidgets, reason: 'missing $label tab');
     }

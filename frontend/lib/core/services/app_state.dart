@@ -527,6 +527,16 @@ class AppState extends ChangeNotifier {
     _lastPlayed = id;
     _journeyDone.add('game');
 
+    // An activity played anywhere counts towards the baseline.
+    //
+    // It used to count only inside `BaselineSessionScreen`, which was the
+    // single way in. Now that the home screen sends people to the activities
+    // list to choose for themselves, a run assembled from their own choices
+    // has to build the same profile as one the app marched them through —
+    // otherwise the baseline could never finish and the invitation to start
+    // it would never go away.
+    if (!baselineReady) markBaselineActivity(id);
+
     // Recomputed from every session on record rather than nudged by a delta.
     // A nudged score drifts away from the sessions it claims to summarise —
     // and after a restart, where it is derived again, it would silently
@@ -1076,8 +1086,14 @@ class AppState extends ChangeNotifier {
         syncPayload: <String, dynamic>{'step': 'caregiver', ...observation.toJson()},
       );
 
-  /// Records one activity of the baseline run. Called on the result screen, so
-  /// an interrupted baseline resumes rather than restarting.
+  /// Records one activity of the baseline run — from the guided session or
+  /// from the activities list, whichever the person used. Safe to call twice:
+  /// an activity already recorded is ignored, so an interrupted baseline
+  /// resumes rather than restarting.
+  ///
+  /// Freezes the baseline itself once the last one is in, so the profile
+  /// appears the moment the run is finished rather than waiting for a screen
+  /// that may never be opened again.
   void markBaselineActivity(GameId id, {DateTime? now}) {
     if (_intake.baselineActivities.contains(id.name)) return;
     final Set<String> activities = <String>{..._intake.baselineActivities, id.name};
@@ -1091,6 +1107,17 @@ class AppState extends ChangeNotifier {
           ? <String>{..._intake.baselineSessionDates, _dayKey(now ?? DateTime.now())}
           : null,
     ));
+
+    if (baselineRunComplete && !baselineReady) {
+      // Swallowed on purpose. This capture is a convenience the app does on
+      // the person's behalf, not an action they asked for, so a storage
+      // failure here must not surface as an error on top of the activity they
+      // just finished — the explicit capture on the baseline screen reports
+      // its own failures and offers the retry.
+      unawaited(captureBaseline(now: now).catchError((Object error) {
+        debugPrint('AppState: could not freeze the baseline automatically ($error)');
+      }));
+    }
   }
 
   /// Closes the questionnaire without freezing a baseline.
@@ -1437,21 +1464,23 @@ class AppState extends ChangeNotifier {
   /// Nothing is deleted: the account's answers, baseline and history stay on
   /// disk under its own id and come back at the next sign-in. What this does
   /// is stop showing them, which on a shared phone is the whole point.
+  /// Returns the app to the state a fresh install is in.
+  ///
+  /// Every flag that could route somebody past the greeting goes: the account
+  /// id, the role, the whole remembered-role map, the patient's claimed
+  /// username. What stays is the device's own preferences — text size,
+  /// contrast, language — which belong to the phone rather than to whoever
+  /// was signed in.
+  ///
+  /// Nothing is *deleted*: the account's answers, baseline and history stay on
+  /// disk under its own uid and come back at the next sign-in. What this does
+  /// is stop showing them, and stop the app claiming to know who is holding
+  /// it, which on a shared phone is the whole point.
   Future<void> signOutAccount() async {
-    final String? leaving = _accountId;
-    if (leaving == null) return;
+    if (_accountId == null) return;
     _accountId = null;
-    // The role goes with the account, and an explicit sign-out forgets it
-    // rather than holding it for next time.
-    //
-    // Restoring it on the next sign-in is right for a *restart* — nobody
-    // should answer the same question twice a day — but wrong after someone
-    // deliberately logged out: the next sign-in is the moment to ask who is
-    // holding the phone, and a remembered flag silently skipped both the role
-    // picker and the sign-in screen behind it. Signing in from a launch that
-    // was never signed out still restores, because `lastRole` and the map
-    // both survive a restart.
-    _accountRoles.remove(leaving);
+    _accountRoles.clear();
+    _patientUsername = '';
     _role = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;

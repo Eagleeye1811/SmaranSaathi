@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/caregiver/patient_view_screen.dart';
 import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
 import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
 import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
@@ -17,6 +18,7 @@ import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_gam
 import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_painter.dart';
 import 'package:smaran_saathi/features/patient/memories/memory_wallet_screen.dart';
 import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
+import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
 import 'package:smaran_saathi/features/patient/patient_shell.dart';
 import 'package:smaran_saathi/core/widgets/ui_kit.dart';
 import 'package:smaran_saathi/l10n/locale_controller.dart';
@@ -136,19 +138,95 @@ void main() {
         await beat(tester);
 
         // Progress is no longer a destination: it lives on the home screen,
-        // under the status it explains.
+        // under the status it explains. Nor is the profile — that moved to
+        // the top right of the header, beside reminders.
         for (final String tab in <String>[
           'Activities',
+          'Wellness',
           'Companion',
-          'Profile',
           'Home',
         ]) {
           await tester.tap(find.text(tab).last);
           await beat(tester);
           expect(tester.takeException(), isNull, reason: '$tab overflowed on $name');
         }
+
+        // Both header actions are present and open their own screen.
+        for (final IconData icon in <IconData>[
+          Icons.notifications_none_rounded,
+          Icons.person_outline_rounded,
+        ]) {
+          await tester.tap(find.byIcon(icon).first);
+          await beat(tester, 800);
+          expect(tester.takeException(), isNull, reason: '$icon overflowed on $name');
+          await tester.pageBack();
+          await beat(tester);
+        }
       });
     }
+
+    testWidgets('the check-in offers to talk, and the offer opens the companion',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      await tester.pumpWidget(harness(const PatientShell(), state: state));
+      await beat(tester);
+
+      // Asked once, not twice — the home screen used to render the whole
+      // check-in, question card and status block a second time.
+      expect(find.byKey(const Key('home_mood_picker')), findsOneWidget);
+
+      // Nothing is offered until there is a mood to talk about.
+      expect(find.text('Talk to Mitra'), findsNothing);
+
+      // `scrollTo` also clears the floating voice button, which sits over the
+      // bottom of the list and swallows the tap.
+      await scrollTo(tester, 'Not good');
+      await tester.tap(find.text('Not good').last);
+      await beat(tester);
+
+      // The offer reads as a person would say it, and it is an offer — the
+      // screen does not move on its own.
+      expect(find.text('Talk to Mitra'), findsOneWidget);
+      expect(find.text('You do not have to carry it on your own.'), findsOneWidget);
+      expect(find.byType(AssistantScreen), findsNothing);
+
+      await scrollTo(tester, 'Talk to Mitra');
+      await tester.tap(find.text('Talk to Mitra'));
+      await beat(tester, 900);
+      expect(find.byType(AssistantScreen), findsOneWidget);
+    });
+  });
+
+  group('patient preview', () {
+    testWidgets('the cross leaves the preview from inside the patient app',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const PatientViewScreen(), state: state));
+      await beat(tester);
+
+      expect(find.text("You are viewing the patient's app"), findsOneWidget);
+      expect(state.viewingAsPatient, isTrue);
+
+      // Go a screen deeper inside the preview — the patient's app pushes onto
+      // the same navigator, so this is what used to make one pop land back
+      // inside the preview rather than out of it.
+      await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
+      await beat(tester, 600);
+      expect(find.text("You are viewing the patient's app"), findsNothing);
+
+      await tester.pageBack();
+      await beat(tester, 600);
+
+      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      await beat(tester, 600);
+
+      // Out of the preview entirely, and the caregiver has their own role back.
+      expect(find.text("You are viewing the patient's app"), findsNothing);
+      expect(state.viewingAsPatient, isFalse);
+      expect(state.role, AppRole.caregiver);
+    });
   });
 
   group('memory wallet tabs', () {

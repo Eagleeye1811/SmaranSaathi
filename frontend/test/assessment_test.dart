@@ -1031,11 +1031,42 @@ void accountTests() {
       expect(state.role, AppRole.none);
       expect(state.roleForAccount('uid-anita'), AppRole.none,
           reason: 'the flag is forgotten, not kept for next time');
+      expect(state.patientUsername, isEmpty,
+          reason: 'and so is every other trace of who was signed in');
 
       await state.signInAccount('uid-anita');
       expect(state.role, AppRole.none,
           reason: 'signing in after a log out goes through the role picker');
       expect(state.canResumeSession, isFalse);
+
+      state.dispose();
+      await store.close();
+    });
+
+    test('a log out survives a restart as a fresh install', () async {
+      var (HiveStore store, AppState state) = await launch();
+
+      await state.signInAccount('uid-anita');
+      state.setRole(AppRole.caregiver);
+      state.setPatientUsername('anita');
+      await state.flush();
+      await state.signOutAccount();
+      await state.flush();
+
+      state.dispose();
+      await store.close();
+
+      // The settings box is written with `putAll`, which cannot express
+      // "remove this" — a key left out simply keeps its old value. `lastRole`
+      // was written and never deleted, so a caregiver who logged out came
+      // back on the next launch still restored as a caregiver, straight past
+      // the greeting, the role picker and the sign-in screen behind them.
+      (store, state) = await launch();
+      expect(state.accountId, isNull);
+      expect(state.role, AppRole.none);
+      expect(state.canResumeSession, isFalse);
+      expect(state.roleForAccount('uid-anita'), AppRole.none);
+      expect(state.patientUsername, isEmpty);
 
       state.dispose();
       await store.close();

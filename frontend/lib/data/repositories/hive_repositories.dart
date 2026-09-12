@@ -461,14 +461,25 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
       if (settings.accountRolesJson != null) 'accountRoles': settings.accountRolesJson,
     });
-    // A null account means "signed out", which has to *remove* the key —
-    // skipping the write would leave the previous uid in the box and reopen
-    // someone else's assessment on the next launch.
-    if (settings.lastAccountId == null) await _store.settings.delete('lastAccountId');
-    // Same reasoning: a removed zone has to leave the box, or the old
-    // boundary comes back at the next launch and alarms about a house the
-    // family has moved out of.
-    if (settings.safeZoneJson == null) await _store.settings.delete('safeZone');
+    // `putAll` cannot express "remove this": a key left out of the map simply
+    // keeps whatever it held. So every nullable setting has to be deleted
+    // explicitly when it is null, or signing out leaves the old value behind
+    // and the next launch reads it back as if nothing had happened.
+    //
+    // This is not hypothetical. `lastRole` was written but never deleted, so
+    // a caregiver who logged out was still restored *as a caregiver* on the
+    // next launch — straight past the greeting, the role picker and the
+    // sign-in screen behind them.
+    for (final MapEntry<String, Object?> nullable in <String, Object?>{
+      'lastAccountId': settings.lastAccountId,
+      'lastRole': settings.lastRole,
+      'accountRoles': settings.accountRolesJson,
+      'patientUsername': settings.patientUsername,
+      'safeZone': settings.safeZoneJson,
+      'localeCode': settings.localeCode,
+    }.entries) {
+      if (nullable.value == null) await _store.settings.delete(nullable.key);
+    }
   }
 }
 

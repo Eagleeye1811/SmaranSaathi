@@ -76,7 +76,7 @@ class _TodayScreenState extends State<TodayScreen> {
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              const PatientTopBar(showExit: false, showTodayButton: false),
+              const PatientTopBar(showExit: false, showActions: false),
 
               // ── Interactive Companion Status Card (Zomato/Uber style) ─────────────────────
               Padding(

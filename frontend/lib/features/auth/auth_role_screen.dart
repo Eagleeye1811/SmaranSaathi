@@ -136,7 +136,12 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
       context,
       SignInScreen(
         authService: auth,
-        onSignedIn: (AuthUser user) async {
+        onSignedIn: (AuthResult result) async {
+          final AuthUser user = result.user!;
+          // A freshly created account has nothing on this device or the
+          // server, so the role claim is the only hint — and for a new
+          // account there is not one yet either. Either way the role the
+          // person just picked on this screen is applied after this returns.
           await state.signInAccount(user.uid, roleHint: user.role);
           signedIn = true;
           if (mounted) Navigator.of(context).pop();
