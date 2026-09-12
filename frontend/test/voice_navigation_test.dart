@@ -575,6 +575,63 @@ void main() {
       expect(find.text('Report'), findsNothing);
     });
 
+    testWidgets('a screen\'s own floating button clears the microphone',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(393, 852) * 3;
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      // A Scaffold's floating button and this overlay live in separate
+      // trees and know nothing about each other, so nothing but geometry
+      // keeps them apart.
+      Future<void> pumpWith(Widget floatingButton) async {
+        await tester.pumpWidget(MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: VoiceNavHost(
+              destinations: const <VoiceDestination>{VoiceDestination.home},
+              recognizer: FakeSpeechRecognizer(alreadyGranted: true),
+              synthesizer: FakeSpeechSynthesizer(),
+              onNavigate: (VoiceDestination d) => true,
+              child: Scaffold(
+                body: const Center(child: Text('screen content')),
+                floatingActionButton: floatingButton,
+              ),
+            ),
+          ),
+        ));
+        await tester.pump();
+      }
+
+      void expectClear() {
+        final Rect mic = tester.getRect(find.byIcon(Icons.mic_rounded));
+        final Rect fab = tester.getRect(find.byType(FloatingActionButton));
+        expect(mic.overlaps(fab), isFalse,
+            reason: 'mic $mic overlaps the screen\'s button $fab');
+      }
+
+      // What Today does now: a plain circular button in the corner, narrow
+      // enough to clear the centred microphone on its own.
+      await pumpWith(FloatingActionButton(
+        onPressed: () {},
+        child: const Icon(Icons.add_alarm_rounded),
+      ));
+      expectClear();
+
+      // And the shape that originally broke — a wide labelled button, which
+      // does reach the centre and so has to be lifted out of the lane.
+      await pumpWith(Padding(
+        padding: const EdgeInsets.only(bottom: VoiceNavHost.micLaneHeight),
+        child: FloatingActionButton.extended(
+          onPressed: () {},
+          icon: const Icon(Icons.add_alarm_rounded),
+          label: const Text('Create reminder'),
+        ),
+      ));
+      expectClear();
+    });
+
     testWidgets('the microphone sits low and centred, above the bottom bar',
         (WidgetTester tester) async {
       await tester.pumpWidget(MaterialApp(

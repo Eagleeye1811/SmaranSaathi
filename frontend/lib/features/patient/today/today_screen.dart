@@ -238,14 +238,21 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ],
           ),
-          floatingActionButton: FloatingActionButton.extended(
+          // Icon only, in the bottom-right corner. The circular button is
+          // narrow enough to sit clear of the voice microphone, which floats
+          // centred at the bottom of every patient screen — so it needs no
+          // extra clearance the way the wide labelled version did.
+          //
+          // The label survives as the tooltip and the semantic name, so a
+          // long press still says what it does and a screen reader still
+          // announces it in the patient's own language.
+          floatingActionButton: FloatingActionButton(
             onPressed: () => _showAddReminderSheet(context, state),
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             elevation: 6,
-            icon: const Icon(Icons.add_alarm_rounded, size: 24),
-            label: Text(l.todayCreateReminderButton,
-                style: AppText.body.wght(800).tint(Colors.white)),
+            tooltip: l.todayCreateReminderButton,
+            child: const Icon(Icons.add_alarm_rounded, size: 28),
           ),
         ),
       ),

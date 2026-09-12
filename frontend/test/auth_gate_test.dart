@@ -8,7 +8,7 @@ import 'package:memory_mitra/core/services/auth_service.dart';
 import 'package:memory_mitra/app/app.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/features/auth/sign_in_screen.dart';
-import 'package:memory_mitra/features/auth/role_selection_screen.dart';
+import 'package:memory_mitra/features/auth/auth_role_screen.dart';
 import 'package:memory_mitra/features/intake/welcome_screens.dart';
 import 'package:memory_mitra/features/patient/profile/patient_profile_screen.dart';
 import 'package:memory_mitra/l10n/app_localizations.dart';
@@ -161,7 +161,7 @@ void main() {
 
   // ── Sign-in as a step in the journey, not a gate in front of it ─────────
 
-  testWidgets('the welcome screen routes into sign-in and on to role selection',
+  testWidgets('the greeting routes into the authentication screen, and sign-in from there',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;
@@ -183,12 +183,23 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 600));
 
-    // The welcome screen comes first — nobody is asked for an email before
-    // being told what the product is.
+    // The greeting comes first — nobody is asked for an email before being
+    // told what the product is.
     expect(find.text('Get started'), findsOneWidget);
-    expect(find.text('Sign in'), findsNothing);
+    expect(find.byType(SignInScreen), findsNothing);
 
     await tester.tap(find.text('Get started'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // The authentication screen: the account is an offer at the top, and the
+    // three roles are the choice that actually moves you on.
+    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(find.text('Caregiver'), findsOneWidget);
+    expect(find.byType(SignInScreen), findsNothing);
+
+    // Taking up the offer opens the form.
+    await tester.tap(find.text('Sign in'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(SignInScreen), findsOneWidget);
@@ -202,10 +213,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
 
-    // Signed in, the assessment is bound to the uid, and the journey continues.
+    // Bound to the uid, and back on the authentication screen to pick a role
+    // rather than being dropped somewhere it has to guess.
     expect(state.accountId, 'fake-uid');
     expect(find.byType(SignInScreen), findsNothing);
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(find.text('Caregiver'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',
@@ -264,8 +276,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
+    // The authentication screen is reached, and it can see the AuthScope
+    // through the push — otherwise the account row would not be there at all.
+    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    await tester.tap(find.text('Sign in'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
     expect(find.byType(SignInScreen), findsOneWidget,
-        reason: 'the welcome screen must see the AuthScope through the push');
+        reason: 'the authentication screen must see the AuthScope through the push');
   });
 
   group('Google sign-in', () {
@@ -338,7 +357,7 @@ void main() {
     });
   });
 
-  testWidgets('sign-in can be skipped, and the journey still works',
+  testWidgets('a role can be chosen without an account, and the journey still works',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;
@@ -363,29 +382,33 @@ void main() {
     await tester.tap(find.text('Get started'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(SignInScreen), findsOneWidget);
 
+    // No sign-in stands between the greeting and the role. The account is
+    // offered on this screen; walking past it is a supported answer, because
+    // every screen in the app works with no account at all.
+    expect(find.byType(SignInScreen), findsNothing);
     await tester.dragUntilVisible(
-      find.text('Continue without an account'),
+      find.text('Caregiver'),
       find.byType(Scrollable).first,
       const Offset(0, -120),
     );
-    await tester.tap(find.text('Continue without an account'));
+    await tester.tap(find.text('Caregiver'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
     // On to the journey, with the assessment left unbound rather than filed
     // under someone else's uid.
-    expect(find.byType(SignInScreen), findsNothing);
+    expect(find.text('Before we begin'), findsOneWidget);
+    expect(state.role, AppRole.caregiver);
     expect(state.accountId, isNull);
     expect(auth.currentUser, isNull);
   });
 
-  group('there is always a way back to the role picker', () {
+  group('there is always a way back to the authentication screen', () {
     // A plain `test`, not `testWidgets`: `signInAccount` awaits repository
     // reads, and inside testWidgets' fake async those futures only complete
     // while the tester pumps.
-    test('signing out clears the role, so the picker is reachable', () async {
+    test('signing out clears the role, so the authentication screen is reachable', () async {
       final AppState state = AppState();
       addTearDown(state.dispose);
       // The real order: sign in, then choose a role. (A fresh uid with no
@@ -398,13 +421,13 @@ void main() {
       await state.signOutAccount();
 
       // The role went with the account. Without this, `sessionHome` sent the
-      // next sign-in straight back into the patient app and the role picker
-      // could never be reached again.
+      // next sign-in straight back into the patient app and the role could
+      // never be chosen again.
       expect(state.role, AppRole.none);
-      expect(WelcomeScreen.sessionHome(state), isA<RoleSelectionScreen>());
+      expect(WelcomeScreen.sessionHome(state), isA<AuthRoleScreen>());
     });
 
-    testWidgets('"Switch role" reaches the picker even from a root patient app',
+    testWidgets('"Switch role" reaches the authentication screen even from a root patient app',
         (WidgetTester tester) async {
       // Generous, because this test is about navigation and the destination
       // screen's own layout at small sizes is not what is under test.
@@ -439,7 +462,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.byType(RoleSelectionScreen), findsOneWidget);
+      expect(find.byType(AuthRoleScreen), findsOneWidget);
       expect(state.role, AppRole.none);
     });
   });

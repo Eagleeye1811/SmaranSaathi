@@ -13,7 +13,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../../core/models/auth_user.dart';
 import '../../../core/services/auth_service.dart';
-import '../../auth/role_selection_screen.dart';
+import '../../auth/auth_role_screen.dart';
 import '../../auth/sign_in_screen.dart';
 import '../../intake/welcome_screens.dart';
 import '../settings/language_selector.dart';
@@ -301,7 +301,7 @@ class PatientProfileScreen extends StatelessWidget {
                       // going to the picker works from either entry.
                       onPressed: () {
                         AppScope.read(context).setRole(AppRole.none);
-                        Nav.rootTo(context, const RoleSelectionScreen());
+                        Nav.rootTo(context, const AuthRoleScreen());
                       },
                     ),
                   ),

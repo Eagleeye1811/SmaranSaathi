@@ -5,6 +5,7 @@ import 'package:hive_ce/hive.dart';
 
 import 'package:memory_mitra/core/ai/health_assistant.dart';
 import 'package:memory_mitra/core/models/assessment.dart';
+import 'package:memory_mitra/core/models/onboarding.dart';
 import 'package:memory_mitra/core/models/clinical.dart';
 import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/models/monitoring.dart';
@@ -126,10 +127,111 @@ void main() {
       final IntakeRecord consented = empty.copyWith(
         consent: const ConsentRecord(understood: true, atIso: '2026-08-01'),
       );
-      expect(consented.nextStep, IntakeStep.profile);
+      expect(consented.nextStep, IntakeStep.person);
 
-      final IntakeRecord withProfile = consented.copyWith(completedBy: CompletedBy.patient);
-      expect(withProfile.nextStep, IntakeStep.reason);
+      final IntakeRecord withPerson = consented.withOnboarding(
+        const OnboardingRecord(
+          helper: HelperRole.myself,
+          education: EducationLevel.secondary,
+        ),
+      );
+      expect(withPerson.nextStep, IntakeStep.health);
+
+      final IntakeRecord withHealth = withPerson.withOnboarding(
+        withPerson.onboarding.copyWith(
+          diagnosisStatus: DiagnosisStatus.no,
+          treatmentStatus: TreatmentStatus.no,
+        ),
+      );
+      expect(withHealth.nextStep, IntakeStep.everyday);
+    });
+
+    test('the follow-up screen is skipped when nothing triggered it', () {
+      const IntakeRecord base = IntakeRecord.empty;
+
+      // "Nothing noticed" is a complete answer to the everyday screen and
+      // ranks nothing, so there is no follow-up to ask.
+      final IntakeRecord quiet = base
+          .copyWith(consent: const ConsentRecord(understood: true, atIso: 'x'))
+          .withOnboarding(const OnboardingRecord(
+            helper: HelperRole.myself,
+            education: EducationLevel.graduate,
+            diagnosisStatus: DiagnosisStatus.no,
+            treatmentStatus: TreatmentStatus.no,
+            difficulties: <DailyDifficulty>{DailyDifficulty.nothingNoticed},
+            onset: OnsetWindow.unsure,
+            course: ProgressionPattern.noChange,
+          ));
+      expect(quiet.onboarding.activeProbes, isEmpty);
+      expect(quiet.nextStep, IntakeStep.independence);
+
+      // A difficulty the catalogue has follow-ups for stops there instead.
+      final IntakeRecord probed = quiet.withOnboarding(
+        quiet.onboarding.copyWith(
+          difficulties: <DailyDifficulty>{DailyDifficulty.misplacingThings},
+          topDifficulties: <DailyDifficulty>[DailyDifficulty.misplacingThings],
+        ),
+      );
+      expect(probed.onboarding.activeProbes, hasLength(3));
+      expect(probed.nextStep, IntakeStep.probes);
+    });
+
+    test('answers project onto the structures the report reads', () {
+      final IntakeRecord record = IntakeRecord.empty.withOnboarding(
+        const OnboardingRecord(
+          helper: HelperRole.child,
+          difficulties: <DailyDifficulty>{
+            DailyDifficulty.recentConversations,
+            DailyDifficulty.managingMoney,
+          },
+          topDifficulties: <DailyDifficulty>[DailyDifficulty.recentConversations],
+          support: <DailyActivity, SupportLevel>{
+            DailyActivity.money: SupportLevel.needsFullHelp,
+            DailyActivity.bathing: SupportLevel.independent,
+            // Three activities collapse onto one legacy item, and the most
+            // help needed has to win — otherwise combining answers could make
+            // the picture look better than any single answer did.
+            DailyActivity.dressing: SupportLevel.needsSomeHelp,
+            DailyActivity.toilet: SupportLevel.independent,
+          },
+        ),
+      );
+
+      // The one named as biggest is reported more often than the other.
+      expect(record.symptoms.responses['mem_conv'], SymptomFrequency.veryOften);
+      expect(record.symptoms.responses['att_money'], SymptomFrequency.often);
+      // Offered and not chosen is "never", not missing — an unanswered item
+      // and a denied one are different things.
+      expect(record.symptoms.responses['mem_repeat'], SymptomFrequency.never);
+
+      expect(record.function.levels['fn_money'], FunctionLevel.dependent);
+      expect(record.function.levels['fn_bathing'], FunctionLevel.needsHelp);
+
+      // A daughter answering means the report has corroboration to separate
+      // from self-report; the person answering for themselves means it does
+      // not, and must not pretend otherwise.
+      expect(record.caregiver, isNotNull);
+      expect(record.completedBy, CompletedBy.familyMember);
+
+      final IntakeRecord selfAnswered =
+          record.withOnboarding(record.onboarding.copyWith(helper: HelperRole.myself));
+      expect(selfAnswered.caregiver, isNull);
+      expect(selfAnswered.completedBy, CompletedBy.patient);
+    });
+
+    test('a follow-up that pins down a frequency beats the estimate', () {
+      const OnboardingRecord answers = OnboardingRecord(
+        difficulties: <DailyDifficulty>{DailyDifficulty.misplacingThings},
+        topDifficulties: <DailyDifficulty>[DailyDifficulty.misplacingThings],
+        probeAnswers: <String, Set<String>>{
+          'probe_misplace_often': <String>{'occasionally'},
+        },
+      );
+
+      // Being named the biggest difficulty would read as "very often"; the
+      // caregiver actually said it happens occasionally, and that wins.
+      expect(answers.toSymptomAssessment().responses['mem_misplace'],
+          SymptomFrequency.sometimes);
     });
 
     test('survives a JSON round trip', () {
@@ -355,6 +457,42 @@ void main() {
       );
     });
 
+    test('carries the onboarding answers a checklist cannot', () {
+      final ReportSection reason = report.sections
+          .firstWhere((ReportSection s) => s.title == 'Reason for assessment');
+      // The ranking the family gave, in their order.
+      expect(reason.lines.any((String l) => l.startsWith('Reported as affecting')),
+          isTrue);
+      expect(reason.lines.firstWhere((String l) => l.startsWith('Reported as affecting')),
+          contains('1. forgets recent conversations'));
+      // And the concrete episode, verbatim.
+      expect(reason.note, contains('electricity bill'));
+
+      // The four-point support scale survives, including the level the legacy
+      // three-point scale cannot express.
+      final ReportSection function = report.sections
+          .firstWhere((ReportSection s) => s.title == 'Functional status');
+      expect(function.lines, contains('Taking medicines: needs reminders'));
+      expect(function.lines, contains('Eating: independent'));
+
+      // And the half of the record that is not about loss.
+      final ReportSection strengths = report.sections.firstWhere(
+          (ReportSection s) => s.title == 'Preserved abilities and priorities');
+      expect(strengths.lines.any((String l) => l.contains('gardening')), isTrue);
+      expect(strengths.lines.any((String l) => l.contains('tulsi')), isTrue);
+      expect(strengths.lines.any((String l) => l.contains('taking something useful')),
+          isTrue);
+    });
+
+    test('reported safety concerns reach the report as their own section', () {
+      final ReportSection safety = report.sections
+          .firstWhere((ReportSection s) => s.title == 'Reported safety concerns');
+      expect(safety.lines, contains('Forgetting medicines'));
+      expect(safety.lines, contains('Handling money'));
+      // Nothing about wandering was reported, so nothing is claimed about it.
+      expect(safety.lines.any((String l) => l.contains('lost')), isFalse);
+    });
+
     test('separates what the patient reported from what the caregiver observed', () {
       final ReportSection caregiver =
           report.sections.firstWhere((ReportSection s) => s.title == 'Caregiver observations');
@@ -478,13 +616,20 @@ void main() {
         occupation: 'Teacher',
         completedBy: CompletedBy.patient,
       );
-      state.saveReason(const ReasonForVisit(
-        concerns: <PresentingConcern>{PresentingConcern.memoryProblems},
+      state.saveOnboarding(const OnboardingRecord(
+        helper: HelperRole.myself,
+        education: EducationLevel.graduate,
+        diagnosisStatus: DiagnosisStatus.notSure,
+        treatmentStatus: TreatmentStatus.no,
+        difficulties: <DailyDifficulty>{DailyDifficulty.recentConversations},
+        topDifficulties: <DailyDifficulty>[DailyDifficulty.recentConversations],
         onset: OnsetWindow.sixToTwelveMonths,
-        progression: ProgressionPattern.graduallyWorse,
+        course: ProgressionPattern.graduallyWorse,
       ));
       await state.flush();
-      expect(state.nextIntakeStep, IntakeStep.safety);
+      // Stopped in the middle: the memory difficulty has follow-ups and they
+      // have not been answered.
+      expect(state.nextIntakeStep, IntakeStep.probes);
 
       // ── the app is closed and reopened ────────────────────────────────
       state.dispose();
@@ -493,11 +638,14 @@ void main() {
 
       expect(state.intake.consentGiven, isTrue);
       expect(state.patient.occupation, 'Teacher');
+      expect(state.intake.onboarding.education, EducationLevel.graduate);
+      // The derived structures come back with the answers that built them.
       expect(state.intake.reason.onset, OnsetWindow.sixToTwelveMonths);
+      expect(state.intake.symptoms.responses['mem_conv'], SymptomFrequency.veryOften);
       expect(state.patient.name, 'Rahul Sharma');
       expect(state.patient.age, 67);
       // And it resumes at the next unanswered question, not at the start.
-      expect(state.nextIntakeStep, IntakeStep.safety);
+      expect(state.nextIntakeStep, IntakeStep.probes);
       expect(state.intakeComplete, isFalse);
 
       state.dispose();
@@ -778,25 +926,22 @@ void accountTests() {
         occupation: 'Teacher',
         completedBy: CompletedBy.patient,
       );
-      state.saveReason(const ReasonForVisit(
-        concerns: <PresentingConcern>{PresentingConcern.memoryProblems},
-        onset: OnsetWindow.sixToTwelveMonths,
-        progression: ProgressionPattern.graduallyWorse,
-      ));
-      state.saveSafetyCheck(const SafetyCheck(
-        suddenOnset: false,
-        fluctuatingAlertness: false,
-        neurologicalRedFlag: false,
-      ));
-      for (final SymptomItem item in SymptomCatalogue.items) {
-        state.answerSymptom(item.id, SymptomFrequency.sometimes);
-      }
-      for (final FunctionalItem item in FunctionCatalogue.items) {
-        state.setFunctionLevel(item.id, FunctionLevel.independent);
-      }
-      state.saveMedicalHistory(const MedicalHistory(
-        sleepQuality: SleepQuality.good,
-        lowMood: MoodFrequency.never,
+      state.saveOnboarding(OnboardingRecord(
+        helper: HelperRole.myself,
+        education: EducationLevel.graduate,
+        diagnosisStatus: DiagnosisStatus.no,
+        treatmentStatus: TreatmentStatus.no,
+        difficulties: const <DailyDifficulty>{DailyDifficulty.nothingNoticed},
+        onset: OnsetWindow.unsure,
+        course: ProgressionPattern.noChange,
+        support: <DailyActivity, SupportLevel>{
+          for (final DailyActivity a in DailyActivity.values)
+            a: SupportLevel.independent,
+        },
+        behaviourChanges: const <BehaviourChange>{BehaviourChange.noMajorChanges},
+        safetyConcerns: const <SafetyConcern>{SafetyConcern.noMajorConcerns},
+        enjoys: const <EnjoyedActivity>{EnjoyedActivity.music},
+        goals: const <SupportGoal>[SupportGoal.stayingMentallyActive],
       ));
       state.completeIntakeQuestionnaire(now: DateTime(2026, 6, 1));
       await state.flush();

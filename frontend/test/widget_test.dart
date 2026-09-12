@@ -40,7 +40,26 @@ void main() {
     expect(find.text('Doctor'), findsOneWidget);
   });
 
-  testWidgets('selecting Patient starts the structured intake',
+  testWidgets('selecting Caregiver starts the onboarding',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const MemoryMitraApp());
+    await passSplash(tester);
+    await tester.tap(find.text('Get started'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    await tester.tap(find.text('Caregiver'));
+    // The companion breathes forever, so the tree never "settles".
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    // Nothing answered yet, so the caregiver lands on consent, not on a
+    // dashboard with nothing behind it.
+    expect(find.text('Before we begin'), findsOneWidget);
+    expect(find.text('Step 1 of 12'), findsOneWidget);
+  });
+
+  testWidgets('selecting Patient goes straight to the dashboard',
       (WidgetTester tester) async {
     await tester.pumpWidget(const MemoryMitraApp());
     await passSplash(tester);
@@ -49,14 +68,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
 
     await tester.tap(find.text('Patient'));
-    // The companion breathes forever, so the tree never "settles".
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    // A person with no completed assessment lands on consent, not on games.
-    expect(find.text('Before we begin'), findsOneWidget);
-    expect(find.text('Step 1 of 8'), findsOneWidget);
-    expect(find.text('Your symptoms'), findsOneWidget);
+    // The onboarding is the caregiver's. Handing a person fifteen questions
+    // about their own decline is the wrong first thing to meet, so the
+    // patient side opens on their day instead.
+    expect(find.text('Before we begin'), findsNothing);
+    expect(find.byType(PatientShell), findsOneWidget);
   });
 
   testWidgets('the patient shell exposes the monitoring journey',

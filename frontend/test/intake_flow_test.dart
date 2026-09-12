@@ -8,13 +8,19 @@ import 'package:memory_mitra/core/models/assessment.dart';
 import 'package:memory_mitra/core/models/game.dart';
 import 'package:memory_mitra/core/services/app_state.dart';
 import 'package:memory_mitra/core/widgets/ui_kit.dart';
+import 'package:memory_mitra/features/intake/intake_kit.dart';
 import 'package:memory_mitra/data/mock/mock_data.dart';
+import 'package:memory_mitra/core/models/onboarding.dart';
+import 'package:memory_mitra/features/caregiver/caregiver_entry.dart';
+import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
 import 'package:memory_mitra/features/intake/baseline_screens.dart';
 import 'package:memory_mitra/features/intake/intake_flow.dart';
-import 'package:memory_mitra/features/intake/steps_consent_profile.dart';
-import 'package:memory_mitra/features/intake/steps_medical_caregiver.dart';
-import 'package:memory_mitra/features/intake/steps_reason_safety.dart';
-import 'package:memory_mitra/features/intake/steps_symptoms_function.dart';
+import 'package:memory_mitra/features/intake/onboarding_summary_screen.dart';
+import 'package:memory_mitra/features/intake/step_consent.dart';
+import 'package:memory_mitra/features/intake/steps_everyday.dart';
+import 'package:memory_mitra/features/intake/steps_life.dart';
+import 'package:memory_mitra/features/intake/steps_person_health.dart';
+import 'package:memory_mitra/features/intake/steps_support_safety.dart';
 import 'package:memory_mitra/features/intake/welcome_screens.dart';
 import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
 import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
@@ -99,6 +105,70 @@ Future<AppState> monitoredState() async {
   return state;
 }
 
+/// Scrolls the [index]th match of [finder] into view and taps it.
+///
+/// Hand-rolled rather than `dragUntilVisible` for two reasons these screens
+/// both hit: a lazily-built list means the target often does not exist yet, so
+/// any finder narrowed with `.first` throws before the scroll starts; and
+/// `dragUntilVisible` stops as soon as the widget is technically on screen,
+/// which can leave it under the fixed action bar where the tap lands on the
+/// bar instead and the answer is silently lost.
+Future<void> tapAfterScroll(WidgetTester tester, Finder finder, {int index = 0}) async {
+  final Finder list = find.byType(Scrollable).first;
+  // Back to the top first, so the walk is always downwards and the order in
+  // which a test taps things does not matter.
+  await tester.drag(list, const Offset(0, 6000));
+  await beat(tester);
+
+  final double height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+  for (int step = 0; step < 80; step++) {
+    if (finder.evaluate().length > index) {
+      final Finder one = finder.at(index);
+      final double dy = tester.getCenter(one).dy;
+      if (dy > 60 && dy < height - 190) {
+        await tester.tap(one);
+        await beat(tester);
+        return;
+      }
+    }
+    await tester.drag(list, const Offset(0, -120));
+    await beat(tester);
+  }
+  fail('never reached a tappable match for $finder');
+}
+
+/// Taps the first [target] that sits below [anchor] on screen.
+///
+/// Screens that carry several questions repeat the same answer words — "Yes",
+/// "No", "Not sure" — so an index into all matches is meaningless when the
+/// list builds lazily and the two may never exist at once. Anchoring to the
+/// question the answer belongs to says what the test actually means.
+Future<void> tapUnder(WidgetTester tester, Finder anchor, Finder target) async {
+  final Finder list = find.byType(Scrollable).first;
+  await tester.drag(list, const Offset(0, 6000));
+  await beat(tester);
+
+  final double height = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+  for (int step = 0; step < 80; step++) {
+    if (anchor.evaluate().isNotEmpty) {
+      final double anchorY = tester.getCenter(anchor.at(0)).dy;
+      for (final Element element in target.evaluate()) {
+        final Finder one =
+            find.byElementPredicate((Element candidate) => identical(candidate, element));
+        final double dy = tester.getCenter(one).dy;
+        if (dy > anchorY && dy > 60 && dy < height - 190) {
+          await tester.tap(one);
+          await beat(tester);
+          return;
+        }
+      }
+    }
+    await tester.drag(list, const Offset(0, -120));
+    await beat(tester);
+  }
+  fail('never reached a $target below $anchor');
+}
+
 void main() {
   group('every intake step lays out on every handset', () {
     for (final (String name, Size size) in <(String, Size)>[
@@ -112,16 +182,51 @@ void main() {
         final AppState state = AppState()..setRole(AppRole.patient);
         addTearDown(state.dispose);
 
+        // Seeded so the screens that only appear once something was answered
+        // — the condition question, the follow-ups, the wandering history —
+        // are rendered too. A screen that is never exercised is a screen that
+        // overflows in the field.
+        state.saveOnboarding(const OnboardingRecord(
+          helper: HelperRole.child,
+          education: EducationLevel.secondary,
+          diagnosisStatus: DiagnosisStatus.yes,
+          diagnosedConditions: <DiagnosedCondition>{DiagnosedCondition.lewyBody},
+          treatmentStatus: TreatmentStatus.yes,
+          sedatingMedicines: <SedatingMedicineClass>{
+            SedatingMedicineClass.sleepOrAnxiety,
+          },
+          difficulties: <DailyDifficulty>{
+            DailyDifficulty.misplacingThings,
+            DailyDifficulty.gettingLost,
+            DailyDifficulty.managingMedicines,
+          },
+          topDifficulties: <DailyDifficulty>[
+            DailyDifficulty.misplacingThings,
+            DailyDifficulty.gettingLost,
+            DailyDifficulty.managingMedicines,
+          ],
+          onset: OnsetWindow.oneToTwoYears,
+          course: ProgressionPattern.graduallyWorse,
+          safetyConcerns: <SafetyConcern>{SafetyConcern.gettingLostOutside},
+          wanderingHistory: IncidentFrequency.moreThanOnce,
+          enjoys: <EnjoyedActivity>{EnjoyedActivity.music},
+          goals: <SupportGoal>[SupportGoal.safety],
+        ));
+
         final List<(String, Widget)> steps = <(String, Widget)>[
           ('welcome', const WelcomeScreen()),
           ('consent', ConsentStep(onDone: () {})),
-          ('profile', ProfileStep(onDone: () {})),
-          ('reason', ReasonStep(onDone: () {})),
-          ('safety', SafetyStep(onDone: () {})),
-          ('symptoms', SymptomStep(onDone: () {})),
-          ('function', FunctionStep(onDone: () {})),
-          ('medical', MedicalStep(onDone: () {})),
-          ('caregiver', CaregiverStep(onDone: () {})),
+          ('person', PersonStep(onDone: () {})),
+          ('health', HealthBackgroundStep(onDone: () {})),
+          ('everyday', EverydayStep(onDone: () {})),
+          ('probes', ProbesStep(onDone: () {})),
+          ('example', RecentExampleStep(onDone: () {})),
+          ('independence', IndependenceStep(onDone: () {})),
+          ('behaviour', BehaviourStep(onDone: () {})),
+          ('safety', DailySafetyStep(onDone: () {})),
+          ('strengths', StrengthsStep(onDone: () {})),
+          ('goals', GoalsStep(onDone: () {})),
+          ('summary', OnboardingSummaryScreen(onFinish: () {})),
           ('baseline intro', BaselineIntroScreen(onBegin: () {})),
         ];
 
@@ -196,71 +301,122 @@ void main() {
 
     expect(advanced, isTrue);
     expect(state.intake.consentGiven, isTrue);
-    expect(state.nextIntakeStep, IntakeStep.profile);
+    expect(state.nextIntakeStep, IntakeStep.person);
   });
 
-  testWidgets('one answer covers a group with nothing to report',
+  testWidgets('the biggest-difficulty question offers only what was reported',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 
-    await tester.pumpWidget(harness(SymptomStep(onDone: () {}), state: state));
+    await tester.pumpWidget(harness(EverydayStep(onDone: () {}), state: state));
     await beat(tester);
 
-    expect(find.text('Memory'), findsOneWidget);
-    expect(find.text('Step 5 of 8'), findsOneWidget);
+    // Nothing is reported yet, so there is nothing to rank.
+    expect(find.text('Which of these affects daily life the most?'), findsNothing);
 
-    // "Next group" stays inert until the group has been answered at all.
-    await tester.tap(find.text('Next group'));
-    await beat(tester);
-    expect(find.text('Memory'), findsOneWidget);
+    await tapAfterScroll(tester, find.widgetWithText(ChoiceTile, 'Misplacing things'));
 
-    // One tap on the stem question answers for everything the group lists.
-    await tester.tap(find.text('Never').first);
-    await beat(tester);
-    await tester.tap(find.text('Next group'));
-    await beat(tester);
-
-    expect(find.text('Attention & thinking'), findsOneWidget);
-    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
-    expect(state.intake.symptoms.severity(SymptomDomain.memory), 0);
-  });
-
-  testWidgets('a group with something happening opens up for detail',
-      (WidgetTester tester) async {
-    tester.setSurface(kPhone);
-    final AppState state = AppState()..setRole(AppRole.patient);
-    addTearDown(state.dispose);
-
-    await tester.pumpWidget(harness(SymptomStep(onDone: () {}), state: state));
-    await beat(tester);
-
-    final SymptomItem first = SymptomCatalogue.of(SymptomDomain.memory).first;
-    // Before the stem is answered, the individual questions are not shown.
-    expect(find.text(first.text), findsNothing);
-
-    await tester.tap(find.text('Sometimes').first);
-    await beat(tester);
-
-    // Now they are, pre-filled with what was just said.
     await tester.dragUntilVisible(
-      find.text(first.text),
+      find.text('Which of these affects daily life the most?'),
       find.byType(Scrollable).first,
-      const Offset(0, -140),
+      const Offset(0, -160),
     );
     await beat(tester);
-    expect(find.text(first.text), findsOneWidget);
-    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isFalse,
-        reason: 'nothing is saved until the group is left');
-
-    await tester.tap(find.text('Next group'));
-    await beat(tester);
-    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
-    expect(state.intake.symptoms.severity(SymptomDomain.memory), closeTo(33.3, 0.5));
+    // Now it can be ranked, and nothing has been ranked yet.
+    expect(find.text('0 of 3 chosen'), findsOneWidget);
   });
 
-  testWidgets('everyday activities start ticked, so independence needs no taps',
+  testWidgets('no more than three difficulties can be named as the biggest',
+      (WidgetTester tester) async {
+    tester.setSurface(kTablet);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(harness(EverydayStep(onDone: () {}), state: state));
+    await beat(tester);
+
+    // Listed in the order they appear on screen, so the walk down the list
+    // only ever scrolls one way.
+    const List<String> reported = <String>[
+      'Repeating questions or stories',
+      'Forgetting appointments or plans',
+      'Misplacing things',
+      'Changes in sleep',
+    ];
+
+    // The checklist rows and the ranking chips carry the same labels, so both
+    // are addressed by their widget type rather than by text alone.
+    Future<void> tapTile(String label) =>
+        tapAfterScroll(tester, find.widgetWithText(ChoiceTile, label));
+
+    Future<void> tapChip(String label) =>
+        tapAfterScroll(tester, find.widgetWithText(ChipChoice, label));
+
+    for (final String label in reported) {
+      await tapTile(label);
+    }
+    for (final String label in reported.take(3)) {
+      await tapChip(label);
+    }
+
+    expect(find.text('3 of 3 chosen'), findsOneWidget);
+    expect(state.intake.onboarding.topDifficulties, isEmpty,
+        reason: 'nothing is filed until Continue');
+
+    // The fourth is refused rather than silently replacing one of the three.
+    await tapChip(reported[3]);
+    expect(find.text('3 of 3 chosen'), findsOneWidget);
+  });
+
+  testWidgets('the follow-ups asked are the ones the named difficulties raise',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    state.saveOnboarding(const OnboardingRecord(
+      difficulties: <DailyDifficulty>{
+        DailyDifficulty.misplacingThings,
+        DailyDifficulty.managingMoney,
+      },
+      // Money was reported but not named as biggest, so it is not followed up.
+      topDifficulties: <DailyDifficulty>[DailyDifficulty.misplacingThings],
+    ));
+
+    bool done = false;
+    await tester.pumpWidget(
+      harness(ProbesStep(onDone: () => done = true), state: state),
+    );
+    await beat(tester);
+
+    expect(find.text('What do they most often misplace?'), findsOneWidget);
+
+    // Continue stays inert until every follow-up shown has an answer.
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+    expect(done, isFalse);
+
+    for (final String answer in <String>[
+      'Keys',
+      'Occasionally',
+      'They find it themselves',
+    ]) {
+      await tapAfterScroll(tester, find.widgetWithText(ChipChoice, answer));
+    }
+
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+
+    expect(done, isTrue);
+    // The measured frequency, not the "it was named biggest" estimate.
+    expect(state.intake.symptoms.responses['mem_misplace'], SymptomFrequency.sometimes);
+    expect(state.intake.onboarding.probeChoice('probe_misplace_after'),
+        'findsItThemselves');
+  });
+
+  testWidgets('every activity has to be answered before support is filed',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
     final AppState state = AppState()..setRole(AppRole.patient);
@@ -268,52 +424,257 @@ void main() {
 
     bool done = false;
     await tester.pumpWidget(
-      harness(FunctionStep(onDone: () => done = true), state: state),
+      harness(IndependenceStep(onDone: () => done = true), state: state),
     );
     await beat(tester);
 
-    // Continue is live immediately: the person managing everything answers
-    // this screen without touching it.
+    // Nothing is assumed: an unanswered activity is unanswered, not
+    // "independent", so Continue is inert until all eight are said.
+    expect(find.text('0 of 8 answered'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+    expect(done, isFalse);
+
+    // Each activity is answered inside its own card, so a stray tap on the
+    // wrong row would leave one unanswered and the assertions below would
+    // catch it.
+    for (final String activity in <String>[
+      'Eating',
+      'Dressing',
+      'Bathing and hygiene',
+      'Using the toilet',
+      'Taking medicines',
+      'Cooking and household tasks',
+      'Managing money and bills',
+      'Going outside and travelling',
+    ]) {
+      final Finder card = find.widgetWithText(ScaleQuestion, activity);
+      await tapAfterScroll(tester,
+          find.descendant(of: card, matching: find.text('On their own')));
+    }
+
     await tester.tap(find.text('Continue'));
     await beat(tester);
 
     expect(done, isTrue);
-    expect(state.intake.function.isComplete, isTrue);
+    expect(state.intake.onboarding.independenceDone, isTrue);
     expect(state.intake.function.independencePercent, 100);
-    expect(state.intake.function.needingHelp, isEmpty);
   });
 
-  testWidgets('unticking an activity asks how much help, and only then',
+  testWidgets('wandering opens a follow-up, and only wandering does',
       (WidgetTester tester) async {
     tester.setSurface(kPhone);
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 
-    await tester.pumpWidget(harness(FunctionStep(onDone: () {}), state: state));
-    await beat(tester);
-
-    expect(find.text('A little'), findsNothing);
-
-    final FunctionalItem item = FunctionCatalogue.items.first;
-    await tester.tap(find.text(item.label));
-    await beat(tester);
-
-    expect(find.text('A little'), findsOneWidget);
-    await tester.dragUntilVisible(
-      find.text('A lot'),
-      find.byType(Scrollable).first,
-      const Offset(0, -120),
+    bool done = false;
+    await tester.pumpWidget(
+      harness(DailySafetyStep(onDone: () => done = true), state: state),
     );
     await beat(tester);
-    await tester.tap(find.text('A lot'));
+
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'Falling or losing balance'));
+    expect(find.text('Has this happened before?'), findsNothing);
+
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'Getting lost while outside'));
+    await tester.dragUntilVisible(
+      find.text('Has this happened before?'),
+      find.byType(Scrollable).first,
+      const Offset(0, -160),
+    );
     await beat(tester);
 
+    // And the screen cannot be left until that follow-up is answered.
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+    expect(done, isFalse);
+
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'More than once'));
     await tester.tap(find.text('Continue'));
     await beat(tester);
 
-    expect(state.intake.function.levels[item.id], FunctionLevel.dependent);
-    expect(state.intake.function.needingHelp, hasLength(1));
-    expect(state.intake.function.independencePercent, lessThan(100));
+    expect(done, isTrue);
+    expect(state.intake.onboarding.hasWanderingRisk, isTrue);
+  });
+
+  testWidgets('a caregiver can walk the whole onboarding end to end',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhone);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+    bool finished = false;
+
+    await tester.pumpWidget(
+      harness(IntakeFlowScreen(onFinished: () => finished = true), state: state),
+    );
+    await beat(tester);
+
+    Future<void> next() async {
+      await tester.tap(find.text('Continue'));
+      await beat(tester, 400);
+    }
+
+    // 1 · consent
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'I understand this is not a medical diagnosis'));
+    await next();
+
+    // 2 · about the person
+    await tester.enterText(find.byType(TextField).first, 'Aruna Devi');
+    await beat(tester);
+    await tester.enterText(find.byType(TextField).at(1), '72');
+    await beat(tester);
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Up to class 10'));
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Weaver'));
+    await tapAfterScroll(tester, find.widgetWithText(ChoiceTile, 'Son or daughter'));
+    await next();
+
+    // 3 · health and care background
+    expect(find.text('Health and care so far'), findsOneWidget);
+    // "Not sure" and "No" each appear twice on this screen, so each answer is
+    // anchored to the numbered question it belongs to.
+    await tapUnder(tester, find.widgetWithText(QuestionLabel, '2'),
+        find.widgetWithText(ChoiceTile, 'Not sure'));
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChipChoice, 'Family, or a caregiver at home'));
+    await tapUnder(tester, find.widgetWithText(QuestionLabel, '5'),
+        find.widgetWithText(ChoiceTile, 'No'));
+    await next();
+
+    // 4 · everyday difficulties, the ranking, and how long
+    expect(find.text('What has changed in everyday life?'), findsWidgets);
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'Forgetting recent conversations'));
+    await tapAfterScroll(tester, find.widgetWithText(ChoiceTile, 'Misplacing things'));
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChipChoice, 'Misplacing things'));
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, '6–12 months'));
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Gradually worse'));
+    await next();
+
+    // 5 · the follow-ups that difficulty raised
+    expect(find.text('A little more about those'), findsOneWidget);
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Keys'));
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Sometimes'));
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChipChoice, 'They become worried or upset'));
+    await next();
+
+    // 6 · a recent example, which may be skipped but is not here
+    await tester.enterText(
+        find.byType(TextField).first, 'She looked for her keys for an hour on Tuesday.');
+    await beat(tester);
+    await next();
+
+    // 7 · independence
+    for (final String activity in <String>[
+      'Eating',
+      'Dressing',
+      'Bathing and hygiene',
+      'Using the toilet',
+      'Taking medicines',
+      'Cooking and household tasks',
+      'Managing money and bills',
+      'Going outside and travelling',
+    ]) {
+      final Finder card = find.widgetWithText(ScaleQuestion, activity);
+      await tapAfterScroll(tester,
+          find.descendant(of: card, matching: find.text('Needs reminders')));
+    }
+    await next();
+
+    // 8 · mood and behaviour
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'More irritable or short-tempered'));
+    await next();
+
+    // 9 · safety
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChoiceTile, 'Forgetting medicines'));
+    await next();
+
+    // 10 · what they enjoy
+    await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Music'));
+    await next();
+
+    // 11 · what to help with
+    await tapAfterScroll(
+        tester, find.widgetWithText(ChipChoice, 'Remembering important things'));
+    await next();
+
+    // 12 · the summary reads the answers back before it lets go
+    expect(find.text('Thank you'), findsOneWidget);
+    expect(find.text('Misplacing things'), findsWidgets);
+    expect(find.textContaining('Answered by'), findsOneWidget);
+    await tester.tap(find.text('Open MemoryMitra'));
+    await beat(tester, 400);
+
+    expect(finished, isTrue);
+    expect(tester.takeException(), isNull);
+
+    // The record is complete, and the structures the report reads were
+    // derived on the way through rather than collected again.
+    final OnboardingRecord answers = state.intake.onboarding;
+    expect(answers.isComplete, isTrue);
+    expect(state.intake.isComplete, isTrue);
+    expect(answers.topDifficulties, <DailyDifficulty>[DailyDifficulty.misplacingThings]);
+    expect(state.intake.symptoms.responses['mem_misplace'], SymptomFrequency.sometimes);
+    expect(state.intake.function.levels['fn_meds'], FunctionLevel.needsHelp);
+    expect(state.intake.caregiver, isNotNull,
+        reason: 'a daughter answered, so the report has corroboration');
+    expect(state.patient.name, 'Aruna Devi');
+    expect(state.patient.occupation, 'Weaver');
+  });
+
+  group('the caregiver is the one who onboards', () {
+    testWidgets('an unanswered record opens the onboarding, not the dashboard',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      addTearDown(state.dispose);
+
+      await tester.pumpWidget(harness(const CaregiverEntry(), state: state));
+      await beat(tester, 600);
+
+      expect(find.text('Before we begin'), findsOneWidget);
+      expect(find.byType(CaregiverShell), findsNothing);
+    });
+
+    testWidgets('a finished record opens the dashboard instead',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = await monitoredState();
+      state.setRole(AppRole.caregiver);
+      addTearDown(state.dispose);
+
+      await tester.pumpWidget(harness(const CaregiverEntry(), state: state));
+      await beat(tester, 600);
+
+      expect(find.byType(CaregiverShell), findsOneWidget);
+      expect(find.text('Before we begin'), findsNothing);
+    });
+
+    testWidgets('a half-finished onboarding resumes where the caregiver stopped',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      addTearDown(state.dispose);
+
+      state.giveConsent();
+      state.saveOnboarding(const OnboardingRecord(
+        helper: HelperRole.spouse,
+        education: EducationLevel.primary,
+      ));
+
+      await tester.pumpWidget(harness(const CaregiverEntry(), state: state));
+      await beat(tester, 600);
+
+      // Not back at consent, and not at a dashboard either.
+      expect(find.text('Health and care so far'), findsOneWidget);
+      expect(find.text('Step 3 of 12'), findsOneWidget);
+    });
   });
 
   group('step 1 can be left', () {
@@ -346,14 +707,14 @@ void main() {
 
       await tester.tap(find.text('I am the patient'));
       await tester.pumpAndSettle();
-      expect(find.text('Step 1 of 8'), findsOneWidget);
+      expect(find.text('Step 1 of 12'), findsOneWidget);
 
       // The button someone stuck on the first question reaches for.
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await tester.pumpAndSettle();
 
       expect(find.text('I am the patient'), findsOneWidget);
-      expect(find.text('Step 1 of 8'), findsNothing);
+      expect(find.text('Step 1 of 12'), findsNothing);
     });
 
     testWidgets('leaving loses nothing: it resumes where it stopped',
@@ -372,7 +733,7 @@ void main() {
       await beat(tester, 400);
       await beat(tester, 400);
 
-      expect(find.text('Step 2 of 8'), findsOneWidget);
+      expect(find.text('Step 2 of 12'), findsOneWidget);
       expect(state.intake.consentGiven, isTrue);
     });
 
@@ -390,14 +751,14 @@ void main() {
       );
       await beat(tester);
 
-      expect(find.text('Step 1 of 8'), findsOneWidget);
+      expect(find.text('Step 1 of 12'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
 
       // Nobody is signed in here, so there is nothing to confirm: it goes
       // straight to the welcome screen.
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await beat(tester, 600);
-      expect(find.text('Step 1 of 8'), findsNothing);
+      expect(find.text('Step 1 of 12'), findsNothing);
       expect(find.byType(WelcomeScreen), findsOneWidget);
     });
 
@@ -425,7 +786,7 @@ void main() {
 
       await tester.tap(find.text('Stay here'));
       await beat(tester, 600);
-      expect(find.text('Step 1 of 8'), findsOneWidget);
+      expect(find.text('Step 1 of 12'), findsOneWidget);
       expect(state.accountId, 'uid-1');
 
       // Accepting signs out and returns to the welcome screen.
@@ -441,7 +802,7 @@ void main() {
 
       expect(state.accountId, isNull);
       expect(find.byType(WelcomeScreen), findsOneWidget);
-      expect(find.text('Step 1 of 8'), findsNothing);
+      expect(find.text('Step 1 of 12'), findsNothing);
     });
   });
 
@@ -459,6 +820,10 @@ void main() {
       occupation: 'Teacher',
       completedBy: CompletedBy.patient,
     );
+    state.saveOnboarding(const OnboardingRecord(
+      helper: HelperRole.myself,
+      education: EducationLevel.graduate,
+    ));
 
     await tester.pumpWidget(
       harness(IntakeFlowScreen(onFinished: () {}), state: state),
@@ -469,9 +834,9 @@ void main() {
     await beat(tester, 400);
     await beat(tester, 400);
 
-    // Straight to the concerns step, skipping consent and the profile.
-    expect(find.text('What brings you here?'), findsOneWidget);
-    expect(find.text('Step 3 of 8'), findsOneWidget);
+    // Straight to the health step, skipping consent and the person screen.
+    expect(find.text('Health and care so far'), findsOneWidget);
+    expect(find.text('Step 3 of 12'), findsOneWidget);
   });
 
   testWidgets('a daily session shows only that day\'s two activities',
@@ -558,100 +923,6 @@ void main() {
     expect(find.textContaining('not a diagnosis'), findsWidgets);
     expect(find.textContaining('baseline'), findsWidgets);
     expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('a red-flag answer warns in place without stopping the intake',
-      (WidgetTester tester) async {
-    tester.setSurface(kPhoneSmall);
-    final AppState state = AppState()..setRole(AppRole.patient);
-    addTearDown(state.dispose);
-    bool advanced = false;
-
-    await tester.pumpWidget(
-      harness(SafetyStep(onDone: () => advanced = true), state: state),
-    );
-    await beat(tester);
-
-    // No warning until something is actually reported.
-    expect(find.text('This may need a doctor, not an app'), findsNothing);
-
-    // "Yes" to the sudden-onset question is the red flag.
-    await tester.tap(find.text('Yes').first);
-    await beat(tester);
-
-    expect(find.text('This may need a doctor, not an app'), findsOneWidget);
-    expect(find.text('Consult a doctor'), findsOneWidget);
-    expect(tester.takeException(), isNull, reason: 'the warning must not overflow');
-
-    // The advice is available, and closing it returns to the questionnaire.
-    await tester.tap(find.text('Consult a doctor'));
-    await beat(tester);
-    expect(find.text('Please seek medical attention'), findsOneWidget);
-    await tester.tap(find.text('Close'));
-    await beat(tester);
-    expect(find.text('Please seek medical attention'), findsNothing);
-
-    // Answer the rest; the journey continues rather than being taken over.
-    for (final String question in <String>[
-      'Does alertness or confusion change markedly through the day — clear at times, very confused at others?',
-      'Any recent sudden weakness, difficulty speaking, fainting, seizure or severe headache?',
-    ]) {
-      await tester.dragUntilVisible(
-        find.text(question),
-        find.byType(Scrollable).first,
-        const Offset(0, -160),
-      );
-      await beat(tester, 150);
-      final Finder card = find.ancestor(of: find.text(question), matching: find.byType(MmCard));
-      await tester.tap(find.descendant(of: card, matching: find.text('No')));
-      await beat(tester, 150);
-    }
-    await tester.tap(find.text('Continue'));
-    await beat(tester);
-
-    expect(advanced, isTrue);
-    expect(state.intake.safety.requiresUrgentReview, isTrue);
-  });
-
-  // Plain test: this exercises AppState alone, and the sync outbox keeps its
-  // own real timers, which the widget binding would flag as pending.
-  test('the baseline is built from the activities just played', () async {
-    final AppState state = AppState()..setRole(AppRole.patient);
-    addTearDown(state.dispose);
-
-    // Nothing is invented for a new person: no sample fortnight, no scores.
-    expect(state.sessions, isEmpty);
-    expect(state.cognitiveProfile.scores, isEmpty);
-    expect(state.monitoring.hasBaseline, isFalse);
-
-    for (final GameId id in GameId.values) {
-      state.finishGame(
-        id,
-        const GamePerformance(
-          accuracy: 52,
-          focus: 52,
-          memory: 52,
-          hintsUsed: 2,
-          mistakes: 4,
-          seconds: 150,
-          completed: true,
-          attempts: 10,
-          correct: 5,
-          responseMillis: 15000,
-        ),
-      );
-      state.markBaselineActivity(id);
-    }
-    await state.captureBaseline(now: DateTime(2026, 8, 29));
-    // A plain test, so the outbox drains on the real clock with no binding to
-    // complain about pending timers — no beat-pumping needed here.
-    await state.flush();
-
-    final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
-    expect(memoryBaseline, isNotNull);
-    expect(memoryBaseline, closeTo(52, 0.5),
-        reason: 'the baseline must come from the activities the person played');
-    expect(state.cognitiveProfile.scores, isNotEmpty);
   });
 
   testWidgets('a failed capture leaves the button usable instead of bricking it',

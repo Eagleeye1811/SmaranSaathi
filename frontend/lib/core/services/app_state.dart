@@ -8,6 +8,7 @@ import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
 import '../models/assessment.dart';
+import '../models/onboarding.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
@@ -725,6 +726,26 @@ class AppState extends ChangeNotifier {
         'name': saved.name,
       });
     });
+  }
+
+  /// Files one screen's worth of onboarding answers.
+  ///
+  /// Every onboarding screen calls this and nothing else: [IntakeRecord
+  /// .withOnboarding] re-derives the symptom, function, medical, reason and
+  /// caregiver structures from the answers each time, so a screen cannot
+  /// forget to update the things that read from it.
+  void saveOnboarding(OnboardingRecord next) {
+    final IntakeRecord updated = _intake.withOnboarding(
+      next,
+      // The report attributes observations to the relation, which the helper
+      // question already gives us; a separate "and what is your name" question
+      // would buy nothing the record does not already have.
+      caregiverName: '',
+    );
+    _saveIntake(
+      updated,
+      syncPayload: <String, dynamic>{'step': 'onboarding', ...next.toJson()},
+    );
   }
 
   void saveReason(ReasonForVisit reason) => _saveIntake(
