@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:hive_ce/hive.dart';
 
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import 'sync_operation.dart';
 
@@ -29,6 +32,8 @@ class HiveTypeIds {
   static const int reminder = 9;
   static const int cognitiveProfile = 10;
   static const int pendingOperation = 11;
+  static const int moodDrawing = 12;
+  static const int moodCheckInTurn = 13;
 
   static const int memoryAssetKind = 20;
   static const int routineKind = 21;
@@ -482,6 +487,82 @@ class ReminderAdapter extends TypeAdapter<Reminder> {
       ..write(obj.done)
       ..writeByte(7)
       ..write(obj.smsEnabled);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Mood Check-In
+// ─────────────────────────────────────────────────────────────────────────
+
+class MoodCheckInTurnAdapter extends TypeAdapter<MoodCheckInTurn> {
+  @override
+  final int typeId = HiveTypeIds.moodCheckInTurn;
+
+  @override
+  MoodCheckInTurn read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return MoodCheckInTurn(
+      question: f[0] as String? ?? '',
+      answer: f[1] as String? ?? '',
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MoodCheckInTurn obj) {
+    writer
+      ..writeByte(2)
+      ..writeByte(0)
+      ..write(obj.question)
+      ..writeByte(1)
+      ..write(obj.answer);
+  }
+}
+
+class MoodDrawingAdapter extends TypeAdapter<MoodDrawing> {
+  @override
+  final int typeId = HiveTypeIds.moodDrawing;
+
+  @override
+  MoodDrawing read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return MoodDrawing(
+      id: f[0] as String,
+      dayOffset: f[1] as int? ?? 0,
+      timeLabel: f[2] as String? ?? '',
+      pngBytes: f[3] as Uint8List,
+      doctorNote: f[4] as String?,
+      notedAtIso: f[5] as String?,
+      notedBy: f[6] as String?,
+      // Added after the first release: a box written by an older build has
+      // no fields 7-8, which read back as null/empty rather than crashing.
+      transcript:
+          (f[7] as List<dynamic>?)?.cast<MoodCheckInTurn>() ?? const <MoodCheckInTurn>[],
+      moodLevel: f[8] as MoodLevel?,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MoodDrawing obj) {
+    writer
+      ..writeByte(9)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.dayOffset)
+      ..writeByte(2)
+      ..write(obj.timeLabel)
+      ..writeByte(3)
+      ..write(obj.pngBytes)
+      ..writeByte(4)
+      ..write(obj.doctorNote)
+      ..writeByte(5)
+      ..write(obj.notedAtIso)
+      ..writeByte(6)
+      ..write(obj.notedBy)
+      ..writeByte(7)
+      ..write(obj.transcript)
+      ..writeByte(8)
+      ..write(obj.moodLevel);
   }
 }
 

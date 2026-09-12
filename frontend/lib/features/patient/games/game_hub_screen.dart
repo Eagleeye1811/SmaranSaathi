@@ -25,8 +25,19 @@ class GameHubScreen extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
     final Recommendation rec = state.todaysRecommendation;
-    final List<GameId> order = AppState.personalization.priorityOrder(state.patient);
-    final int doneToday = state.completedToday.length;
+    // Mood Check-In lives outside this hub (see `_MoodCheckInEntry` on the
+    // Assistant screen) — it has no levels, no score, and isn't a "game" the
+    // rest of this screen's cards assume. Filtering here, rather than only
+    // gating `hasLevels` inside `_GameCard`, keeps it off the ring's
+    // denominator too: an unfiltered `MockData.games.length` would let it
+    // silently push the ring past what a full day of *games* actually is.
+    final List<GameId> order = AppState.personalization
+        .priorityOrder(state.patient)
+        .where((GameId id) => MockData.game(id).hasLevels)
+        .toList(growable: false);
+    final int doneToday =
+        state.completedToday.where((GameId id) => MockData.game(id).hasLevels).length;
+    final int totalGames = order.length;
 
     return MotifBackground(
       opacity: 0.045,
@@ -64,11 +75,11 @@ class GameHubScreen extends StatelessWidget {
                       child: Row(
                         children: <Widget>[
                           ProgressRing(
-                            value: doneToday / 6,
+                            value: doneToday / totalGames,
                             size: 60,
                             stroke: 7,
                             color: AppColors.primary,
-                            center: Text('$doneToday/6', style: AppText.body.wght(800)),
+                            center: Text('$doneToday/$totalGames', style: AppText.body.wght(800)),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -78,7 +89,7 @@ class GameHubScreen extends StatelessWidget {
                                 Text(
                                   doneToday == 0
                                       ? l.gamesNothingDoneYet
-                                      : doneToday >= 4
+                                      : doneToday >= (totalGames * 0.6).ceil()
                                           ? l.gamesVeryGoodDay
                                           : l.gamesGoodStart,
                                   style: AppText.body.wght(800),
@@ -216,12 +227,13 @@ class _GameCard extends StatelessWidget {
                         spacing: 8,
                         runSpacing: 6,
                         children: <Widget>[
-                          PillTag(
-                            label: game.domain.localizedLabel(l),
-                            icon: game.domain.icon,
-                            color: game.accent,
-                            dense: true,
-                          ),
+                          if (game.domain != null)
+                            PillTag(
+                              label: game.domain!.localizedLabel(l),
+                              icon: game.domain!.icon,
+                              color: game.accent,
+                              dense: true,
+                            ),
                           PillTag(
                             label: l.gamesMinutesShort(game.estimatedMinutes),
                             icon: Icons.schedule_rounded,
@@ -252,25 +264,33 @@ class _GameCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(l.gamesLevel(level),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.caption.wght(700)),
-                          ),
-                          const SizedBox(width: 8),
-                          DifficultyDots(level: level, color: game.accent, size: 7),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        localizedLevelDescription(l, game.id, level),
-                        style: AppText.caption,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      if (game.hasLevels) ...<Widget>[
+                        Row(
+                          children: <Widget>[
+                            Flexible(
+                              child: Text(l.gamesLevel(level),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppText.caption.wght(700)),
+                            ),
+                            const SizedBox(width: 8),
+                            DifficultyDots(level: level, color: game.accent, size: 7),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          localizedLevelDescription(l, game.id, level),
+                          style: AppText.caption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ] else
+                        Text(
+                          game.localizedTagline(l),
+                          style: AppText.caption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       if (lastAccuracy != null) ...<Widget>[
                         const SizedBox(height: 3),
                         Text(l.gamesLastTime(lastAccuracy!), style: AppText.caption),

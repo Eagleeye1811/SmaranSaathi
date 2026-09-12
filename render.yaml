@@ -1,4 +1,4 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
+﻿# Render Blueprint — https://render.com/docs/blueprint-spec
 #
 # Deploys backend/ as a native Python web service (no Docker needed).
 # In the Render dashboard: New → Blueprint → connect this repo → Render
@@ -19,7 +19,7 @@
 
 services:
   - type: web
-    name: memorymitra-backend
+    name: SmaranSaathi-backend
     runtime: python
     plan: free
     rootDir: backend

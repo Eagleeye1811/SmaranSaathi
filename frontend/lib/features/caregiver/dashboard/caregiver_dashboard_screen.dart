@@ -6,6 +6,7 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/patient.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/charts.dart';
@@ -15,6 +16,7 @@ import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../core/models/safety.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
@@ -86,6 +88,13 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Your Patients List ────────────────────────────────
+                  FadeInUp(
+                    delayMs: 30,
+                    child: _PatientsListSection(state: state),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
                   // ── Patient hero ──────────────────────────────────────
                   FadeInUp(
                     delayMs: 50,
@@ -104,6 +113,15 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(delayMs: 70, child: _SafeZoneCard(state: state)),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Quick status strip ────────────────────────────────
+                  // 4 glanceable cards so the caregiver knows the patient's
+                  // full status within the first 5–10 seconds.
+                  FadeInUp(
+                    delayMs: 85,
+                    child: _QuickStatusStrip(state: state),
+                  ),
+                  const SizedBox(height: Insets.lg),
+
                   // ── Today's overview ──────────────────────────────────
                   FadeInUp(
                     delayMs: 90,
@@ -115,13 +133,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                     child: MmCard(
                       child: Column(
                         children: <Widget>[
-                          OverviewRow(
-                            label: l.caregiverStatEngagement,
-                            value: '${state.todayEngagement}%',
-                            meter: state.todayEngagement / 100,
-                            icon: Icons.psychology_alt_rounded,
-                          ),
-                          const Divider(color: AppColors.hairline),
                           OverviewRow(
                             label: l.caregiverStatActivitiesCompleted,
                             value: '${state.completedToday.length}/4',
@@ -160,13 +171,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                     dense: true,
                                   ),
                           ),
-                          const Divider(color: AppColors.hairline),
-                          OverviewRow(
-                            label: l.caregiverLastActiveLabel,
-                            value: state.lastActiveLabel,
-                            color: AppColors.inkSoft,
-                            icon: Icons.schedule_rounded,
-                          ),
                         ],
                       ),
                     ),
@@ -195,7 +199,8 @@ class CaregiverDashboardScreen extends StatelessWidget {
                               Expanded(
                                 child: StatTile(
                                   label: l.caregiverEngagementThisWeek,
-                                  value: '${state.todayEngagement}',
+                                  value:
+                                      '${(state.engagementWeek.map((p) => p.value).reduce((a, b) => a + b) / state.engagementWeek.length).round()}',
                                   suffix: '%',
                                   color: AppColors.seriesTeal,
                                 ),
@@ -323,7 +328,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                                   size: 42,
                                 ),
                                 title: r.title,
-                                subtitle: '${r.time} · ${r.kind.label}',
+                                subtitle: '${r.time} · ${r.kind.localizedLabel(l)}',
                                 trailing: SoftButton(
                                   label: l.caregiverDoneButton,
                                   color: AppColors.success,
@@ -350,8 +355,10 @@ class CaregiverDashboardScreen extends StatelessWidget {
                         _AlertCard(
                           color: AppColors.success,
                           icon: Icons.trending_up_rounded,
-                          title: l.caregiverAlertProceduralTitle,
-                          body: l.caregiverAlertProceduralBody(state.averageAccuracy().round()),
+                          title: 'Procedural activities are improving',
+                          body:
+                              'Accuracy rose from 74% to ${state.averageAccuracy().round()}% across recent sessions. '
+                              'MemoryMitra increased the difficulty twice this week.',
                         ),
                         const SizedBox(height: 10),
                         _AlertCard(
@@ -365,8 +372,10 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           _AlertCard(
                             color: AppColors.secondary,
                             icon: Icons.favorite_rounded,
-                            title: l.caregiverAlertMoodTitle,
-                            body: l.caregiverAlertMoodBody,
+                            title: 'She said she is not feeling good today',
+                            body:
+                                'Mitra has switched to gentler, more familiar activities. '
+                                'A phone call may help.',
                           ),
                         ],
                       ],
@@ -378,7 +387,7 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 280,
                     child: SectionHeader(
-                      title: l.caregiverPersonalisationTitle,
+                      title: 'How Mitra personalises for her',
                       icon: Icons.auto_awesome_rounded,
                       subtitle: l.caregiverPersonalisationSubtitle,
                     ),
@@ -412,40 +421,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: Insets.lg),
-
-                  // ── Onboarding entry ──────────────────────────────────
-                  FadeInUp(
-                    delayMs: 310,
-                    child: MmCard(
-                      onTap: () => Nav.open(context, const PatientOnboardingFlow()),
-                      child: Row(
-                        children: <Widget>[
-                          const SoftIcon(
-                            icon: Icons.person_add_alt_1_rounded,
-                            color: AppColors.plum,
-                            size: 50,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Text(l.caregiverSetupPatientProfileTitle,
-                                    style: AppText.body.wght(800)),
-                                const SizedBox(height: 3),
-                                Text(
-                                  l.caregiverSetupPatientProfileDetail,
-                                  style: AppText.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -456,17 +431,12 @@ class CaregiverDashboardScreen extends StatelessWidget {
   }
 
   String _dateLabel(AppLocalizations l) {
-    final List<String> months = <String>[
-      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
-      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
-      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
-    ];
     final List<String> days = <String>[
       l.caregiverWeekdayMon, l.caregiverWeekdayTue, l.caregiverWeekdayWed, l.caregiverWeekdayThu,
       l.caregiverWeekdayFri, l.caregiverWeekdaySat, l.caregiverWeekdaySun,
     ];
     final DateTime n = DateTime.now();
-    return '${days[n.weekday - 1]}, ${n.day} ${months[n.month - 1]} ${n.year}';
+    return '${days[n.weekday - 1]}, ${n.day} ${monthShortLabel(l, n.month)} ${n.year}';
   }
 }
 
@@ -522,13 +492,10 @@ class _PatientCard extends StatelessWidget {
                           style: AppText.bodySmall,
                           maxLines: 2),
                       const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PillTag(
-                          label: state.patient.stageNote,
-                          color: AppColors.secondary,
-                          dense: true,
-                        ),
+                      PillTag(
+                        label: state.patient.stageNote,
+                        color: AppColors.secondary,
+                        dense: true,
                       ),
                     ],
                   ),
@@ -596,7 +563,7 @@ class _SessionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(g.name,
+                Text(g.localizedName(l),
                     style: AppText.body.wght(700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
@@ -719,3 +686,272 @@ class _SafeZoneCard extends StatelessWidget {
     );
   }
 }
+
+class _QuickStatusStrip extends StatelessWidget {
+  const _QuickStatusStrip({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final SafeZone? zone = state.safeZone;
+    final SafeZoneEvent? alert = state.activeWanderAlert;
+    final bool wandering = alert != null;
+
+    final String safetyStatus = wandering
+        ? 'Outside zone'
+        : (zone == null ? 'Not configured' : 'Inside ${zone.label}');
+    final Color safetyColor = wandering
+        ? AppColors.danger
+        : (zone == null ? AppColors.inkMuted : AppColors.success);
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool isWide = constraints.maxWidth >= 600;
+        final double itemWidth = isWide
+            ? (constraints.maxWidth - (Insets.md * 3)) / 4
+            : (constraints.maxWidth - Insets.md) / 2;
+
+        final List<Widget> cards = <Widget>[
+          _StatusCard(
+            width: itemWidth,
+            title: 'Activities',
+            value: '${state.completedToday.length}/4 done',
+            subtitle: 'Target: 4 daily',
+            icon: Icons.extension_rounded,
+            color: state.completedToday.length >= 2
+                ? AppColors.seriesTeal
+                : AppColors.seriesOchre,
+          ),
+          _StatusCard(
+            width: itemWidth,
+            title: 'Mood',
+            value: state.mood != null
+                ? '${state.mood!.emoji} ${state.mood!.label}'
+                : 'Not logged',
+            subtitle: state.mood != null ? 'Recorded today' : 'Tap to log',
+            icon: Icons.sentiment_satisfied_alt_rounded,
+            color: state.mood == MoodLevel.low
+                ? AppColors.secondary
+                : AppColors.seriesTeal,
+          ),
+          _StatusCard(
+            width: itemWidth,
+            title: 'Cognitive',
+            value: '${state.todayEngagement}% index',
+            subtitle: '${state.averageAccuracy().round()}% avg accuracy',
+            icon: Icons.psychology_alt_rounded,
+            color: AppColors.primary,
+          ),
+          _StatusCard(
+            width: itemWidth,
+            title: 'Safe Zone',
+            value: safetyStatus,
+            subtitle: wandering ? 'Check location' : 'GPS active',
+            icon: wandering
+                ? Icons.warning_amber_rounded
+                : Icons.shield_outlined,
+            color: safetyColor,
+          ),
+        ];
+
+        return Wrap(
+          spacing: Insets.md,
+          runSpacing: Insets.md,
+          children: cards,
+        );
+      },
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.width,
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  final double width;
+  final String title;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      child: MmCard(
+        padding: const EdgeInsets.all(Insets.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: Corners.r(Corners.sm),
+                  ),
+                  child: Icon(icon, size: 16, color: color),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: AppText.caption.wght(700).tint(AppColors.inkSoft),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: Insets.sm),
+            Text(
+              value,
+              style: AppText.h3.sized(15).wght(800).tint(AppColors.ink),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: AppText.caption.tint(AppColors.inkMuted),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Patients List Section ──────────────────────────────────────────────────────
+
+class _PatientsListSection extends StatelessWidget {
+  const _PatientsListSection({required this.state});
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Patient> patients = state.caregiverPatients;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SectionHeader(
+          title: 'Your Patients',
+          icon: Icons.groups_rounded,
+          subtitle: 'Care profiles under your supervision',
+          action: '＋ Add Patient',
+          onAction: () => Nav.open(context, PatientOnboardingFlow()),
+        ),
+        MmCard(
+          child: Column(
+            children: <Widget>[
+              for (int i = 0; i < patients.length; i++) ...<Widget>[
+                _PatientRosterRow(
+                  patient: patients[i],
+                  isSelected: patients[i].id == state.patient.id,
+                  onSelect: () => state.setPatient(patients[i]),
+                ),
+                if (i < patients.length - 1)
+                  const Divider(color: AppColors.hairline),
+              ],
+              const SizedBox(height: 10),
+              SoftButton(
+                label: 'Add Another Patient Profile',
+                icon: Icons.person_add_alt_1_rounded,
+                color: AppColors.primary,
+                onPressed: () => Nav.open(context, PatientOnboardingFlow()),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PatientRosterRow extends StatelessWidget {
+  const _PatientRosterRow({
+    required this.patient,
+    required this.isSelected,
+    required this.onSelect,
+  });
+
+  final Patient patient;
+  final bool isSelected;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      onTap: onSelect,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: <Widget>[
+            SceneImage(
+              sceneId: patient.portraitScene,
+              size: 48,
+              circle: true,
+              borderColor: isSelected ? AppColors.primary : AppColors.hairline,
+              borderWidth: isSelected ? 2.5 : 1,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Flexible(
+                        child: Text(
+                          patient.name,
+                          style: AppText.body.wght(700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text('(${patient.age}y)', style: AppText.caption),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${patient.stageNote} • ${patient.location}',
+                    style: AppText.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (isSelected)
+              PillTag(
+                label: 'Selected',
+                color: AppColors.primary,
+                dense: true,
+              )
+            else
+              SoftButton(
+                label: 'Switch',
+                color: AppColors.secondary,
+                onPressed: onSelect,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

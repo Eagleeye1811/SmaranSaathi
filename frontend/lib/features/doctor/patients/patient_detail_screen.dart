@@ -6,14 +6,17 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/clinical.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/mood_drawing.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../patient/health/report_screen.dart';
 import '../widgets/clinic_widgets.dart';
+import 'mood_drawing_detail_screen.dart';
 
 /// One patient's longitudinal picture. Framed throughout as *cognitive
 /// activity performance*, never as a diagnosis.
@@ -201,7 +204,7 @@ class PatientDetailScreen extends StatelessWidget {
                               child: RadarChart(
                                 values: <String, int>{
                                   for (final CognitiveDomain d in CognitiveDomain.values)
-                                    d.label: patient.profile.score(d),
+                                    d.localizedLabel(l): patient.profile.score(d),
                                 },
                                 size: 280,
                                 color: AppColors.seriesTeal,
@@ -219,7 +222,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     const SizedBox(width: 9),
                                     SizedBox(
                                       width: 84,
-                                      child: Text(d.label, style: CT.bodySmall),
+                                      child: Text(d.localizedLabel(l), style: CT.bodySmall),
                                     ),
                                     Expanded(
                                       child: MeterBar(
@@ -240,22 +243,6 @@ class PatientDetailScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.clinicBackground,
-                                borderRadius: Corners.r(Corners.sm),
-                              ),
-                              child: Row(
-                                children: <Widget>[
-                                  Text(l.doctorDetailOverallStat, style: CT.body.wght(700)),
-                                  const Spacer(),
-                                  Text('${patient.profile.overall}',
-                                      style: CT.stat.tint(AppColors.clinicAccent)),
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -280,7 +267,7 @@ class PatientDetailScreen extends StatelessWidget {
                                     Icon(patient.trend.icon,
                                         size: 15, color: trendColor(patient.trend)),
                                     const SizedBox(width: 5),
-                                    Text(patient.trend.label,
+                                    Text(patient.trend.localizedLabel(l),
                                         style: CT.caption
                                             .wght(700)
                                             .tint(trendColor(patient.trend))),
@@ -334,8 +321,11 @@ class PatientDetailScreen extends StatelessWidget {
                               const SizedBox(height: Insets.md),
                               BarSeriesChart(
                                 points: <SeriesPoint>[
-                                  for (final GameDefinition g in MockData.games)
-                                    SeriesPoint(_short(l, g.name), _avg(state, g.id)),
+                                  // Only activities with a real score — Mood
+                                  // Canvas has none to plot honestly here.
+                                  for (final GameDefinition g
+                                      in MockData.games.where((GameDefinition g) => g.hasLevels))
+                                    SeriesPoint(doctorChartLabel(l, g.id), _avg(state, g.id)),
                                 ],
                                 color: AppColors.seriesBlue,
                                 showValues: true,
@@ -374,7 +364,8 @@ class PatientDetailScreen extends StatelessWidget {
                                       ),
                                       Expanded(
                                         child: Text(
-                                          MockData.game(state.sessions[i].gameId).name,
+                                          MockData.game(state.sessions[i].gameId)
+                                              .localizedName(l),
                                           style: CT.bodySmall.tint(AppColors.clinicInk),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -399,6 +390,69 @@ class PatientDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: Insets.lg),
+                      if (state.moodDrawings.isNotEmpty) ...<Widget>[
+                        FadeInUp(
+                          delayMs: 165,
+                          child: ClinicCard(
+                            padding: const EdgeInsets.all(Insets.lg),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(l.doctorDetailMoodCanvasTitle, style: CT.h3),
+                                const SizedBox(height: 3),
+                                Text(l.doctorDetailMoodCanvasCaption, style: CT.caption),
+                                const SizedBox(height: Insets.md),
+                                SizedBox(
+                                  height: 96,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: state.moodDrawings.length,
+                                    separatorBuilder: (BuildContext context, int i) =>
+                                        const SizedBox(width: 10),
+                                    itemBuilder: (BuildContext context, int i) {
+                                      final MoodDrawing drawing = state.moodDrawings[i];
+                                      return GestureDetector(
+                                        onTap: () => Nav.push(
+                                          context,
+                                          MoodDrawingDetailScreen(drawingId: drawing.id),
+                                        ),
+                                        child: Stack(
+                                          children: <Widget>[
+                                            ClipRRect(
+                                              borderRadius: Corners.r(Corners.md),
+                                              child: Image.memory(
+                                                drawing.pngBytes,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                            if (drawing.hasNote)
+                                              Positioned(
+                                                right: 4,
+                                                top: 4,
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(3),
+                                                  decoration: const BoxDecoration(
+                                                    color: AppColors.clinicAccent,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  child: const Icon(Icons.description_rounded,
+                                                      size: 12, color: Colors.white),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: Insets.lg),
+                      ],
                     ],
 
                     // ── Alerts ──────────────────────────────────────────
@@ -427,7 +481,7 @@ class PatientDetailScreen extends StatelessWidget {
                                 Text(a.detail, style: CT.bodySmall),
                                 const SizedBox(height: 8),
                                 PillTag(
-                                  label: a.severity.label,
+                                  label: a.severity.localizedLabel(l),
                                   color: severityColor(a.severity),
                                   dense: true,
                                 ),
@@ -482,19 +536,6 @@ class PatientDetailScreen extends StatelessWidget {
     return AppColors.danger;
   }
 
-  // Matches against MockData.games' own (English) GameDefinition.name values —
-  // that model layer is out of this screen's scope, so the match keys stay
-  // English regardless of interface language. Only the short chart label
-  // shown to the user is translated.
-  static String _short(AppLocalizations l, String name) => switch (name) {
-        'Procedure Reconstruction' => l.doctorDetailChartProcedure,
-        'Finish the Story' => l.doctorDetailChartStory,
-        'Familiar Place Explorer' => l.doctorDetailChartPlace,
-        'Melody of the Valleys' => l.doctorDetailChartMelody,
-        'Weaves of the Hills' => l.doctorDetailChartWeaves,
-        'NER Memory Cards' => l.doctorDetailChartCards,
-        _ => name,
-      };
 
   static double _avg(AppState state, GameId id) {
     final List<GameSession> list = state.sessionsFor(id);

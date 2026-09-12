@@ -1,11 +1,11 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:memory_mitra/core/services/http_sync_transport.dart';
-import 'package:memory_mitra/data/local/sync_operation.dart';
+import 'package:smaran_saathi/core/services/http_sync_transport.dart';
+import 'package:smaran_saathi/data/local/sync_operation.dart';
 
 PendingOperation _operation({String id = 'op-1'}) => PendingOperation(
       id: id,

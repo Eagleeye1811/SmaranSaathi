@@ -179,9 +179,10 @@ class OnDeviceAiService implements AiService {
 
     if (ranked.isNotEmpty && ranked.first.value >= 70) {
       final MapEntry<GameId, double> best = ranked.first;
+      final String domainLabel =
+          PatientAiContext.domainOf(best.key)?.label.toLowerCase() ?? 'this';
       strengths.add('${_activityName(best.key)} is her strongest activity at '
-          '${best.value.round()}% — ${PatientAiContext.domainOf(best.key).label.toLowerCase()} '
-          'work is holding up well.');
+          '${best.value.round()}% — $domainLabel work is holding up well.');
     }
     final List<GameSession> unaided = context
         .recent()
@@ -265,15 +266,21 @@ class OnDeviceAiService implements AiService {
   /// Prefer an activity that has not been done today, weakest domain first —
   /// but never one she is failing badly, which would be discouraging.
   (GameId, String) _recommend(PatientAiContext context, Map<GameId, double> byGame) {
+    // Mood Canvas has no domain to "cover" in this sense — this function is
+    // specifically about balancing coverage across the six cognitive
+    // domains, so it only ever considers activities that claim one.
     final List<GameId> untouched = context.untouchedActivities
-        .where((GameId g) => !context.completedToday.contains(g) && g != context.lastPlayed)
+        .where((GameId g) =>
+            !context.completedToday.contains(g) &&
+            g != context.lastPlayed &&
+            PatientAiContext.domainOf(g) != null)
         .toList(growable: false);
     if (untouched.isNotEmpty) {
       final GameId pick = untouched.first;
       return (
         pick,
         '${_activityName(pick)} has not been played in the last two weeks, so it '
-            'exercises ${PatientAiContext.domainOf(pick).label.toLowerCase()} work that '
+            'exercises ${PatientAiContext.domainOf(pick)!.label.toLowerCase()} work that '
             'nothing else has covered recently.'
       );
     }
@@ -348,7 +355,18 @@ class OnDeviceAiService implements AiService {
 
   /// Answers from the context alone. Every branch is grounded in a fact the
   /// app actually holds — nothing here can invent a reminder or a relative.
+  ///
+  /// Synchronous, and also called directly by [LlamaOnDeviceAiService] to
+  /// build its deterministic fallback/structure — so the `moodCheckInActive`
+  /// branch has to live here rather than in [ask], or that wrapper would
+  /// bypass it entirely and never see `moodCheckInDone`/`moodLevel`.
   AssistantReply buildReply(String question, PatientAiContext context) {
+    // Checked before classify(): a check-in answer like "tired" or "fine"
+    // would otherwise be read as ordinary companionship small talk, and the
+    // screen needs the moodCheckInDone/moodLevel signal this branch alone
+    // produces.
+    if (context.moodCheckInActive) return _moodCheckInReply(question, context);
+
     final AssistantIntent intent = classify(question);
     return switch (intent) {
       AssistantIntent.schedule => _scheduleReply(context),
@@ -357,13 +375,93 @@ class OnDeviceAiService implements AiService {
       AssistantIntent.people => _peopleReply(question, context),
       AssistantIntent.orientation => _orientationReply(context),
       AssistantIntent.companionship => _companionshipReply(context),
-      // classify() never produces this — the life-story companion turn
-      // needs a real model to judge when it fits naturally, which is not
-      // something a keyword matcher can safely attempt. Reached only if
-      // something upstream ever passes this intent through directly.
+      // classify() never produces either of these — the life-story companion
+      // turn needs a real model to judge when it fits naturally, and a mood
+      // check-in reply is only ever reached through `ask()`'s dedicated
+      // branch above, never through keyword classification. Reached only if
+      // something upstream ever passes one of these intents through
+      // directly.
       AssistantIntent.memoryMoment => _companionshipReply(context),
+      AssistantIntent.moodCheckIn => _companionshipReply(context),
       AssistantIntent.outOfScope => _outOfScopeReply(context),
     };
+  }
+
+  /// A small, fixed decision tree standing in for the model's free-form
+  /// follow-up questions — this runs with no network and no model at all, so
+  /// it has to reach a sensible next question from keywords alone. English
+  /// only today, same caveat as every other on-device reply in this class.
+  static const List<String> _lowWords = <String>[
+    'sad', 'low', 'down', 'upset', 'crying', 'cry', 'unhappy', 'depress'
+  ];
+  static const List<String> _lonelyWords = <String>['lonely', 'alone', 'miss'];
+  static const List<String> _worriedWords = <String>[
+    'worried', 'anxious', 'scared', 'afraid', 'nervous', 'fear'
+  ];
+  static const List<String> _angryWords = <String>[
+    'angry', 'frustrated', 'annoyed', 'irritated', 'mad'
+  ];
+  static const List<String> _tiredWords = <String>['tired', 'exhausted', 'sleepy', 'weak'];
+  static const List<String> _goodWords = <String>[
+    'good', 'fine', 'happy', 'great', 'well', 'okay', 'ok', 'nice', 'lovely'
+  ];
+
+  AssistantReply _moodCheckInReply(String answer, PatientAiContext context) {
+    final String a = ' ${answer.toLowerCase().trim()} ';
+    bool has(List<String> words) => words.any(a.contains);
+
+    final (MoodLevel level, String followUp) = has(_lonelyWords)
+        ? (
+            MoodLevel.low,
+            'That sounds hard to sit with. Have you been able to talk to '
+                'anyone today?'
+          )
+        : has(_lowWords)
+            ? (
+                MoodLevel.low,
+                "I'm glad you told me. Is it something on your mind, or more "
+                    'that today has just felt heavy?'
+              )
+            : has(_worriedWords)
+                ? (MoodLevel.low, "What's on your mind? I'm listening.")
+                : has(_angryWords)
+                    ? (
+                        MoodLevel.okay,
+                        'That is understandable. Did something happen that '
+                            'frustrated you?'
+                      )
+                    : has(_tiredWords)
+                        ? (
+                            MoodLevel.okay,
+                            'Rest matters. Has sleep been alright for you '
+                                'lately?'
+                          )
+                        : has(_goodWords)
+                            ? (
+                                MoodLevel.good,
+                                "That's lovely to hear. What's made today good "
+                                    'so far?'
+                              )
+                            : (MoodLevel.okay, 'Tell me a little more about that.');
+
+    // Two follow-ups then a close, matching the Gemini prompt's own pacing
+    // (wrap up once turnNumber reaches 2, i.e. this is the third answer).
+    if (context.moodCheckInTurn >= 2) {
+      return AssistantReply(
+        text: 'Thank you for telling me how you feel. I am here whenever you '
+            'want to talk more, about anything at all.',
+        intent: AssistantIntent.moodCheckIn,
+        source: AiSource.onDevice,
+        moodCheckInDone: true,
+        moodLevel: level,
+      );
+    }
+
+    return AssistantReply(
+      text: followUp,
+      intent: AssistantIntent.moodCheckIn,
+      source: AiSource.onDevice,
+    );
   }
 
   /// Keyword intent matching.
@@ -543,6 +641,8 @@ class OnDeviceAiService implements AiService {
         GameId.melody => 'Melody of the Valleys',
         GameId.weaves => 'Weaves of the Hills',
         GameId.memoryCards => 'NER Memory Cards',
+        GameId.villageMarket => 'The Village Market Adventure',
+        GameId.moodCanvas => 'Mood Canvas',
       };
 
   static String _activityInvitation(GameId id, Patient p) => switch (id) {
@@ -552,5 +652,7 @@ class OnDeviceAiService implements AiService {
         GameId.melody => 'We can listen to a few sounds and play them back.',
         GameId.weaves => 'We can finish a pattern together.',
         GameId.memoryCards => 'We can find some matching pairs.',
+        GameId.villageMarket => "We're going to the market today. Shall we see what we can find?",
+        GameId.moodCanvas => 'Would you like to draw something today? Anything you like.',
       };
 }

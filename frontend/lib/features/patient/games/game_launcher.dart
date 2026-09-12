@@ -5,8 +5,10 @@ import '../../../core/models/game.dart';
 import 'familiar_place/familiar_place_game.dart';
 import 'melody/melody_game.dart';
 import 'memory_cards/memory_cards_game.dart';
+import 'mood_canvas/mood_canvas_game.dart';
 import 'procedure/procedure_game.dart';
 import 'story/story_game.dart';
+import 'village_market/village_market_game.dart';
 import 'weaves/weaves_game.dart';
 
 /// Single entry point for starting an activity, so the home screen, the hub
@@ -21,6 +23,8 @@ class GameLauncher {
         GameId.melody => const MelodyGame(),
         GameId.weaves => const WeavesGame(),
         GameId.memoryCards => const MemoryCardsGame(),
+        GameId.villageMarket => const VillageMarketGame(),
+        GameId.moodCanvas => const MoodCanvasGame(),
       };
 
   static Future<void> open(BuildContext context, GameId id) =>

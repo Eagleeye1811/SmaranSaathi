@@ -8,6 +8,7 @@ import '../../../core/models/monitoring.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../intake/intake_kit.dart';
 
 /// What happens next.
@@ -136,7 +137,7 @@ class CarePlanScreen extends StatelessWidget {
                         Text(l.carePlanNextReview, style: AppText.label),
                         Text(
                           '${nextReview.day} '
-                          '${_month(l, nextReview.month)} ${nextReview.year}',
+                          '${monthFullLabel(l, nextReview.month)} ${nextReview.year}',
                           style: AppText.h3,
                         ),
                       ],
@@ -154,19 +155,4 @@ class CarePlanScreen extends StatelessWidget {
       ),
     );
   }
-
-  static String _month(AppLocalizations l, int m) => <String>[
-        l.todayMonthJanuary,
-        l.todayMonthFebruary,
-        l.todayMonthMarch,
-        l.todayMonthApril,
-        l.todayMonthMay,
-        l.todayMonthJune,
-        l.todayMonthJuly,
-        l.todayMonthAugust,
-        l.todayMonthSeptember,
-        l.todayMonthOctober,
-        l.todayMonthNovember,
-        l.todayMonthDecember,
-      ][m - 1];
 }

@@ -246,7 +246,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                       spacing: 8,
                       runSpacing: 4,
                       children: <Widget>[
-                        Text(l.memoryHomeSharedOn(_shortDate(f.createdAt, l)),
+                        Text(l.memoryHomeSharedOn(shortDayMonth(l, f.createdAt)),
                             style: AppText.caption),
                         if (f.mentionedName != null)
                           Text('· ${f.mentionedName}', style: AppText.caption),
@@ -277,7 +277,7 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
                           size: 38,
                         ),
                         const SizedBox(width: 12),
-                        Text(m.category, style: AppText.h3),
+                        Text(localizedLifeMemoryCategory(l, m.category), style: AppText.h3),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -293,14 +293,6 @@ class _MemoryWalletScreenState extends State<MemoryWalletScreen> {
     );
   }
 
-  static String _shortDate(DateTime d, AppLocalizations l) {
-    final List<String> months = <String>[
-      l.caregiverMonthJan, l.caregiverMonthFeb, l.caregiverMonthMar, l.caregiverMonthApr,
-      l.caregiverMonthMay, l.caregiverMonthJun, l.caregiverMonthJul, l.caregiverMonthAug,
-      l.caregiverMonthSep, l.caregiverMonthOct, l.caregiverMonthNov, l.caregiverMonthDec,
-    ];
-    return '${d.day} ${months[d.month - 1]}';
-  }
 
   IconData _storyIcon(String category) => switch (category.toLowerCase()) {
         'work' => Icons.handyman_rounded,

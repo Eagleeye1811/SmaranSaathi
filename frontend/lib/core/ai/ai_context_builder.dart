@@ -24,6 +24,8 @@ extension AiContextBuilder on AppState {
     DateTime? now,
     String? replyLanguage,
     List<ConversationTurn> turns = const <ConversationTurn>[],
+    bool moodCheckInActive = false,
+    int moodCheckInTurn = 0,
   }) =>
       PatientAiContext(
         patient: patient,
@@ -52,5 +54,7 @@ extension AiContextBuilder on AppState {
         knownMemories: memoryFragments.length <= 20
             ? memoryFragments.reversed.toList(growable: false)
             : memoryFragments.reversed.take(20).toList(growable: false),
+        moodCheckInActive: moodCheckInActive,
+        moodCheckInTurn: moodCheckInTurn,
       );
 }

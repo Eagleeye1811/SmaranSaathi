@@ -3,31 +3,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/widgets/ui_kit.dart';
-import 'package:memory_mitra/features/intake/intake_kit.dart';
-import 'package:memory_mitra/data/mock/mock_data.dart';
-import 'package:memory_mitra/core/models/onboarding.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_entry.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/intake/baseline_screens.dart';
-import 'package:memory_mitra/features/intake/intake_flow.dart';
-import 'package:memory_mitra/features/intake/onboarding_summary_screen.dart';
-import 'package:memory_mitra/features/intake/step_consent.dart';
-import 'package:memory_mitra/features/intake/steps_everyday.dart';
-import 'package:memory_mitra/features/intake/steps_life.dart';
-import 'package:memory_mitra/features/intake/steps_person_health.dart';
-import 'package:memory_mitra/features/intake/steps_support_safety.dart';
-import 'package:memory_mitra/features/intake/welcome_screens.dart';
-import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
-import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
-import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
-import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
-import 'package:memory_mitra/features/patient/health/report_screen.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/assessment.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/widgets/ui_kit.dart';
+import 'package:smaran_saathi/data/mock/mock_data.dart';
+import 'package:smaran_saathi/features/intake/baseline_screens.dart';
+import 'package:smaran_saathi/features/intake/intake_flow.dart';
+import 'package:smaran_saathi/features/intake/steps_consent_profile.dart';
+import 'package:smaran_saathi/features/intake/steps_medical_caregiver.dart';
+import 'package:smaran_saathi/features/intake/steps_reason_safety.dart';
+import 'package:smaran_saathi/features/intake/steps_symptoms_function.dart';
+import 'package:smaran_saathi/features/intake/welcome_screens.dart';
+import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
+import 'package:smaran_saathi/features/patient/health/care_plan_screen.dart';
+import 'package:smaran_saathi/features/patient/health/cognitive_profile_screen.dart';
+import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
+import 'package:smaran_saathi/features/patient/health/report_screen.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// Layout and behaviour cover for the monitoring journey.
 ///
@@ -396,24 +390,22 @@ void main() {
     // Continue stays inert until every follow-up shown has an answer.
     await tester.tap(find.text('Continue'));
     await beat(tester);
-    expect(done, isFalse);
 
-    for (final String answer in <String>[
-      'Keys',
-      'Occasionally',
-      'They find it themselves',
-    ]) {
-      await tapAfterScroll(tester, find.widgetWithText(ChipChoice, answer));
-    }
-
-    await tester.tap(find.text('Continue'));
+    // Now they are, pre-filled with what was just said.
+    await tester.dragUntilVisible(
+      find.text(first.text),
+      find.byType(Scrollable).first,
+      const Offset(0, -140),
+    );
     await beat(tester);
+    expect(find.text(first.text), findsOneWidget);
+    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isFalse,
+        reason: 'nothing is saved until the group is left');
 
-    expect(done, isTrue);
-    // The measured frequency, not the "it was named biggest" estimate.
-    expect(state.intake.symptoms.responses['mem_misplace'], SymptomFrequency.sometimes);
-    expect(state.intake.onboarding.probeChoice('probe_misplace_after'),
-        'findsItThemselves');
+    await tester.tap(find.text('Next group'));
+    await beat(tester);
+    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
+    expect(state.intake.symptoms.severity(SymptomDomain.memory), closeTo(33.3, 0.5));
   });
 
   testWidgets('every activity has to be answered before support is filed',
@@ -849,8 +841,8 @@ void main() {
       harness(BaselineSessionScreen(onComplete: () {}), state: state),
     );
     await beat(tester);
-    expect(find.text('Day 1 of 3'), findsOneWidget);
-    expect(find.text('0 of 6 activities across the three days'), findsOneWidget);
+    expect(find.text('Day 1 of 4'), findsOneWidget);
+    expect(find.text('0 of 7 activities across the 4 days'), findsOneWidget);
     // Only the two planned for day one, not all six.
     for (final GameId id in AppState.baselinePlan.first) {
       expect(find.text(MockData.game(id).name), findsOneWidget);
@@ -923,6 +915,102 @@ void main() {
     expect(find.textContaining('not a diagnosis'), findsWidgets);
     expect(find.textContaining('baseline'), findsWidgets);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a red-flag answer warns in place without stopping the intake',
+      (WidgetTester tester) async {
+    tester.setSurface(kPhoneSmall);
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+    bool advanced = false;
+
+    await tester.pumpWidget(
+      harness(SafetyStep(onDone: () => advanced = true), state: state),
+    );
+    await beat(tester);
+
+    // No warning until something is actually reported.
+    expect(find.text('This may need a doctor, not an app'), findsNothing);
+
+    // "Yes" to the sudden-onset question is the red flag.
+    await tester.tap(find.text('Yes').first);
+    await beat(tester);
+
+    expect(find.text('This may need a doctor, not an app'), findsOneWidget);
+    expect(find.text('Consult a doctor'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'the warning must not overflow');
+
+    // The advice is available, and closing it returns to the questionnaire.
+    await tester.tap(find.text('Consult a doctor'));
+    await beat(tester);
+    expect(find.text('Please seek medical attention'), findsOneWidget);
+    await tester.tap(find.text('Close'));
+    await beat(tester);
+    expect(find.text('Please seek medical attention'), findsNothing);
+
+    // Answer the rest; the journey continues rather than being taken over.
+    for (final String question in <String>[
+      'Does alertness or confusion change markedly through the day — clear at times, very confused at others?',
+      'Any recent sudden weakness, difficulty speaking, fainting, seizure or severe headache?',
+    ]) {
+      await tester.dragUntilVisible(
+        find.text(question),
+        find.byType(Scrollable).first,
+        const Offset(0, -160),
+      );
+      await beat(tester, 150);
+      final Finder card = find.ancestor(of: find.text(question), matching: find.byType(MmCard));
+      await tester.tap(find.descendant(of: card, matching: find.text('No')));
+      await beat(tester, 150);
+    }
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
+
+    expect(advanced, isTrue);
+    expect(state.intake.safety.requiresUrgentReview, isTrue);
+  });
+
+  // Plain test: this exercises AppState alone, and the sync outbox keeps its
+  // own real timers, which the widget binding would flag as pending.
+  testWidgets('baseline is built from the activities just played', (WidgetTester tester) async {
+
+
+    final AppState state = AppState()..setRole(AppRole.patient);
+    addTearDown(state.dispose);
+
+    // Nothing is invented for a new person: no sample fortnight, no scores.
+    expect(state.sessions, isEmpty);
+    expect(state.cognitiveProfile.scores, isEmpty);
+    expect(state.monitoring.hasBaseline, isFalse);
+
+    for (final GameId id in GameId.values) {
+      state.finishGame(
+        id,
+        const GamePerformance(
+          accuracy: 52,
+          focus: 52,
+          memory: 52,
+          hintsUsed: 2,
+          mistakes: 4,
+          seconds: 150,
+          completed: true,
+          attempts: 10,
+          correct: 5,
+          responseMillis: 15000,
+        ),
+      );
+      state.markBaselineActivity(id);
+    }
+    await state.captureBaseline(now: DateTime(2026, 8, 29));
+    // A plain test, so the outbox drains on the real clock with no binding to
+    // complain about pending timers — no beat-pumping needed here.
+    await state.flush();
+
+    final double? memoryBaseline = state.baseline?.scoreFor(CognitiveDomain.memory);
+    expect(memoryBaseline, isNotNull);
+    expect(memoryBaseline, closeTo(52, 0.5),
+        reason: 'the baseline must come from the activities the person played');
+    expect(state.cognitiveProfile.scores, isNotEmpty);
   });
 
   testWidgets('a failed capture leaves the button usable instead of bricking it',

@@ -1,4 +1,4 @@
-"""Consistent JSON error shape for every 4xx/5xx response.
+﻿"""Consistent JSON error shape for every 4xx/5xx response.
 
 Every error the API returns looks like:
 
@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-logger = logging.getLogger("memorymitra")
+logger = logging.getLogger("SmaranSaathi")
 
 
 class ErrorDetail(BaseModel):

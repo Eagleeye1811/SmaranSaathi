@@ -58,7 +58,10 @@ class DemoJourney {
     for (int week = weeks - 1; week >= 0; week--) {
       final int dayOffset = week * 7 + (week.isEven ? 1 : 0);
       for (final GameId id in GameId.values) {
-        final CognitiveDomain domain = GameDomains.of(id);
+        // Mood Canvas has no domain and no score to fabricate — it never
+        // gets a GameSession, synthetic history included.
+        final CognitiveDomain? domain = GameDomains.of(id);
+        if (domain == null) continue;
         final double start = _startingScore[domain] ?? 80;
         final double drift = (_weeklyDrift[domain] ?? 0) * (weeks - 1 - week);
         // Session-to-session noise: real performance is never a clean line.

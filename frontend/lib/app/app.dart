@@ -1,4 +1,4 @@
-import 'package:flutter/gestures.dart';
+﻿import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../core/services/app_state.dart';
@@ -6,34 +6,36 @@ import '../core/services/auth_service.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
-import '../features/patient/patient_shell.dart';
+
+import '../features/patient/patient_entry.dart';
 import '../features/auth/splash_screen.dart';
 
 import '../features/caregiver/caregiver_entry.dart';
 import '../features/doctor/doctor_shell.dart';
 import 'theme/app_theme.dart';
 
-class MemoryMitraApp extends StatefulWidget {
-  const MemoryMitraApp({super.key, this.state, this.authService});
+class SmaranSaathiApp extends StatefulWidget {
+  const SmaranSaathiApp({super.key, this.state, this.authService});
 
   /// A pre-built, already-hydrated state. `main` passes the persistent one;
-  /// tests and `const MemoryMitraApp()` fall back to an in-memory session.
+  /// tests and `const SmaranSaathiApp()` fall back to an in-memory session.
   final AppState? state;
 
   /// The active auth service, published to the tree through an `AuthScope`.
   ///
-  /// Sign-in is *not* a gate in front of the app: it is an offer on the
-  /// authentication screen, beside the role cards, and every screen works
-  /// without it. `main` passes a real `FirebaseAuthService` once Firebase has
-  /// initialised; every test and `const MemoryMitraApp()` gets `null`, and the
-  /// account row is then hidden entirely. See `core/services/auth_service.dart`.
+  /// Sign-in is *not* a gate in front of the app: it is a step in the journey,
+  /// reached from the welcome screen (`WelcomeScreen.continueFrom`) so the
+  /// person sees what the product is before being asked for an email. `main`
+  /// passes a real `FirebaseAuthService` once Firebase has initialised; every
+  /// test and `const SmaranSaathiApp()` gets `null`, and the sign-in step is
+  /// then skipped entirely. See `core/services/auth_service.dart`.
   final AuthService? authService;
 
   @override
-  State<MemoryMitraApp> createState() => _MemoryMitraAppState();
+  State<SmaranSaathiApp> createState() => _SmaranSaathiAppState();
 }
 
-class _MemoryMitraAppState extends State<MemoryMitraApp> {
+class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
   late final AppState _state = widget.state ?? AppState();
 
   /// Only a state this widget created is ours to dispose.
@@ -128,7 +130,7 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
           animation: Listenable.merge(<Listenable>[_state, _locale]),
           builder: (BuildContext context, _) {
             return MaterialApp(
-              title: 'MemoryMitra',
+              title: 'SmaranSaathi',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.warm(highContrast: _state.highContrast),
               scrollBehavior: const _AppScrollBehavior(),

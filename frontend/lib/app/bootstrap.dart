@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+﻿import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/services/app_state.dart';
@@ -57,6 +57,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
     daily: HiveDailyRepository(store),
     assessment: HiveAssessmentRepository(store),
     memories: HiveMemoryFragmentRepository(store),
+    moodDrawings: HiveMoodDrawingRepository(store),
     settings: HiveSettingsRepository(store),
     sync: HiveSyncRepository(store),
     connectivity: _connectivityForPlatform(),
@@ -69,7 +70,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
 
 /// Attempts real Firebase sign-in; returns `null` on any failure — no
 /// platform config yet (web/iOS — see `firebase_options.dart`), no network
-/// at first launch, anything. `null` means [MemoryMitraApp] skips the
+/// at first launch, anything. `null` means [SmaranSaathiApp] skips the
 /// sign-in gate entirely and behaves exactly as it did before this existed,
 /// the same graceful-degradation contract [bootstrapAppState] already makes
 /// for Hive and connectivity.

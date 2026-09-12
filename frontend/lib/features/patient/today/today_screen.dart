@@ -31,12 +31,12 @@ class _TodayScreenState extends State<TodayScreen> {
   double _companionScale = 1.0;
 
   // List of motivational interactive greetings / tips (shortened to prevent wrapping)
-  List<String> _companionTips(AppLocalizations l) => <String>[
-        l.todayTipDoingGreat,
-        l.todayTipDrinkWater,
-        l.todayTipMitraHere,
-        l.todayTipTakeMeds,
-      ];
+  final List<String> _companionTips = <String>[
+    'You are doing great today!',
+    'Remember to drink water!',
+    'Saathi is here with you.',
+    'Take your meds on time!'
+  ];
 
   void _interactWithCompanion() {
     setState(() {
@@ -59,11 +59,9 @@ class _TodayScreenState extends State<TodayScreen> {
     final List<Reminder> reminders = state.reminders;
 
     final String dateLabel = _formattedDate(l);
-    final List<String> companionTips = _companionTips(l);
+    final List<String> companionTips = _companionTips;
 
     final String notificationHeadline = l.todayStatusLabel;
-    final String notificationDetail =
-        l.todayCompletedCount(state.remindersDone, state.remindersTotal);
     const IconData notificationIcon = Icons.today_rounded;
     const Color notificationColor = AppColors.primary;
 
@@ -151,13 +149,6 @@ class _TodayScreenState extends State<TodayScreen> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                notificationDetail,
-                                style: AppText.body.wght(800).sized(15.5),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 2),
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
                                 child: Text(
@@ -181,22 +172,27 @@ class _TodayScreenState extends State<TodayScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          l.todayRemindersTitle,
-                          style: AppText.patientTitle.sized(24),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          dateLabel,
-                          style: AppText.caption.sized(12.5).wght(600),
-                        ),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            l.todayRemindersTitle,
+                            style: AppText.patientTitle.sized(24),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dateLabel,
+                            style: AppText.caption.sized(12.5).wght(600),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Text(
                       l.todayDoneCount(state.remindersDone, state.remindersTotal),
                       style: AppText.body.wght(700).tint(AppColors.primary),
@@ -736,7 +732,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                   ),
                   Switch(
                     value: _smsEnabled,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (bool v) => setState(() => _smsEnabled = v),
                   ),
                 ],

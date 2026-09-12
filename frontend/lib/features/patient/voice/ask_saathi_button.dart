@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -17,13 +17,13 @@ import 'voice_assistant_sheet.dart';
 ///
 /// A card rather than a floating button: the home screen's whole premise is
 /// "one screen, four decisions, no menus", and a hovering control would be a
-/// fifth thing competing for attention. This reads as one more thing Mitra
+/// fifth thing competing for attention. This reads as one more thing Saathi
 /// offers, in the same visual language as everything around it.
 ///
 /// It owns the [VoiceAssistantController] for the session so the conversation
 /// survives the sheet being closed and reopened.
-class AskMitraButton extends StatefulWidget {
-  const AskMitraButton({
+class AskSaathiButton extends StatefulWidget {
+  const AskSaathiButton({
     super.key,
     this.recognizer,
     this.synthesizer,
@@ -35,10 +35,10 @@ class AskMitraButton extends StatefulWidget {
   final SpeechSynthesizer? synthesizer;
 
   @override
-  State<AskMitraButton> createState() => _AskMitraButtonState();
+  State<AskSaathiButton> createState() => _AskSaathiButtonState();
 }
 
-class _AskMitraButtonState extends State<AskMitraButton> {
+class _AskSaathiButtonState extends State<AskSaathiButton> {
   VoiceAssistantController? _controller;
 
   VoiceAssistantController _ensureController() {
@@ -98,7 +98,7 @@ class _AskMitraButtonState extends State<AskMitraButton> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(l.voiceAskMitra, style: AppText.h3),
+                Text(l.voiceAskSaathi, style: AppText.h3),
                 const SizedBox(height: 2),
                 Text(l.voiceTalkAboutDay, style: AppText.bodySmall),
               ],

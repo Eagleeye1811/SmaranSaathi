@@ -24,9 +24,13 @@ class CaregiverActivityScreen extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
 
+    // Only activities with a real score/level to show — an unscored one
+    // (Mood Canvas) has nothing honest to plot on a performance chart or
+    // list in a "difficulty per activity" card.
+    final List<GameDefinition> scored =
+        MockData.games.where((GameDefinition g) => g.hasLevels).toList(growable: false);
     final List<SeriesPoint> perGame = <SeriesPoint>[
-      for (final GameDefinition g in MockData.games)
-        SeriesPoint(_shortName(l, g.name), _averageFor(state, g.id)),
+      for (final GameDefinition g in scored) SeriesPoint(_shortName(l, g.id), _averageFor(state, g.id)),
     ];
 
     return MotifBackground(
@@ -205,62 +209,61 @@ class CaregiverActivityScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 210,
                     child: MmCard(
-                      child: Column(
-                        children: <Widget>[
-                          for (int i = 0; i < MockData.games.length; i++)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                  bottom: i == MockData.games.length - 1 ? 0 : 16),
-                              child: Row(
-                                children: <Widget>[
-                                  SceneImage(
-                                    sceneId: MockData.games[i].sceneId,
-                                    size: 42,
-                                    radius: Corners.sm,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Text(MockData.games[i].localizedName(l),
-                                            style: AppText.body.wght(700),
+                        child: Column(
+                          children: <Widget>[
+                            for (int i = 0; i < scored.length; i++)
+                              Padding(
+                                padding:
+                                    EdgeInsets.only(bottom: i == scored.length - 1 ? 0 : 16),
+                                child: Row(
+                                  children: <Widget>[
+                                    SceneImage(
+                                      sceneId: scored[i].sceneId,
+                                      size: 42,
+                                      radius: Corners.sm,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(scored[i].localizedName(l),
+                                              style: AppText.body.wght(700),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            localizedLevelDescription(
+                                              l,
+                                              scored[i].id,
+                                              state.levelOf(scored[i].id),
+                                            ),
+                                            style: AppText.caption,
                                             maxLines: 1,
-                                            overflow: TextOverflow.ellipsis),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          localizedLevelDescription(
-                                            l,
-                                            MockData.games[i].id,
-                                            state.levelOf(MockData.games[i].id),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          style: AppText.caption,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: <Widget>[
+                                        Text(l.gamesLevel(state.levelOf(scored[i].id)),
+                                            style: AppText.caption.wght(800)),
+                                        const SizedBox(height: 5),
+                                        DifficultyDots(
+                                          level: state.levelOf(scored[i].id),
+                                          color: scored[i].accent,
+                                          size: 7,
                                         ),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: <Widget>[
-                                      Text(l.gamesLevel(state.levelOf(MockData.games[i].id)),
-                                          style: AppText.caption.wght(800)),
-                                      const SizedBox(height: 5),
-                                      DifficultyDots(
-                                        level: state.levelOf(MockData.games[i].id),
-                                        color: MockData.games[i].accent,
-                                        size: 7,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
+                          ],
+                        )),
                   ),
                   const SizedBox(height: Insets.lg),
 
@@ -295,14 +298,16 @@ class CaregiverActivityScreen extends StatelessWidget {
     );
   }
 
-  static String _shortName(AppLocalizations l, String name) => switch (name) {
-        'Procedure Reconstruction' => l.caregiverChartLabelProcedure,
-        'Finish the Story' => l.caregiverChartLabelStory,
-        'Familiar Place Explorer' => l.caregiverChartLabelPlace,
-        'Melody of the Valleys' => l.caregiverChartLabelMelody,
-        'Weaves of the Hills' => l.caregiverChartLabelWeaves,
-        'NER Memory Cards' => l.caregiverChartLabelCards,
-        _ => name,
+  static String _shortName(AppLocalizations l, GameId id) => switch (id) {
+        GameId.procedure => l.caregiverChartLabelProcedure,
+        GameId.story => l.caregiverChartLabelStory,
+        GameId.familiarPlace => l.caregiverChartLabelPlace,
+        GameId.melody => l.caregiverChartLabelMelody,
+        GameId.weaves => l.caregiverChartLabelWeaves,
+        GameId.memoryCards => l.caregiverChartLabelCards,
+        GameId.villageMarket => l.caregiverChartLabelMarket,
+        // Never actually charted — callers filter to `hasLevels` activities.
+        GameId.moodCanvas => l.gameMoodCanvasName,
       };
 
   static double _averageFor(AppState state, GameId id) {
@@ -364,7 +369,7 @@ class _HistoryRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(g.name,
+                Text(g.localizedName(l),
                     style: AppText.body.wght(700),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
@@ -380,6 +385,16 @@ class _HistoryRow extends StatelessWidget {
                   ),
                   style: AppText.caption,
                 ),
+                // Village Market repurposes `focus` as a budget-restraint
+                // figure (see `VillageMarketGame._budgetRestraintScore`) —
+                // surfaced here, the one per-session (not averaged)
+                // clinician-facing view, and nowhere on the patient's own
+                // result screen.
+                if (session.gameId == GameId.villageMarket)
+                  Text(
+                    l.caregiverVillageMarketBudgetNote(session.performance.focus.round()),
+                    style: AppText.caption.tint(AppColors.inkMuted),
+                  ),
               ],
             ),
           ),

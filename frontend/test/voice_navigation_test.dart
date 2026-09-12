@@ -4,13 +4,13 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/core/voice/speech_engines.dart';
-import 'package:memory_mitra/core/voice/voice_language.dart';
-import 'package:memory_mitra/core/voice/voice_models.dart';
-import 'package:memory_mitra/core/voice/voice_nav_intent.dart';
-import 'package:memory_mitra/core/voice/voice_navigation_controller.dart';
-import 'package:memory_mitra/core/widgets/voice_nav_host.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:smaran_saathi/core/voice/speech_engines.dart';
+import 'package:smaran_saathi/core/voice/voice_language.dart';
+import 'package:smaran_saathi/core/voice/voice_models.dart';
+import 'package:smaran_saathi/core/voice/voice_nav_intent.dart';
+import 'package:smaran_saathi/core/voice/voice_navigation_controller.dart';
+import 'package:smaran_saathi/core/widgets/voice_nav_host.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 const VoiceNavMatcher matcher = VoiceNavMatcher();
 

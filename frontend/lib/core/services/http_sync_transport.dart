@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../data/local/sync_operation.dart';
 import 'sync_manager.dart';
 
-/// Sends the outbox to the real MemoryMitra backend (`backend/app/api/v1/sync.py`).
+/// Sends the outbox to the real SmaranSaathi backend (`backend/app/api/v1/sync.py`).
 ///
 /// Maps a [PendingOperation] 1:1 onto the backend's `SyncOperationRequest`
 /// (`operationId`, `kind`, `payload`, `createdAtMillis`) — the payload map is
@@ -15,7 +15,7 @@ import 'sync_manager.dart';
 ///
 /// Auth is a lightweight device token (`POST /api/v1/auth/device`), not
 /// Firebase Auth — the app has no login UI, so this proves "a copy of
-/// MemoryMitra is calling", not "this is a specific person". The token is
+/// SmaranSaathi is calling", not "this is a specific person". The token is
 /// minted once, cached in memory, and re-minted on a 401 (e.g. after the
 /// token's 30-day expiry). See `backend/app/core/device_auth.py`.
 ///

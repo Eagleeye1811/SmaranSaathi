@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
@@ -14,6 +15,7 @@ import '../models/daily.dart';
 import '../models/game.dart';
 import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
+import '../models/mood_drawing.dart';
 import '../models/patient.dart';
 import '../models/report.dart';
 import '../models/safety.dart';
@@ -51,6 +53,7 @@ class AppState extends ChangeNotifier {
     DailyRepository? daily,
     AssessmentRepository? assessment,
     MemoryFragmentRepository? memories,
+    MoodDrawingRepository? moodDrawings,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -62,6 +65,7 @@ class AppState extends ChangeNotifier {
         _daily = daily ?? MockDailyRepository(),
         _assessment = assessment ?? MockAssessmentRepository(),
         _memories = memories ?? MockMemoryFragmentRepository(),
+        _moodDrawingRepo = moodDrawings ?? MockMoodDrawingRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()) {
@@ -79,6 +83,7 @@ class AppState extends ChangeNotifier {
   final DailyRepository _daily;
   final AssessmentRepository _assessment;
   final MemoryFragmentRepository _memories;
+  final MoodDrawingRepository _moodDrawingRepo;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   late final SyncManager _sync;
@@ -125,6 +130,13 @@ class AppState extends ChangeNotifier {
 
   Patient _patient = MockData.aama;
   Patient get patient => _patient;
+
+  List<Patient> get caregiverPatients => MockData.caregiverPatients;
+
+  void setPatient(Patient p) {
+    _patient = p;
+    notifyListeners();
+  }
 
   /// Draft used by the caregiver onboarding flow.
   Patient _draft = MockData.emptyPatient;
@@ -301,6 +313,10 @@ class AppState extends ChangeNotifier {
         if (id.name == name) _completedToday.add(id);
       }
     }
+
+    _moodDrawings
+      ..clear()
+      ..addAll(await _moodDrawingRepo.all(_patient.id));
   }
 
   /// The local profile id an account's data is filed under.
@@ -328,6 +344,10 @@ class AppState extends ChangeNotifier {
 
   final Set<GameId> _completedToday = <GameId>{};
   Set<GameId> get completedToday => Set<GameId>.unmodifiable(_completedToday);
+
+  // Mood Canvas drawings — never a GameSession, see MoodDrawing's doc comment.
+  final List<MoodDrawing> _moodDrawings = <MoodDrawing>[];
+  List<MoodDrawing> get moodDrawings => List<MoodDrawing>.unmodifiable(_moodDrawings);
 
   AdaptiveDecision? _lastDecision;
   AdaptiveDecision? get lastDecision => _lastDecision;
@@ -440,6 +460,74 @@ class AppState extends ChangeNotifier {
     return decision;
   }
 
+  /// Saves a finished Mood Check-In: the drawing, and the short guided
+  /// conversation that followed it (empty if the patient closed out before
+  /// the check-in phase produced one — see `MoodCheckInScreen`).
+  ///
+  /// Deliberately parallel to, not built on, [finishGame]: there is no
+  /// `AdaptiveDifficultyService.evaluate()` call and no `GameSession` here —
+  /// neither free drawing nor a feelings conversation has a score to adapt
+  /// against. `completedToday` still gets the entry it needs for the app's
+  /// "done today" tracking, via the same `_daily` completion marker
+  /// `finishGame` itself uses.
+  ///
+  /// When the conversation produced a [moodLevel], this also calls
+  /// [setMood] — the same signal the quick `MoodPicker` on the health
+  /// dashboard sets — so a real conversation about how the patient feels
+  /// updates the one mood reading the rest of the app (the companionship
+  /// opener, the caregiver insight) already reads, rather than being
+  /// stranded in this feature alone.
+  Future<MoodDrawing> saveMoodDrawing(
+    Uint8List png, {
+    List<MoodCheckInTurn> transcript = const <MoodCheckInTurn>[],
+    MoodLevel? moodLevel,
+  }) {
+    final MoodDrawing drawing = MoodDrawing(
+      id: '${DateTime.now().microsecondsSinceEpoch}',
+      dayOffset: 0,
+      timeLabel: _clockLabel(),
+      pngBytes: png,
+      transcript: transcript,
+      moodLevel: moodLevel,
+    );
+    _moodDrawings.insert(0, drawing);
+    _completedToday.add(GameId.moodCanvas);
+    _lastActiveMinutes = 0;
+    notifyListeners();
+    if (moodLevel != null) setMood(moodLevel);
+    return _write(() async {
+      await _moodDrawingRepo.add(_patient.id, drawing);
+      await _daily.markGameCompleted(_patient.id, GameId.moodCanvas);
+      await _sync.enqueue(SyncOperationKind.moodDrawingSaved, <String, dynamic>{
+        'patientId': _patient.id,
+        'drawingId': drawing.id,
+        'at': drawing.timeLabel,
+      });
+    }).then((_) => drawing);
+  }
+
+  /// A doctor's own freeform note about a drawing — never generated
+  /// automatically. `notedBy` is [MockData.doctorName], the same stand-in
+  /// clinician identity every other doctor screen in this prototype uses.
+  void addDoctorNoteToDrawing(String drawingId, String note, {required String notedBy}) {
+    final int i = _moodDrawings.indexWhere((MoodDrawing d) => d.id == drawingId);
+    if (i < 0) return;
+    final String notedAt = DateTime.now().toIso8601String();
+    _moodDrawings[i] =
+        _moodDrawings[i].copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAt);
+    notifyListeners();
+    _write(() async {
+      await _moodDrawingRepo.addDoctorNote(_patient.id, drawingId, note,
+          notedBy: notedBy, notedAtIso: notedAt);
+      await _sync.enqueue(SyncOperationKind.doctorNoteAdded, <String, dynamic>{
+        'patientId': _patient.id,
+        'drawingId': drawingId,
+        'notedBy': notedBy,
+        'at': notedAt,
+      });
+    });
+  }
+
   String _clockLabel() {
     final DateTime now = DateTime.now();
     final int h = now.hour % 12 == 0 ? 12 : now.hour % 12;
@@ -494,7 +582,7 @@ class AppState extends ChangeNotifier {
 
   // ── Memory companion ───────────────────────────────────────────────────
   //
-  // Every real life-story the patient has shared with Mitra, across every
+  // Every real life-story the patient has shared with Saathi, across every
   // session — the substance behind "remembers what she told me last week".
   // Saved from a genuine personal story only, never from a quiz answer; see
   // `core/ai/gemini_ai_service.dart`'s system prompt for the rule that keeps
@@ -563,7 +651,7 @@ class AppState extends ChangeNotifier {
     return _write(() => _memories.add(_assessmentScope, fragment)).then((_) => fragment);
   }
 
-  /// Records that Mitra just offered [fragmentId] back to the patient, so it
+  /// Records that Saathi just offered [fragmentId] back to the patient, so it
   /// moves to the back of the resurfacing queue.
   Future<void> markMemoryResurfaced(String fragmentId) {
     final DateTime now = DateTime.now();
@@ -600,7 +688,13 @@ class AppState extends ChangeNotifier {
       );
 
   /// Activities still to play in the baseline run, in catalogue order.
-  List<GameId> get baselineRemaining => GameId.values
+  ///
+  /// Derived from [baselinePlan] itself, not `GameId.values` — an activity
+  /// that isn't part of the baseline at all (Mood Canvas has no clinical
+  /// baseline measure to capture) must never count as "remaining", or the
+  /// baseline could never be marked complete.
+  List<GameId> get baselineRemaining => baselinePlan
+      .expand((List<GameId> day) => day)
       .where((GameId g) => !_intake.baselineActivities.contains(g.name))
       .toList(growable: false);
 
@@ -608,13 +702,16 @@ class AppState extends ChangeNotifier {
 
   // ── The three-day baseline plan ─────────────────────────────────────────
   //
-  // Six activities, two a day, three days. Paired so each sitting covers two
-  // different domains rather than two of the same, which keeps a single bad
-  // day from landing entirely on one part of the profile.
+  // Six activities, two a day, three days, then a fourth day for Village
+  // Market alone — it's the newest activity and stands fine on its own, so
+  // the original three paired days are left untouched. Paired so each
+  // sitting covers two different domains rather than two of the same, which
+  // keeps a single bad day from landing entirely on one part of the profile.
   static const List<List<GameId>> baselinePlan = <List<GameId>>[
     <GameId>[GameId.memoryCards, GameId.story],
     <GameId>[GameId.familiarPlace, GameId.melody],
     <GameId>[GameId.weaves, GameId.procedure],
+    <GameId>[GameId.villageMarket],
   ];
 
   static String _dayKey(DateTime at) =>

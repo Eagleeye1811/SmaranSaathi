@@ -1,4 +1,5 @@
-import 'dart:convert';
+﻿import 'dart:convert';
+
 
 import '../models/daily.dart';
 import '../models/game.dart';
@@ -43,7 +44,7 @@ class GeminiAiService implements AiService {
   /// and harmful. It is repeated in the schema description too, because models
   /// follow instructions that appear next to the field they constrain.
   static const String _insightSystem = '''
-You analyse cognitive-activity data for MemoryMitra, an app used by elderly
+You analyse cognitive-activity data for SmaranSaathi, an app used by elderly
 people with early-stage memory changes in North-East India, and by their
 caregivers and clinicians.
 
@@ -73,7 +74,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
   /// spoken, to someone who is easily overwhelmed.
   ///
   /// This is also the memory-companion prompt — the flagship behaviour the
-  /// product asks for is not a separate mode, it is what Mitra always is:
+  /// product asks for is not a separate mode, it is what Saathi always is:
   /// a warm conversational partner who happens to also know the schedule,
   /// not a Q&A bot that occasionally makes small talk. The two rules that
   /// matter most are the two the product brief is explicit about, and they
@@ -81,7 +82,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
   /// test with a right answer; and nothing the person says is ever
   /// corrected, however it compares to a fact on file.
   static const String _assistantSystem = '''
-You are Mitra, a warm companion inside an app used by an elderly person with
+You are Saathi, a warm companion inside an app used by an elderly person with
 early-stage memory changes. You are NOT a general assistant, and you are NOT
 a quiz.
 
@@ -158,6 +159,31 @@ own words. Only do this for a genuine story — never for a one-word answer,
 never for small talk, and never for something you invented.
 Categories: family, childhood, work, festivals, food, village.
 
+MOOD CHECK-IN MODE
+"conversation.moodCheckIn.active" being true means you are running a short
+guided check-in, not ordinary conversation. The patient has just drawn
+something and answered "How are you feeling right now?" — their answer is
+the message you were just given, and "conversation.moodCheckIn.turnNumber"
+counts how many of their answers you have already received (0 for this one).
+While active:
+- Set "intent" to "moodCheckIn".
+- Ask exactly ONE caring follow-up question that genuinely builds on what
+  they just said — like a friend who noticed something in how they answered,
+  never a fixed checklist and never a schedule/reminders/activity question.
+  Good: they said "tired" → ask gently whether it's their body or their mind
+  that feels tired, or whether something is on it. Never repeat the opening
+  question in different words.
+- Once "turnNumber" reaches 2 (this is their third answer), stop asking and
+  wrap up instead: acknowledge what they shared in one warm sentence, invite
+  them to keep talking with you freely about anything else on their mind, and
+  set "moodCheckInDone" to true. Also set it true earlier if they clearly want
+  to stop (short, closed answers, or they say so).
+- Whenever you set "moodCheckInDone" true, also set "moodLevel" to your best
+  gentle read of the whole exchange — one of good, okay, or low. This is
+  never shown to the patient as a score or mentioned as an assessment; keep it
+  out of the visible "text" entirely.
+- Never diagnose or name a mental-health condition, however they answer.
+
 STYLE
 - Two or three SHORT sentences at most. This may be read aloud.
 - Warm, calm, unhurried, respectful of an elder. Never patronising, never
@@ -170,13 +196,15 @@ STYLE
 Reply with a single JSON object and nothing else — no markdown, no code fence:
 {
   "text": "the answer, 2-3 short sentences",
-  "intent": "one of: schedule|activity|reminders|people|orientation|companionship|memoryMoment|outOfScope",
+  "intent": "one of: schedule|activity|reminders|people|orientation|companionship|memoryMoment|moodCheckIn|outOfScope",
   "suggestedActivity": "optional, one of: procedure|story|familiarPlace|melody|weaves|memoryCards",
   "followUps": ["2-3 very short things they might ask or say next"],
   "memorySharedCategory": "optional, one of: family|childhood|work|festivals|food|village — only when they just shared a real memory",
   "memorySharedSummary": "optional, required if memorySharedCategory is set — a short warm summary of what they shared",
   "memorySharedName": "optional — a person's name mentioned in the memory, if any",
-  "resurfacedMemory": true or false, true only if this reply just gently reoffered memoryCompanion.resurfaceCandidate
+  "resurfacedMemory": true or false, true only if this reply just gently reoffered memoryCompanion.resurfaceCandidate,
+  "moodCheckInDone": true or false, only meaningful when conversation.moodCheckIn.active is true — see MOOD CHECK-IN MODE,
+  "moodLevel": "optional, one of: good|okay|low — set only alongside moodCheckInDone: true"
 }''';
 
   // ── Cognitive insight ──────────────────────────────────────────────────
@@ -258,7 +286,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
       'today': full['today'],
       'replyLanguage': full['replyLanguage'],
       'suggestedActivity':
-          const OnDeviceHint().recommendedActivityName(context),
+          OnDeviceHint().recommendedActivityName(context),
       'conversation': full['conversation'],
       'memoryCompanion': full['memoryCompanion'],
     };
@@ -297,6 +325,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
         : null;
 
     final bool resurfaced = body['resurfacedMemory'] == true;
+    final bool moodCheckInDone = body['moodCheckInDone'] == true;
 
     return AiSuccess<AssistantReply>(AssistantReply(
       text: text,
@@ -306,13 +335,15 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
       followUps: _stringList(body['followUps']).take(3).toList(growable: false),
       sharedMemory: sharedMemory,
       resurfacedFragmentId: resurfaced ? context.memoryResurfaceCandidate?.id : null,
+      moodCheckInDone: moodCheckInDone,
+      moodLevel: moodCheckInDone ? _moodLevelFrom(body['moodLevel']) : null,
     ));
   }
 
   // ── Today's questions ──────────────────────────────────────────────────
 
   static const String _questionsSystem = '''
-You write the daily check-in questions for MemoryMitra, an app used by older
+You write the daily check-in questions for SmaranSaathi, an app used by older
 adults being monitored for cognitive change, and by their families.
 
 Write 3 questions for THIS person, using their onboarding answers. Rules:
@@ -420,6 +451,15 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
     final String name = raw.toString().trim();
     for (final MemoryCategory c in MemoryCategory.values) {
       if (c.name.toLowerCase() == name.toLowerCase()) return c;
+    }
+    return null;
+  }
+
+  static MoodLevel? _moodLevelFrom(Object? raw) {
+    if (raw == null) return null;
+    final String name = raw.toString().trim();
+    for (final MoodLevel m in MoodLevel.values) {
+      if (m.name.toLowerCase() == name.toLowerCase()) return m;
     }
     return null;
   }

@@ -1,4 +1,4 @@
-package com.memorymitra.memory_mitra
+package com.SmaranSaathi.smaran_saathi
 
 import io.flutter.embedding.android.FlutterActivity
 

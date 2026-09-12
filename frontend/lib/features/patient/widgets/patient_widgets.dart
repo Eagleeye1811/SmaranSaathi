@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -19,13 +19,7 @@ import '../../../l10n/app_localizations.dart';
 /// inside the app spent the most valuable pixels on the screen saying
 /// something the person already knew.
 class PatientTopBar extends StatelessWidget {
-  const PatientTopBar({
-    super.key,
-    this.trailing,
-    this.onExit,
-    this.showStatus = true,
-    this.showExit = true,
-  });
+  const PatientTopBar({super.key, this.trailing, this.onExit, this.showExit = false, this.showStatus = true});
 
   final Widget? trailing;
   final VoidCallback? onExit;
@@ -105,7 +99,7 @@ class _Wordmark extends StatelessWidget {
       TextSpan(
         children: <InlineSpan>[
           TextSpan(text: 'Memory', style: AppText.h3.wght(800).tint(AppColors.ink)),
-          TextSpan(text: 'Mitra', style: AppText.h3.wght(800).tint(AppColors.primary)),
+          TextSpan(text: 'Saathi', style: AppText.h3.wght(800).tint(AppColors.primary)),
         ],
       ),
       maxLines: 1,

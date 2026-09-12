@@ -1,5 +1,5 @@
-name: memory_mitra
-description: "MemoryMitra — a gentle companion for every memory. An AI-based cognitive gaming and memory assistance prototype for elderly dementia patients in India's North Eastern Region."
+﻿name: smaran_saathi
+description: "SmaranSaathi — a gentle companion for every memory. An AI-based cognitive gaming and memory assistance prototype for elderly dementia patients in India's North Eastern Region."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -31,6 +31,21 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^13.0.2
+  # On-device LLM inference (llama.cpp binding) for the offline Mitra companion.
+  # pub.dev's published fllama is a stale 0.0.1. `main` needs Dart >=3.10 (its
+  # 2026-03 rewrite onto native-assets build hooks) which this project's
+  # Flutter 3.35.7/Dart 3.9.2 doesn't meet — pinned instead to the last commit
+  # before that rewrite (2025-06-16, prebuilt-binary plugin build, sdk: '>=3.3.0'),
+  # which still has the fllamaChat/OpenAiRequest API this integration uses.
+  # Revisit once this project's Flutter SDK is upgraded past 3.10.
+  fllama:
+    git:
+      url: https://github.com/Telosnex/fllama.git
+      ref: d341e65d596e4d9dd888eab21e04eef1736fd661
+  # App-private storage for the downloaded ~800MB GGUF model file.
+  path_provider: ^2.1.4
+  # Verifies the downloaded model file wasn't corrupted/truncated in transit.
+  crypto: ^3.0.5
 
 dev_dependencies:
   flutter_test:
@@ -58,3 +73,13 @@ flutter:
     - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito.ttf
+    # Nunito only covers Latin. Hindi/Marathi (Devanagari) and Assamese
+    # (Bengali script) fall back to these via AppText's fontFamilyFallback
+    # rather than the OS's own default font, so regional-language text reads
+    # in a consistent weight/style instead of visibly mismatching Nunito.
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari.ttf
+    - family: NotoSansBengali
+      fonts:
+        - asset: assets/fonts/NotoSansBengali.ttf

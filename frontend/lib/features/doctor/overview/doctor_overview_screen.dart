@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
@@ -11,6 +11,7 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../patients/patient_detail_screen.dart';
 import '../widgets/clinic_widgets.dart';
 
@@ -344,6 +345,7 @@ class _AlertRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final Color c = severityColor(alert.severity);
     return ClinicCard(
       accentEdge: c,
@@ -363,18 +365,10 @@ class _AlertRow extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: <Widget>[
-              Icon(
-                alert.severity == AlertSeverity.urgent
-                    ? Icons.priority_high_rounded
-                    : alert.severity == AlertSeverity.watch
-                        ? Icons.visibility_rounded
-                        : Icons.info_outline_rounded,
-                size: 13,
-                color: c,
-              ),
+              Icon(severityIcon(alert.severity), size: 13, color: c),
               const SizedBox(width: 5),
-              Text(alert.severity.label,
-                  style: AppText.caption.sized(11.5).wght(700).tint(c)),
+              Text(alert.severity.localizedLabel(l),
+                  style: CT.caption.sized(11.5).wght(700).tint(c)),
             ],
           ),
         ],

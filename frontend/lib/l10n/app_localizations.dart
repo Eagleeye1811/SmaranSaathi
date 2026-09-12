@@ -142,7 +142,7 @@ class AppLocalizations {
   String get resultTime => _s('resultTime');
   String get resultThisSession => _s('resultThisSession');
   String get resultNextSession => _s('resultNextSession');
-  String get resultWhatMitraNoticed => _s('resultWhatMitraNoticed');
+  String get resultWhatSaathiNoticed => _s('resultWhatSaathiNoticed');
   String get resultAdjusted => _s('resultAdjusted');
   String get resultWonderful => _s('resultWonderful');
   String get resultVeryWellDone => _s('resultVeryWellDone');
@@ -180,6 +180,7 @@ class AppLocalizations {
   String get voiceNavTitle => _s('voiceNavTitle');
   String get voiceNavHint => _s('voiceNavHint');
   String get voiceNavSpeakNow => _s('voiceNavSpeakNow');
+  String get voiceAskSaathi => _s('voiceAskSaathi');
   String get voiceAskMitra => _s('voiceAskMitra');
   String get voiceTalkAboutDay => _s('voiceTalkAboutDay');
   String get voiceTapMicrophone => _s('voiceTapMicrophone');
@@ -189,7 +190,7 @@ class AppLocalizations {
   String get voiceThinking => _s('voiceThinking');
   String get voiceSpeaking => _s('voiceSpeaking');
   String get voiceTryAgain => _s('voiceTryAgain');
-  String get voiceTalkToMitra => _s('voiceTalkToMitra');
+  String get voiceTalkToSaathi => _s('voiceTalkToSaathi');
   String get voiceAskSomethingElse => _s('voiceAskSomethingElse');
   String get voiceIHaveFinished => _s('voiceIHaveFinished');
   String get voiceStop => _s('voiceStop');
@@ -296,6 +297,19 @@ class AppLocalizations {
   String get doctorDetailChartMelody => _s('doctorDetailChartMelody');
   String get doctorDetailChartWeaves => _s('doctorDetailChartWeaves');
   String get doctorDetailChartCards => _s('doctorDetailChartCards');
+  String get doctorDetailChartMarket => _s('doctorDetailChartMarket');
+  String get doctorDetailChartMoodCanvas => _s('doctorDetailChartMoodCanvas');
+  String get doctorDetailMoodCanvasTitle => _s('doctorDetailMoodCanvasTitle');
+  String get doctorDetailMoodCanvasCaption => _s('doctorDetailMoodCanvasCaption');
+  String get doctorMoodCanvasDetailTitle => _s('doctorMoodCanvasDetailTitle');
+  String get doctorMoodCanvasTranscriptLabel => _s('doctorMoodCanvasTranscriptLabel');
+  String get doctorMoodCanvasNoteLabel => _s('doctorMoodCanvasNoteLabel');
+  String get doctorMoodCanvasNoteHint => _s('doctorMoodCanvasNoteHint');
+  String doctorMoodCanvasNotedByline(String name, String date) =>
+      _f('doctorMoodCanvasNotedByline', <String, Object?>{'name': name, 'date': date});
+  String get doctorMoodCanvasNoteSaved => _s('doctorMoodCanvasNoteSaved');
+  String get doctorMoodCanvasSaveNote => _s('doctorMoodCanvasSaveNote');
+  String get caregiverChartLabelMarket => _s('caregiverChartLabelMarket');
 
   // ── Doctor — patients list ───────────────────────────────────────
   String doctorPatientsSubtitle(int shown, int total) => _f('doctorPatientsSubtitle', <String, Object?>{'shown': shown, 'total': total});
@@ -417,6 +431,8 @@ class AppLocalizations {
   String caregiverSessionMeta(String when, String time, String level, String hints) => _f('caregiverSessionMeta', <String, Object?>{'when': when, 'time': time, 'level': level, 'hints': hints});
   String caregiverHintsUsedOne(int count) => _f('caregiverHintsUsedOne', <String, Object?>{'count': count});
   String caregiverHintsUsedMany(int count) => _f('caregiverHintsUsedMany', <String, Object?>{'count': count});
+  String caregiverVillageMarketBudgetNote(int n) =>
+      _f('caregiverVillageMarketBudgetNote', <String, Object?>{'n': n});
 
   // ── Caregiver — profile ──────────────────────────────────────────
   String get caregiverRelationLabel => _s('caregiverRelationLabel');
@@ -646,6 +662,10 @@ class AppLocalizations {
   String get intakeCaregiverNameLabel => _s('intakeCaregiverNameLabel');
   String get intakeCaregiverRelationLabel => _s('intakeCaregiverRelationLabel');
   String get intakeCaregiverNoteLabel => _s('intakeCaregiverNoteLabel');
+  String get intakeMedicalAddMedicationPrompt => _s('intakeMedicalAddMedicationPrompt');
+  String get intakeCaregiverNamePrompt => _s('intakeCaregiverNamePrompt');
+  String get intakeCaregiverRelationPrompt => _s('intakeCaregiverRelationPrompt');
+  String get intakeCaregiverNotePrompt => _s('intakeCaregiverNotePrompt');
 
   // ── Intake — reason/safety ───────────────────────────────────────
   String get intakeReasonTitle => _s('intakeReasonTitle');
@@ -730,7 +750,7 @@ class AppLocalizations {
   String get intakeBaselineCompanionAllDone => _s('intakeBaselineCompanionAllDone');
   String get intakeBaselineCompanionStart => _s('intakeBaselineCompanionStart');
   String get intakeBaselineCompanionOneToGo => _s('intakeBaselineCompanionOneToGo');
-  String intakeBaselineTotalProgress(int done, int total) => _f('intakeBaselineTotalProgress', <String, Object?>{'done': done, 'total': total});
+  String intakeBaselineTotalProgress(int done, int total, int days) => _f('intakeBaselineTotalProgress', <String, Object?>{'done': done, 'total': total, 'days': days});
   String intakeBaselineSessionComplete(int day) => _f('intakeBaselineSessionComplete', <String, Object?>{'day': day});
   String intakeBaselineActivityMinutes(String domain, int minutes) => _f('intakeBaselineActivityMinutes', <String, Object?>{'domain': domain, 'minutes': minutes});
   String get intakeBaselineDone => _s('intakeBaselineDone');
@@ -1340,8 +1360,68 @@ class AppLocalizations {
   String get gameWeavesTagline => _s('gameWeavesTagline');
   String get gameMemoryCardsName => _s('gameMemoryCardsName');
   String get gameMemoryCardsTagline => _s('gameMemoryCardsTagline');
+  String get gameVillageMarketName => _s('gameVillageMarketName');
+  String get gameVillageMarketTagline => _s('gameVillageMarketTagline');
   String gamesMinutesShort(int minutes) =>
       _f('gamesMinutesShort', <String, Object?>{'minutes': minutes});
+
+  // ── Games — village market ──────────────────────────────────────
+  String get gameVillageMarketIntroMessage => _s('gameVillageMarketIntroMessage');
+  String get gameVillageMarketStartWalking => _s('gameVillageMarketStartWalking');
+  String get gameVillageMarketCategoryLabel => _s('gameVillageMarketCategoryLabel');
+  String get gameVillageMarketInstructions => _s('gameVillageMarketInstructions');
+  String gameVillageMarketListMention(String listGiver) =>
+      _f('gameVillageMarketListMention', <String, Object?>{'listGiver': listGiver});
+  String get gameVillageMarketListMentionContinue => _s('gameVillageMarketListMentionContinue');
+  String get gameVillageMarketYouAreAt => _s('gameVillageMarketYouAreAt');
+  String get gameVillageMarketTapAnything => _s('gameVillageMarketTapAnything');
+  String gameVillageMarketPickedUp(String item) =>
+      _f('gameVillageMarketPickedUp', <String, Object?>{'item': item});
+  String get gameVillageMarketAlreadyHaveIt => _s('gameVillageMarketAlreadyHaveIt');
+  String get gameVillageMarketInterestingOne => _s('gameVillageMarketInterestingOne');
+  String gameVillageMarketNudgeAuto(String listGiver) =>
+      _f('gameVillageMarketNudgeAuto', <String, Object?>{'listGiver': listGiver});
+  String get gameVillageMarketNudgeCategory => _s('gameVillageMarketNudgeCategory');
+  String gameVillageMarketNudgeItem(String item) =>
+      _f('gameVillageMarketNudgeItem', <String, Object?>{'item': item});
+  String get gameVillageMarketRainMessage => _s('gameVillageMarketRainMessage');
+  String get gameVillageMarketBudgetMessage => _s('gameVillageMarketBudgetMessage');
+  String get gameVillageMarketOverfullMessage => _s('gameVillageMarketOverfullMessage');
+  String get gameVillageMarketHeadHome => _s('gameVillageMarketHeadHome');
+  String get gameVillageMarketTripComplete => _s('gameVillageMarketTripComplete');
+  String get gameVillageMarketBasketLabel => _s('gameVillageMarketBasketLabel');
+  String gameVillageMarketHintsLeft(int n) =>
+      _f('gameVillageMarketHintsLeft', <String, Object?>{'n': n});
+  String get gameVillageMarketTapLightbulb => _s('gameVillageMarketTapLightbulb');
+  String get gameVillageMarketStallsVisited => _s('gameVillageMarketStallsVisited');
+  String get gameVillageMarketThingsBroughtHome => _s('gameVillageMarketThingsBroughtHome');
+  String get gameVillageMarketNudgesFromMitra => _s('gameVillageMarketNudgesFromMitra');
+  String get gameVillageMarketTapAStall => _s('gameVillageMarketTapAStall');
+  String gameVillageMarketStallsOpen(int n) =>
+      _f('gameVillageMarketStallsOpen', <String, Object?>{'n': n});
+  String gameVillageMarketPriceTag(int price) =>
+      _f('gameVillageMarketPriceTag', <String, Object?>{'price': price});
+
+  // ── Games — mood canvas ─────────────────────────────────────────
+  String get gameMoodCanvasName => _s('gameMoodCanvasName');
+  String get gameMoodCanvasTagline => _s('gameMoodCanvasTagline');
+  String get gameMoodCanvasInstructions => _s('gameMoodCanvasInstructions');
+  String get gameMoodCanvasStart => _s('gameMoodCanvasStart');
+  String get gameMoodCanvasDescription => _s('gameMoodCanvasDescription');
+  String get gameMoodCanvasUndo => _s('gameMoodCanvasUndo');
+  String get gameMoodCanvasClear => _s('gameMoodCanvasClear');
+  String get gameMoodCanvasClearConfirmTitle => _s('gameMoodCanvasClearConfirmTitle');
+  String get gameMoodCanvasClearConfirmBody => _s('gameMoodCanvasClearConfirmBody');
+  String get gameMoodCanvasSave => _s('gameMoodCanvasSave');
+  String get gameMoodCanvasSavedBody => _s('gameMoodCanvasSavedBody');
+  String get gameMoodCanvasDone => _s('gameMoodCanvasDone');
+  String get gameMoodCanvasCheckInTitle => _s('gameMoodCanvasCheckInTitle');
+  String get gameMoodCanvasCheckInFirstQuestion => _s('gameMoodCanvasCheckInFirstQuestion');
+  String get gameMoodCanvasCheckInAnswerHint => _s('gameMoodCanvasCheckInAnswerHint');
+  String get gameMoodCanvasCheckInSend => _s('gameMoodCanvasCheckInSend');
+  String get gameMoodCanvasTalkToMitraCta => _s('gameMoodCanvasTalkToMitraCta');
+  String get gameMoodCanvasEntryTitle => _s('gameMoodCanvasEntryTitle');
+  String get gameMoodCanvasEntrySubtitle => _s('gameMoodCanvasEntrySubtitle');
 
   String get difficultyIncreaseMessage => _s('difficultyIncreaseMessage');
   String get difficultyMaintainMessage => _s('difficultyMaintainMessage');
@@ -1373,6 +1453,12 @@ class AppLocalizations {
   String get levelDescMemoryCards2 => _s('levelDescMemoryCards2');
   String get levelDescMemoryCards3 => _s('levelDescMemoryCards3');
   String get levelDescMemoryCardsDefault => _s('levelDescMemoryCardsDefault');
+  String get levelDescVillageMarket1 => _s('levelDescVillageMarket1');
+  String get levelDescVillageMarket2 => _s('levelDescVillageMarket2');
+  String get levelDescVillageMarket3 => _s('levelDescVillageMarket3');
+  String get levelDescVillageMarket4 => _s('levelDescVillageMarket4');
+  String get levelDescVillageMarketDefault => _s('levelDescVillageMarketDefault');
+  String get gameMoodCanvasFreeDrawingLabel => _s('gameMoodCanvasFreeDrawingLabel');
 
   // ── Memory Home ───────────────────────────────────────────────────────
   String get memoryCategoryFamilyLabel => _s('memoryCategoryFamilyLabel');
@@ -1645,6 +1731,33 @@ class AppLocalizations {
   String get onbSummaryFinish => _s('onbSummaryFinish');
   String onbSummaryAnsweredBy(Object relation) => _f('onbSummaryAnsweredBy', <String, Object?>{'relation': relation});
   String get onbSummaryHelpWith => _s('onbSummaryHelpWith');
+  // ── Profile — connectivity / phone (added during a cleanliness pass) ────
+  String profileActivitiesSavedOnDevice(int count) =>
+      _f('profileActivitiesSavedOnDevice', <String, Object?>{'count': count});
+  String get profileSyncing => _s('profileSyncing');
+  String profileSyncActivities(int count) =>
+      _f('profileSyncActivities', <String, Object?>{'count': count});
+  String get profileChangeNumber => _s('profileChangeNumber');
+  String get profileAddNumber => _s('profileAddNumber');
+  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
+  String get dashboardStartTodaysSession => _s('dashboardStartTodaysSession');
+
+  // ── Clinical status / reminder kind / life-memory category labels ───────
+  String get clinicalStatusStable => _s('clinicalStatusStable');
+  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
+  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
+  String get reminderKindMedicine => _s('reminderKindMedicine');
+  String get reminderKindHydration => _s('reminderKindHydration');
+  String get reminderKindCognitive => _s('reminderKindCognitive');
+  String get reminderKindAppointment => _s('reminderKindAppointment');
+  String get reminderKindRoutine => _s('reminderKindRoutine');
+  String get reminderKindSocial => _s('reminderKindSocial');
+  String get lifeMemoryCategoryWork => _s('lifeMemoryCategoryWork');
+  String get lifeMemoryCategoryActivities => _s('lifeMemoryCategoryActivities');
+  String get lifeMemoryCategoryPlaces => _s('lifeMemoryCategoryPlaces');
+  String get lifeMemoryCategoryStories => _s('lifeMemoryCategoryStories');
+  String get lifeMemoryCategoryFood => _s('lifeMemoryCategoryFood');
+  String get lifeMemoryCategoryTraditions => _s('lifeMemoryCategoryTraditions');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
