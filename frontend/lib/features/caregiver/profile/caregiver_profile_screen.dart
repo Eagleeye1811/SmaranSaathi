@@ -5,12 +5,14 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/account_section.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../patient/patient_shell.dart';
@@ -300,9 +302,17 @@ class CaregiverProfileScreen extends StatelessWidget {
                       label: l.caregiverSwitchRoleButton,
                       icon: Icons.swap_horiz_rounded,
                       color: AppColors.inkSoft,
-                      outlined: true,
-                      height: 58,
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: () async {
+                        final AppState state = AppScope.read(context);
+                        final AuthService? service = AuthScope.maybeOf(context);
+                        await state.signOutAccount();
+                        state.setRole(AppRole.none);
+                        if (service != null) {
+                          try { await service.signOut(); } catch (_) {}
+                        }
+                        if (!context.mounted) return;
+                        Nav.rootTo(context, const WelcomeScreen());
+                      },
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
@@ -342,7 +352,7 @@ class _Toggle extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.primary,
           ),
         ],

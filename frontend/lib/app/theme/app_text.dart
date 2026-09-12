@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Typography for MemoryMitra.
+/// Typography for SmaranSaathi.
 ///
 /// Nunito ships as a single variable font file, so weight is applied through
 /// `fontVariations` (a plain `fontWeight` would be ignored by the shaper).

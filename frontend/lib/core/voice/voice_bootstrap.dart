@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
@@ -75,7 +75,7 @@ AiService buildPatientAssistant(AppState state) => ResilientAiService(
 
 /// Builds the controller that reads the intake aloud and takes spoken answers.
 ///
-/// Same two engines as the assistant, so a device that can talk to Mitra can
+/// Same two engines as the assistant, so a device that can Talk to Saathi can
 /// answer the questionnaire — there is no second voice stack.
 VoiceIntakeController buildVoiceIntakeController({
   required VoidCallback onAdvance,
@@ -115,7 +115,7 @@ VoiceAssistantController buildVoiceController(
     // Rebuilt per turn so the assistant always sees the app as it is now.
     contextBuilder: () => state.aiContext(replyLanguage: replyLanguage),
     // The interface language wins over the profile's: a patient who switched
-    // the app to Hindi expects Mitra to answer in Hindi too.
+    // the app to Hindi expects Saathi to answer in Hindi too.
     language: language ?? VoiceLanguageX.fromPatientLanguage(state.patient.language),
     autoSpeak: autoSpeak,
   );

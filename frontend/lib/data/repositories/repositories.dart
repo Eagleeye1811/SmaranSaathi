@@ -1,4 +1,4 @@
-import '../../core/models/assessment.dart';
+﻿import '../../core/models/assessment.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
@@ -89,7 +89,7 @@ abstract class AssessmentRepository {
 }
 
 /// The "Memory Home" companion's long-term store — every real life-story
-/// fragment the patient has shared with Mitra, across every session. This is
+/// fragment the patient has shared with Saathi, across every session. This is
 /// what makes the spaced-repetition recall possible at all: without it,
 /// "remember what she told me last week" has nothing to read from.
 abstract class MemoryFragmentRepository {

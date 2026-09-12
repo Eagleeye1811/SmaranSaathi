@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -35,7 +35,7 @@ Future<void> main() async {
   final AppState state = await bootstrapAppState();
   // Real sign-in when Firebase is actually configured for this platform and
   // build (Android today — see firebase_options.dart); `null` otherwise, in
-  // which case MemoryMitraApp opens straight to role selection exactly as
+  // which case SmaranSaathiApp opens straight to role selection exactly as
   // it always has.
   final AuthService? auth = await bootstrapAuth();
 
@@ -49,5 +49,5 @@ Future<void> main() async {
     await state.signInAccount(restored.uid);
   }
 
-  runApp(MemoryMitraApp(state: state, authService: auth));
+  runApp(SmaranSaathiApp(state: state, authService: auth));
 }

@@ -4,17 +4,17 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/ai/ai_context_builder.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/voice/voice_language.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/doctor/doctor_shell.dart';
-import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/settings/language_selector.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-import 'package:memory_mitra/l10n/locale_controller.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/ai/ai_context_builder.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/voice/voice_language.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
+import 'package:smaran_saathi/features/patient/games/weaves/weaves_game.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/features/patient/settings/language_selector.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
+import 'package:smaran_saathi/l10n/locale_controller.dart';
 
 const List<String> kLocales = <String>['en', 'hi', 'as', 'mr'];
 
@@ -131,7 +131,7 @@ void main() {
       // A blank button is far worse for this audience than an English one.
       const AppLocalizations l = AppLocalizations(Locale('fr'));
       expect(l.todayTitle, 'Today');
-      expect(l.voiceAskMitra, isNotEmpty);
+      expect(l.voiceAskSaathi, isNotEmpty);
     });
 
     test('supports exactly the four declared languages', () {

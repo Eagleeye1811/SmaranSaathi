@@ -142,7 +142,7 @@ class AppLocalizations {
   String get resultTime => _s('resultTime');
   String get resultThisSession => _s('resultThisSession');
   String get resultNextSession => _s('resultNextSession');
-  String get resultWhatMitraNoticed => _s('resultWhatMitraNoticed');
+  String get resultWhatSaathiNoticed => _s('resultWhatSaathiNoticed');
   String get resultAdjusted => _s('resultAdjusted');
   String get resultWonderful => _s('resultWonderful');
   String get resultVeryWellDone => _s('resultVeryWellDone');
@@ -180,6 +180,7 @@ class AppLocalizations {
   String get voiceNavTitle => _s('voiceNavTitle');
   String get voiceNavHint => _s('voiceNavHint');
   String get voiceNavSpeakNow => _s('voiceNavSpeakNow');
+  String get voiceAskSaathi => _s('voiceAskSaathi');
   String get voiceAskMitra => _s('voiceAskMitra');
   String get voiceTalkAboutDay => _s('voiceTalkAboutDay');
   String get voiceTapMicrophone => _s('voiceTapMicrophone');
@@ -189,7 +190,7 @@ class AppLocalizations {
   String get voiceThinking => _s('voiceThinking');
   String get voiceSpeaking => _s('voiceSpeaking');
   String get voiceTryAgain => _s('voiceTryAgain');
-  String get voiceTalkToMitra => _s('voiceTalkToMitra');
+  String get voiceTalkToSaathi => _s('voiceTalkToSaathi');
   String get voiceAskSomethingElse => _s('voiceAskSomethingElse');
   String get voiceIHaveFinished => _s('voiceIHaveFinished');
   String get voiceStop => _s('voiceStop');

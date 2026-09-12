@@ -139,7 +139,12 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: Insets.md),
-                    NotADiagnosisNote(message: l.intakeWelcomeDisclaimer),
+                    const NotADiagnosisNote(
+                      message:
+                          'SmaranSaathi supports monitoring and understanding. It does '
+                          'not detect, diagnose or treat dementia, and it does not '
+                          'replace a professional assessment.',
+                    ),
                   ],
                 ),
               ),

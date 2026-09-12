@@ -1,6 +1,6 @@
-# backend
+﻿# backend
 
-The MemoryMitra sync service — FastAPI. The Flutter app is offline-first and
+The SmaranSaathi sync service — FastAPI. The Flutter app is offline-first and
 fully functional without it: every user action is written to a local Hive box
 and recorded in a durable outbox. This service is where that outbox drains to.
 
@@ -106,4 +106,4 @@ An unrecognised kind is a client/server version mismatch and is rejected with
 On the Flutter side this is `HttpSyncTransport`, selected with
 `--dart-define=MM_SYNC_BASE_URL=...`. Auth is a device token
 (`POST /api/v1/auth/device`), minted once and re-minted on a 401 — it proves "a
-copy of MemoryMitra is calling", not "this is a specific person".
+copy of SmaranSaathi is calling", not "this is a specific person".

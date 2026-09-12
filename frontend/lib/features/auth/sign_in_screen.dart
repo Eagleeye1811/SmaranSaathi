@@ -345,7 +345,7 @@ class _GoogleMarkPainter extends CustomPainter {
 }
 
 /// Wraps `child` (normally the existing role-selection flow, unchanged) with
-/// a real Firebase sign-in gate. Not used unless `MemoryMitraApp` is given a
+/// a real Firebase sign-in gate. Not used unless `SmaranSaathiApp` is given a
 /// real `authService` explicitly — see that widget's doc comment.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key, required this.authService, required this.child});

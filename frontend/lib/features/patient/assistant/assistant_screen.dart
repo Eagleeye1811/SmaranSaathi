@@ -138,7 +138,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
     // Falls back to the patient's profile language when this screen is
     // mounted outside a LocaleScope (some tests do that deliberately) —
-    // matches the voice assistant's own precedent in ask_mitra_button.dart.
+    // matches the voice assistant's own precedent in ask_Saathi_button.dart.
     final LocaleController? locale = LocaleScope.maybeRead(context);
     final Stopwatch watch = Stopwatch()..start();
     final AiResult<AssistantReply> result = await _ai!.ask(
@@ -439,7 +439,7 @@ class _MoodCheckInEntry extends StatelessWidget {
 }
 
 class _Intro extends StatelessWidget {
-  const _Intro({required this.name});
+  const _Intro({this.name = ''});
 
   final String name;
 
@@ -497,94 +497,105 @@ class _Bubble extends StatelessWidget {
 
     final HealthAnswer answer = message.answer!;
     return Padding(
-      padding: const EdgeInsets.only(bottom: Insets.md, right: 24),
-      child: MmCard(
-        padding: const EdgeInsets.all(Insets.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(answer.text, style: AppText.body.copyWith(height: 1.5)),
-            if (message.memoryCaptured) ...<Widget>[
-              const SizedBox(height: Insets.sm),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.only(bottom: Insets.md, right: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Padding(
+            padding: EdgeInsets.only(top: 4, right: 8),
+            child: Companion(state: CompanionState.happy, size: 38),
+          ),
+          Expanded(
+            child: MmCard(
+              padding: const EdgeInsets.all(Insets.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
-                  const SizedBox(width: 6),
-                  Text(l.assistantMemorySavedChip,
-                      style: AppText.caption.copyWith(
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w700,
-                      )),
-                ],
-              ),
-            ],
-            if (answer.bullets.isNotEmpty) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              for (final String b in answer.bullets)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 7),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      const Padding(
-                        padding: EdgeInsets.only(top: 5, right: 8),
-                        child: Icon(Icons.chevron_right_rounded,
-                            size: 16, color: AppColors.primary),
-                      ),
-                      Expanded(
-                        child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-            if (!answer.grounded) ...<Widget>[
-              const SizedBox(height: Insets.sm),
-              Text(l.assistantGeneralInfoNote, style: AppText.caption),
-            ],
-            if (answer.followUps.isNotEmpty) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              Wrap(
-                spacing: Insets.xs,
-                runSpacing: Insets.xs,
-                children: <Widget>[
-                  for (final HealthQuickAction f in answer.followUps)
-                    Pressable(
-                      onTap: () => onFollowUp(f),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryTint,
-                          borderRadius: Corners.r(Corners.pill),
-                        ),
-                        child: Text(f.label,
-                            style: AppText.bodySmall.copyWith(
-                              color: AppColors.primaryDeep,
+                  Text(answer.text, style: AppText.body.copyWith(height: 1.5)),
+                  if (message.memoryCaptured) ...<Widget>[
+                    const SizedBox(height: Insets.sm),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
+                        const SizedBox(width: 6),
+                        Text(l.assistantMemorySavedChip,
+                            style: AppText.caption.copyWith(
+                              color: AppColors.accent,
                               fontWeight: FontWeight.w700,
                             )),
-                      ),
+                      ],
                     ),
-                  Pressable(
-                    onTap: onOpenReport,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentTint,
-                        borderRadius: Corners.r(Corners.pill),
+                  ],
+                  if (answer.bullets.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: Insets.md),
+                    for (final String b in answer.bullets)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 7),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            const Padding(
+                              padding: EdgeInsets.only(top: 5, right: 8),
+                              child: Icon(Icons.chevron_right_rounded,
+                                  size: 16, color: AppColors.primary),
+                            ),
+                            Expanded(
+                              child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Text(l.assistantOpenSummary,
-                          style: AppText.bodySmall.copyWith(
-                            color: AppColors.ink,
-                            fontWeight: FontWeight.w700,
-                          )),
+                  ],
+                  if (!answer.grounded) ...<Widget>[
+                    const SizedBox(height: Insets.sm),
+                    Text(l.assistantGeneralInfoNote, style: AppText.caption),
+                  ],
+                  if (answer.followUps.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: Insets.md),
+                    Wrap(
+                      spacing: Insets.xs,
+                      runSpacing: Insets.xs,
+                      children: <Widget>[
+                        for (final HealthQuickAction f in answer.followUps)
+                          Pressable(
+                            onTap: () => onFollowUp(f),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryTint,
+                                borderRadius: Corners.r(Corners.pill),
+                              ),
+                              child: Text(f.label,
+                                  style: AppText.bodySmall.copyWith(
+                                    color: AppColors.primaryDeep,
+                                    fontWeight: FontWeight.w700,
+                                  )),
+                            ),
+                          ),
+                        Pressable(
+                          onTap: onOpenReport,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentTint,
+                              borderRadius: Corners.r(Corners.pill),
+                            ),
+                            child: Text(l.assistantOpenSummary,
+                                style: AppText.bodySmall.copyWith(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.w700,
+                                )),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                  ],
                 ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,23 +1,23 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/core/ai/ai_config.dart';
-import 'package:memory_mitra/core/ai/ai_context.dart';
-import 'package:memory_mitra/core/ai/ai_context_builder.dart';
-import 'package:memory_mitra/core/ai/ai_controller.dart';
-import 'package:memory_mitra/core/ai/ai_models.dart';
-import 'package:memory_mitra/core/ai/ai_transport.dart';
-import 'package:memory_mitra/core/ai/gemini_ai_service.dart';
-import 'package:memory_mitra/core/ai/on_device_ai_service.dart';
-import 'package:memory_mitra/core/ai/resilient_ai_service.dart';
-import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/daily.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/models/memory_fragment.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/services/connectivity_service.dart';
+import 'package:smaran_saathi/core/ai/ai_config.dart';
+import 'package:smaran_saathi/core/ai/ai_context.dart';
+import 'package:smaran_saathi/core/ai/ai_context_builder.dart';
+import 'package:smaran_saathi/core/ai/ai_controller.dart';
+import 'package:smaran_saathi/core/ai/ai_models.dart';
+import 'package:smaran_saathi/core/ai/ai_transport.dart';
+import 'package:smaran_saathi/core/ai/gemini_ai_service.dart';
+import 'package:smaran_saathi/core/ai/on_device_ai_service.dart';
+import 'package:smaran_saathi/core/ai/resilient_ai_service.dart';
+import 'package:smaran_saathi/core/models/assessment.dart';
+import 'package:smaran_saathi/core/models/daily.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/models/memory_fragment.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/connectivity_service.dart';
 
 /// A fixed clock, so prompts and expectations are reproducible.
 final DateTime kNow = DateTime(2026, 3, 14, 9, 30);

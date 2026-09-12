@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/theme/app_colors.dart';
@@ -61,13 +61,13 @@ class RoleSelectionScreen extends StatelessWidget {
                             child: Column(
                               children: <Widget>[
                                 Text(
-                                  'Welcome to MemoryMitra',
+                                  'Welcome to SmaranSaathi',
                                   textAlign: TextAlign.center,
                                   style: AppText.hero.sized(tall ? 30 : 26),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'I am Mitra. I keep company with the things\nyou love to remember.',
+                                  'I am Saathi. I keep company with the things\nyou love to remember.',
                                   textAlign: TextAlign.center,
                                   style: AppText.body.tint(AppColors.inkSoft),
                                 ),

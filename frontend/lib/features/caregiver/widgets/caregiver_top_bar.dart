@@ -34,11 +34,20 @@ class CaregiverTopBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(title ?? l.appName,
-                    style: AppText.h3.wght(800), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  title ?? l.appName,
+                  style: AppText.h3.sized(18).wght(800),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 if (subtitle != null) ...<Widget>[
                   const SizedBox(height: 1),
-                  Text(subtitle!, style: AppText.caption),
+                  Text(
+                    subtitle!,
+                    style: AppText.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ],
             ),
@@ -108,7 +117,7 @@ class OverviewRow extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               if (badge != null)
-                badge!
+                Flexible(child: badge!)
               else
                 Text(value, style: AppText.body.wght(800).tint(color)),
             ],

@@ -44,7 +44,7 @@ class _PressableState extends State<Pressable> {
   }
 }
 
-/// The app's one card. Every raised surface in MemoryMitra is one of these.
+/// The app's one card. Every raised surface in SmaranSaathi is one of these.
 class MmCard extends StatelessWidget {
   const MmCard({
     super.key,
@@ -126,7 +126,12 @@ class SectionHeader extends StatelessWidget {
                 Text(title, style: (dense ? AppText.h3 : AppText.h2).tint(ink)),
                 if (subtitle != null) ...<Widget>[
                   const SizedBox(height: 3),
-                  Text(subtitle!, style: AppText.bodySmall),
+                  Text(
+                    subtitle!,
+                    style: AppText.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ],
             ),
@@ -269,7 +274,15 @@ class ProgressRing extends StatelessWidget {
               color: color,
               track: trackColor ?? color.withValues(alpha: 0.13),
             ),
-            child: Center(child: child),
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(stroke + 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: child,
+                ),
+              ),
+            ),
           );
         },
         child: center,
@@ -829,3 +842,128 @@ class RoundIconButton extends StatelessWidget {
     return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
   }
 }
+
+/// Trend pill shown on cognitive domain cards.
+/// [direction]: 1 = improving, 0 = stable, -1 = needs attention.
+class TrendBadge extends StatelessWidget {
+  const TrendBadge({super.key, required this.direction, this.dense = false});
+
+  final int direction; // 1 up, 0 flat, -1 down
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = direction > 0
+        ? AppColors.success
+        : direction < 0
+            ? AppColors.warning
+            : AppColors.secondary;
+    final IconData icon = direction > 0
+        ? Icons.trending_up_rounded
+        : direction < 0
+            ? Icons.trending_down_rounded
+            : Icons.trending_flat_rounded;
+    final String label = direction > 0
+        ? 'Improving'
+        : direction < 0
+            ? 'Worth watching'
+            : 'Stable';
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: dense ? 8 : 10, vertical: dense ? 3 : 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: Corners.r(Corners.pill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: dense ? 13 : 15, color: color),
+            const SizedBox(width: 4),
+            Text(label,
+                style: (dense ? AppText.caption : AppText.label).wght(700).tint(color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A card section that surfaces an AI-generated insight with a transparent label
+/// and disclaimer footer so the user always knows it is AI, not a diagnosis.
+class AiInsightBanner extends StatelessWidget {
+  const AiInsightBanner({
+    super.key,
+    required this.insight,
+    this.color = AppColors.primary,
+    this.disclaimer =
+        'AI-observed pattern — for context only. Not a medical diagnosis.',
+  });
+
+  final String insight;
+  final Color color;
+  final String disclaimer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(Insets.md),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: Corners.r(Corners.md),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.auto_awesome_rounded, size: 15, color: color),
+              const SizedBox(width: 6),
+              Text('AI Insight', style: AppText.label.wght(800).tint(color)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(insight, style: AppText.bodySmall),
+          const SizedBox(height: 8),
+          Text(disclaimer,
+              style: AppText.caption.tint(AppColors.inkMuted).copyWith(fontStyle: FontStyle.italic)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Small inline chip showing offline / sync status.
+class SyncStatusChip extends StatelessWidget {
+  const SyncStatusChip({super.key, required this.label, this.isOffline = false});
+
+  final String label;
+  final bool isOffline;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color = isOffline ? AppColors.warning : AppColors.inkMuted;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: Corners.r(Corners.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+              isOffline ? Icons.wifi_off_rounded : Icons.sync_rounded,
+              size: 12,
+              color: color),
+          const SizedBox(width: 4),
+          Text(label, style: AppText.caption.tint(color)),
+        ],
+      ),
+    );
+  }
+}
+

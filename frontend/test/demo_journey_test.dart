@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/today/today_screen.dart';
-import 'package:memory_mitra/features/patient/widgets/patient_widgets.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/patient/games/procedure/procedure_game.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/features/patient/today/today_screen.dart';
+import 'package:smaran_saathi/features/patient/widgets/patient_widgets.dart';
 
 /// The demo the prototype is presented with, end to end: play an activity, see
 /// it scored, see the difficulty adapt, and see the caregiver's dashboard

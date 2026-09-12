@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 import '../models/daily.dart';
 import '../models/game.dart';
@@ -241,7 +241,7 @@ enum AssistantIntent {
   /// A warm exchange with no informational content.
   companionship,
 
-  /// Mitra invited, or gently reoffered, a life story — the memory-companion
+  /// Saathi invited, or gently reoffered, a life story — the memory-companion
   /// turn, distinct from ordinary companionship chat.
   memoryMoment,
 

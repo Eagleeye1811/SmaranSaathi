@@ -194,7 +194,7 @@ class MockData {
         time: '6:00 PM',
         title: 'Cognitive game',
         kind: RoutineKind.cognitive,
-        detail: 'With Mitra'),
+        detail: 'With Saathi'),
     RoutineItem(
         time: '7:00 PM',
         title: 'Call with Priya',
@@ -221,8 +221,54 @@ class MockData {
     assets: assets,
     routine: routine,
     stageNote: 'Early-stage memory changes',
-    joinedOn: 'On MemoryMitra since March 2026',
+    joinedOn: 'On SmaranSaathi since March 2026',
   );
+
+  static const Patient ramesh = Patient(
+    id: 'p_ramesh',
+    name: 'Ramesh Sharma',
+    shortName: 'Ramesh',
+    age: 78,
+    location: 'Guwahati, Assam',
+    language: 'Assamese',
+    occupation: 'Teacher',
+    favouriteActivity: 'Reading history books',
+    favouriteFood: 'Kheer',
+    tradition: 'Durga Puja',
+    portraitScene: 'portrait_bhaskar',
+    family: family,
+    memories: memories,
+    assets: assets,
+    routine: routine,
+    stageNote: 'Mild cognitive impairment',
+    joinedOn: 'On SmaranSaathi since June 2026',
+  );
+
+  static const Patient kamla = Patient(
+    id: 'p_kamla',
+    name: 'Kamla Patel',
+    shortName: 'Kamla',
+    age: 74,
+    location: 'Dibrugarh, Assam',
+    language: 'Hindi',
+    occupation: 'Homemaker',
+    favouriteActivity: 'Gardening & Flowers',
+    favouriteFood: 'Dhokla',
+    tradition: 'Diwali',
+    portraitScene: 'portrait_neighbour',
+    family: family,
+    memories: memories,
+    assets: assets,
+    routine: routine,
+    stageNote: 'Memory care & daily assistance',
+    joinedOn: 'On SmaranSaathi since January 2026',
+  );
+
+  static const List<Patient> caregiverPatients = <Patient>[
+    aama,
+    ramesh,
+    kamla,
+  ];
 
   /// A blank profile the caregiver fills in during onboarding.
   static const Patient emptyPatient = Patient(
@@ -467,7 +513,7 @@ class MockData {
           minutesFromMidnight: 1020,
           title: 'Cognitive activity',
           kind: ReminderKind.cognitive,
-          detail: 'Mitra has something ready',
+          detail: 'Saathi has something ready',
         ),
         const Reminder(
           id: 'r6',

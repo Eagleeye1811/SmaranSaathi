@@ -13,7 +13,6 @@ import 'health/cognitive_profile_screen.dart';
 import 'health/health_dashboard_screen.dart';
 import 'health/report_screen.dart';
 import 'memories/memory_wallet_screen.dart';
-import 'memory_home/memory_home_screen.dart';
 import 'profile/patient_profile_screen.dart';
 import 'safety/return_home_banner.dart';
 import 'today/today_screen.dart';
@@ -86,8 +85,6 @@ class _PatientShellState extends State<PatientShell> {
         _go(4);
       case VoiceDestination.memories:
         Nav.push(context, const MemoryWalletScreen());
-      case VoiceDestination.memoryLane:
-        Nav.push(context, const MemoryHomeScreen());
       case VoiceDestination.carePlan:
         Nav.push(context, const CarePlanScreen());
       case VoiceDestination.report:

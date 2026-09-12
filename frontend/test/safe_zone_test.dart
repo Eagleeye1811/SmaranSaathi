@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/patient/safety/return_home_banner.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-
-import 'package:memory_mitra/core/models/safety.dart';
-import 'package:memory_mitra/core/services/location_service.dart';
-import 'package:memory_mitra/core/services/safe_zone_monitor.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/safety.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/location_service.dart';
+import 'package:smaran_saathi/core/services/safe_zone_monitor.dart';
+import 'package:smaran_saathi/features/patient/safety/return_home_banner.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// A house in Jorhat, Assam — the product's actual setting.
 const GeoPoint kHome = GeoPoint(26.7509, 94.2037);

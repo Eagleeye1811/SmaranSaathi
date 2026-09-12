@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
 import '../../core/models/clinical.dart';
@@ -34,7 +34,7 @@ class HiveStore {
   /// where a fixed adapter would need a new type id every time.
   static const String assessmentBox = 'mm_assessment';
 
-  /// Every shared memory the patient has told Mitra, across every session —
+  /// Every shared memory the patient has told Saathi, across every session —
   /// the Memory Home companion's long-term store. Also a JSON-map box, for
   /// the same reason as [assessmentBox]: this is expected to gain fields
   /// (sentiment, richer categorisation) as the feature grows.

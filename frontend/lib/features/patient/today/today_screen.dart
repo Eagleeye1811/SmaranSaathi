@@ -31,12 +31,12 @@ class _TodayScreenState extends State<TodayScreen> {
   double _companionScale = 1.0;
 
   // List of motivational interactive greetings / tips (shortened to prevent wrapping)
-  List<String> _companionTips(AppLocalizations l) => <String>[
-        l.todayTipDoingGreat,
-        l.todayTipDrinkWater,
-        l.todayTipMitraHere,
-        l.todayTipTakeMeds,
-      ];
+  final List<String> _companionTips = <String>[
+    'You are doing great today!',
+    'Remember to drink water!',
+    'Saathi is here with you.',
+    'Take your meds on time!'
+  ];
 
   void _interactWithCompanion() {
     setState(() {
@@ -59,7 +59,7 @@ class _TodayScreenState extends State<TodayScreen> {
     final List<Reminder> reminders = state.reminders;
 
     final String dateLabel = _formattedDate(l);
-    final List<String> companionTips = _companionTips(l);
+    final List<String> companionTips = _companionTips;
 
     final String notificationHeadline = l.todayStatusLabel;
     const IconData notificationIcon = Icons.today_rounded;
@@ -725,7 +725,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                   ),
                   Switch(
                     value: _smsEnabled,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (bool v) => setState(() => _smsEnabled = v),
                   ),
                 ],

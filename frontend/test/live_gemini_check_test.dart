@@ -1,13 +1,13 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/core/ai/ai_config.dart';
-import 'package:memory_mitra/core/ai/ai_context_builder.dart';
-import 'package:memory_mitra/core/ai/ai_models.dart';
-import 'package:memory_mitra/core/ai/gemini_ai_service.dart';
-import 'package:memory_mitra/core/models/memory_fragment.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
+import 'package:smaran_saathi/core/ai/ai_config.dart';
+import 'package:smaran_saathi/core/ai/ai_context_builder.dart';
+import 'package:smaran_saathi/core/ai/ai_models.dart';
+import 'package:smaran_saathi/core/ai/gemini_ai_service.dart';
+import 'package:smaran_saathi/core/models/memory_fragment.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
 
 /// A real round trip to Gemini through the app's actual [GeminiAiService] —
 /// not a mock transport. Verifies the currently-configured model name is

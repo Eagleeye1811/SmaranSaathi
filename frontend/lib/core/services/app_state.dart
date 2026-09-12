@@ -130,6 +130,13 @@ class AppState extends ChangeNotifier {
   Patient _patient = MockData.aama;
   Patient get patient => _patient;
 
+  List<Patient> get caregiverPatients => MockData.caregiverPatients;
+
+  void setPatient(Patient p) {
+    _patient = p;
+    notifyListeners();
+  }
+
   /// Draft used by the caregiver onboarding flow.
   Patient _draft = MockData.emptyPatient;
   Patient get draft => _draft;
@@ -574,7 +581,7 @@ class AppState extends ChangeNotifier {
 
   // ── Memory companion ───────────────────────────────────────────────────
   //
-  // Every real life-story the patient has shared with Mitra, across every
+  // Every real life-story the patient has shared with Saathi, across every
   // session — the substance behind "remembers what she told me last week".
   // Saved from a genuine personal story only, never from a quiz answer; see
   // `core/ai/gemini_ai_service.dart`'s system prompt for the rule that keeps
@@ -643,7 +650,7 @@ class AppState extends ChangeNotifier {
     return _write(() => _memories.add(_assessmentScope, fragment)).then((_) => fragment);
   }
 
-  /// Records that Mitra just offered [fragmentId] back to the patient, so it
+  /// Records that Saathi just offered [fragmentId] back to the patient, so it
   /// moves to the back of the resurfacing queue.
   Future<void> markMemoryResurfaced(String fragmentId) {
     final DateTime now = DateTime.now();

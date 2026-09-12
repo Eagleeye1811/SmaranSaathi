@@ -3,25 +3,25 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/widgets/ui_kit.dart';
-import 'package:memory_mitra/data/mock/mock_data.dart';
-import 'package:memory_mitra/features/intake/baseline_screens.dart';
-import 'package:memory_mitra/features/intake/intake_flow.dart';
-import 'package:memory_mitra/features/intake/steps_consent_profile.dart';
-import 'package:memory_mitra/features/intake/steps_medical_caregiver.dart';
-import 'package:memory_mitra/features/intake/steps_reason_safety.dart';
-import 'package:memory_mitra/features/intake/steps_symptoms_function.dart';
-import 'package:memory_mitra/features/intake/welcome_screens.dart';
-import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
-import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
-import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
-import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
-import 'package:memory_mitra/features/patient/health/report_screen.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/assessment.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/widgets/ui_kit.dart';
+import 'package:smaran_saathi/data/mock/mock_data.dart';
+import 'package:smaran_saathi/features/intake/baseline_screens.dart';
+import 'package:smaran_saathi/features/intake/intake_flow.dart';
+import 'package:smaran_saathi/features/intake/steps_consent_profile.dart';
+import 'package:smaran_saathi/features/intake/steps_medical_caregiver.dart';
+import 'package:smaran_saathi/features/intake/steps_reason_safety.dart';
+import 'package:smaran_saathi/features/intake/steps_symptoms_function.dart';
+import 'package:smaran_saathi/features/intake/welcome_screens.dart';
+import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
+import 'package:smaran_saathi/features/patient/health/care_plan_screen.dart';
+import 'package:smaran_saathi/features/patient/health/cognitive_profile_screen.dart';
+import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
+import 'package:smaran_saathi/features/patient/health/report_screen.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// Layout and behaviour cover for the monitoring journey.
 ///

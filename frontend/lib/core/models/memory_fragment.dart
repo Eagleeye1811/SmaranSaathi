@@ -35,7 +35,7 @@ extension MemoryCategoryX on MemoryCategory {
       };
 }
 
-/// One real thing a patient told Mitra about their life — the unit of the
+/// One real thing a patient told Saathi about their life — the unit of the
 /// spaced-repetition memory companion. Saved once, from a genuine personal
 /// story (never a quiz answer), then gently reoffered on a later day rather
 /// than repeated as a question with a right answer.
@@ -68,7 +68,7 @@ class MemoryFragment {
 
   final DateTime createdAt;
 
-  /// Null until Mitra has offered this memory back at least once.
+  /// Null until Saathi has offered this memory back at least once.
   final DateTime? lastResurfacedAt;
   final int timesResurfaced;
 

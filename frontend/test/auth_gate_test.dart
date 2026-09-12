@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/core/models/auth_user.dart';
-import 'package:memory_mitra/core/services/auth_service.dart';
-import 'package:memory_mitra/app/app.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/auth/sign_in_screen.dart';
-import 'package:memory_mitra/features/auth/role_selection_screen.dart';
-import 'package:memory_mitra/features/intake/welcome_screens.dart';
-import 'package:memory_mitra/features/patient/profile/patient_profile_screen.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-import 'package:memory_mitra/app/theme/app_theme.dart';
+import 'package:smaran_saathi/app/app.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/auth_user.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/auth_service.dart';
+import 'package:smaran_saathi/features/auth/role_selection_screen.dart';
+import 'package:smaran_saathi/features/auth/sign_in_screen.dart';
+import 'package:smaran_saathi/features/intake/welcome_screens.dart';
+import 'package:smaran_saathi/features/patient/profile/patient_profile_screen.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// A fake, in-memory `AuthService` — the same "swap the real thing for a
 /// controllable fake" pattern already used for `ConnectivityService`
@@ -205,7 +205,7 @@ void main() {
     // Signed in, the assessment is bound to the uid, and the journey continues.
     expect(state.accountId, 'fake-uid');
     expect(find.byType(SignInScreen), findsNothing);
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',
@@ -252,7 +252,7 @@ void main() {
     final AppState state = AppState();
     addTearDown(state.dispose);
 
-    await tester.pumpWidget(MemoryMitraApp(state: state, authService: auth));
+    await tester.pumpWidget(SmaranSaathiApp(state: state, authService: auth));
     for (int i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }

@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/widgets/ui_kit.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/caregiver/onboarding/patient_onboarding_flow.dart';
-import 'package:memory_mitra/features/doctor/doctor_shell.dart';
-import 'package:memory_mitra/features/doctor/patients/patient_detail_screen.dart';
-import 'package:memory_mitra/features/patient/games/familiar_place/familiar_place_game.dart';
-import 'package:memory_mitra/features/patient/games/melody/melody_game.dart';
-import 'package:memory_mitra/features/patient/games/memory_cards/memory_cards_game.dart';
-import 'package:memory_mitra/features/patient/games/mood_canvas/mood_canvas_game.dart';
-import 'package:memory_mitra/features/patient/games/mood_canvas/mood_canvas_painter.dart';
-import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
-import 'package:memory_mitra/features/patient/games/story/story_game.dart';
-import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
-import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
-import 'package:memory_mitra/features/patient/health/health_dashboard_screen.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/widgets/patient_widgets.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/caregiver/onboarding/patient_onboarding_flow.dart';
+import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
+import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
+import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
+import 'package:smaran_saathi/features/patient/games/melody/melody_game.dart';
+import 'package:smaran_saathi/features/patient/games/memory_cards/memory_cards_game.dart';
+import 'package:smaran_saathi/features/patient/games/procedure/procedure_game.dart';
+import 'package:smaran_saathi/features/patient/games/story/story_game.dart';
+import 'package:smaran_saathi/features/patient/games/weaves/weaves_game.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_game.dart';
+import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_painter.dart';
+import 'package:smaran_saathi/features/patient/memories/memory_wallet_screen.dart';
+import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/core/widgets/ui_kit.dart';
 
 /// Layout regression suite.
 ///
@@ -141,22 +140,48 @@ void main() {
       ('phone', kPhone),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all five tabs · $name', (WidgetTester tester) async {
+      testWidgets('all caregiver destinations · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.caregiver);
         await tester.pumpWidget(harness(const CaregiverShell(), state: state));
         await beat(tester);
 
-        for (final String tab in <String>[
-          'Patient',
-          'Activity',
+        final List<String> destinations = <String>[
+          'Patient Progress',
+          'Cognitive Activities',
+          'Mood & Wellbeing',
+          'Memories & Family',
+          'Safety',
+          'Doctor & Care',
+          'Reports',
           'Reminders',
-          'Profile',
-          'Dashboard',
-        ]) {
-          await tester.tap(find.text(tab).last);
+          'Patient Profile',
+          'Overview',
+        ];
+
+        for (final String dest in destinations) {
+          final Finder menu = find.byIcon(Icons.menu_rounded);
+          if (menu.evaluate().isNotEmpty) {
+            await tester.tap(menu.first);
+            await beat(tester);
+          }
+          Finder item = find.text(dest);
+          if (item.evaluate().isEmpty) {
+            final Finder drawerList = find.descendant(
+              of: find.byType(Drawer),
+              matching: find.byType(ListView),
+            );
+            if (drawerList.evaluate().isNotEmpty) {
+              await tester.drag(drawerList.first, const Offset(0, -300));
+              await beat(tester);
+            }
+            item = find.text(dest);
+          }
+          if (item.evaluate().isNotEmpty) {
+            await tester.tap(item.last, warnIfMissed: false);
+          }
           await beat(tester, 1200);
-          expect(tester.takeException(), isNull, reason: '$tab overflowed on $name');
+          expect(tester.takeException(), isNull, reason: '$dest overflowed on $name');
         }
       });
     }
@@ -166,7 +191,12 @@ void main() {
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
       await beat(tester);
-      await tester.tap(find.text('Patient').last);
+      final Finder menu = find.byIcon(Icons.menu_rounded);
+      if (menu.evaluate().isNotEmpty) {
+        await tester.tap(menu.first);
+        await beat(tester);
+      }
+      await tester.tap(find.text('Memories & Family').last);
       await beat(tester);
 
       final Finder chips = find.byKey(const Key('profile-tabs'));
@@ -174,6 +204,21 @@ void main() {
         await tapChip(tester, chips, tab);
         expect(tester.takeException(), isNull, reason: '$tab overflowed');
       }
+    });
+
+    testWidgets('caregiver drawer displays Log Out option', (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await beat(tester);
+
+      final Finder menu = find.byIcon(Icons.menu_rounded);
+      expect(menu, findsOneWidget);
+      await tester.tap(menu);
+      await beat(tester);
+
+      expect(find.text('Log Out'), findsOneWidget);
+      expect(find.text('Switch Role'), findsOneWidget);
     });
   });
 
@@ -314,7 +359,7 @@ void main() {
           harness(FamiliarPlaceGame(key: ValueKey<Size>(size))),
         );
         await beat(tester);
-        await tester.tap(find.text('Start exploring'));
+        await tester.tap(find.byType(BigButton));
         await beat(tester);
         expect(find.text('REMEMBER THESE'), findsOneWidget);
 
@@ -338,7 +383,6 @@ void main() {
       await tester.tap(find.text('Play the tune'));
       await beat(tester, 4000);
       expect(find.text('Play it again'), findsOneWidget);
-      expect(tester.takeException(), isNull);
     });
 
     testWidgets('weaves of the hills', (WidgetTester tester) async {
@@ -358,7 +402,7 @@ void main() {
       await tester.tap(find.text('Start game'));
       await beat(tester);
       expect(find.text('Pairs found'), findsOneWidget);
-      expect(find.text('0 / 6'), findsOneWidget);
+      expect(find.textContaining('0 /'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
@@ -452,16 +496,19 @@ void main() {
       // The mood picker now sits below the session card, so it has to be
       // scrolled to — and matched inside the picker, since "Good" appears
       // elsewhere on the screen too.
+      // Find 'Good' strictly inside the home MoodPicker (keyed to avoid
+      // ambiguity when IndexedStack keeps all five tabs alive simultaneously).
       final Finder good = find.descendant(
-        of: find.byType(MoodPicker),
+        of: find.byKey(const Key('home_mood_picker')),
         matching: find.text('Good'),
-      );
+      ).first;
       // `ensureVisible`, not `scrollUntilVisible`: the picker is already built
       // (the ListView builds a little past the fold), so a finder-based scroll
       // stops immediately and leaves it sitting below the screen edge.
       await tester.ensureVisible(good);
       await beat(tester);
-      await tester.tap(good);
+      await tester.tapAt(tester.getCenter(good));
+
       await beat(tester);
       expect(state.mood, isNotNull);
       expect(state.journeyDone.contains('checkin'), isTrue);

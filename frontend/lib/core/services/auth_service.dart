@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+﻿import 'package:flutter/widgets.dart';
 
 import '../models/auth_user.dart';
 
@@ -72,7 +72,7 @@ abstract class AuthService {
 
 /// The default. No gate, no login screen, no Firebase involved at all —
 /// `authStateChanges` reports a single synthetic "already signed in" user
-/// forever, so wrapping `MemoryMitraApp` in an `AuthGate` with this service
+/// forever, so wrapping `SmaranSaathiApp` in an `AuthGate` with this service
 /// (or, equivalently, passing no `authService` at all) is a no-op.
 class NoAuthRequiredService implements AuthService {
   const NoAuthRequiredService();
@@ -121,7 +121,7 @@ class AuthScope extends InheritedWidget {
   final AuthService authService;
 
   /// `null` when there's no `AuthGate` above this point in the tree (i.e.
-  /// `MemoryMitraApp` was built without an `authService` — see that
+  /// `SmaranSaathiApp` was built without an `authService` — see that
   /// widget's doc comment) — callers should treat that the same as
   /// "nothing to declare/log out of".
   static AuthService? maybeOf(BuildContext context) =>

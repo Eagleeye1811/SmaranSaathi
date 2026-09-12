@@ -1,4 +1,4 @@
-"""Firebase Admin SDK lifecycle — one place that initializes it, from
+﻿"""Firebase Admin SDK lifecycle — one place that initializes it, from
 environment-supplied credentials only. Never hardcode a project ID or key
 here; if `.env` doesn't configure Firebase, Firebase-backed routes fail
 loudly (via `ApiError`) rather than the app crashing at import time, so
@@ -13,7 +13,7 @@ from firebase_admin import credentials, firestore
 from app.core.config import get_settings
 from app.core.errors import ApiError
 
-logger = logging.getLogger("memorymitra")
+logger = logging.getLogger("SmaranSaathi")
 
 _app: Optional[firebase_admin.App] = None
 _db = None

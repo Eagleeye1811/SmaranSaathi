@@ -1,11 +1,11 @@
-// GENERATED — do not edit by hand.
+﻿// GENERATED — do not edit by hand.
 // ignore_for_file: constant_identifier_names
 // Source: lib/l10n/app_*.arb   Regenerate: python3 tool/gen_l10n.py
 
 part of 'app_localizations.dart';
 
 const Map<String, String> _strings_as = <String, String>{
-  'appName': 'MemoryMitra',
+  'appName': 'SmaranSaathi',
   'actionStart': 'আৰম্ভ কৰক',
   'actionPlay': 'খেলক',
   'actionPlayAgain': 'পুনৰ খেলক',
@@ -60,7 +60,7 @@ const Map<String, String> _strings_as = <String, String>{
   'resultTime': 'সময়',
   'resultThisSession': 'এইবাৰ',
   'resultNextSession': 'পিছৰবাৰ',
-  'resultWhatMitraNoticed': 'মিত্ৰাই কি লক্ষ্য কৰিলে',
+  'resultWhatSaathiNoticed': 'মিত্ৰাই কি লক্ষ্য কৰিলে',
   'resultAdjusted': 'আপোনাৰ পিছৰ কামটো আপোনাৰ বাবে সলনি কৰা হৈছে',
   'resultWonderful': 'অতি সুন্দৰ',
   'resultVeryWellDone': 'বৰ ভাল কৰিলে',
@@ -88,7 +88,7 @@ const Map<String, String> _strings_as = <String, String>{
   'settingsOfflineNote': 'ইণ্টাৰনেট নোহোৱাকৈও সকলো কাম কৰে',
   'settingsConnected': 'সংযুক্ত — কাম নিজে নিজে ছিংক হয়',
   'settingsAllSynced': 'সকলো কাম ছিংক হ\'ল',
-  'voiceAskMitra': 'মিত্ৰাক সোধক',
+  'voiceAskSaathi': 'মিত্ৰাক সোধক',
   'voiceTalkAboutDay': 'মোৰ লগত আপোনাৰ দিনৰ কথা পাতক',
   'voiceTapMicrophone': 'মাইক্ৰʼফোন স্পৰ্শ কৰি মোক সোধক',
   'voiceAskAnythingElse': 'মোক আন কিবা সোধক',
@@ -97,7 +97,7 @@ const Map<String, String> _strings_as = <String, String>{
   'voiceThinking': 'মোক ভাবিবলৈ দিয়ক…',
   'voiceSpeaking': 'কৈ আছোঁ…',
   'voiceTryAgain': 'আহক পুনৰ চেষ্টা কৰোঁ',
-  'voiceTalkToMitra': 'মিত্ৰাৰ লগত কথা পাতক',
+  'voiceTalkToSaathi': 'মিত্ৰাৰ লগত কথা পাতক',
   'voiceAskSomethingElse': 'আন কিবা সোধক',
   'voiceIHaveFinished': 'মোৰ কথা শেষ হ\'ল',
   'voiceStop': 'ৰখাওক',
@@ -1256,7 +1256,7 @@ const Map<String, String> _strings_as = <String, String>{
 };
 
 const Map<String, String> _strings_en = <String, String>{
-  'appName': 'MemoryMitra',
+  'appName': 'SmaranSaathi',
   'actionStart': 'Start',
   'actionPlay': 'Play',
   'actionPlayAgain': 'Play again',
@@ -1270,7 +1270,7 @@ const Map<String, String> _strings_en = <String, String>{
   'homeMoodQuestion': 'How are you feeling today?',
   'homeRecommendsLabel': 'YOUR COMPANION RECOMMENDS',
   'homeComingUp': 'Coming up',
-  'homeSmallQuestion': 'A small question from Mitra',
+  'homeSmallQuestion': 'A small question from Saathi',
   'homeThankYouForTalking': 'Thank you for talking with me.',
   'homeAllQuestionsAnswered': 'You have answered all of today\'s questions.',
   'homeTodaysJourney': 'Today\'s journey',
@@ -1285,7 +1285,7 @@ const Map<String, String> _strings_en = <String, String>{
   'todayRemindersHeading': 'Your reminders',
   'todayRemindersHint': 'Tap the circle when something is done',
   'todayMedicineTaken': 'Medicine {done} of {total} taken today.',
-  'todayTalkedAbout': 'What you and Mitra talked about',
+  'todayTalkedAbout': 'What you and Saathi talked about',
   'todayNothingWritten': 'Nothing written yet today.',
   'todayAnswerHint': 'Answer a question on the home screen and it will appear here.',
   'todayUsualDay': 'Your usual day',
@@ -1311,7 +1311,7 @@ const Map<String, String> _strings_en = <String, String>{
   'resultTime': 'Time',
   'resultThisSession': 'This session',
   'resultNextSession': 'Next session',
-  'resultWhatMitraNoticed': 'WHAT MITRA NOTICED',
+  'resultWhatSaathiNoticed': 'WHAT Saathi NOTICED',
   'resultAdjusted': 'Your next activity has been adjusted for you',
   'resultWonderful': 'Wonderful',
   'resultVeryWellDone': 'Very well done',
@@ -1331,15 +1331,15 @@ const Map<String, String> _strings_en = <String, String>{
   'settingsHighContrastNote': 'Stronger outlines and darker text',
   'settingsReduceMotion': 'Reduce motion',
   'settingsReduceMotionNote': 'Fewer animations and no confetti',
-  'settingsVoicePrompts': 'Mitra reads questions aloud in {language}',
+  'settingsVoicePrompts': 'Saathi reads questions aloud in {language}',
   'settingsLanguage': 'Language',
-  'settingsLanguageNote': 'Changes the whole app, and how Mitra speaks',
+  'settingsLanguageNote': 'Changes the whole app, and how Saathi speaks',
   'settingsConnection': 'Connection',
   'settingsOfflineMode': 'Offline mode',
   'settingsOfflineNote': 'Everything works without the internet',
   'settingsConnected': 'Connected — activity syncs automatically',
   'settingsAllSynced': 'All activities synced',
-  'voiceAskMitra': 'Ask Mitra',
+  'voiceAskSaathi': 'Ask Saathi',
   'voiceTalkAboutDay': 'Talk to me about your day',
   'voiceTapMicrophone': 'Tap the microphone and ask me',
   'voiceAskAnythingElse': 'Ask me anything else',
@@ -1348,7 +1348,7 @@ const Map<String, String> _strings_en = <String, String>{
   'voiceThinking': 'Let me think…',
   'voiceSpeaking': 'Speaking…',
   'voiceTryAgain': 'Let us try that again',
-  'voiceTalkToMitra': 'Talk to Mitra',
+  'voiceTalkToSaathi': 'Talk to Saathi',
   'voiceAskSomethingElse': 'Ask something else',
   'voiceIHaveFinished': 'I have finished',
   'voiceStop': 'Stop',
@@ -2507,7 +2507,7 @@ const Map<String, String> _strings_en = <String, String>{
 };
 
 const Map<String, String> _strings_hi = <String, String>{
-  'appName': 'MemoryMitra',
+  'appName': 'SmaranSaathi',
   'actionStart': 'शुरू करें',
   'actionPlay': 'खेलें',
   'actionPlayAgain': 'फिर से खेलें',
@@ -2562,7 +2562,7 @@ const Map<String, String> _strings_hi = <String, String>{
   'resultTime': 'समय',
   'resultThisSession': 'यह सत्र',
   'resultNextSession': 'अगला सत्र',
-  'resultWhatMitraNoticed': 'मित्रा ने क्या देखा',
+  'resultWhatSaathiNoticed': 'मित्रा ने क्या देखा',
   'resultAdjusted': 'आपकी अगली गतिविधि आपके अनुसार बदल दी गई है',
   'resultWonderful': 'बहुत बढ़िया',
   'resultVeryWellDone': 'बहुत अच्छा किया',
@@ -2590,7 +2590,7 @@ const Map<String, String> _strings_hi = <String, String>{
   'settingsOfflineNote': 'इंटरनेट के बिना भी सब काम करता है',
   'settingsConnected': 'जुड़ा हुआ — गतिविधि अपने आप सिंक होती है',
   'settingsAllSynced': 'सभी गतिविधियाँ सिंक हो गईं',
-  'voiceAskMitra': 'मित्रा से पूछें',
+  'voiceAskSaathi': 'मित्रा से पूछें',
   'voiceTalkAboutDay': 'मुझसे अपने दिन के बारे में बात करें',
   'voiceTapMicrophone': 'माइक्रोफ़ोन छुएँ और मुझसे पूछें',
   'voiceAskAnythingElse': 'मुझसे कुछ और पूछें',
@@ -2599,7 +2599,7 @@ const Map<String, String> _strings_hi = <String, String>{
   'voiceThinking': 'मुझे सोचने दें…',
   'voiceSpeaking': 'बोल रही हूँ…',
   'voiceTryAgain': 'आइए फिर से कोशिश करें',
-  'voiceTalkToMitra': 'मित्रा से बात करें',
+  'voiceTalkToSaathi': 'मित्रा से बात करें',
   'voiceAskSomethingElse': 'कुछ और पूछें',
   'voiceIHaveFinished': 'मेरी बात पूरी हुई',
   'voiceStop': 'रोकें',

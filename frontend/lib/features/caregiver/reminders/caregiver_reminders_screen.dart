@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -137,7 +137,9 @@ class CaregiverRemindersScreen extends StatelessWidget {
                                   style: AppText.body.wght(800)),
                               const SizedBox(height: 4),
                               Text(
-                                l.caregiverReminderChannelsBody(state.patient.language),
+                                'A large full-screen card on her phone, a spoken prompt from '
+                                'Saathi in ${state.patient.language}, and a note to you if '
+                                'something is missed twice.',
                                 style: AppText.bodySmall,
                               ),
                             ],

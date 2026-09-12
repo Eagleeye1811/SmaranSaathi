@@ -1,19 +1,19 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
-import 'package:memory_mitra/core/ai/health_assistant.dart';
-import 'package:memory_mitra/core/models/assessment.dart';
-import 'package:memory_mitra/core/models/clinical.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/models/monitoring.dart';
-import 'package:memory_mitra/core/models/report.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/services/cognitive_monitoring_service.dart';
-import 'package:memory_mitra/data/local/hive_store.dart';
-import 'package:memory_mitra/data/mock/demo_journey.dart';
-import 'package:memory_mitra/data/repositories/hive_repositories.dart';
+import 'package:smaran_saathi/core/ai/health_assistant.dart';
+import 'package:smaran_saathi/core/models/assessment.dart';
+import 'package:smaran_saathi/core/models/clinical.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/models/monitoring.dart';
+import 'package:smaran_saathi/core/models/report.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/cognitive_monitoring_service.dart';
+import 'package:smaran_saathi/data/local/hive_store.dart';
+import 'package:smaran_saathi/data/mock/demo_journey.dart';
+import 'package:smaran_saathi/data/repositories/hive_repositories.dart';
 
 /// The intake, the longitudinal maths, the report and the assistant's safety
 /// rule — the four things that decide whether this is a monitoring product or

@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 
 import '../models/daily.dart';
@@ -44,7 +44,7 @@ class GeminiAiService implements AiService {
   /// and harmful. It is repeated in the schema description too, because models
   /// follow instructions that appear next to the field they constrain.
   static const String _insightSystem = '''
-You analyse cognitive-activity data for MemoryMitra, an app used by elderly
+You analyse cognitive-activity data for SmaranSaathi, an app used by elderly
 people with early-stage memory changes in North-East India, and by their
 caregivers and clinicians.
 
@@ -74,7 +74,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
   /// spoken, to someone who is easily overwhelmed.
   ///
   /// This is also the memory-companion prompt — the flagship behaviour the
-  /// product asks for is not a separate mode, it is what Mitra always is:
+  /// product asks for is not a separate mode, it is what Saathi always is:
   /// a warm conversational partner who happens to also know the schedule,
   /// not a Q&A bot that occasionally makes small talk. The two rules that
   /// matter most are the two the product brief is explicit about, and they
@@ -82,7 +82,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
   /// test with a right answer; and nothing the person says is ever
   /// corrected, however it compares to a fact on file.
   static const String _assistantSystem = '''
-You are Mitra, a warm companion inside an app used by an elderly person with
+You are Saathi, a warm companion inside an app used by an elderly person with
 early-stage memory changes. You are NOT a general assistant, and you are NOT
 a quiz.
 
@@ -286,7 +286,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
       'today': full['today'],
       'replyLanguage': full['replyLanguage'],
       'suggestedActivity':
-          const OnDeviceHint().recommendedActivityName(context),
+          OnDeviceHint().recommendedActivityName(context),
       'conversation': full['conversation'],
       'memoryCompanion': full['memoryCompanion'],
     };
@@ -343,7 +343,7 @@ Reply with a single JSON object and nothing else — no markdown, no code fence:
   // ── Today's questions ──────────────────────────────────────────────────
 
   static const String _questionsSystem = '''
-You write the daily check-in questions for MemoryMitra, an app used by older
+You write the daily check-in questions for SmaranSaathi, an app used by older
 adults being monitored for cognitive change, and by their families.
 
 Write 3 questions for THIS person, using their onboarding answers. Rules:

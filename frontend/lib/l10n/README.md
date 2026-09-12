@@ -1,4 +1,4 @@
-# Localization
+﻿# Localization
 
 English, Hindi and Assamese. The `app_*.arb` files are the source of truth and
 use the standard Flutter ARB format.
@@ -55,7 +55,7 @@ phase was told not to touch. To persist it:
 
 1. `AppSettings` (`lib/core/models/settings.dart`) gains a `String? localeCode`.
 2. `HiveSettingsRepository.load`/`save` read and write that key.
-3. `AppState` exposes it, and `MemoryMitraApp` seeds `LocaleController` from it.
+3. `AppState` exposes it, and `SmaranSaathiApp` seeds `LocaleController` from it.
 
 ## Translation review
 

@@ -122,6 +122,10 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
             children: <Widget>[
               _Header(name: state.patient.shortName, state: state),
               const SizedBox(height: Insets.md),
+
+              // ── Today's session card — top of the feed ────────────────
+              // Shown immediately below the greeting so the call-to-action
+              // is the first thing the person sees.
               // Offline is a normal state here, not an error: everything keeps
               // working and the queue drains when the connection returns.
               if (state.offline) OfflineBanner(pending: state.pendingSync),
@@ -221,6 +225,30 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(height: Insets.lg),
+              ],
+
+              // Offline banner
+              if (state.offline) OfflineBanner(pending: state.pendingSync),
+              const SizedBox(height: Insets.sm),
+
+              // The daily check-in stays on the home screen: mood is one of
+              // the ordinary things that moves a cognitive score, and asking
+              // for it every day is what makes it useful when explaining one.
+              _CheckIn(state: state),
+              const SizedBox(height: Insets.lg),
+              // Written for this person from their onboarding answers — by
+              // Gemini when it is reachable, on the device when it is not.
+              const _TodaysQuestions(),
+              const SizedBox(height: Insets.lg),
+
+              // Status card (only when baseline is ready)
+              if (state.baselineReady) ...<Widget>[
+                StatusCard(
+                  snapshot: snapshot,
+                  onViewProfile: () =>
+                      Nav.push(context, const CognitiveProfileScreen()),
                 ),
                 const SizedBox(height: Insets.lg),
               ],
@@ -768,7 +796,7 @@ class _CheckIn extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Insets.md),
-          MoodPicker(selected: state.mood, onSelect: state.setMood),
+          MoodPicker(key: const Key('home_mood_picker'), selected: state.mood, onSelect: state.setMood),
         ],
       ),
     );

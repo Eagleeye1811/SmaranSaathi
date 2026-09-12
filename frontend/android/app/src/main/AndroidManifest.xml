@@ -1,6 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+﻿<manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Voice assistant: speech-to-text needs the microphone. Requested at
-         the moment the patient first taps "Talk to Mitra", never at launch. -->
+         the moment the patient first taps "Talk to Saathi", never at launch. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <!-- Safe zone: the patient's position is read only while the app is in
@@ -12,7 +12,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="memory_mitra"
+        android:label="smaran_saathi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

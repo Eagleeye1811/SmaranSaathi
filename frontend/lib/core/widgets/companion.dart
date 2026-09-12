@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -6,7 +6,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
 
-/// The moods of Mitra, the companion.
+/// The moods of Saathi, the companion.
 enum CompanionState { idle, happy, thinking, encouraging, celebrating, listening, gentle }
 
 extension CompanionStateX on CompanionState {
@@ -19,7 +19,7 @@ extension CompanionStateX on CompanionState {
       };
 }
 
-/// Mitra — a warm, hand-drawn companion that breathes, blinks and reacts.
+/// Saathi — a warm, hand-drawn companion that breathes, blinks and reacts.
 ///
 /// Drawn entirely with a [CustomPainter] so it scales crisply from a 44 px
 /// chat bubble avatar to a 260 px hero on the patient home screen.
@@ -389,7 +389,7 @@ class _CompanionPainter extends CustomPainter {
       old.breath != breath || old.state != state || old.blink != blink || old.phase != phase;
 }
 
-/// Mitra saying something, with a soft speech bubble. Used everywhere the
+/// Saathi saying something, with a soft speech bubble. Used everywhere the
 /// companion talks to the patient.
 class CompanionSpeech extends StatelessWidget {
   const CompanionSpeech({

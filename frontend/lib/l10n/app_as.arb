@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "as",
   "appName": "MemoryMitra",
   "actionStart": "আৰম্ভ কৰক",
@@ -55,7 +55,7 @@
   "resultTime": "সময়",
   "resultThisSession": "এইবাৰ",
   "resultNextSession": "পিছৰবাৰ",
-  "resultWhatMitraNoticed": "মিত্ৰাই কি লক্ষ্য কৰিলে",
+  "resultWhatSaathiNoticed": "মিত্ৰাই কি লক্ষ্য কৰিলে",
   "resultAdjusted": "আপোনাৰ পিছৰ কামটো আপোনাৰ বাবে সলনি কৰা হৈছে",
   "resultWonderful": "অতি সুন্দৰ",
   "resultVeryWellDone": "বৰ ভাল কৰিলে",
@@ -92,7 +92,7 @@
   "voiceThinking": "মোক ভাবিবলৈ দিয়ক…",
   "voiceSpeaking": "কৈ আছোঁ…",
   "voiceTryAgain": "আহক পুনৰ চেষ্টা কৰোঁ",
-  "voiceTalkToMitra": "মিত্ৰাৰ লগত কথা পাতক",
+  "voiceTalkToSaathi": "মিত্ৰাৰ লগত কথা পাতক",
   "voiceAskSomethingElse": "আন কিবা সোধক",
   "voiceIHaveFinished": "মোৰ কথা শেষ হ'ল",
   "voiceStop": "ৰখাওক",

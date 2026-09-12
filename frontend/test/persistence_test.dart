@@ -4,16 +4,16 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
-import 'package:memory_mitra/app/bootstrap.dart';
-import 'package:memory_mitra/core/models/daily.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/models/mood_drawing.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/services/connectivity_service.dart';
-import 'package:memory_mitra/core/services/sync_manager.dart';
-import 'package:memory_mitra/data/local/hive_store.dart';
-import 'package:memory_mitra/data/local/sync_operation.dart';
-import 'package:memory_mitra/data/repositories/hive_repositories.dart';
+import 'package:smaran_saathi/app/bootstrap.dart';
+import 'package:smaran_saathi/core/models/daily.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/models/mood_drawing.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/connectivity_service.dart';
+import 'package:smaran_saathi/core/services/sync_manager.dart';
+import 'package:smaran_saathi/data/local/hive_store.dart';
+import 'package:smaran_saathi/data/local/sync_operation.dart';
+import 'package:smaran_saathi/data/repositories/hive_repositories.dart';
 
 /// The four behaviours that decide whether "offline-first" is real or a label.
 ///

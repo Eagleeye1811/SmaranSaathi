@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 import '../models/assessment.dart';
 import '../models/clinical.dart';
@@ -80,7 +80,7 @@ class PatientAiContext {
   // see `AiContextBuilder` — to keep the prompt small.
   final List<ConversationTurn> recentTurns;
 
-  /// How many new-story invitations or resurfacings Mitra may still offer
+  /// How many new-story invitations or resurfacings Saathi may still offer
   /// today (0, 1 or 2) — computed by `AppState.memoryInvitesRemainingToday`,
   /// not here, since the pacing decision belongs with the durable store.
   final int memoryInvitesRemainingToday;
@@ -95,16 +95,16 @@ class PatientAiContext {
   /// How many memories have been shared in total, ever.
   final int totalSharedMemories;
 
-  /// Every story this person has shared with Mitra before, across every past
+  /// Every story this person has shared with Saathi before, across every past
   /// session — not just today's resurface candidate. Capped by the caller
   /// (see `AiContextBuilder`) to keep the prompt bounded as the store grows.
   ///
   /// This exists so recognition works both ways: if the patient brings up
   /// something she has mentioned before, or asks "did I tell you about my
-  /// sister?", Mitra can actually know — without it, every fact she has ever
+  /// sister?", Saathi can actually know — without it, every fact she has ever
   /// shared is invisible the instant it stops being today's one candidate.
   /// The distinction from [memoryResurfaceCandidate] is proactive vs.
-  /// reactive: the system prompt is explicit that Mitra may *recognise* or
+  /// reactive: the system prompt is explicit that Saathi may *recognise* or
   /// *answer from* anything here, but may only *proactively bring up*
   /// [memoryResurfaceCandidate] — otherwise this list would reopen the same
   /// "never turn a memory into a quiz" risk the resurfacing budget exists to
@@ -338,7 +338,7 @@ class PatientAiContext {
       'conversation': <String, dynamic>{
         'recentTurns': <Map<String, String>>[
           for (final ConversationTurn t in recentTurns)
-            <String, String>{'from': t.fromUser ? 'patient' : 'mitra', 'text': t.text},
+            <String, String>{'from': t.fromUser ? 'patient' : 'Saathi', 'text': t.text},
         ],
         'moodCheckIn': <String, dynamic>{
           'active': moodCheckInActive,

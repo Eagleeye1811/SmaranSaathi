@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
-/// The MemoryMitra palette.
+/// The SmaranSaathi palette.
 ///
 /// Warm, calm and non-clinical. Greens and teals carry the product identity,
 /// warm ochre/terracotta accents come from North-Eastern textile dyes, and the

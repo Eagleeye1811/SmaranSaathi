@@ -1,36 +1,36 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/auth/role_selection_screen.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/caregiver/onboarding/patient_onboarding_flow.dart';
-import 'package:memory_mitra/features/doctor/doctor_shell.dart';
-import 'package:memory_mitra/features/doctor/patients/patient_detail_screen.dart';
-import 'package:memory_mitra/features/patient/games/familiar_place/familiar_place_game.dart';
-import 'package:memory_mitra/features/patient/games/melody/melody_game.dart';
-import 'package:memory_mitra/features/patient/games/memory_cards/memory_cards_game.dart';
-import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
-import 'package:memory_mitra/features/patient/games/story/story_game.dart';
-import 'package:memory_mitra/features/patient/games/weaves/weaves_game.dart';
-import 'package:memory_mitra/features/intake/baseline_screens.dart';
-import 'package:memory_mitra/features/intake/steps_consent_profile.dart';
-import 'package:memory_mitra/features/intake/steps_medical_caregiver.dart';
-import 'package:memory_mitra/features/intake/steps_reason_safety.dart';
-import 'package:memory_mitra/features/intake/steps_symptoms_function.dart';
-import 'package:memory_mitra/features/intake/welcome_screens.dart';
-import 'package:memory_mitra/features/patient/assistant/assistant_screen.dart';
-import 'package:memory_mitra/features/patient/health/care_plan_screen.dart';
-import 'package:memory_mitra/features/patient/health/cognitive_profile_screen.dart';
-import 'package:memory_mitra/features/patient/health/report_screen.dart';
-import 'package:memory_mitra/features/patient/memories/memory_wallet_screen.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/today/today_screen.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/auth/role_selection_screen.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/caregiver/onboarding/patient_onboarding_flow.dart';
+import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
+import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
+import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
+import 'package:smaran_saathi/features/patient/games/melody/melody_game.dart';
+import 'package:smaran_saathi/features/patient/games/memory_cards/memory_cards_game.dart';
+import 'package:smaran_saathi/features/patient/games/procedure/procedure_game.dart';
+import 'package:smaran_saathi/features/patient/games/story/story_game.dart';
+import 'package:smaran_saathi/features/patient/games/weaves/weaves_game.dart';
+import 'package:smaran_saathi/features/intake/baseline_screens.dart';
+import 'package:smaran_saathi/features/intake/steps_consent_profile.dart';
+import 'package:smaran_saathi/features/intake/steps_medical_caregiver.dart';
+import 'package:smaran_saathi/features/intake/steps_reason_safety.dart';
+import 'package:smaran_saathi/features/intake/steps_symptoms_function.dart';
+import 'package:smaran_saathi/features/intake/welcome_screens.dart';
+import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
+import 'package:smaran_saathi/features/patient/health/care_plan_screen.dart';
+import 'package:smaran_saathi/features/patient/health/cognitive_profile_screen.dart';
+import 'package:smaran_saathi/features/patient/health/report_screen.dart';
+import 'package:smaran_saathi/features/patient/memories/memory_wallet_screen.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/features/patient/today/today_screen.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// Renders every important screen to `test_goldens/goldens/` so the visual
 /// design can be reviewed without a device:
