@@ -116,6 +116,7 @@ class Patient {
     required this.occupation,
     required this.favouriteActivity,
     required this.favouriteFood,
+    this.favouriteMusic = '',
     required this.tradition,
     required this.portraitScene,
     required this.family,
@@ -136,6 +137,10 @@ class Patient {
   final String occupation;
   final String favouriteActivity;
   final String favouriteFood;
+
+  /// What they like to listen to. Feeds the companion's prompts and the
+  /// melody activity, and is one of the last preferences to fade.
+  final String favouriteMusic;
   final String tradition;
   final String portraitScene;
 
@@ -172,6 +177,7 @@ class Patient {
     String? occupation,
     String? favouriteActivity,
     String? favouriteFood,
+    String? favouriteMusic,
     String? tradition,
     String? portraitScene,
     List<FamilyMember>? family,
@@ -192,6 +198,7 @@ class Patient {
       occupation: occupation ?? this.occupation,
       favouriteActivity: favouriteActivity ?? this.favouriteActivity,
       favouriteFood: favouriteFood ?? this.favouriteFood,
+      favouriteMusic: favouriteMusic ?? this.favouriteMusic,
       tradition: tradition ?? this.tradition,
       portraitScene: portraitScene ?? this.portraitScene,
       family: family ?? this.family,

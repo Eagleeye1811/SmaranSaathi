@@ -1478,6 +1478,36 @@ class AppLocalizations {
   String get healthAnotherActivity => _s('healthAnotherActivity');
 
 
+  // ── The person's life profile ────────────────────────────────────────
+  String get lifeTitle => _s('lifeTitle');
+  String get lifeSubtitle => _s('lifeSubtitle');
+  String get lifePhotoLabel => _s('lifePhotoLabel');
+  String get lifePhotoHint => _s('lifePhotoHint');
+  String get lifeWhereLabel => _s('lifeWhereLabel');
+  String get lifeWhereHint => _s('lifeWhereHint');
+  String get lifeFamilyLabel => _s('lifeFamilyLabel');
+  String get lifeFamilyHint => _s('lifeFamilyHint');
+  String get lifeAddPerson => _s('lifeAddPerson');
+  String get lifePersonName => _s('lifePersonName');
+  String get lifePersonRelation => _s('lifePersonRelation');
+  String get lifePersonRelationHint => _s('lifePersonRelationHint');
+  String get lifeLivesWith => _s('lifeLivesWith');
+  String get lifeMemoriesLabel => _s('lifeMemoriesLabel');
+  String get lifeMemoriesHint => _s('lifeMemoriesHint');
+  String get lifeAddMemory => _s('lifeAddMemory');
+  String get lifeMemoryAnswer => _s('lifeMemoryAnswer');
+  String get lifeMusicLabel => _s('lifeMusicLabel');
+  String get lifeMusicHint => _s('lifeMusicHint');
+  String get lifeFoodLabel => _s('lifeFoodLabel');
+  String get lifeFoodHint => _s('lifeFoodHint');
+  String get lifeFestivalLabel => _s('lifeFestivalLabel');
+  String get lifeFestivalHint => _s('lifeFestivalHint');
+  String get lifeSave => _s('lifeSave');
+  String get lifeSaved => _s('lifeSaved');
+  String get lifeWhyItMatters => _s('lifeWhyItMatters');
+  String get lifeNothingYet => _s('lifeNothingYet');
+  String get lifeOpenAction => _s('lifeOpenAction');
+
   // ── Authentication & role ────────────────────────────────────────────
   String get authChooseRoleFirst => _s('authChooseRoleFirst');
   String authContinueAs(Object role) => _f('authContinueAs', <String, Object?>{'role': role});

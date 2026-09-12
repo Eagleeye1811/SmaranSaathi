@@ -863,6 +863,43 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  /// Saves the person's life profile — picture, home, people, memories and
+  /// the small preferences the activities are assembled from.
+  ///
+  /// One call rather than a setter per field: this screen is edited as a whole
+  /// and saved once, and a per-field write would put a half-edited profile on
+  /// the caregiver's dashboard while they were still typing.
+  void saveLifeProfile({
+    required String portraitScene,
+    required String location,
+    required String favouriteMusic,
+    required String favouriteFood,
+    required String tradition,
+    required List<FamilyMember> family,
+    required List<LifeMemory> memories,
+  }) {
+    _patient = _patient.copyWith(
+      portraitScene: portraitScene,
+      location: location,
+      favouriteMusic: favouriteMusic,
+      favouriteFood: favouriteFood,
+      tradition: tradition,
+      family: List<FamilyMember>.unmodifiable(family),
+      memories: List<LifeMemory>.unmodifiable(memories),
+    );
+    _profileReady = true;
+    notifyListeners();
+
+    final Patient saved = _patient;
+    _write(() async {
+      await _patients.save(saved);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
+        'patientId': saved.id,
+        'name': saved.name,
+      });
+    });
+  }
+
   void saveReason(ReasonForVisit reason) => _saveIntake(
         _intake.copyWith(reason: reason),
         syncPayload: <String, dynamic>{'step': 'reason', ...reason.toJson()},

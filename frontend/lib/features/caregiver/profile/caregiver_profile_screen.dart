@@ -15,8 +15,8 @@ import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../patient/patient_shell.dart';
-import '../onboarding/patient_onboarding_flow.dart';
 import '../widgets/caregiver_top_bar.dart';
+import '../life_profile/life_profile_screen.dart';
 
 /// Caregiver account, patient-side accessibility controls and the demo
 /// switches judges will want to press.
@@ -253,17 +253,21 @@ class CaregiverProfileScreen extends StatelessWidget {
                     child: MmCard(
                       child: Column(
                         children: <Widget>[
+                          // "Add patient" is gone: this app follows one person,
+                          // and the way to describe them is the life profile
+                          // rather than a second onboarding that created a
+                          // second, competing record.
                           ListRow(
                             leading: const SoftIcon(
-                              icon: Icons.person_add_alt_1_rounded,
+                              icon: Icons.favorite_border_rounded,
                               color: AppColors.plum,
                               size: 46,
                             ),
-                            title: l.caregiverSetupPatientProfileTitle,
-                            subtitle: l.caregiverSetupPatientProfileSubtitle,
+                            title: l.lifeTitle,
+                            subtitle: l.lifeOpenAction,
                             trailing: const Icon(Icons.chevron_right_rounded,
                                 color: AppColors.inkMuted),
-                            onTap: () => Nav.open(context, const PatientOnboardingFlow()),
+                            onTap: () => Nav.open(context, const LifeProfileScreen()),
                           ),
                           const Divider(color: AppColors.hairline),
                           ListRow(

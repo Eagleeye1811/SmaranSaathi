@@ -6,7 +6,6 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
 import '../../../core/models/game.dart';
-import '../../../core/models/patient.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/charts.dart';
@@ -17,7 +16,6 @@ import '../../../data/mock/mock_data.dart';
 import '../../../core/models/safety.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
-import '../onboarding/patient_onboarding_flow.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
 import '../patient_view_screen.dart';
@@ -106,13 +104,6 @@ class CaregiverDashboardScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: Insets.lg),
                   ],
-
-                  // ── Your Patients List ────────────────────────────────
-                  FadeInUp(
-                    delayMs: 30,
-                    child: _PatientsListSection(state: state),
-                  ),
-                  const SizedBox(height: Insets.lg),
 
                   // ── Patient hero ──────────────────────────────────────
                   FadeInUp(
@@ -853,127 +844,6 @@ class _StatusCard extends StatelessWidget {
 }
 
 // ── Patients List Section ──────────────────────────────────────────────────────
-
-class _PatientsListSection extends StatelessWidget {
-  const _PatientsListSection({required this.state});
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Patient> patients = state.caregiverPatients;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        SectionHeader(
-          title: 'Your Patients',
-          icon: Icons.groups_rounded,
-          subtitle: 'Care profiles under your supervision',
-          action: '＋ Add Patient',
-          onAction: () => Nav.open(context, PatientOnboardingFlow()),
-        ),
-        MmCard(
-          child: Column(
-            children: <Widget>[
-              for (int i = 0; i < patients.length; i++) ...<Widget>[
-                _PatientRosterRow(
-                  patient: patients[i],
-                  isSelected: patients[i].id == state.patient.id,
-                  onSelect: () => state.setPatient(patients[i]),
-                ),
-                if (i < patients.length - 1)
-                  const Divider(color: AppColors.hairline),
-              ],
-              const SizedBox(height: 10),
-              SoftButton(
-                label: 'Add Another Patient Profile',
-                icon: Icons.person_add_alt_1_rounded,
-                color: AppColors.primary,
-                onPressed: () => Nav.open(context, PatientOnboardingFlow()),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _PatientRosterRow extends StatelessWidget {
-  const _PatientRosterRow({
-    required this.patient,
-    required this.isSelected,
-    required this.onSelect,
-  });
-
-  final Patient patient;
-  final bool isSelected;
-  final VoidCallback onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pressable(
-      onTap: onSelect,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: <Widget>[
-            SceneImage(
-              sceneId: patient.portraitScene,
-              size: 48,
-              circle: true,
-              borderColor: isSelected ? AppColors.primary : AppColors.hairline,
-              borderWidth: isSelected ? 2.5 : 1,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          patient.name,
-                          style: AppText.body.wght(700),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text('(${patient.age}y)', style: AppText.caption),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${patient.stageNote} • ${patient.location}',
-                    style: AppText.caption,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (isSelected)
-              PillTag(
-                label: 'Selected',
-                color: AppColors.primary,
-                dense: true,
-              )
-            else
-              SoftButton(
-                label: 'Switch',
-                color: AppColors.secondary,
-                onPressed: onSelect,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 
 /// The doorway from the caregiver's app into the patient's.
 ///
