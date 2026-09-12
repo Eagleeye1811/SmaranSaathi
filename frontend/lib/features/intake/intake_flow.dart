@@ -11,10 +11,11 @@ import '../../core/voice/voice_language.dart';
 import 'intake_kit.dart';
 import 'onboarding_summary_screen.dart';
 import 'welcome_screens.dart';
-import 'steps_consent_profile.dart';
-import 'steps_medical_caregiver.dart';
-import 'steps_reason_safety.dart';
-import 'steps_symptoms_function.dart';
+import 'step_consent.dart';
+import 'steps_everyday.dart';
+import 'steps_life.dart';
+import 'steps_person_health.dart';
+import 'steps_support_safety.dart';
 import '../../l10n/app_localizations.dart';
 import '../../l10n/locale_controller.dart';
 

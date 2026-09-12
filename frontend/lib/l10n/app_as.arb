@@ -265,7 +265,6 @@
   "doctorOverviewMonthNovember": "নৱেম্বৰ",
   "doctorOverviewMonthDecember": "ডিচেম্বৰ",
   "doctorSettingsSub": "অনুমতি, সংযোগৰ অৱস্থা আৰু এপ্লিকেচনৰ পছন্দসমূহ পৰীক্ষা কৰক।",
-  "authWhoAreYou": "আপুনি কোন?",
   "accountSignedInAs": "লগ ইন হৈ আছে",
   "accountRole": "ভূমিকা: {role}",
   "safeZoneHomeLabel": "ঘৰ",
@@ -1442,8 +1441,7 @@
   "alertSeverityWatch": "মনোযোগৰ প্ৰয়োজন",
   "alertSeverityUrgent": "অধিক মূল্যায়নৰ বিবেচনা কৰক",
   "clinicGuwahati": "গুৱাহাটী মেম'ৰী ক্লিনিক",
-  "clinicJorhat": "যোৰহাট মেডিকেল কলেজ — মেম'ৰী ক্লিনিক"
-}
+  "clinicJorhat": "যোৰহাট মেডিকেল কলেজ — মেম'ৰী ক্লিনিক",
   "onbPartKnowPerson": "ভাগ A · ব্যক্তিজনক জনা",
   "onbPartKnowLife": "ভাগ B · তেওঁৰ জীৱনক জনা",
   "onbSelectAll": "যিবোৰ প্ৰযোজ্য, সেই সকলো বাছনি কৰক",

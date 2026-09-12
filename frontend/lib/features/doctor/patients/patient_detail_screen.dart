@@ -17,7 +17,6 @@ import '../../chat/doctor_patient_chat_screen.dart';
 import '../../patient/health/report_screen.dart';
 import '../../telehealth/video_consultation_screen.dart';
 import '../../../l10n/content_labels.dart';
-import '../../patient/health/report_screen.dart';
 import '../careplan/care_plan_screen.dart';
 import '../consultation/ai_preconsult_screen.dart';
 import '../reports/medical_reports_screen.dart';
@@ -1060,6 +1059,22 @@ class PatientDetailScreen extends StatelessWidget {
     if (list.isEmpty) return 0;
     return list.fold<double>(0, (double a, GameSession s) => a + s.performance.overall) /
         list.length;
+  }
+
+  static List<String> _considerations(AppLocalizations l, ClinicPatient p) {
+    return <String>[
+      if (p.trend == TrendDirection.down)
+        l.doctorDetailConsiderationDecreased,
+      if (p.adherence < 80)
+        l.doctorDetailConsiderationLowAdherence(p.adherence),
+      if (p.engagement < 55)
+        l.doctorDetailConsiderationLowEngagement,
+      if (p.trend == TrendDirection.up)
+        l.doctorDetailConsiderationImproving,
+      if (p.status == ClinicalStatus.followUp)
+        l.doctorDetailConsiderationReviewDue,
+      l.doctorDetailConsiderationFooter,
+    ];
   }
 }
 

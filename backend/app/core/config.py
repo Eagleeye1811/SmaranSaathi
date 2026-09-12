@@ -1,4 +1,4 @@
-﻿"""Environment-driven configuration.
+"""Environment-driven configuration.
 
 Every value here has a safe local-dev default so the app boots with zero
 setup. `firebase_project_id` and `google_application_credentials` resolve to
@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     # sending silently — the scheduler still runs but no SMS is dispatched.
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
+    twilio_from_number: Optional[str] = None
+
     # ── AI Services (Gemini AI Clinical Scribe) ───────────────────────────
     gemini_api_key: Optional[str] = None
 

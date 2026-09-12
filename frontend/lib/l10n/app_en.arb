@@ -1637,8 +1637,7 @@
   "alertSeverityWatch": "Requires attention",
   "alertSeverityUrgent": "Consider further assessment",
   "clinicGuwahati": "Guwahati Memory Clinic",
-  "clinicJorhat": "Jorhat Medical College — Memory Clinic"
-}
+  "clinicJorhat": "Jorhat Medical College — Memory Clinic",
   "onbPartKnowPerson": "Part A · Knowing the person",
   "onbPartKnowLife": "Part B · Knowing their life",
   "onbSelectAll": "Select everything that applies",
@@ -1871,6 +1870,10 @@
   "onbSummaryAnsweredBy": "Answered by: {relation}",
   "onbSummaryHelpWith": "You asked for help with",
   "onbQuestionNumber": "Question {number}",
+  "doctorSettingsSub": "Review permissions, connection status, and application preferences.",
+  "accountSignedInAs": "Signed in as",
+  "accountRole": "Role: {role}",
+  "safeZoneHomeLabel": "Home",
   "authTitle": "Welcome to SmaranSaathi",
   "authSubtitle": "I am Mitra. I keep company with the things you love to remember.",
   "authWhoAreYou": "Who are you?",

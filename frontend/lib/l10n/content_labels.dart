@@ -176,6 +176,9 @@ extension HealthQuickActionLabel on HealthQuickAction {
         HealthQuickAction.whatToMonitor => l.actionWhatToMonitor,
         HealthQuickAction.aboutDementia => l.actionAboutDementia,
         HealthQuickAction.howAmIDoing => l.actionHowAmIDoing,
+      };
+}
+
 /// Reuses the same short wording already shown on the doctor alerts KPI
 /// card, so a severity reads the same way everywhere it appears instead of
 /// the KPI card and the section header underneath it disagreeing.
