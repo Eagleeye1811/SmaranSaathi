@@ -627,6 +627,7 @@ extension SupportGoalX on SupportGoal {
 class OnboardingRecord {
   const OnboardingRecord({
     this.helper,
+    this.caregiverName = '',
     this.education,
     this.diagnosisStatus,
     this.diagnosedConditions = const <DiagnosedCondition>{},
@@ -663,6 +664,13 @@ class OnboardingRecord {
 
   // Q1
   final HelperRole? helper;
+
+  /// The name of whoever is filling this in, when that is not the person
+  /// themselves. It is what the caregiver's own profile and the dashboard
+  /// greeting are built from — without it the app has to address the person
+  /// doing the hardest work here as nobody at all.
+  final String caregiverName;
+
   final EducationLevel? education;
 
   // Q2–Q5
@@ -721,7 +729,12 @@ class OnboardingRecord {
 
   // ── completeness, per screen ───────────────────────────────────────────
 
-  bool get personDone => helper != null && education != null;
+  /// A caregiver must name themselves; the person answering for themselves
+  /// has nobody else to name.
+  bool get personDone =>
+      helper != null &&
+      education != null &&
+      (!helper!.isSomeoneElse || caregiverName.trim().isNotEmpty);
 
   bool get healthDone => diagnosisStatus != null && treatmentStatus != null;
 
@@ -929,7 +942,7 @@ class OnboardingRecord {
   /// Returns null when the person filled it in themselves — the report's
   /// "caregiver observations" section then correctly says none was given,
   /// rather than presenting self-report as corroboration.
-  CaregiverObservation? toCaregiverObservation({String caregiverName = ''}) {
+  CaregiverObservation? toCaregiverObservation({String? caregiverName}) {
     final HelperRole? role = helper;
     if (role == null || !role.isSomeoneElse) return null;
     if (difficulties.isEmpty && behaviourChanges.isEmpty) return null;
@@ -954,7 +967,7 @@ class OnboardingRecord {
     }
 
     return CaregiverObservation(
-      caregiverName: caregiverName,
+      caregiverName: (caregiverName ?? this.caregiverName).trim(),
       relation: role.reportLabel,
       observations: observed,
       note: recentExample.trim(),
@@ -965,6 +978,7 @@ class OnboardingRecord {
 
   OnboardingRecord copyWith({
     HelperRole? helper,
+    String? caregiverName,
     EducationLevel? education,
     DiagnosisStatus? diagnosisStatus,
     Set<DiagnosedCondition>? diagnosedConditions,
@@ -990,6 +1004,7 @@ class OnboardingRecord {
   }) {
     return OnboardingRecord(
       helper: helper ?? this.helper,
+      caregiverName: caregiverName ?? this.caregiverName,
       education: education ?? this.education,
       diagnosisStatus: diagnosisStatus ?? this.diagnosisStatus,
       diagnosedConditions: diagnosedConditions ?? this.diagnosedConditions,
@@ -1017,6 +1032,7 @@ class OnboardingRecord {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'helper': helper?.name,
+        'caregiverName': caregiverName,
         'education': education?.name,
         'diagnosisStatus': diagnosisStatus?.name,
         'diagnosedConditions':
@@ -1065,6 +1081,7 @@ class OnboardingRecord {
 
     return OnboardingRecord(
       helper: _byName(json['helper'] as String?, HelperRole.values),
+      caregiverName: json['caregiverName'] as String? ?? '',
       education: _byName(json['education'] as String?, EducationLevel.values),
       diagnosisStatus: _byName(json['diagnosisStatus'] as String?, DiagnosisStatus.values),
       diagnosedConditions: _setOf(json['diagnosedConditions'], DiagnosedCondition.values),

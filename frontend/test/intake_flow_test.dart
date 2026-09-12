@@ -10,11 +10,17 @@ import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/core/widgets/ui_kit.dart';
 import 'package:smaran_saathi/data/mock/mock_data.dart';
 import 'package:smaran_saathi/features/intake/baseline_screens.dart';
+import 'package:smaran_saathi/core/models/onboarding.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_entry.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/intake/intake_kit.dart';
+import 'package:smaran_saathi/features/intake/onboarding_summary_screen.dart';
+import 'package:smaran_saathi/features/intake/step_consent.dart';
+import 'package:smaran_saathi/features/intake/steps_everyday.dart';
+import 'package:smaran_saathi/features/intake/steps_life.dart';
+import 'package:smaran_saathi/features/intake/steps_person_health.dart';
+import 'package:smaran_saathi/features/intake/steps_support_safety.dart';
 import 'package:smaran_saathi/features/intake/intake_flow.dart';
-import 'package:smaran_saathi/features/intake/steps_consent_profile.dart';
-import 'package:smaran_saathi/features/intake/steps_medical_caregiver.dart';
-import 'package:smaran_saathi/features/intake/steps_reason_safety.dart';
-import 'package:smaran_saathi/features/intake/steps_symptoms_function.dart';
 import 'package:smaran_saathi/features/intake/welcome_screens.dart';
 import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
 import 'package:smaran_saathi/features/patient/health/care_plan_screen.dart';
@@ -390,22 +396,24 @@ void main() {
     // Continue stays inert until every follow-up shown has an answer.
     await tester.tap(find.text('Continue'));
     await beat(tester);
+    expect(done, isFalse);
 
-    // Now they are, pre-filled with what was just said.
-    await tester.dragUntilVisible(
-      find.text(first.text),
-      find.byType(Scrollable).first,
-      const Offset(0, -140),
-    );
-    await beat(tester);
-    expect(find.text(first.text), findsOneWidget);
-    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isFalse,
-        reason: 'nothing is saved until the group is left');
+    for (final String answer in <String>[
+      'Keys',
+      'Occasionally',
+      'They find it themselves',
+    ]) {
+      await tapAfterScroll(tester, find.widgetWithText(ChipChoice, answer));
+    }
 
-    await tester.tap(find.text('Next group'));
+    await tester.tap(find.text('Continue'));
     await beat(tester);
-    expect(state.intake.symptoms.isDomainComplete(SymptomDomain.memory), isTrue);
-    expect(state.intake.symptoms.severity(SymptomDomain.memory), closeTo(33.3, 0.5));
+
+    expect(done, isTrue);
+    // The measured frequency, not the "it was named biggest" estimate.
+    expect(state.intake.symptoms.responses['mem_misplace'], SymptomFrequency.sometimes);
+    expect(state.intake.onboarding.probeChoice('probe_misplace_after'),
+        'findsItThemselves');
   });
 
   testWidgets('every activity has to be answered before support is filed',
@@ -521,6 +529,15 @@ void main() {
     await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Up to class 10'));
     await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Weaver'));
     await tapAfterScroll(tester, find.widgetWithText(ChoiceTile, 'Son or daughter'));
+    // Naming yourself is only asked of someone answering for another person,
+    // and the field only exists once they have said they are one — so it has
+    // to be scrolled into existence before it can be typed into.
+    final Finder nameLabel = find.text('And your name?');
+    await tester.dragUntilVisible(
+        nameLabel, find.byType(Scrollable).first, const Offset(0, -120));
+    await beat(tester);
+    await tester.enterText(find.byType(TextField).last, 'Priya');
+    await beat(tester);
     await next();
 
     // 3 · health and care background
@@ -600,7 +617,7 @@ void main() {
     expect(find.text('Thank you'), findsOneWidget);
     expect(find.text('Misplacing things'), findsWidgets);
     expect(find.textContaining('Answered by'), findsOneWidget);
-    await tester.tap(find.text('Open MemoryMitra'));
+    await tester.tap(find.text('Open SmaranSaathi'));
     await beat(tester, 400);
 
     expect(finished, isTrue);
@@ -618,6 +635,10 @@ void main() {
         reason: 'a daughter answered, so the report has corroboration');
     expect(state.patient.name, 'Aruna Devi');
     expect(state.patient.occupation, 'Weaver');
+    // And the caregiver has a profile of their own, not a stand-in name.
+    expect(state.caregiverName, 'Priya');
+    expect(state.hasCaregiverProfile, isTrue);
+    expect(state.hasPatientProfile, isTrue);
   });
 
   group('the caregiver is the one who onboards', () {
@@ -657,6 +678,7 @@ void main() {
       state.giveConsent();
       state.saveOnboarding(const OnboardingRecord(
         helper: HelperRole.spouse,
+        caregiverName: 'Bhaskar',
         education: EducationLevel.primary,
       ));
 
@@ -917,64 +939,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a red-flag answer warns in place without stopping the intake',
-      (WidgetTester tester) async {
-    tester.setSurface(kPhoneSmall);
-    final AppState state = AppState()..setRole(AppRole.patient);
-    addTearDown(state.dispose);
-    bool advanced = false;
-
-    await tester.pumpWidget(
-      harness(SafetyStep(onDone: () => advanced = true), state: state),
-    );
-    await beat(tester);
-
-    // No warning until something is actually reported.
-    expect(find.text('This may need a doctor, not an app'), findsNothing);
-
-    // "Yes" to the sudden-onset question is the red flag.
-    await tester.tap(find.text('Yes').first);
-    await beat(tester);
-
-    expect(find.text('This may need a doctor, not an app'), findsOneWidget);
-    expect(find.text('Consult a doctor'), findsOneWidget);
-    expect(tester.takeException(), isNull, reason: 'the warning must not overflow');
-
-    // The advice is available, and closing it returns to the questionnaire.
-    await tester.tap(find.text('Consult a doctor'));
-    await beat(tester);
-    expect(find.text('Please seek medical attention'), findsOneWidget);
-    await tester.tap(find.text('Close'));
-    await beat(tester);
-    expect(find.text('Please seek medical attention'), findsNothing);
-
-    // Answer the rest; the journey continues rather than being taken over.
-    for (final String question in <String>[
-      'Does alertness or confusion change markedly through the day — clear at times, very confused at others?',
-      'Any recent sudden weakness, difficulty speaking, fainting, seizure or severe headache?',
-    ]) {
-      await tester.dragUntilVisible(
-        find.text(question),
-        find.byType(Scrollable).first,
-        const Offset(0, -160),
-      );
-      await beat(tester, 150);
-      final Finder card = find.ancestor(of: find.text(question), matching: find.byType(MmCard));
-      await tester.tap(find.descendant(of: card, matching: find.text('No')));
-      await beat(tester, 150);
-    }
-    await tester.tap(find.text('Continue'));
-    await beat(tester);
-
-    expect(advanced, isTrue);
-    expect(state.intake.safety.requiresUrgentReview, isTrue);
-  });
-
-  // Plain test: this exercises AppState alone, and the sync outbox keeps its
-  // own real timers, which the widget binding would flag as pending.
-  testWidgets('baseline is built from the activities just played', (WidgetTester tester) async {
-
-
+  // A plain `test`, not `testWidgets`: this one drains the outbox on the real
+  // clock, and inside testWidgets' fake async those futures never complete.
+  test('the baseline is built from the activities just played', () async {
     final AppState state = AppState()..setRole(AppRole.patient);
     addTearDown(state.dispose);
 

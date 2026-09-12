@@ -20,6 +20,7 @@ import '../../../l10n/content_labels.dart';
 import '../onboarding/patient_onboarding_flow.dart';
 import '../safety/safe_zone_screen.dart';
 import '../widgets/caregiver_top_bar.dart';
+import '../patient_view_screen.dart';
 
 /// The caregiver's home: how the day has gone, and what needs attention.
 class CaregiverDashboardScreen extends StatelessWidget {
@@ -69,8 +70,12 @@ class CaregiverDashboardScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Text('${_greeting(l)}, ${MockData.caregiverName}',
-                                  style: AppText.h1.sized(26)),
+                              Text(
+                                state.hasCaregiverProfile
+                                    ? '${_greeting(l)}, ${state.caregiverName}'
+                                    : _greeting(l),
+                                style: AppText.h1.sized(26),
+                              ),
                               const SizedBox(height: 4),
                               Text(_dateLabel(l), style: AppText.bodySmall),
                             ],
@@ -87,6 +92,20 @@ class CaregiverDashboardScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
+
+                  // ── Into the patient's own app ────────────────────────
+                  //
+                  // High on the page on purpose. The single thing a caregiver
+                  // most often wants is to see what the person in their care
+                  // is actually looking at — to set something up for them, or
+                  // to check that today's activity really is there.
+                  if (state.hasPatientProfile) ...<Widget>[
+                    FadeInUp(
+                      delayMs: 20,
+                      child: _ViewPatientCard(name: state.patient.shortName),
+                    ),
+                    const SizedBox(height: Insets.lg),
+                  ],
 
                   // ── Your Patients List ────────────────────────────────
                   FadeInUp(
@@ -955,3 +974,60 @@ class _PatientRosterRow extends StatelessWidget {
   }
 }
 
+
+/// The doorway from the caregiver's app into the patient's.
+///
+/// Deliberately unguarded: the caregiver has already authenticated once, and
+/// the person whose app this is cannot be expected to hold a second password.
+/// Putting a lock here would mean the only people it ever stopped are the two
+/// it is meant to serve.
+class _ViewPatientCard extends StatelessWidget {
+  const _ViewPatientCard({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return MmCard(
+      color: AppColors.terracottaTint,
+      border: Border.all(color: AppColors.terracotta.withValues(alpha: 0.35)),
+      padding: const EdgeInsets.all(Insets.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const SoftIcon(
+                icon: Icons.switch_account_rounded,
+                size: 44,
+                color: AppColors.terracotta,
+              ),
+              const SizedBox(width: Insets.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text(l.caregiverViewPatientTitle(name),
+                        style: AppText.h3.sized(18)),
+                    const SizedBox(height: 4),
+                    Text(l.caregiverViewPatientBody, style: AppText.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.md),
+          BigButton(
+            label: l.caregiverViewPatientAction,
+            icon: Icons.arrow_forward_rounded,
+            color: AppColors.terracotta,
+            height: 54,
+            onPressed: () => Nav.open(context, const PatientViewScreen()),
+          ),
+        ],
+      ),
+    );
+  }
+}

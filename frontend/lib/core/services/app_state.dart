@@ -128,10 +128,30 @@ class AppState extends ChangeNotifier {
   bool _profileReady = true;
   bool get profileReady => _profileReady;
 
-  Patient _patient = MockData.aama;
+  /// The person the app is about.
+  ///
+  /// Blank until a caregiver has actually answered the onboarding. It used to
+  /// start as a fully-populated sample patient, which meant a fresh install
+  /// showed someone else's name, family and memories until it happened to be
+  /// overwritten — and worse, made it impossible to tell a real profile from
+  /// the sample one. Empty is honest; [profileReady] says which state we are
+  /// in and every screen is expected to handle it.
+  Patient _patient = MockData.emptyPatient;
   Patient get patient => _patient;
 
-  List<Patient> get caregiverPatients => MockData.caregiverPatients;
+  /// True once the onboarding has produced a real person to show.
+  bool get hasPatientProfile => _patient.name.trim().isNotEmpty;
+
+  /// The caregiver filling this in — their own name and relation, taken from
+  /// the onboarding rather than from a hardcoded stand-in.
+  String get caregiverName => _intake.onboarding.caregiverName.trim();
+
+  HelperRole? get caregiverRelation => _intake.onboarding.helper;
+
+  bool get hasCaregiverProfile => caregiverName.isNotEmpty;
+
+  List<Patient> get caregiverPatients =>
+      hasPatientProfile ? <Patient>[_patient] : const <Patient>[];
 
   void setPatient(Patient p) {
     _patient = p;
@@ -166,12 +186,10 @@ class AppState extends ChangeNotifier {
   /// Finishes onboarding: the draft becomes the live personalised profile.
   Future<void> commitDraft() async {
     final Patient p = _draft;
-    _patient = p.copyWith(
-      family: p.family.isEmpty ? MockData.family : p.family,
-      memories: p.memories.isEmpty ? MockData.memories : p.memories,
-      assets: p.assets.isEmpty ? MockData.assets : p.assets,
-      routine: p.routine.isEmpty ? MockData.routine : p.routine,
-    );
+    // Whatever the caregiver actually entered, and nothing else. Backfilling
+    // the sample family, memories and routine here is what used to make a
+    // brand-new profile come pre-loaded with a stranger's relatives.
+    _patient = p;
     _profileReady = true;
     notifyListeners();
     await _write(() async {
@@ -906,9 +924,59 @@ class AppState extends ChangeNotifier {
   /// their own home screen until all six activities were done in one sitting.
   /// The questionnaire is finished here; the baseline is built three days
   /// later, from the sessions played from the dashboard.
+  /// Builds the patient's profile out of the onboarding answers.
+  ///
+  /// The person screen already saved name, age, language and occupation as
+  /// they were typed. This fills in the rest from answers given elsewhere in
+  /// the questionnaire, so that finishing the onboarding produces a profile
+  /// rather than a half-filled shell:
+  ///
+  ///  - what they still enjoy becomes the favourite activity the companion
+  ///    opens conversations with,
+  ///  - a reported diagnosis becomes the stage note a clinician reads first.
+  ///
+  /// Nothing is invented. A field the questionnaire never asked about is left
+  /// empty, because a plausible guess in a health record is worse than a gap.
+  Patient _patientFromOnboarding(Patient base, DateTime at) {
+    final OnboardingRecord o = _intake.onboarding;
+
+    final String favourite = o.enjoys.isEmpty
+        ? base.favouriteActivity
+        : o.enjoys.first.reportLabel;
+
+    final String stage = switch (o.diagnosisStatus) {
+      DiagnosisStatus.yes => o.diagnosedConditions.isEmpty
+          ? 'Diagnosed condition reported'
+          : 'Reported diagnosis: ${o.diagnosedConditions.first.name}',
+      DiagnosisStatus.no => 'No diagnosis reported',
+      DiagnosisStatus.notSure || null => 'Being monitored, no diagnosis reported',
+    };
+
+    return base.copyWith(
+      favouriteActivity: favourite,
+      stageNote: stage,
+      joinedOn: 'Profile created ${at.day}/${at.month}/${at.year}',
+    );
+  }
+
   void completeIntakeQuestionnaire({DateTime? now}) {
     if (_intake.completedAtIso != null) return;
     final DateTime at = now ?? DateTime.now();
+
+    // The profile is created here, at the end, rather than screen by screen:
+    // a half-answered questionnaire should not leave a half-real person on
+    // the caregiver's dashboard.
+    _patient = _patientFromOnboarding(_patient, at);
+    _profileReady = true;
+    final Patient created = _patient;
+    _write(() async {
+      await _patients.save(created);
+      await _sync.enqueue(SyncOperationKind.profileUpdate, <String, dynamic>{
+        'patientId': created.id,
+        'name': created.name,
+      });
+    });
+
     _saveIntake(
       _intake.copyWith(completedAtIso: at.toIso8601String()),
       // The whole record, not just the last step: this is the snapshot the

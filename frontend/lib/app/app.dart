@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
 
-import '../features/patient/patient_entry.dart';
+import '../features/patient/patient_shell.dart';
 import '../features/auth/splash_screen.dart';
 
 import '../features/caregiver/caregiver_entry.dart';

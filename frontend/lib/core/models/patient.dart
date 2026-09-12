@@ -178,6 +178,8 @@ class Patient {
     List<LifeMemory>? memories,
     List<MemoryAsset>? assets,
     List<RoutineItem>? routine,
+    String? stageNote,
+    String? joinedOn,
     String? phoneNumber,
   }) {
     return Patient(
@@ -196,8 +198,8 @@ class Patient {
       memories: memories ?? this.memories,
       assets: assets ?? this.assets,
       routine: routine ?? this.routine,
-      stageNote: stageNote,
-      joinedOn: joinedOn,
+      stageNote: stageNote ?? this.stageNote,
+      joinedOn: joinedOn ?? this.joinedOn,
       phoneNumber: phoneNumber ?? this.phoneNumber,
     );
   }

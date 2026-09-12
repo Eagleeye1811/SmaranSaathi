@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "@@context": "MemoryMitra patient-facing strings. English is the source of truth; every other ARB is translated from this file.",
-  "appName": "MemoryMitra",
+  "@@context": "SmaranSaathi patient-facing strings. English is the source of truth; every other ARB is translated from this file.",
+  "appName": "SmaranSaathi",
   "@appName": {
     "description": "Product name. Not translated."
   },
@@ -143,7 +143,6 @@
   "settingsOfflineNote": "Everything works without the internet",
   "settingsConnected": "Connected — activity syncs automatically",
   "voiceAskSaathi": "Ask Saathi",
-  "voiceAskMitra": "Ask Saathi",
   "voiceTalkAboutDay": "Talk to me about your day",
   "voiceTapMicrophone": "Tap the microphone and ask me",
   "voiceAskAnythingElse": "Ask me anything else",
@@ -325,7 +324,7 @@
   "doctorAnalyticsDistrictTripura": "Tripura",
   "doctorOverviewTitle": "Clinical overview",
   "doctorOverviewGreeting": "Good morning, {name}",
-  "doctorOverviewActiveCaption": "Active on MemoryMitra",
+  "doctorOverviewActiveCaption": "Active on SmaranSaathi",
   "doctorOverviewSessionsWeekLabel": "Sessions this week",
   "doctorOverviewSessionsWeekCaption": "↑ 12% on last week",
   "doctorOverviewCaseloadStatusLabel": "CASELOAD STATUS",
@@ -441,7 +440,7 @@
   "caregiverDoneButton": "Done",
   "caregiverNotesForYouTitle": "Notes for you",
   "caregiverAlertProceduralTitle": "Procedural activities are improving",
-  "caregiverAlertProceduralBody": "Accuracy rose from 74% to {pct}% across recent sessions. MemoryMitra increased the difficulty twice this week.",
+  "caregiverAlertProceduralBody": "Accuracy rose from 74% to {pct}% across recent sessions. SmaranSaathi increased the difficulty twice this week.",
   "caregiverAlertEveningTitle": "Evening sessions work best",
   "caregiverAlertEveningBody": "{name} engages most between 5 and 7 PM. Consider keeping the cognitive activity in that window.",
   "caregiverAlertMoodTitle": "She said she is not feeling good today",
@@ -550,7 +549,7 @@
   "intakePillarTrackDetail": "Six cognitive activities, measured against your own baseline over time",
   "intakePillarSupportTitle": "Support",
   "intakePillarSupportDetail": "A plain-language explanation, and a summary you can take to a doctor",
-  "intakeWelcomeDisclaimer": "MemoryMitra supports monitoring and understanding. It does not detect, diagnose or treat dementia, and it does not replace a professional assessment.",
+  "intakeWelcomeDisclaimer": "SmaranSaathi supports monitoring and understanding. It does not detect, diagnose or treat dementia, and it does not replace a professional assessment.",
   "intakeGetStarted": "Get started",
   "intakeAlreadyHaveAccount": "I already have an account",
   "intakeBack": "Back",
@@ -1333,7 +1332,6 @@
   "offlineBannerBodyAllSynced": "Everything still works. All activities are saved on this device.",
   "healthTodaysActivity": "Today's activity",
   "healthAnotherActivity": "Another activity",
-<<<<<<< HEAD
   "onbPartKnowPerson": "Part A · Knowing the person",
   "onbPartKnowLife": "Part B · Knowing their life",
   "onbSelectAll": "Select everything that applies",
@@ -1560,13 +1558,13 @@
   "onbSummaryNoDifficulty": "You reported no major difficulty. We will keep an eye on things quietly and check back over the weeks.",
   "onbSummaryNoStrengths": "We will ask again later — this part matters as much as the rest.",
   "onbSummaryNextTitle": "What happens next",
-  "onbSummaryNextBody": "MemoryMitra will suggest a short activity each day, keep the reminders you need, and build a picture against this person's own starting point — never against anyone else's.",
+  "onbSummaryNextBody": "SmaranSaathi will suggest a short activity each day, keep the reminders you need, and build a picture against this person's own starting point — never against anyone else's.",
   "onbSummaryAnswersSafe": "Your answers are saved on this phone and go nowhere until you choose to share them.",
-  "onbSummaryFinish": "Open MemoryMitra",
+  "onbSummaryFinish": "Open SmaranSaathi",
   "onbSummaryAnsweredBy": "Answered by: {relation}",
   "onbSummaryHelpWith": "You asked for help with",
   "onbQuestionNumber": "Question {number}",
-  "authTitle": "Welcome to MemoryMitra",
+  "authTitle": "Welcome to SmaranSaathi",
   "authSubtitle": "I am Mitra. I keep company with the things you love to remember.",
   "authWhoAreYou": "Who are you?",
   "authContinueWithoutAccount": "Continue without an account",
@@ -1583,8 +1581,7 @@
   "authRoleDoctorWho": "Clinician",
   "authRoleDoctorDetail": "Review cognitive performance trends across patients.",
   "authCaregiverSetsUp": "Sets up the profile",
-  "authStartHere": "Start here"
-=======
+  "authStartHere": "Start here",
   "profileActivitiesSavedOnDevice": "{count} activities saved on this device",
   "@profileActivitiesSavedOnDevice": {
     "placeholders": {
@@ -1620,6 +1617,19 @@
   "lifeMemoryCategoryPlaces": "Places",
   "lifeMemoryCategoryStories": "Stories",
   "lifeMemoryCategoryFood": "Food",
-  "lifeMemoryCategoryTraditions": "Traditions"
->>>>>>> 65fd68172cc8bc4f3c1933c6bc94d95418fda0e8
+  "lifeMemoryCategoryTraditions": "Traditions",
+  "settingsAllSynced": "All activities synced",
+  "authChooseRoleFirst": "Choose who you are to continue",
+  "authContinueAs": "Continue as {role}",
+  "authSigningIn": "Signing you in…",
+  "authNoAccountNeeded": "No account is needed on this device — you can sign in later from settings.",
+  "onbCaregiverNameLabel": "And your name?",
+  "onbCaregiverNameHint": "So the app knows who to greet",
+  "onbCaregiverNamePrompt": "What is your name?",
+  "caregiverViewPatientTitle": "Want to see {name}'s side of the app?",
+  "caregiverViewPatientBody": "Open exactly what they see — their day, their activities, their companion.",
+  "caregiverViewPatientAction": "View patient's profile",
+  "caregiverBackToCaregiver": "Back to caregiver view",
+  "caregiverViewingAsPatient": "You are viewing the patient's app",
+  "caregiverProfileNotSetUp": "No profile yet — finish the onboarding to create one."
 }

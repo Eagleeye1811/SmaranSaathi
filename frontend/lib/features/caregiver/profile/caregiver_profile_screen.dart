@@ -11,7 +11,6 @@ import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
-import '../../../data/mock/mock_data.dart';
 import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
@@ -61,7 +60,12 @@ class CaregiverProfileScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
-                                Text(MockData.caregiverName, style: AppText.h2.sized(22)),
+                                Text(
+                                  state.hasCaregiverProfile
+                                      ? state.caregiverName
+                                      : l.caregiverProfileNotSetUp,
+                                  style: AppText.h2.sized(22),
+                                ),
                                 const SizedBox(height: 3),
                                 Text(l.caregiverRelationLabel,
                                     style: AppText.bodySmall),
@@ -352,7 +356,7 @@ class _Toggle extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: Colors.white,
+            activeColor: Colors.white,
             activeTrackColor: AppColors.primary,
           ),
         ],

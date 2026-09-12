@@ -732,7 +732,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                   ),
                   Switch(
                     value: _smsEnabled,
-                    activeThumbColor: AppColors.primary,
+                    activeColor: AppColors.primary,
                     onChanged: (bool v) => setState(() => _smsEnabled = v),
                   ),
                 ],

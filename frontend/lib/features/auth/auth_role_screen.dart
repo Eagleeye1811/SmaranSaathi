@@ -20,12 +20,16 @@ import 'sign_in_screen.dart';
 
 /// Signing in and choosing a role, on one screen.
 ///
-/// These were two screens and are now one, because in this app they are one
-/// decision. An account only decides *whose* record the answers are filed
-/// under — every screen works without one — so a sign-in page standing alone
-/// in front of the product was a gate in front of a door that was never
-/// locked. Here the account is an offer at the top and the role is the choice
-/// that actually moves you on.
+/// One screen, in the order the person thinks in: *who am I*, then *let me
+/// in*. The role is picked first because it is the question they can actually
+/// answer — "am I the daughter or the patient" — and only then does the app
+/// ask them to prove who they are.
+///
+/// Authentication is attempted, not demanded. An account decides *whose*
+/// record the answers are filed under; every screen works without one. So
+/// when no auth service is configured — no Firebase on this platform, a pure
+/// demo build — the button continues straight through rather than stranding
+/// someone in front of a form that cannot succeed.
 ///
 /// Where each role goes:
 ///
@@ -44,29 +48,13 @@ class AuthRoleScreen extends StatefulWidget {
 }
 
 class _AuthRoleScreenState extends State<AuthRoleScreen> {
-  /// Set while a sign-out is in flight, so the account row cannot be tapped
-  /// twice into an inconsistent state.
+  /// Set while a sign-out or an authentication is in flight, so nothing can
+  /// be tapped twice into an inconsistent state.
   bool _busy = false;
 
-  Future<void> _openSignIn(AuthService auth) async {
-    final AppState state = AppScope.read(context);
-    await Nav.push(
-      context,
-      SignInScreen(
-        authService: auth,
-        // No "skip" here: the role cards behind this screen already are the
-        // way past it, so a second escape hatch would just be a second thing
-        // to read.
-        onSignedIn: (AuthUser user) async {
-          await state.signInAccount(user.uid);
-          if (!mounted) return;
-          Navigator.of(context).pop();
-          setState(() {});
-        },
-      ),
-    );
-    if (mounted) setState(() {});
-  }
+  /// Chosen, but not yet acted on. Selecting a role is reversible right up
+  /// until the button is pressed.
+  AppRole? _selected;
 
   Future<void> _signOut(AuthService auth) async {
     setState(() => _busy = true);
@@ -82,13 +70,71 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
     if (mounted) setState(() => _busy = false);
   }
 
-  /// Records the role in three places — the auth service (so the backend can
-  /// authorise by it), the app state, and the navigator — and opens that
-  /// role's home.
-  void _choose(AppRole role, Widget home) {
+  Widget _homeFor(AppRole role) => switch (role) {
+        AppRole.caregiver => const CaregiverEntry(),
+        AppRole.patient => const PatientShell(),
+        AppRole.doctor => const DoctorShell(),
+        AppRole.none => const SizedBox.shrink(),
+      };
+
+  String _labelFor(AppLocalizations l, AppRole role) => switch (role) {
+        AppRole.caregiver => l.authRoleCaregiver,
+        AppRole.patient => l.authRolePatient,
+        AppRole.doctor => l.authRoleDoctor,
+        AppRole.none => '',
+      };
+
+  /// Authenticate if we can, then open the chosen role's home.
+  ///
+  /// The role is recorded in three places — the auth service, so the backend
+  /// can authorise by it; the app state; and the navigator. It is declared
+  /// *after* a successful sign-in so a cancelled sign-in leaves nothing
+  /// half-applied.
+  Future<void> _authenticateAndContinue() async {
+    final AppRole? role = _selected;
+    if (role == null || _busy) return;
+
+    final AuthService? auth = AuthScope.maybeOf(context);
+    final AppState state = AppScope.read(context);
+
+    if (auth != null && state.accountId == null) {
+      setState(() => _busy = true);
+      final AuthUser? existing = auth.currentUser;
+      if (existing != null) {
+        await state.signInAccount(existing.uid);
+      } else {
+        final bool signedIn = await _promptSignIn(auth, state);
+        if (!mounted) return;
+        setState(() => _busy = false);
+        // Cancelled. Stay here with the role still selected rather than
+        // pushing on as if nothing had been asked.
+        if (!signedIn) return;
+      }
+      if (!mounted) return;
+      setState(() => _busy = false);
+    }
+
+    if (!mounted) return;
     AuthScope.maybeOf(context)?.declareRole(role.name);
-    AppScope.read(context).setRole(role);
-    Nav.push(context, home);
+    state.setRole(role);
+    Nav.push(context, _homeFor(role));
+  }
+
+  /// Opens the sign-in form and reports whether it produced an account.
+  Future<bool> _promptSignIn(AuthService auth, AppState state) async {
+    bool signedIn = false;
+    await Nav.push(
+      context,
+      SignInScreen(
+        authService: auth,
+        onSignedIn: (AuthUser user) async {
+          await state.signInAccount(user.uid);
+          signedIn = true;
+          if (mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+    return signedIn;
   }
 
   @override
@@ -151,16 +197,14 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                           ),
 
                           // ── the account, offered rather than demanded ──
-                          if (auth != null) ...<Widget>[
+                          if (auth != null && state.accountId != null) ...<Widget>[
                             SizedBox(height: tall ? 22 : 16),
                             FadeInUp(
                               delayMs: 140,
                               child: _AccountCard(
-                                signedInEmail: state.accountId == null
-                                    ? null
-                                    : (auth.currentUser?.email ?? auth.currentUser?.uid),
+                                signedInEmail:
+                                    auth.currentUser?.email ?? auth.currentUser?.uid ?? '',
                                 busy: _busy,
-                                onSignIn: () => _openSignIn(auth),
                                 onSignOut: () => _signOut(auth),
                               ),
                             ),
@@ -200,7 +244,8 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               tint: AppColors.primaryTint,
                               badge: state.intake.isComplete ? null : l.authStartHere,
                               footnote: l.authCaregiverSetsUp,
-                              onTap: () => _choose(AppRole.caregiver, const CaregiverEntry()),
+                              onTap: () => setState(() => _selected = AppRole.caregiver),
+                              selected: _selected == AppRole.caregiver,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -213,7 +258,8 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               description: l.authRolePatientDetail,
                               accent: AppColors.terracotta,
                               tint: AppColors.terracottaTint,
-                              onTap: () => _choose(AppRole.patient, const PatientShell()),
+                              onTap: () => setState(() => _selected = AppRole.patient),
+                              selected: _selected == AppRole.patient,
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -226,14 +272,35 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               description: l.authRoleDoctorDetail,
                               accent: AppColors.secondary,
                               tint: AppColors.secondaryTint,
-                              onTap: () => _choose(AppRole.doctor, const DoctorShell()),
+                              onTap: () => setState(() => _selected = AppRole.doctor),
+                              selected: _selected == AppRole.doctor,
                             ),
                           ),
                           SizedBox(height: tall ? 22 : 16),
                           FadeInUp(
+                            delayMs: 300,
+                            child: BigButton(
+                              label: _selected == null
+                                  ? l.authChooseRoleFirst
+                                  : (_busy
+                                      ? l.authSigningIn
+                                      : l.authContinueAs(_labelFor(l, _selected!))),
+                              icon: _selected == null
+                                  ? Icons.touch_app_outlined
+                                  : Icons.lock_open_rounded,
+                              // Inert until a role is chosen: authenticating
+                              // without knowing who they are would leave the
+                              // app with an account and nowhere to send it.
+                              onPressed: _selected == null || _busy
+                                  ? null
+                                  : _authenticateAndContinue,
+                            ),
+                          ),
+                          const SizedBox(height: Insets.sm),
+                          FadeInUp(
                             delayMs: 320,
                             child: Text(
-                              l.authDeviceOnlyNote,
+                              auth == null ? l.authNoAccountNeeded : l.authDeviceOnlyNote,
                               textAlign: TextAlign.center,
                               style: AppText.caption.copyWith(height: 1.45),
                             ),
@@ -259,34 +326,34 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
 
 /// The account row. Deliberately quiet: an account is useful, not required,
 /// and this screen should not read as a login wall.
+/// Shown only when there *is* an account, so its whole job is to say whose it
+/// is and to offer a way out of it. Signing in happens on the button below the
+/// role cards; two sign-in affordances on one screen is one too many.
 class _AccountCard extends StatelessWidget {
   const _AccountCard({
     required this.signedInEmail,
     required this.busy,
-    required this.onSignIn,
     required this.onSignOut,
   });
 
-  final String? signedInEmail;
+  final String signedInEmail;
   final bool busy;
-  final VoidCallback onSignIn;
   final VoidCallback onSignOut;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool signedIn = signedInEmail != null;
 
     return MmCard(
       padding: const EdgeInsets.symmetric(horizontal: Insets.md, vertical: 12),
-      color: signedIn ? AppColors.primaryTint : AppColors.surface,
-      border: Border.all(color: signedIn ? AppColors.primary.withValues(alpha: 0.35) : AppColors.hairline),
+      color: AppColors.primaryTint,
+      border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
       child: Row(
         children: <Widget>[
-          SoftIcon(
-            icon: signedIn ? Icons.verified_user_rounded : Icons.person_outline_rounded,
+          const SoftIcon(
+            icon: Icons.verified_user_rounded,
             size: 38,
-            color: signedIn ? AppColors.primary : AppColors.inkMuted,
+            color: AppColors.primary,
           ),
           const SizedBox(width: Insets.sm),
           Expanded(
@@ -295,29 +362,23 @@ class _AccountCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Text(
-                  signedIn ? l.authSignedInAs(signedInEmail!) : l.profileNoAccount,
+                  l.authSignedInAs(signedInEmail),
                   style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  signedIn ? l.profileAnswersFiledUnderAccount : l.profileSignInToKeepRecord,
-                  style: AppText.caption,
-                  maxLines: 2,
-                ),
+                Text(l.profileAnswersFiledUnderAccount, style: AppText.caption, maxLines: 2),
               ],
             ),
           ),
           const SizedBox(width: Insets.sm),
           TextButton(
-            onPressed: busy ? null : (signedIn ? onSignOut : onSignIn),
+            onPressed: busy ? null : onSignOut,
             child: Text(
-              signedIn ? l.authSignOut : l.profileSignIn,
-              style: AppText.bodySmall.copyWith(
-                color: signedIn ? AppColors.inkSoft : AppColors.primary,
-                fontWeight: FontWeight.w800,
-              ),
+              l.authSignOut,
+              style: AppText.bodySmall
+                  .copyWith(color: AppColors.inkSoft, fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -334,6 +395,7 @@ class _RoleCard extends StatelessWidget {
     required this.accent,
     required this.tint,
     required this.onTap,
+    this.selected = false,
     this.sceneId,
     this.icon,
     this.badge,
@@ -346,6 +408,10 @@ class _RoleCard extends StatelessWidget {
   final Color accent;
   final Color tint;
   final VoidCallback onTap;
+
+  /// Chosen but not yet confirmed — the button below is what commits it.
+  final bool selected;
+
   final String? sceneId;
   final IconData? icon;
 
@@ -359,8 +425,11 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       padding: const EdgeInsets.all(14),
       radius: Corners.lg,
-      border: badge == null ? null : Border.all(color: accent.withValues(alpha: 0.5), width: 1.6),
-      shadow: AppColors.softShadow(y: 6, blur: 18, opacity: 0.055),
+      color: selected ? tint : null,
+      border: selected
+          ? Border.all(color: accent, width: 2.2)
+          : (badge == null ? null : Border.all(color: accent.withValues(alpha: 0.5), width: 1.6)),
+      shadow: AppColors.softShadow(y: 6, blur: 18, opacity: selected ? 0.09 : 0.055),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -412,8 +481,15 @@ class _RoleCard extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
-                child: Icon(Icons.arrow_forward_rounded, size: 19, color: accent),
+                decoration: BoxDecoration(
+                  color: selected ? accent : tint,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  selected ? Icons.check_rounded : Icons.arrow_forward_rounded,
+                  size: 19,
+                  color: selected ? Colors.white : accent,
+                ),
               ),
             ],
           ),

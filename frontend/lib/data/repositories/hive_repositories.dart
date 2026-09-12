@@ -40,9 +40,13 @@ class HivePatientRepository implements PatientRepository {
   @override
   Future<Patient?> current() async => _store.patients.get(_key);
 
+  /// Falls back to a *blank* profile, never to the sample one. Returning
+  /// `MockData.aama` here is what used to make a fresh install open on
+  /// somebody else's name and family: nothing had been saved yet, so every
+  /// read came back as her.
   @override
   Future<Patient> load(String id) async =>
-      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.aama;
+      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.emptyPatient;
 
   @override
   Future<Patient?> byId(String id) async => _store.patients.get(id);

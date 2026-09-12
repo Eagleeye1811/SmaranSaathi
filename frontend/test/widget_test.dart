@@ -19,6 +19,26 @@ Future<void> passSplash(WidgetTester tester) async {
   }
 }
 
+/// Picks a role and presses the authenticate button beneath the cards.
+///
+/// Choosing a role no longer navigates on its own: the screen takes the role
+/// first and only then tries to authenticate, so every test that used to tap
+/// a card now has two steps.
+Future<void> chooseRole(WidgetTester tester, String role) async {
+  await tester.tap(find.text(role));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+
+  // The button sits under the three cards, below the fold on a handset.
+  final Finder go = find.textContaining('Continue as');
+  await tester.dragUntilVisible(
+      go, find.byType(Scrollable).first, const Offset(0, -120));
+  await tester.pump(const Duration(milliseconds: 200));
+  await tester.tap(go);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 800));
+}
+
 void main() {
   testWidgets('the splash hands over to the welcome screen', (WidgetTester tester) async {
     await tester.pumpWidget(const SmaranSaathiApp());
@@ -42,16 +62,14 @@ void main() {
 
   testWidgets('selecting Caregiver starts the onboarding',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MemoryMitraApp());
+    await tester.pumpWidget(const SmaranSaathiApp());
     await passSplash(tester);
     await tester.tap(find.text('Get started'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    await tester.tap(find.text('Caregiver'));
     // The companion breathes forever, so the tree never "settles".
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await chooseRole(tester, 'Caregiver');
 
     // Nothing answered yet, so the caregiver lands on consent, not on a
     // dashboard with nothing behind it.
@@ -67,9 +85,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    await tester.tap(find.text('Patient'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    await chooseRole(tester, 'Patient');
 
     // The onboarding is the caregiver's. Handing a person fifteen questions
     // about their own decline is the wrong first thing to meet, so the

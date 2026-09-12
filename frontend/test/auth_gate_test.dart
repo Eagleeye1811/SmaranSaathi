@@ -8,7 +8,7 @@ import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/models/auth_user.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/core/services/auth_service.dart';
-import 'package:smaran_saathi/features/auth/role_selection_screen.dart';
+import 'package:smaran_saathi/features/auth/auth_role_screen.dart';
 import 'package:smaran_saathi/features/auth/sign_in_screen.dart';
 import 'package:smaran_saathi/features/intake/welcome_screens.dart';
 import 'package:smaran_saathi/features/patient/profile/patient_profile_screen.dart';
@@ -194,12 +194,19 @@ void main() {
 
     // The authentication screen: the account is an offer at the top, and the
     // three roles are the choice that actually moves you on.
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
     expect(find.text('Caregiver'), findsOneWidget);
     expect(find.byType(SignInScreen), findsNothing);
 
-    // Taking up the offer opens the form.
-    await tester.tap(find.text('Sign in'));
+    // The role comes first; authenticating is what the button does next.
+    await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
+    await tester.dragUntilVisible(
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(SignInScreen), findsOneWidget);
@@ -213,11 +220,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
 
-    // Bound to the uid, and back on the authentication screen to pick a role
-    // rather than being dropped somewhere it has to guess.
+    // Bound to the uid, and carried straight into the role that was chosen
+    // before the form — the point of taking the role first is that the app
+    // never has to ask "and now where?" once you are in.
     expect(state.accountId, 'fake-uid');
     expect(find.byType(SignInScreen), findsNothing);
-    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
+    expect(state.role, AppRole.caregiver);
+    expect(find.text('Before we begin'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',
@@ -277,9 +286,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
 
     // The authentication screen is reached, and it can see the AuthScope
-    // through the push — otherwise the account row would not be there at all.
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
-    await tester.tap(find.text('Sign in'));
+    // through the push — otherwise choosing a role would skip sign-in.
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
+    await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
+    await tester.dragUntilVisible(
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
@@ -364,17 +380,15 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final FakeAuthService auth = FakeAuthService();
+    // No AuthScope at all — a build with no Firebase configured, which is the
+    // real "no account" case rather than a simulated one.
     final AppState state = AppState();
     addTearDown(state.dispose);
 
     await tester.pumpWidget(
       AppScope(
         state: state,
-        child: AuthScope(
-          authService: auth,
-          child: const MaterialApp(home: WelcomeScreen()),
-        ),
+        child: const MaterialApp(home: WelcomeScreen()),
       ),
     );
     await tester.pump(const Duration(milliseconds: 600));
@@ -383,16 +397,19 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
 
-    // No sign-in stands between the greeting and the role. The account is
-    // offered on this screen; walking past it is a supported answer, because
-    // every screen in the app works with no account at all.
+    // Nothing stands between the greeting and the role: every screen in the
+    // app works with no account at all, so the button continues straight
+    // through rather than stranding someone in front of a form that cannot
+    // succeed.
     expect(find.byType(SignInScreen), findsNothing);
-    await tester.dragUntilVisible(
-      find.text('Caregiver'),
-      find.byType(Scrollable).first,
-      const Offset(0, -120),
-    );
     await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
+    await tester.dragUntilVisible(
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
@@ -401,7 +418,6 @@ void main() {
     expect(find.text('Before we begin'), findsOneWidget);
     expect(state.role, AppRole.caregiver);
     expect(state.accountId, isNull);
-    expect(auth.currentUser, isNull);
   });
 
   group('there is always a way back to the authentication screen', () {

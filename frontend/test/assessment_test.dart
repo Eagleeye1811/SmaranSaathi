@@ -5,6 +5,7 @@ import 'package:hive_ce/hive.dart';
 
 import 'package:smaran_saathi/core/ai/health_assistant.dart';
 import 'package:smaran_saathi/core/models/assessment.dart';
+import 'package:smaran_saathi/core/models/onboarding.dart';
 import 'package:smaran_saathi/core/models/clinical.dart';
 import 'package:smaran_saathi/core/models/game.dart';
 import 'package:smaran_saathi/core/models/monitoring.dart';

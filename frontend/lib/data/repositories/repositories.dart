@@ -147,7 +147,7 @@ Future<T> _settle<T>(T value) =>
 
 class MockPatientRepository implements PatientRepository {
   final Map<String, Patient> _byId = <String, Patient>{};
-  Patient _patient = MockData.aama;
+  Patient _patient = MockData.emptyPatient;
   bool _saved = false;
 
   @override
@@ -196,7 +196,14 @@ class MockGameRepository implements GameRepository {
 }
 
 class MockAnalyticsRepository implements AnalyticsRepository {
-  CognitiveProfile _profile = MockData.aamaProfile();
+  // Empty until something has actually been played. The authored profile is
+  // a demo fixture; handing it back as a default would put six invented
+  // domain scores on a real person's record.
+  CognitiveProfile _profile = const CognitiveProfile(
+    scores: <CognitiveDomain, int>{},
+    overall: 0,
+    updated: 'No activities yet',
+  );
 
   @override
   Future<CognitiveProfile> profile(String patientId) => _settle(_profile);

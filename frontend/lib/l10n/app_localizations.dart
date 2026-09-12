@@ -181,7 +181,6 @@ class AppLocalizations {
   String get voiceNavHint => _s('voiceNavHint');
   String get voiceNavSpeakNow => _s('voiceNavSpeakNow');
   String get voiceAskSaathi => _s('voiceAskSaathi');
-  String get voiceAskMitra => _s('voiceAskMitra');
   String get voiceTalkAboutDay => _s('voiceTalkAboutDay');
   String get voiceTapMicrophone => _s('voiceTapMicrophone');
   String get voiceAskAnythingElse => _s('voiceAskAnythingElse');
@@ -1480,6 +1479,19 @@ class AppLocalizations {
 
 
   // ── Authentication & role ────────────────────────────────────────────
+  String get authChooseRoleFirst => _s('authChooseRoleFirst');
+  String authContinueAs(Object role) => _f('authContinueAs', <String, Object?>{'role': role});
+  String get authSigningIn => _s('authSigningIn');
+  String get authNoAccountNeeded => _s('authNoAccountNeeded');
+  String get onbCaregiverNameLabel => _s('onbCaregiverNameLabel');
+  String get onbCaregiverNameHint => _s('onbCaregiverNameHint');
+  String get onbCaregiverNamePrompt => _s('onbCaregiverNamePrompt');
+  String caregiverViewPatientTitle(Object name) => _f('caregiverViewPatientTitle', <String, Object?>{'name': name});
+  String get caregiverViewPatientBody => _s('caregiverViewPatientBody');
+  String get caregiverViewPatientAction => _s('caregiverViewPatientAction');
+  String get caregiverBackToCaregiver => _s('caregiverBackToCaregiver');
+  String get caregiverViewingAsPatient => _s('caregiverViewingAsPatient');
+  String get caregiverProfileNotSetUp => _s('caregiverProfileNotSetUp');
   String get authTitle => _s('authTitle');
   String get authSubtitle => _s('authSubtitle');
   String get authWhoAreYou => _s('authWhoAreYou');
