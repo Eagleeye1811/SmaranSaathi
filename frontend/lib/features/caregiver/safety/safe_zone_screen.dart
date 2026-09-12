@@ -116,7 +116,7 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
     final bool confirmed = await showDialog<bool>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: Text(AppLocalizations.of(context)!.removeSafeZoneConfirm),
+            title: Text(AppLocalizations.of(context).removeSafeZoneConfirm),
             content: const Text(
               'You will stop being told when they leave. You can draw a new '
               'zone at any time.',
@@ -124,12 +124,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(AppLocalizations.of(context)!.keepIt),
+                child: Text(AppLocalizations.of(context).keepIt),
               ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-                child: Text(AppLocalizations.of(context)!.remove),
+                child: Text(AppLocalizations.of(context).remove),
               ),
             ],
           ),
@@ -710,27 +710,20 @@ class _PermissionNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MmCard(
+    return Container(
       padding: const EdgeInsets.all(Insets.md),
-      color: AppColors.warningTint,
-      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+      color: const Color(0xFFFEF3C7),
       child: Row(
         children: <Widget>[
-          const SoftIcon(
-            icon: Icons.location_off_rounded,
-            color: AppColors.warning,
-            size: 40,
-          ),
+          const Icon(Icons.location_off, color: Color(0xFFD97706)),
           const SizedBox(width: Insets.sm),
           Expanded(
             child: Text(outcome.message,
-                style: AppText.bodySmall.tint(AppColors.inkSoft)),
+                style: AppText.bodySmall.tint(const Color(0xFF8A5D08))),
           ),
-          const SizedBox(width: 6),
-          SoftButton(
-            label: 'Retry',
-            color: AppColors.warning,
+          TextButton(
             onPressed: () => onRetry(),
+            child: Text(AppLocalizations.of(context)?.retry ?? 'Retry'),
           ),
         ],
       ),

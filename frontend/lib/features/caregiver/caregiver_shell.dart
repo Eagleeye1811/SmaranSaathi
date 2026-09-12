@@ -226,7 +226,6 @@ class _CaregiverTopAppBar extends StatelessWidget {
             icon: Icons.notifications_none_rounded,
             activeIcon: Icons.notifications_rounded,
             selected: index == 6,
-            color: AppColors.terracotta,
             tooltip: 'Reminders',
             // The count of what is still owed today, so the header answers
             // the question without being opened.
@@ -238,7 +237,6 @@ class _CaregiverTopAppBar extends StatelessWidget {
             icon: Icons.person_outline_rounded,
             activeIcon: Icons.person_rounded,
             selected: index == 7,
-            color: AppColors.indigo,
             tooltip: 'My profile',
             onTap: () => onGo(7),
           ),
@@ -249,21 +247,25 @@ class _CaregiverTopAppBar extends StatelessWidget {
 }
 
 /// A round header button, marked when its own page is showing.
+///
+/// One colour for both, and it is the app's own: these are a matched pair
+/// sitting side by side, so giving them a colour each made the header look
+/// like two unrelated controls that happened to be adjacent.
 class _HeaderAction extends StatelessWidget {
   const _HeaderAction({
     required this.icon,
     required this.activeIcon,
     required this.selected,
-    required this.color,
     required this.tooltip,
     required this.onTap,
     this.badge = 0,
   });
 
+  static const Color color = AppColors.primary;
+
   final IconData icon;
   final IconData activeIcon;
   final bool selected;
-  final Color color;
   final String tooltip;
   final VoidCallback onTap;
 

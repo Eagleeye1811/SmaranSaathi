@@ -2,6 +2,9 @@
     <!-- Voice assistant: speech-to-text needs the microphone. Requested at
          the moment the patient first taps "Talk to Saathi", never at launch. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <!-- Safe zone: the patient's position is read only while the app is in
          the foreground, so ACCESS_BACKGROUND_LOCATION is deliberately absent.

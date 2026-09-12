@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
@@ -10,9 +10,11 @@ import '../../../core/services/photo_store.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
 import '../life_profile/life_profile_screen.dart';
+import '../widgets/caregiver_top_bar.dart';
 import 'memory_profile_editors.dart';
 
 /// The memory profile: everything personalisation is built from, editable in
@@ -43,10 +45,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.terracottaTint.withValues(alpha: 0.7),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -184,6 +183,11 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
   // ── people ─────────────────────────────────────────────────────────────
 
   Widget _people(Patient p, AppState state, AppLocalizations l) {
+    final Set<String> present = p.family.map((FamilyMember f) => f.name).toSet();
+    final List<FamilyMember> available = MockData.family
+        .where((FamilyMember f) => !present.contains(f.name))
+        .toList(growable: false);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[

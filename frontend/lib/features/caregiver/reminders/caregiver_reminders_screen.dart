@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -10,6 +10,7 @@ import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/content_labels.dart';
 import '../../../l10n/mock_translator.dart';
 import '../../../l10n/content_labels.dart';
 
@@ -34,10 +35,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.accentTint.withValues(alpha: 0.75),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
       child: SafeArea(
         bottom: false,
         child: Column(

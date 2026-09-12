@@ -232,11 +232,31 @@ class DoctorOverviewScreen extends StatelessWidget {
                           const Icon(Icons.today_rounded, size: 18, color: AppColors.clinicAccent),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(l.doctorOverviewTodayAppts, style: CT.h3.wght(700)),
+                            child: Text(
+                              l.doctorOverviewTodayAppts,
+                              style: CT.h3.wght(700),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          TextButton(
-                            onPressed: () => onOpenTab?.call(2),
-                            child: Text(l.doctorTabAppointments),
+                          // Both halves have to be able to give way. The
+                          // heading and the link each assumed the other would
+                          // shrink, so at 393 px with a longer translation the
+                          // row ran 11 px past its edge.
+                          Flexible(
+                            child: TextButton(
+                              onPressed: () => onOpenTab?.call(2),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                minimumSize: const Size(0, 40),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                l.doctorTabAppointments,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
                         ],
                       ),

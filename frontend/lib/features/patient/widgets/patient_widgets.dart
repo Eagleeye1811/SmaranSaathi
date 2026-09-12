@@ -8,8 +8,8 @@ import '../../../core/models/daily.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../l10n/mock_translator.dart';
-import '../settings/language_picker_button.dart';
+import '../../../core/services/app_state.dart';
+import '../profile/patient_profile_screen.dart';
 import '../today/today_screen.dart';
 
 /// The bar across the top of every patient screen.
@@ -20,14 +20,18 @@ class PatientTopBar extends StatelessWidget {
     this.onExit,
     this.showExit = false,
     this.showStatus = true,
-    this.showTodayButton = true,
+    this.showActions = true,
   });
 
   final Widget? trailing;
   final VoidCallback? onExit;
   final bool showExit;
   final bool showStatus;
-  final bool showTodayButton;
+
+  /// Reminders and the profile, top right — the two things a patient reaches
+  /// for from anywhere. Set false on the two screens they open, so neither
+  /// offers a button to the page it is already on.
+  final bool showActions;
 
   @override
   Widget build(BuildContext context) {
@@ -50,41 +54,26 @@ class PatientTopBar extends StatelessWidget {
           ],
           const Expanded(child: _Wordmark()),
           if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 8)],
-          if (showTodayButton) ...<Widget>[
-            Pressable(
+          if (showActions) ...<Widget>[
+            PatientHeaderAction(
+              icon: Icons.notifications_none_rounded,
+              tooltip: l.todayTitle,
+              // A dot, not a number: the count is on the page itself, and a
+              // digit small enough to fit here is a digit this reader cannot
+              // be asked to make out.
+              badge: AppScope.of(context)
+                  .reminders
+                  .where((Reminder r) => !r.done)
+                  .isNotEmpty,
               onTap: () => Nav.open(context, const TodayScreen()),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: Corners.r(Corners.pill),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(Icons.notifications_active_rounded, size: 16, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Today',
-                      style: AppText.caption.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            ),
+            const SizedBox(width: 8),
+            PatientHeaderAction(
+              icon: Icons.person_outline_rounded,
+              tooltip: 'My profile',
+              onTap: () => Nav.open(context, const PatientProfileScreen()),
             ),
           ],
-          const SizedBox(width: 4),
-          const LanguagePickerButton(),
           if (onExit != null && showExit) ...<Widget>[
             const SizedBox(width: 8),
             RoundIconButton(
@@ -95,6 +84,73 @@ class PatientTopBar extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// A round header button, sized for the patient rather than the caregiver.
+///
+/// 48 px against the caregiver's 38: the same two actions, but the hand
+/// reaching for them is the one the whole patient side is drawn large for.
+/// One colour for both, matching the caregiver's pair — side by side, a
+/// colour each read as two unrelated controls rather than one set.
+class PatientHeaderAction extends StatelessWidget {
+  const PatientHeaderAction({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = false,
+  });
+
+  static const Color color = AppColors.primary;
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Pressable(
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            // White on a hairline ring with an ink icon — the same button the
+            // caregiver header wears, just bigger. A green fill and a green
+            // glyph made the pair look like two lit-up states sitting next to
+            // each other; the colour belongs on the badge, where it means
+            // something.
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.hairline),
+              ),
+              child: Icon(icon, size: 23, color: AppColors.inkSoft),
+            ),
+            if (badge)
+              Positioned(
+                right: -1,
+                top: -1,
+                child: Container(
+                  width: 14,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.background, width: 2.5),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -130,14 +186,18 @@ class MoodPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    const List<(MoodLevel, Color)> moods = <(MoodLevel, Color)>[
-      (MoodLevel.good, AppColors.success),
-      (MoodLevel.okay, AppColors.accent),
-      (MoodLevel.low, AppColors.secondary),
-    ];
+    // One colour for all three, and it is the app's own.
+    //
+    // A green, amber and blue tile said "right, middling, wrong" about an
+    // answer that has no right or wrong — and on a white card the unselected
+    // tiles had nothing but a hairline to lift them off the surface. A green
+    // outline when resting, a green wash when chosen: the same question, three
+    // equal answers, all clearly tappable.
+    const List<MoodLevel> moods = MoodLevel.values;
+    const Color accent = AppColors.primary;
     return Row(
       children: <Widget>[
-        for (final (MoodLevel m, Color c) in moods)
+        for (final MoodLevel m in moods)
           Expanded(
             child: Padding(
               padding: EdgeInsets.only(right: m == MoodLevel.low ? 0 : 10),
@@ -148,11 +208,15 @@ class MoodPicker extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: selected == m ? c.withValues(alpha: 0.16) : Colors.white,
+                    color: selected == m
+                        ? accent.withValues(alpha: 0.14)
+                        : Colors.white,
                     borderRadius: Corners.r(Corners.md),
                     border: Border.all(
-                      color: selected == m ? c : AppColors.hairline,
-                      width: selected == m ? 2.4 : 1.4,
+                      color: selected == m
+                          ? accent
+                          : accent.withValues(alpha: 0.35),
+                      width: selected == m ? 2.4 : 1.6,
                     ),
                     boxShadow: selected == m ? null : AppColors.softShadow(y: 3, blur: 10, opacity: 0.04),
                   ),
@@ -362,7 +426,6 @@ class ReminderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context)!;
     final Color color = switch (reminder.kind) {
       ReminderKind.medicine => AppColors.terracotta,
       ReminderKind.hydration => AppColors.secondary,

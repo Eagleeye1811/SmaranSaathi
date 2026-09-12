@@ -22,7 +22,11 @@ class LanguagePickerButton extends StatelessWidget {
 
   final Color? color;
 
-  static const List<({String code, String name, String englishName})> _languages =
+  /// The app's languages, each written in its own script. Public so the
+  /// inline `LanguageSelector` shows exactly the same names — two controls
+  /// spelling a language differently is the kind of detail that makes a
+  /// person doubt they picked the right one.
+  static const List<({String code, String name, String englishName})> languages =
       <({String code, String name, String englishName})>[
     (code: 'en', name: 'English', englishName: 'English'),
     (code: 'hi', name: 'हिंदी', englishName: 'Hindi'),
@@ -143,7 +147,7 @@ class LanguagePickerButton extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    for (final ({String code, String englishName, String name}) item in _languages) ...<Widget>[
+                    for (final ({String code, String englishName, String name}) item in languages) ...<Widget>[
                       _LanguageTile(
                         name: item.name,
                         englishName: item.englishName,
@@ -154,7 +158,7 @@ class LanguagePickerButton extends StatelessWidget {
                           Navigator.of(sheetContext).pop();
                         },
                       ),
-                      if (item != _languages.last) const SizedBox(height: 8),
+                      if (item != languages.last) const SizedBox(height: 8),
                     ],
                   ],
                 ),

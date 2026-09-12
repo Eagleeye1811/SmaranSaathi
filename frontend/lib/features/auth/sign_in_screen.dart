@@ -32,9 +32,10 @@ class SignInScreen extends StatefulWidget {
 
   final AuthService authService;
 
-  /// Called with the freshly signed-in user. Null when an `AuthGate` above is
-  /// driving navigation instead.
-  final ValueChanged<AuthUser>? onSignedIn;
+  /// Called with the successful result — the user, and whether the account
+  /// was created just now. Null when an `AuthGate` above is driving
+  /// navigation instead.
+  final Future<void> Function(AuthResult result)? onSignedIn;
 
   /// Continue without an account.
   ///
@@ -54,9 +55,9 @@ class _SignInScreenState extends State<SignInScreen> {
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
 
-  bool _isSignUp = false;
   bool _submitting = false;
   String? _error;
+  String? _notice;
 
   @override
   void dispose() {
@@ -65,13 +66,14 @@ class _SignInScreenState extends State<SignInScreen> {
     super.dispose();
   }
 
+  /// One button. The account is created if it is not there and signed in to
+  /// if it is — see `AuthService.signInOrCreate` for why that is a single
+  /// action rather than two the person has to choose between.
   Future<void> _submit() async {
     if (_submitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    await _run(() => _isSignUp
-        ? widget.authService.signUp(email: _email.text, password: _password.text)
-        : widget.authService.signIn(email: _email.text, password: _password.text));
+    await _run(() => widget.authService
+        .signInOrCreate(email: _email.text, password: _password.text));
   }
 
   Future<void> _google() => _run(widget.authService.signInWithGoogle);
@@ -91,13 +93,19 @@ class _SignInScreenState extends State<SignInScreen> {
     setState(() {
       _submitting = false;
       _error = result.isSuccess ? null : result.error;
+      _notice = result.isSuccess && result.isNewAccount ? 'Account created.' : null;
     });
 
-    final AuthUser? user = result.user;
-    if (result.isSuccess && user != null) {
+    if (result.isSuccess && result.user != null) {
       // Either the caller routes onward, or an AuthGate above is listening to
       // authStateChanges and swaps this screen out on its own.
-      widget.onSignedIn?.call(user);
+      //
+      // The callback is asynchronous — it binds the account, which reads the
+      // record off disk and asks the server for anything this device has not
+      // seen. Firing and forgetting it raced the navigation that follows:
+      // the caregiver shell decided there was no questionnaire answered yet
+      // and opened the onboarding, moments before the answers arrived.
+      await widget.onSignedIn?.call(result);
     }
   }
 
@@ -130,7 +138,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'For the caregiver or doctor managing this device. '
+                        'New here or coming back — one button does both. '
                         'The patient never needs to sign in here.',
                         textAlign: TextAlign.center,
                         style: AppText.bodySmall.tint(AppColors.inkMuted),
@@ -162,9 +170,7 @@ class _SignInScreenState extends State<SignInScreen> {
                               controller: _password,
                               enabled: !_submitting,
                               obscureText: true,
-                              autofillHints: <String>[
-                                _isSignUp ? AutofillHints.newPassword : AutofillHints.password,
-                              ],
+                              autofillHints: const <String>[AutofillHints.password],
                               textInputAction: TextInputAction.done,
                               onFieldSubmitted: (_) => _submit(),
                               decoration: const InputDecoration(
@@ -183,30 +189,31 @@ class _SignInScreenState extends State<SignInScreen> {
                                 style: AppText.bodySmall.tint(AppColors.danger),
                               ),
                             ],
+                            if (_notice != null) ...<Widget>[
+                              const SizedBox(height: 14),
+                              Text(
+                                _notice!,
+                                style: AppText.bodySmall.tint(AppColors.success),
+                              ),
+                            ],
                             const SizedBox(height: 18),
                             BigButton(
-                              label: _submitting
-                                  ? 'Please wait…'
-                                  : (_isSignUp ? 'Create account' : 'Sign in'),
+                              label: _submitting ? 'Please wait…' : 'Continue',
+                              icon: Icons.arrow_forward_rounded,
                               onPressed: _submitting ? null : _submit,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'We will create your account if you do not have '
+                              'one yet.',
+                              textAlign: TextAlign.center,
+                              style: AppText.caption.tint(AppColors.inkMuted),
                             ),
                             const SizedBox(height: 16),
                             const _OrDivider(),
                             const SizedBox(height: 16),
                             _GoogleButton(
                               onPressed: _submitting ? null : _google,
-                            ),
-                            const SizedBox(height: 10),
-                            SoftButton(
-                              label: _isSignUp
-                                  ? 'Already have an account? Sign in'
-                                  : 'New here? Create an account',
-                              onPressed: _submitting
-                                  ? null
-                                  : () => setState(() {
-                                        _isSignUp = !_isSignUp;
-                                        _error = null;
-                                      }),
                             ),
                           ],
                         ),
@@ -244,7 +251,7 @@ class _OrDivider extends StatelessWidget {
         const Expanded(child: Divider(color: AppColors.hairline)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(AppLocalizations.of(context)!.orText, style: AppText.caption),
+          child: Text(AppLocalizations.of(context).orText, style: AppText.caption),
         ),
         const Expanded(child: Divider(color: AppColors.hairline)),
       ],

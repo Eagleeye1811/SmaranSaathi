@@ -1744,6 +1744,7 @@ class AppLocalizations {
   String get patientNavHome => _s('patientNavHome');
   String get patientNavToday => _s('patientNavToday');
   String get patientNavActivities => _s('patientNavActivities');
+  String get patientNavWellness => _s('patientNavWellness');
   String get patientNavCompanion => _s('patientNavCompanion');
   String get patientNavProfile => _s('patientNavProfile');
 

@@ -30,6 +30,23 @@ class PatientShell extends StatefulWidget {
 class _PatientShellState extends State<PatientShell> {
   int _index = 0;
 
+  /// One entry per child of the `IndexedStack` below, **in the same order**.
+  ///
+  /// Four, not five: the profile moved to the top right of `PatientTopBar`,
+  /// alongside reminders, matching where the caregiver's own two sit. Both
+  /// are reached for at a moment rather than browsed, and four destinations
+  /// leave the bar's targets as wide as this reader needs them.
+  static const int _destinationCount = 4;
+
+  /// Localised, so the bar reads in whatever language the app is set to.
+  static List<NavDestination> _destinationsFor(AppLocalizations l) => <NavDestination>[
+        NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
+        NavDestination(
+            l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
+        NavDestination(l.patientNavWellness, Icons.spa_outlined, Icons.spa_rounded),
+        NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
+      ];
+
   void _go(int i) => setState(() => _index = i);
 
   static const Set<VoiceDestination> _voiceDestinations = <VoiceDestination>{
@@ -58,7 +75,7 @@ class _PatientShellState extends State<PatientShell> {
       case VoiceDestination.companion:
         _go(3);
       case VoiceDestination.profile:
-        _go(4);
+        Nav.open(context, const PatientProfileScreen());
       case VoiceDestination.memories:
         Nav.push(context, const MemoryWalletScreen());
       case VoiceDestination.carePlan:
@@ -77,13 +94,7 @@ class _PatientShellState extends State<PatientShell> {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<NavDestination> destinations = <NavDestination>[
-      NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
-      NavDestination(l.patientNavToday, Icons.notifications_outlined, Icons.notifications_rounded),
-      NavDestination(l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
-      NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
-      NavDestination(l.patientNavProfile, Icons.person_outline_rounded, Icons.person_rounded),
-    ];
+    final List<NavDestination> destinations = _destinationsFor(l);
     return Scaffold(
       backgroundColor: state.highContrast ? Colors.white : AppColors.background,
       body: ReturnHomeBanner(
@@ -95,18 +106,20 @@ class _PatientShellState extends State<PatientShell> {
             index: _index,
             children: <Widget>[
               HealthDashboardScreen(onOpenTab: (int tabIndex) {
+                // 1 is reminders, which is a pushed screen rather than a
+                // destination; everything above it shifts down by one to skip
+                // the gap. Clamped, because the bar is now four wide and an
+                // index past the end would throw rather than do nothing.
                 if (tabIndex == 1) {
                   Nav.open(context, const TodayScreen());
-                } else if (tabIndex > 1) {
-                  _go(tabIndex - 1);
                 } else {
-                  _go(tabIndex);
+                  final int target = tabIndex > 1 ? tabIndex - 1 : tabIndex;
+                  _go(target.clamp(0, _destinationCount - 1));
                 }
               }),
               const GameHubScreen(),
               const WellnessCornerScreen(),
               const AssistantScreen(embedded: true),
-              const PatientProfileScreen(),
             ],
           ),
         ),

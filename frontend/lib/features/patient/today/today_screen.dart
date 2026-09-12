@@ -76,7 +76,7 @@ class _TodayScreenState extends State<TodayScreen> {
         child: SafeArea(
           child: Column(
             children: <Widget>[
-              const PatientTopBar(showExit: false, showTodayButton: false),
+              const PatientTopBar(showExit: false, showActions: false),
 
               // ── Interactive Companion Status Card (Zomato/Uber style) ─────────────────────
               Padding(
@@ -721,7 +721,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                   ),
                   Switch(
                     value: _smsEnabled,
-                    activeThumbColor: AppColors.primary,
+                    activeColor: AppColors.primary,
                     onChanged: (bool v) => setState(() => _smsEnabled = v),
                   ),
                 ],

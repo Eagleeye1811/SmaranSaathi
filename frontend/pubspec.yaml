@@ -31,6 +31,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^13.0.2
+  flutter_webrtc: ^0.12.4
   # On-device LLM inference (llama.cpp binding) for the offline Mitra companion.
   # pub.dev's published fllama is a stale 0.0.1. `main` needs Dart >=3.10 (its
   # 2026-03 rewrite onto native-assets build hooks) which this project's

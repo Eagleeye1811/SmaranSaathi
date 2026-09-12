@@ -517,6 +517,8 @@ class _Bubble extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         const Icon(Icons.auto_awesome_rounded, size: 15, color: AppColors.accent),
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 15, color: AppColors.accent),
                         const SizedBox(width: 6),
                         Text(l.assistantMemorySavedChip,
                             style: AppText.caption.copyWith(
@@ -540,7 +542,8 @@ class _Bubble extends StatelessWidget {
                                   size: 16, color: AppColors.primary),
                             ),
                             Expanded(
-                              child: Text(b, style: AppText.bodySmall.copyWith(height: 1.45)),
+                              child: Text(b,
+                                  style: AppText.bodySmall.copyWith(height: 1.45)),
                             ),
                           ],
                         ),
@@ -560,7 +563,8 @@ class _Bubble extends StatelessWidget {
                           Pressable(
                             onTap: () => onFollowUp(f),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 9),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryTint,
                                 borderRadius: Corners.r(Corners.pill),
@@ -575,7 +579,8 @@ class _Bubble extends StatelessWidget {
                         Pressable(
                           onTap: onOpenReport,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 9),
                             decoration: BoxDecoration(
                               color: AppColors.accentTint,
                               borderRadius: Corners.r(Corners.pill),

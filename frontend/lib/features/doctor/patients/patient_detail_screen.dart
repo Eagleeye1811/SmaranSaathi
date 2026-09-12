@@ -13,8 +13,10 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../l10n/content_labels.dart';
+import '../../chat/doctor_patient_chat_screen.dart';
 import '../../patient/health/report_screen.dart';
+import '../../telehealth/video_consultation_screen.dart';
+import '../../../l10n/content_labels.dart';
 import '../careplan/care_plan_screen.dart';
 import '../consultation/ai_preconsult_screen.dart';
 import '../reports/medical_reports_screen.dart';
@@ -380,16 +382,13 @@ class PatientDetailScreen extends StatelessWidget {
                               children: <Widget>[
                                 const Icon(Icons.medication_outlined, size: 18, color: Color(0xFFD9962B)),
                                 const SizedBox(width: 8),
+                                // Adherence is already a headline figure at
+                                // the top of this screen; repeating it here
+                                // invites a reader to wonder which of the two
+                                // is the real one. This card is about what
+                                // they take.
                                 Expanded(
                                   child: Text(l.doctorDetailMedicationInfo, style: CT.h3.wght(700)),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.success.withValues(alpha: 0.12),
-                                    borderRadius: Corners.r(6),
-                                  ),
-                                  child: Text('${patient.adherence}% on-time', style: CT.caption.wght(700).tint(AppColors.success)),
                                 ),
                               ],
                             ),
@@ -528,6 +527,148 @@ class PatientDetailScreen extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(height: Insets.md),
+
+                    // ── Teleconsultation & Direct Communication Banner ───
+                    FadeInUp(
+                      delayMs: 30,
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.clinicAccent.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.video_camera_front_rounded,
+                                      color: AppColors.clinicAccent, size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
+                                      Text('Telehealth Consultation', style: CT.h3.sized(16)),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Encrypted WebRTC call with live AI Clinical Scribing',
+                                        style: CT.caption,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: Insets.md),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  flex: 3,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.clinicAccent,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.videocam_rounded, color: Colors.white, size: 18),
+                                    label: const Text(
+                                      'Start Video Call',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => VideoConsultationScreen(
+                                            doctorId: 'doc_001',
+                                            patientId: patient.id,
+                                            patientName: patient.name,
+                                            doctorName: 'Dr. Sharma',
+                                            isDoctor: true,
+                                            isSelfTestMode: false,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  flex: 2,
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: AppColors.clinicAccent),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    icon: const Icon(Icons.chat_bubble_outline_rounded,
+                                        color: AppColors.clinicAccent, size: 16),
+                                    label: const Text(
+                                      'Message',
+                                      style: TextStyle(
+                                          color: AppColors.clinicAccent, fontWeight: FontWeight.bold),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => DoctorPatientChatScreen(
+                                            doctorId: 'doc_001',
+                                            patientId: patient.id,
+                                            patientName: patient.name,
+                                            doctorName: 'Dr. Sharma',
+                                            isDoctor: true,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Quick Self-Test Mirror Option
+                            InkWell(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => VideoConsultationScreen(
+                                      doctorId: 'doc_001',
+                                      patientId: patient.id,
+                                      patientName: patient.name,
+                                      doctorName: 'Dr. Sharma',
+                                      isDoctor: true,
+                                      isSelfTestMode: true,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                    const Icon(Icons.stream_rounded, size: 14, color: AppColors.clinicInkSoft),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Test Camera, Audio & AI Scribe (Single Device Mirror)',
+                                      style: CT.caption.sized(11).tint(AppColors.clinicAccent),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: Insets.lg),
 
                     // ── Cognitive profile ───────────────────────────────
@@ -542,19 +683,11 @@ class PatientDetailScreen extends StatelessWidget {
                             const SizedBox(height: 3),
                             Text(patient.profile.updated, style: CT.caption),
                             const SizedBox(height: Insets.md),
-                            Center(
-                              child: RadarChart(
-                                values: <String, int>{
-                                  for (final CognitiveDomain d in CognitiveDomain.values)
-                                    d.localizedLabel(l): patient.profile.score(d),
-                                },
-                                size: 280,
-                                color: AppColors.seriesTeal,
-                              ),
-                            ),
-                            const SizedBox(height: Insets.md),
-                            const Divider(color: AppColors.clinicHairline),
-                            const SizedBox(height: Insets.md),
+                            // The radar chart that used to sit above these
+                            // bars plotted the same six numbers, in a form
+                            // that cannot be read off precisely — a clinician
+                            // comparing 68 against 74 needs the figure, not a
+                            // polygon. One reading of the profile, not two.
                             for (final CognitiveDomain d in CognitiveDomain.values)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 11),
@@ -795,6 +928,104 @@ class PatientDetailScreen extends StatelessWidget {
                         const SizedBox(height: Insets.lg),
                       ],
                     ],
+
+                    // ── Suggested next steps ────────────────────────────
+                    FadeInUp(
+                      delayMs: 190,
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(l.doctorDetailConsiderationsTitle, style: CT.h3),
+                            const SizedBox(height: 10),
+                            for (final String s in _considerations(l, patient))
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 9),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Icon(Icons.circle, size: 6,
+                                        color: AppColors.clinicInkSoft),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Text(s, style: CT.bodySmall)),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── AI Clinical Scribe Consultation History ─────────
+                    FadeInUp(
+                      delayMs: 140,
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                const Icon(Icons.history_edu_rounded,
+                                    color: AppColors.clinicAccent, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text('AI Scribe Consultation Records', style: CT.h3.sized(16)),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    '1 Completed',
+                                    style: TextStyle(
+                                        color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.clinicBackground,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.clinicHairline),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: <Widget>[
+                                      Text('Previous Follow-up Session', style: CT.bodySmall.wght(700)),
+                                      Text('13m duration', style: CT.caption.sized(10.5)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'SOAP Assessment: Mild age-associated cognitive variation. Mood positive. Advised daily morning game routine and vitamin supplementation.',
+                                    style: CT.caption.sized(12),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: <Widget>[
+                                      const Icon(Icons.verified_rounded, size: 14, color: AppColors.clinicAccent),
+                                      const SizedBox(width: 4),
+                                      Text('Doctor Approved & Signed', style: CT.caption.sized(11).tint(AppColors.clinicAccent)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -817,6 +1048,22 @@ class PatientDetailScreen extends StatelessWidget {
     if (list.isEmpty) return 0;
     return list.fold<double>(0, (double a, GameSession s) => a + s.performance.overall) /
         list.length;
+  }
+
+  static List<String> _considerations(AppLocalizations l, ClinicPatient p) {
+    return <String>[
+      if (p.trend == TrendDirection.down)
+        l.doctorDetailConsiderationDecreased,
+      if (p.adherence < 80)
+        l.doctorDetailConsiderationLowAdherence(p.adherence),
+      if (p.engagement < 55)
+        l.doctorDetailConsiderationLowEngagement,
+      if (p.trend == TrendDirection.up)
+        l.doctorDetailConsiderationImproving,
+      if (p.status == ClinicalStatus.followUp)
+        l.doctorDetailConsiderationReviewDue,
+      l.doctorDetailConsiderationFooter,
+    ];
   }
 }
 

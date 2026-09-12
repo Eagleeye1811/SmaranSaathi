@@ -1,6 +1,8 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
@@ -45,3 +47,13 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 async def root_health() -> dict:
     """Unversioned liveness probe — for infra/uptime checks, not clients."""
     return {"status": "ok", "service": settings.app_name}
+
+
+@app.get("/telehealth/test", response_class=HTMLResponse, tags=["telehealth"])
+async def telehealth_browser_test_page():
+    """WebRTC browser testing console to test calls against mobile app."""
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "telehealth_test.html")
+    if os.path.exists(template_path):
+        with open(template_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse(content="<h1>Telehealth test template not found</h1>", status_code=404)

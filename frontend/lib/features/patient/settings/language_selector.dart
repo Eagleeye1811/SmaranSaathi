@@ -7,6 +7,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/locale_controller.dart';
+import 'language_picker_button.dart';
 
 /// The language picker.
 ///
@@ -22,11 +23,13 @@ import '../../../l10n/locale_controller.dart';
 class LanguageSelector extends StatelessWidget {
   const LanguageSelector({super.key});
 
-  static const List<_LanguageOption> _languages = <_LanguageOption>[
-    _LanguageOption(Locale('en'), 'English'),
-    _LanguageOption(Locale('hi'), 'हिन्दी'),
-    _LanguageOption(Locale('as'), 'অসমীয়া'),
-  ];
+  /// Read from `LanguagePickerButton`, so the two controls always offer the
+  /// same languages under the same names.
+  static List<_LanguageOption> get _languages => <_LanguageOption>[
+        for (final ({String code, String name, String englishName}) lang
+            in LanguagePickerButton.languages)
+          _LanguageOption(Locale(lang.code), lang.name),
+      ];
 
   @override
   Widget build(BuildContext context) {

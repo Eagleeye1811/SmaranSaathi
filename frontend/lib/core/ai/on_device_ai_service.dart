@@ -190,7 +190,7 @@ class OnDeviceAiService implements AiService {
         _activityName(best.key, l),
         pronoun,
         best.value.round().toString(),
-        PatientAiContext.domainOf(best.key)?.label.toLowerCase() ?? 'cognitive',
+        PatientAiContext.domainOf(best.key).label.toLowerCase(),
       ));
     }
     final List<GameSession> unaided = context
@@ -312,7 +312,7 @@ class OnDeviceAiService implements AiService {
       return (
         pick,
         '${_activityName(pick, l)} has not been played in the last two weeks, so it '
-            'exercises ${PatientAiContext.domainOf(pick)?.label.toLowerCase() ?? 'cognitive'} work that '
+            'exercises ${PatientAiContext.domainOf(pick).label.toLowerCase()} work that '
             'nothing else has covered recently.'
       );
     }
@@ -690,7 +690,5 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelodyInvitation,
         GameId.weaves => l.aiGameWeavesInvitation,
         GameId.memoryCards => l.aiGameMemoryCardsInvitation,
-        GameId.villageMarket => l.gameVillageMarketTagline,
-        GameId.moodCanvas => l.gameMoodCanvasTagline,
       };
 }
