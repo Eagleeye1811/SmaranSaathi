@@ -62,8 +62,13 @@ flutter:
     - assets/images/
     - .env
     - assets/audio/
+    - assets/audio/meditation/
     - assets/animations/
     - assets/videos/
+    - assets/videos/yoga/
+    - assets/videos/yoga/cat_cow.mp4
+    - assets/videos/yoga/seated_mountain.mp4
+    - assets/videos/yoga/spinal_twist.mp4
     - assets/videos/procedural_test.mp4
     - assets/videos/washing_clothes.mp4
     - assets/videos/splash_screen.mp4

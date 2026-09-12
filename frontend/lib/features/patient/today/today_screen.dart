@@ -65,19 +65,18 @@ class _TodayScreenState extends State<TodayScreen> {
     const IconData notificationIcon = Icons.today_rounded;
     const Color notificationColor = AppColors.primary;
 
-    return MotifBackground(
-      opacity: 0.035,
-      washColors: <Color>[
-        AppColors.primaryTint.withValues(alpha: 0.9),
-        AppColors.background.withValues(alpha: 0),
-      ],
-      child: SafeArea(
-        bottom: false,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Column(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: MotifBackground(
+        opacity: 0.035,
+        washColors: <Color>[
+          AppColors.primaryTint.withValues(alpha: 0.8),
+          AppColors.background.withValues(alpha: 0),
+        ],
+        child: SafeArea(
+          child: Column(
             children: <Widget>[
-              const PatientTopBar(showExit: false),
+              const PatientTopBar(showExit: false, showTodayButton: false),
 
               // ── Interactive Companion Status Card (Zomato/Uber style) ─────────────────────
               Padding(
@@ -234,22 +233,18 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ],
           ),
-          // Icon only, in the bottom-right corner. The circular button is
-          // narrow enough to sit clear of the voice microphone, which floats
-          // centred at the bottom of every patient screen — so it needs no
-          // extra clearance the way the wide labelled version did.
-          //
-          // The label survives as the tooltip and the semantic name, so a
-          // long press still says what it does and a screen reader still
-          // announces it in the patient's own language.
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showAddReminderSheet(context, state),
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 6,
-            tooltip: l.todayCreateReminderButton,
-            child: const Icon(Icons.add_alarm_rounded, size: 28),
-          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddReminderSheet(context, state),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: Corners.r(Corners.pill)),
+        icon: const Icon(Icons.add_rounded, size: 24),
+        label: Text(
+          l.todayCreateReminderButton,
+          style: AppText.body.wght(800).tint(Colors.white),
         ),
       ),
     );
@@ -388,7 +383,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
               onPrimary: Colors.white,
               onSurface: AppColors.ink,
               surface: Colors.white,
-              secondary: AppColors.accent,
+              secondary: AppColors.primary,
             ),
             timePickerTheme: TimePickerThemeData(
               backgroundColor: Colors.white,
@@ -545,13 +540,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: Corners.r(Corners.lg),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isDayTime
-                        ? <Color>[AppColors.accentTint, AppColors.primaryTint]
-                        : <Color>[AppColors.plumTint, AppColors.primaryTint],
-                  ),
+                  color: AppColors.primaryTint,
                   border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
                   boxShadow: AppColors.softShadow(y: 4, blur: 14, opacity: 0.05),
                 ),
@@ -569,7 +558,7 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
                       ),
                       child: Icon(
                         isDayTime ? Icons.wb_sunny_rounded : Icons.nightlight_round,
-                        color: isDayTime ? AppColors.accent : AppColors.secondary,
+                        color: AppColors.primary,
                         size: 28,
                       ),
                     ),
@@ -772,14 +761,8 @@ class _AddReminderSheetState extends State<_AddReminderSheet> {
 
   Widget _categoryCard(ReminderKind kind, String label, String emoji) {
     final bool isSelected = _selectedKind == kind;
-    final Color tintColor = switch (kind) {
-      ReminderKind.medicine   => AppColors.terracotta,
-      ReminderKind.hydration  => AppColors.secondary,
-      ReminderKind.cognitive  => AppColors.primary,
-      ReminderKind.appointment => AppColors.plum,
-      ReminderKind.routine    => AppColors.accent,
-      ReminderKind.social     => AppColors.indigo,
-    };
+    final Color tintColor = AppColors.primary;
+
     return GestureDetector(
       onTap: () => setState(() => _selectedKind = kind),
       child: Container(
