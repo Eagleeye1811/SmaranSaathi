@@ -227,7 +227,7 @@ void main() {
       ('phone', kPhone),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all five tabs · $name', (WidgetTester tester) async {
+      testWidgets('all three tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.doctor);
         await tester.pumpWidget(harness(const DoctorShell(), state: state));
@@ -235,9 +235,7 @@ void main() {
 
         for (final String tab in <String>[
           'Patients',
-          'Analytics',
-          'Alerts',
-          'Profile',
+          'Appointments',
           'Overview',
         ]) {
           await tester.tap(find.text(tab).last);
@@ -254,6 +252,7 @@ void main() {
       );
       await beat(tester, 1200);
       expect(find.text('Patient record'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Cognitive profile'), 300);
       expect(find.text('Cognitive profile'), findsOneWidget);
 
       // Scroll the whole record to force every card through layout.
@@ -426,7 +425,8 @@ void main() {
       for (final String tab in <String>['Activities', 'Companion', 'Profile']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
-        expect(tester.takeException(), isNull, reason: '$tab broke at extra-large text');
+        final dynamic err = tester.takeException();
+        expect(err, isNull, reason: '$tab broke at extra-large text');
       }
     });
   });

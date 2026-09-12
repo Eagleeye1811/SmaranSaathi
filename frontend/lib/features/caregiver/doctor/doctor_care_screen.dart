@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/doctor.dart';
+import '../../../core/services/app_state.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../widgets/caregiver_top_bar.dart';
@@ -96,6 +97,11 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    final List<DoctorAppointment> bookedAppointments = state.doctorAppointments
+        .where((DoctorAppointment a) => a.id.startsWith('apt_'))
+        .toList();
+
     return MotifBackground(
       opacity: 0.04,
       washColors: <Color>[
@@ -156,6 +162,31 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                     ),
                     const SizedBox(height: Insets.lg),
 
+                    // ── Book Consultation from Doctor Slots ─────────────
+                    FadeInUp(
+                      delayMs: 40,
+                      child: _BookAppointmentSection(
+                        doctor: _mockDoctor,
+                        slots: state.doctorSlots,
+                        activeDays: state.doctorActiveDays,
+                        onBookSlot: (DoctorSlot slot, bool isVirtual) {
+                          state.bookAppointmentFromSlot(
+                            slot: slot,
+                            patientName: 'Aama Devi',
+                            patientId: 'p_aama',
+                            isVirtual: isVirtual,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.primary,
+                              content: Text('Appointment booked for ${slot.dayLabel} at ${slot.timeLabel} with Dr. ${_mockDoctor.name}'),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
                     // ── Upcoming appointment ───────────────────────────
                     FadeInUp(
                       delayMs: 60,
@@ -164,6 +195,24 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                         icon: Icons.event_available_rounded,
                       ),
                     ),
+                    for (final DoctorAppointment appt in bookedAppointments) ...<Widget>[
+                      FadeInUp(
+                        delayMs: 70,
+                        child: _AppointmentCard(
+                          appointment: Appointment(
+                            id: appt.id,
+                            doctorId: 'doc_sharma',
+                            doctorName: 'Neha Sharma',
+                            specialization: 'Neurologist',
+                            dateLabel: appt.dateLabel,
+                            timeLabel: appt.timeLabel,
+                            status: AppointmentStatus.upcoming,
+                            isVirtual: appt.isVirtual,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: Insets.md),
+                    ],
                     FadeInUp(
                       delayMs: 80,
                       child: _AppointmentCard(appointment: _upcoming),
@@ -670,6 +719,306 @@ class _ConsultationSummaryCard extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Caregiver booking section exposing the doctor's active availability days
+/// and available consultation slots.
+class _BookAppointmentSection extends StatefulWidget {
+  const _BookAppointmentSection({
+    required this.doctor,
+    required this.slots,
+    required this.activeDays,
+    required this.onBookSlot,
+  });
+
+  final DoctorProfile doctor;
+  final List<DoctorSlot> slots;
+  final Set<String> activeDays;
+  final void Function(DoctorSlot slot, bool isVirtual) onBookSlot;
+
+  @override
+  State<_BookAppointmentSection> createState() => _BookAppointmentSectionState();
+}
+
+class _BookAppointmentSectionState extends State<_BookAppointmentSection> {
+  String? _selectedDay;
+
+  void _openBookingModal(BuildContext context, DoctorSlot slot) {
+    bool isVirtual = true;
+    String reason = 'Routine Cognitive Review';
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext bctx, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.fromLTRB(
+                Insets.lg,
+                Insets.lg,
+                Insets.lg,
+                MediaQuery.of(bctx).viewInsets.bottom + Insets.xl,
+              ),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.hairline,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Confirm Appointment', style: AppText.h3),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Booking with Dr. ${widget.doctor.name} (${widget.doctor.specialization})',
+                    style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceMuted,
+                      borderRadius: Corners.r(Corners.md),
+                      border: Border.all(color: AppColors.hairline),
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        const SoftIcon(
+                          icon: Icons.event_available_rounded,
+                          color: AppColors.primary,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text('${slot.dayLabel} · ${slot.timeLabel}', style: AppText.body.wght(700)),
+                              const SizedBox(height: 2),
+                              Text('Slot set by Dr. ${widget.doctor.name}', style: AppText.caption),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Consultation Type', style: AppText.label),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(Icons.videocam_rounded, size: 16),
+                              SizedBox(width: 6),
+                              Text('Virtual (Video)'),
+                            ],
+                          ),
+                          selected: isVirtual,
+                          selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                          onSelected: (bool sel) {
+                            if (sel) setModalState(() => isVirtual = true);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(Icons.local_hospital_rounded, size: 16),
+                              SizedBox(width: 6),
+                              Text('In-Person'),
+                            ],
+                          ),
+                          selected: !isVirtual,
+                          selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                          onSelected: (bool sel) {
+                            if (sel) setModalState(() => isVirtual = false);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Reason for Consultation', style: AppText.label),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: reason,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: Corners.r(Corners.md)),
+                    ),
+                    items: const <String>[
+                      'Routine Cognitive Review',
+                      'Memory Score Follow-Up',
+                      'Care Plan & Medication Consultation',
+                      'Observation Discussion',
+                    ].map((String r) => DropdownMenuItem<String>(value: r, child: Text(r, style: AppText.bodySmall))).toList(),
+                    onChanged: (String? v) {
+                      if (v != null) setModalState(() => reason = v);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  SoftButton(
+                    label: 'Confirm Booking',
+                    icon: Icons.check_circle_outline_rounded,
+                    color: AppColors.primary,
+                    filled: true,
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      widget.onBookSlot(slot, isVirtual);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<DoctorSlot> availableSlots =
+        widget.slots.where((DoctorSlot s) => !s.isBooked).toList();
+
+    // Group available slots by day
+    final Set<String> daysWithSlots = availableSlots.map((DoctorSlot s) => s.dayLabel).toSet();
+    final String currentDay = (_selectedDay != null && daysWithSlots.contains(_selectedDay))
+        ? _selectedDay!
+        : (daysWithSlots.isNotEmpty ? daysWithSlots.first : '');
+
+    final List<DoctorSlot> daySlots = availableSlots
+        .where((DoctorSlot s) => s.dayLabel == currentDay)
+        .toList();
+
+    return MmCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const SoftIcon(
+                icon: Icons.calendar_month_rounded,
+                color: AppColors.primary,
+                size: 38,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('Book Consultation', style: AppText.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Select from slots set by Dr. ${widget.doctor.name}',
+                      style: AppText.caption,
+                    ),
+                  ],
+                ),
+              ),
+              PillTag(
+                label: '${availableSlots.length} Available',
+                color: AppColors.success,
+                dense: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.md),
+          const Divider(color: AppColors.hairline),
+          const SizedBox(height: Insets.sm),
+          Text("Doctor's Available Days", style: AppText.label),
+          const SizedBox(height: 8),
+          if (daysWithSlots.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Dr. ${widget.doctor.name} has no open slots at the moment. Please check back later.',
+                style: AppText.bodySmall.tint(AppColors.inkMuted),
+              ),
+            )
+          else ...<Widget>[
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: daysWithSlots.map((String day) {
+                  final bool isSel = day == currentDay;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(day),
+                      selected: isSel,
+                      selectedColor: AppColors.primary.withValues(alpha: 0.15),
+                      labelStyle: AppText.caption.wght(isSel ? 700 : 500).tint(
+                            isSel ? AppColors.primary : AppColors.inkMuted,
+                          ),
+                      onSelected: (bool sel) {
+                        if (sel) setState(() => _selectedDay = day);
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+            Text('Available Slots for $currentDay', style: AppText.label),
+            const SizedBox(height: 8),
+            for (final DoctorSlot slot in daySlots) ...<Widget>[
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: Corners.r(Corners.md),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(Icons.access_time_rounded, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(slot.timeLabel, style: AppText.body.wght(600)),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(borderRadius: Corners.r(Corners.sm)),
+                        elevation: 0,
+                      ),
+                      onPressed: () => _openBookingModal(context, slot),
+                      child: const Text('Book', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

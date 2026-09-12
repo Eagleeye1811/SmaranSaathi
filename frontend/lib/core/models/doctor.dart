@@ -122,3 +122,91 @@ class ConsultationSummary {
   final String followUpLabel;
   final String doctorNotes;
 }
+
+// ── Doctor-side appointment (from doctor perspective) ─────────────────────
+
+/// An appointment on the doctor's schedule.
+@immutable
+class DoctorAppointment {
+  const DoctorAppointment({
+    required this.id,
+    required this.patientId,
+    required this.patientName,
+    required this.patientAge,
+    required this.dateLabel,
+    required this.timeLabel,
+    required this.status,
+    this.isVirtual = false,
+    this.doctorNotes = '',
+  });
+
+  final String id;
+  final String patientId;
+  final String patientName;
+  final int patientAge;
+  final String dateLabel;
+  final String timeLabel;
+  final AppointmentStatus status;
+  final bool isVirtual;
+  final String doctorNotes;
+}
+
+/// A time slot the doctor has made available for booking.
+@immutable
+class DoctorSlot {
+  const DoctorSlot({
+    required this.id,
+    required this.dayLabel,
+    required this.timeLabel,
+    this.isBooked = false,
+    this.bookedByPatient = '',
+  });
+
+  final String id;
+  final String dayLabel;
+  final String timeLabel;
+  final bool isBooked;
+  final String bookedByPatient;
+}
+
+/// An incoming connection request from a patient/caregiver.
+@immutable
+class ConnectionRequest {
+  const ConnectionRequest({
+    required this.id,
+    required this.patientName,
+    required this.patientAge,
+    required this.district,
+    required this.requestedByLabel,
+    required this.timeAgo,
+  });
+
+  final String id;
+  final String patientName;
+  final int patientAge;
+  final String district;
+  final String requestedByLabel;
+  final String timeAgo;
+}
+
+/// Doctor-authored care plan for a patient.
+@immutable
+class CarePlanEntry {
+  const CarePlanEntry({
+    required this.patientId,
+    required this.updatedLabel,
+    required this.recommendations,
+    required this.activities,
+    required this.instructions,
+    required this.followUpLabel,
+    this.sharedWithCaregiver = false,
+  });
+
+  final String patientId;
+  final String updatedLabel;
+  final List<String> recommendations;
+  final List<String> activities;
+  final String instructions;
+  final String followUpLabel;
+  final bool sharedWithCaregiver;
+}
