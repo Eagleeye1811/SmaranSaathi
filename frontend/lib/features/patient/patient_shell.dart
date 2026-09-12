@@ -16,14 +16,9 @@ import 'memories/memory_wallet_screen.dart';
 import 'profile/patient_profile_screen.dart';
 import 'safety/return_home_banner.dart';
 import 'today/today_screen.dart';
+import 'wellness/wellness_corner_screen.dart';
 
-/// The patient application: four destinations, large targets, no nesting.
-///
-/// The destinations follow the journey rather than the feature list — where am
-/// I now, what do I do today, where is it heading, who can explain it. The
-/// memory wallet and the daily check-in are still there, reached from the
-/// dashboard, because they support the journey rather than being the point of
-/// it.
+/// The patient application: main destinations, large targets, no nesting.
 class PatientShell extends StatefulWidget {
   const PatientShell({super.key});
 
@@ -35,23 +30,16 @@ class _PatientShellState extends State<PatientShell> {
   int _index = 0;
 
   /// One entry per child of the `IndexedStack` below, **in the same order**.
-  /// `AppNavBar` pairs them by position, so a label out of order silently
-  /// sends people to the wrong screen rather than failing.
   static const List<NavDestination> _destinations = <NavDestination>[
     NavDestination('Home', Icons.home_outlined, Icons.home_rounded),
-    NavDestination('Today', Icons.notifications_outlined, Icons.notifications_rounded),
     NavDestination('Activities', Icons.extension_outlined, Icons.extension_rounded),
+    NavDestination('Wellness', Icons.spa_outlined, Icons.spa_rounded),
     NavDestination('Companion', Icons.forum_outlined, Icons.forum_rounded),
     NavDestination('Profile', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
   void _go(int i) => setState(() => _index = i);
 
-  /// Everywhere a patient can be taken by voice.
-  ///
-  /// Wider than the five tabs: the screens reached *from* the dashboard are
-  /// exactly the ones a patient struggles to find by tapping, so being able to
-  /// simply ask for "my report" is where voice earns its place.
   static const Set<VoiceDestination> _voiceDestinations = <VoiceDestination>{
     VoiceDestination.home,
     VoiceDestination.today,
@@ -66,19 +54,15 @@ class _PatientShellState extends State<PatientShell> {
     VoiceDestination.progress,
   };
 
-  /// Tab switches happen in place; everything else is pushed, which is also
-  /// what makes "go back" meaningful afterwards.
   bool _onVoiceNavigate(VoiceDestination destination) {
     switch (destination) {
       case VoiceDestination.home:
         _go(0);
-      // The Today tab *is* the reminder list, so both names land there rather
-      // than one of them being a dead end.
       case VoiceDestination.today:
       case VoiceDestination.reminders:
-        _go(1);
+        Nav.open(context, const TodayScreen());
       case VoiceDestination.activities:
-        _go(2);
+        _go(1);
       case VoiceDestination.companion:
         _go(3);
       case VoiceDestination.profile:
@@ -102,8 +86,6 @@ class _PatientShellState extends State<PatientShell> {
     final AppState state = AppScope.of(context);
     return Scaffold(
       backgroundColor: state.highContrast ? Colors.white : AppColors.background,
-      // Above the tabs, not inside one: someone who has wandered needs to see
-      // it whichever screen they happen to be on.
       body: ReturnHomeBanner(
         child: VoiceNavHost(
           destinations: _voiceDestinations,
@@ -112,9 +94,17 @@ class _PatientShellState extends State<PatientShell> {
           child: IndexedStack(
             index: _index,
             children: <Widget>[
-              HealthDashboardScreen(onOpenTab: _go),
-              const TodayScreen(),
+              HealthDashboardScreen(onOpenTab: (int tabIndex) {
+                if (tabIndex == 1) {
+                  Nav.open(context, const TodayScreen());
+                } else if (tabIndex > 1) {
+                  _go(tabIndex - 1);
+                } else {
+                  _go(tabIndex);
+                }
+              }),
               const GameHubScreen(),
+              const WellnessCornerScreen(),
               const AssistantScreen(embedded: true),
               const PatientProfileScreen(),
             ],

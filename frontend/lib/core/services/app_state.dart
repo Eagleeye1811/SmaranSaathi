@@ -19,6 +19,7 @@ import '../models/patient.dart';
 import '../models/report.dart';
 import '../models/safety.dart';
 import '../models/settings.dart';
+import '../models/wellness.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
@@ -27,6 +28,7 @@ import 'personalization_service.dart';
 import 'sync_manager.dart';
 
 export '../models/settings.dart' show AppSettings, TextSizePreference, TextSizePreferenceX;
+export '../models/wellness.dart' show WellnessSession, WellnessType, WellnessTypeX;
 
 enum AppRole { none, patient, caregiver, doctor }
 
@@ -457,6 +459,40 @@ class AppState extends ChangeNotifier {
 
     notifyListeners();
     return decision;
+  }
+
+  // ── Wellness Sessions & Recommendation ────────────────────────────────────
+  final List<WellnessSession> _wellnessSessions = <WellnessSession>[];
+  List<WellnessSession> get wellnessSessions => List<WellnessSession>.unmodifiable(_wellnessSessions);
+
+  void recordWellnessSession(WellnessSession session) {
+    _wellnessSessions.insert(0, session);
+    _todayEngagement = math.min(99, _todayEngagement + 5);
+    _write(() async {
+      await _sync.enqueue(SyncOperationKind.gameSession, <String, dynamic>{
+        'patientId': _patient.id,
+        'wellnessType': session.type.name,
+        'title': session.title,
+        'durationSeconds': session.durationSeconds,
+        'timestamp': session.timestamp.toIso8601String(),
+        'postureScore': session.postureScore,
+      });
+    });
+    notifyListeners();
+  }
+
+  String get wellnessRecommendation {
+    if (_wellnessSessions.isEmpty) {
+      return "Saathi suggests a 4-minute gentle Breathing session to start your day with calm.";
+    }
+    final int h = DateTime.now().hour;
+    if (h < 12) {
+      return "Saathi recommends 3 minutes of Tadasana (Mountain Pose) for gentle morning energy.";
+    } else if (h < 18) {
+      return "Saathi suggests 5 minutes of Monsoon Rain calming sounds for a peaceful afternoon.";
+    } else {
+      return "Saathi suggests a 5-minute Guided Sleep Meditation to relax for the evening.";
+    }
   }
 
   /// Saves a finished Mood Check-In: the drawing, and the short guided

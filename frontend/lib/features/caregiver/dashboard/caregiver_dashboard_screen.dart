@@ -273,6 +273,55 @@ class CaregiverDashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: Insets.lg),
 
+                  // ── Wellness & Relaxation Sessions ────────────────────
+                  if (state.wellnessSessions.isNotEmpty) ...<Widget>[
+                    FadeInUp(
+                      delayMs: 210,
+                      child: const SectionHeader(
+                        title: 'Patient Wellness & Relaxation',
+                        icon: Icons.spa_rounded,
+                      ),
+                    ),
+                    FadeInUp(
+                      delayMs: 215,
+                      child: MmCard(
+                        child: Column(
+                          children: <Widget>[
+                            for (int i = 0; i < state.wellnessSessions.take(3).length; i++) ...<Widget>[
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: state.wellnessSessions[i].type.color.withValues(alpha: 0.15),
+                                  child: Icon(
+                                    state.wellnessSessions[i].type.icon,
+                                    color: state.wellnessSessions[i].type.color,
+                                  ),
+                                ),
+                                title: Text(
+                                  state.wellnessSessions[i].title,
+                                  style: AppText.body.wght(700),
+                                ),
+                                subtitle: Text(
+                                  state.wellnessSessions[i].caregiverNote ??
+                                      'Completed session · ${(state.wellnessSessions[i].durationSeconds / 60).toStringAsFixed(1)} min',
+                                  style: AppText.caption.tint(AppColors.inkMuted),
+                                ),
+                                trailing: const Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  color: AppColors.success,
+                                  size: 22,
+                                ),
+                              ),
+                              if (i < state.wellnessSessions.take(3).length - 1)
+                                const Divider(color: AppColors.hairline),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+                  ],
+
                   // ── Reminders ─────────────────────────────────────────
                   FadeInUp(
                     delayMs: 220,
