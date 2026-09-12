@@ -1,12 +1,13 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter/material.dart';
-import 'package:memory_mitra/app/app.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/adaptive_difficulty_service.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
+import 'package:smaran_saathi/app/app.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/adaptive_difficulty_service.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
+import 'package:smaran_saathi/features/auth/patient_sign_in_screen.dart';
 
 /// Walks past the two-second splash.
 ///
@@ -19,9 +20,29 @@ Future<void> passSplash(WidgetTester tester) async {
   }
 }
 
+/// Picks a role and presses the authenticate button beneath the cards.
+///
+/// Choosing a role no longer navigates on its own: the screen takes the role
+/// first and only then tries to authenticate, so every test that used to tap
+/// a card now has two steps.
+Future<void> chooseRole(WidgetTester tester, String role) async {
+  await tester.tap(find.text(role));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+
+  // The button sits under the three cards, below the fold on a handset.
+  final Finder go = find.textContaining('Continue as');
+  await tester.dragUntilVisible(
+      go, find.byType(Scrollable).first, const Offset(0, -120));
+  await tester.pump(const Duration(milliseconds: 200));
+  await tester.tap(go);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 800));
+}
+
 void main() {
   testWidgets('the splash hands over to the welcome screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MemoryMitraApp());
+    await tester.pumpWidget(const SmaranSaathiApp());
     await passSplash(tester);
 
     // What the product is, before anything is asked for.
@@ -34,29 +55,48 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
     expect(find.text('Patient'), findsOneWidget);
     expect(find.text('Caregiver'), findsOneWidget);
     expect(find.text('Doctor'), findsOneWidget);
   });
 
-  testWidgets('selecting Patient starts the structured intake',
+  testWidgets('selecting Caregiver starts the onboarding',
       (WidgetTester tester) async {
-    await tester.pumpWidget(const MemoryMitraApp());
+    await tester.pumpWidget(const SmaranSaathiApp());
     await passSplash(tester);
     await tester.tap(find.text('Get started'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    await tester.tap(find.text('Patient'));
     // The companion breathes forever, so the tree never "settles".
+    await chooseRole(tester, 'Caregiver');
+
+    // Nothing answered yet, so the caregiver lands on consent, not on a
+    // dashboard with nothing behind it.
+    expect(find.text('Before we begin'), findsOneWidget);
+    expect(find.text('Step 1 of 12'), findsOneWidget);
+  });
+
+  testWidgets('selecting Patient asks for their username, not a password',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const SmaranSaathiApp());
+    await passSplash(tester);
+    await tester.tap(find.text('Get started'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    // The patient card is the one role that does not go through the
+    // authenticate button: there is no account for them to sign into, so it
+    // opens the handshake their caregiver approves instead.
+    await tester.tap(find.text('Patient'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    // A person with no completed assessment lands on consent, not on games.
-    expect(find.text('Before we begin'), findsOneWidget);
-    expect(find.text('Step 1 of 8'), findsOneWidget);
-    expect(find.text('Your symptoms'), findsOneWidget);
+    expect(find.byType(PatientSignInScreen), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
+    // Nothing resembling a password is asked of them.
+    expect(find.textContaining('Password'), findsNothing);
   });
 
   testWidgets('the patient shell exposes the monitoring journey',

@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/patient/games/procedure/procedure_game.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/today/today_screen.dart';
-import 'package:memory_mitra/features/patient/widgets/patient_widgets.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/patient/games/procedure/procedure_game.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/features/patient/today/today_screen.dart';
+import 'package:smaran_saathi/features/patient/widgets/patient_widgets.dart';
 
 /// The demo the prototype is presented with, end to end: play an activity, see
 /// it scored, see the difficulty adapt, and see the caregiver's dashboard
@@ -77,23 +77,17 @@ void main() {
 
     await tester.tap(find.text('Show me the steps'));
     await beat(tester);
-    for (int i = 0; i < 8; i++) {
-      final Finder next = find.text('Next step');
-      if (next.evaluate().isEmpty) break;
-      await tester.tap(next);
-      await beat(tester, 400);
-    }
-    await tester.tap(find.text('I am ready'));
+    await tester.tap(find.text('I am ready to build'));
     await beat(tester);
     expect(find.text('THE SEQUENCE SO FAR'), findsOneWidget);
 
-    // The five steps of level 2, "Making tea", in order.
+    // The five steps of level 2, "Washing clothes", in order.
     for (final String step in <String>[
-      'Fill the kettle',
-      'Boil the water',
-      'Add the tea leaves',
-      'Add milk and sugar',
-      'Pour and serve',
+      'Soak in soapy water',
+      'Gently scrub clean',
+      'Rinse with fresh water',
+      'Squeeze excess water',
+      'Hang on clothesline to dry',
     ]) {
       await tapVisible(tester, find.text(step));
     }

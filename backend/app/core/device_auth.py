@@ -1,4 +1,4 @@
-"""Lightweight, backend-issued device tokens for sync requests.
+﻿"""Lightweight, backend-issued device tokens for sync requests.
 
 Deliberately separate from `core/security.py`'s Firebase user auth: the
 Flutter app has no login UI, so it cannot obtain a Firebase ID token, and
@@ -7,7 +7,7 @@ out of scope for this backend-only phase. A device calls `POST
 /api/v1/auth/device` once, gets a signed JWT back, and attaches it as a
 Bearer token to every `/api/v1/sync/operations` call. This is app-level
 device authentication, not per-user identity — it proves "a copy of
-MemoryMitra issued this token", not "this is a specific logged-in person".
+SmaranSaathi issued this token", not "this is a specific logged-in person".
 """
 import time
 import uuid

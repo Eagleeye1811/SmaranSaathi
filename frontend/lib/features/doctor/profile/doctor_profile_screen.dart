@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
@@ -7,6 +8,7 @@ import '../../../core/services/app_state.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
+import '../../intake/welcome_screens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
 import '../widgets/clinic_widgets.dart';
@@ -14,6 +16,22 @@ import '../widgets/clinic_widgets.dart';
 /// Clinician account and platform information.
 class DoctorProfileScreen extends StatelessWidget {
   const DoctorProfileScreen({super.key});
+
+  static Future<void> _logOutDoctor(BuildContext context) async {
+    final AppState state = AppScope.read(context);
+    final AuthService? service = AuthScope.maybeOf(context);
+    await state.signOutAccount();
+    state.setRole(AppRole.none);
+    if (service != null) {
+      try {
+        await service.signOut();
+      } catch (error) {
+        debugPrint('DoctorProfileScreen: sign out failed ($error)');
+      }
+    }
+    if (!context.mounted) return;
+    Nav.rootTo(context, const WelcomeScreen());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -180,8 +198,8 @@ class DoctorProfileScreen extends StatelessWidget {
                 FadeInUp(
                   delayMs: 140,
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.swap_horiz_rounded),
+                    onPressed: () => _logOutDoctor(context),
+                    icon: const Icon(Icons.logout_rounded),
                     label: Text(l.doctorProfileSwitchRole),
                   ),
                 ),
@@ -224,6 +242,7 @@ class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
   @override
   Widget build(BuildContext context) {
     final AuthService? service = _service;
+    final String email = service?.currentUser?.email ?? 'Doctor Account';
     if (service == null) return const SizedBox.shrink();
     final AppLocalizations l = AppLocalizations.of(context);
 
@@ -237,8 +256,8 @@ class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
             future: _me,
             builder: (BuildContext context, AsyncSnapshot<Map<String, dynamic>?> snapshot) {
               final Map<String, dynamic>? me = snapshot.data;
-              final String email = (me?['email'] as String?) ?? service.currentUser?.email ?? '—';
-              final String? role = me?['role'] as String?;
+              final String displayEmail = (me?['email'] as String?) ?? email;
+              final String role = (me?['role'] as String?) ?? 'Doctor';
               return Row(
                 children: <Widget>[
                   Container(
@@ -256,13 +275,13 @@ class _DoctorAccountSectionState extends State<_DoctorAccountSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(l.doctorProfileSignedInAs, style: CT.caption),
-                        Text(email, style: CT.body.wght(700)),
-                        if (role != null) Text(l.doctorProfileRoleValue(role), style: CT.caption),
+                        Text(displayEmail, style: CT.body.wght(700)),
+                        Text(l.doctorProfileRoleValue(role), style: CT.caption),
                       ],
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => service.signOut(),
+                    onPressed: () => DoctorProfileScreen._logOutDoctor(context),
                     icon: const Icon(Icons.logout_rounded, size: 18),
                     label: Text(l.doctorProfileLogOut),
                   ),

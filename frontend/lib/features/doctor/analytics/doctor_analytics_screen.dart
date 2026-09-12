@@ -129,10 +129,12 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                     caption: l.doctorAnalyticsEngagementCaption,
                     child: BarSeriesChart(
                       points: <SeriesPoint>[
+                        // Engagement (how often/how long), not a score — this
+                        // one honestly applies to Mood Canvas too.
                         for (int i = 0; i < MockData.games.length; i++)
                           SeriesPoint(
-                            _short(l, MockData.games[i].name),
-                            const <double>[24, 17, 14, 19, 15, 11][i],
+                            doctorChartLabel(l, MockData.games[i].id),
+                            const <double>[24, 17, 14, 19, 15, 11, 13, 9][i],
                           ),
                       ],
                       color: AppColors.seriesOchre,
@@ -224,20 +226,6 @@ class DoctorAnalyticsScreen extends StatelessWidget {
 
   static int _meanAdherence(List<ClinicPatient> list) =>
       (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
-
-  // Matches against MockData.games' own (English) GameDefinition.name values —
-  // that model layer is out of this screen's scope, so the match keys stay
-  // English. Only the short chart label shown to the user is translated;
-  // reuses the same keys patient_detail_screen.dart's identical helper does.
-  static String _short(AppLocalizations l, String name) => switch (name) {
-        'Procedure Reconstruction' => l.doctorDetailChartProcedure,
-        'Finish the Story' => l.doctorDetailChartStory,
-        'Familiar Place Explorer' => l.doctorDetailChartPlace,
-        'Melody of the Valleys' => l.doctorDetailChartMelody,
-        'Weaves of the Hills' => l.doctorDetailChartWeaves,
-        'NER Memory Cards' => l.doctorDetailChartCards,
-        _ => name,
-      };
 }
 
 class _Card extends StatelessWidget {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -42,10 +42,6 @@ class CaregiverRemindersScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: <Widget>[
-            CaregiverTopBar(
-              title: l.caregiverRemindersTitle,
-              subtitle: l.caregiverSubtitleToday(state.patient.shortName),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -137,7 +133,9 @@ class CaregiverRemindersScreen extends StatelessWidget {
                                   style: AppText.body.wght(800)),
                               const SizedBox(height: 4),
                               Text(
-                                l.caregiverReminderChannelsBody(state.patient.language),
+                                'A large full-screen card on her phone, a spoken prompt from '
+                                'Saathi in ${state.patient.language}, and a note to you if '
+                                'something is missed twice.',
                                 style: AppText.bodySmall,
                               ),
                             ],
@@ -183,7 +181,7 @@ class _KindSection extends StatelessWidget {
             children: <Widget>[
               Text(kind.glyph, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 9),
-              Expanded(child: Text(kind.label, style: AppText.h3)),
+              Expanded(child: Text(kind.localizedLabel(l), style: AppText.h3)),
               PillTag(label: '$done/${reminders.length}', color: color, dense: true),
             ],
           ),

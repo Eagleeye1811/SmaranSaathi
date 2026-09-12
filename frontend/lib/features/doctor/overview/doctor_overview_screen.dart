@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
@@ -366,15 +366,7 @@ class _AlertRow extends StatelessWidget {
           const SizedBox(height: 8),
           Row(
             children: <Widget>[
-              Icon(
-                alert.severity == AlertSeverity.urgent
-                    ? Icons.priority_high_rounded
-                    : alert.severity == AlertSeverity.watch
-                        ? Icons.visibility_rounded
-                        : Icons.info_outline_rounded,
-                size: 13,
-                color: c,
-              ),
+              Icon(severityIcon(alert.severity), size: 13, color: c),
               const SizedBox(width: 5),
               Text(alert.severity.localizedLabel(l),
                   style: AppText.caption.sized(11.5).wght(700).tint(c)),

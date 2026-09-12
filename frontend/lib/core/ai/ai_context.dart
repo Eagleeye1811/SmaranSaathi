@@ -1,10 +1,11 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 import '../models/assessment.dart';
 import '../models/clinical.dart';
 import '../models/daily.dart';
 import '../models/game.dart';
 import '../models/memory_fragment.dart';
+import '../models/onboarding.dart';
 import '../models/patient.dart';
 import '../services/adaptive_difficulty_service.dart';
 import 'ai_models.dart';
@@ -39,6 +40,8 @@ class PatientAiContext {
     this.memoryResurfaceCandidate,
     this.totalSharedMemories = 0,
     this.knownMemories = const <MemoryFragment>[],
+    this.moodCheckInActive = false,
+    this.moodCheckInTurn = 0,
   });
 
   final Patient patient;
@@ -78,7 +81,7 @@ class PatientAiContext {
   // see `AiContextBuilder` — to keep the prompt small.
   final List<ConversationTurn> recentTurns;
 
-  /// How many new-story invitations or resurfacings Mitra may still offer
+  /// How many new-story invitations or resurfacings Saathi may still offer
   /// today (0, 1 or 2) — computed by `AppState.memoryInvitesRemainingToday`,
   /// not here, since the pacing decision belongs with the durable store.
   final int memoryInvitesRemainingToday;
@@ -93,21 +96,41 @@ class PatientAiContext {
   /// How many memories have been shared in total, ever.
   final int totalSharedMemories;
 
-  /// Every story this person has shared with Mitra before, across every past
+  /// Every story this person has shared with Saathi before, across every past
   /// session — not just today's resurface candidate. Capped by the caller
   /// (see `AiContextBuilder`) to keep the prompt bounded as the store grows.
   ///
   /// This exists so recognition works both ways: if the patient brings up
   /// something she has mentioned before, or asks "did I tell you about my
-  /// sister?", Mitra can actually know — without it, every fact she has ever
+  /// sister?", Saathi can actually know — without it, every fact she has ever
   /// shared is invisible the instant it stops being today's one candidate.
   /// The distinction from [memoryResurfaceCandidate] is proactive vs.
-  /// reactive: the system prompt is explicit that Mitra may *recognise* or
+  /// reactive: the system prompt is explicit that Saathi may *recognise* or
   /// *answer from* anything here, but may only *proactively bring up*
   /// [memoryResurfaceCandidate] — otherwise this list would reopen the same
   /// "never turn a memory into a quiz" risk the resurfacing budget exists to
   /// prevent.
   final List<MemoryFragment> knownMemories;
+
+  // ── Mood Check-In ───────────────────────────────────────────────────────
+  //
+  // Set only while the patient is inside the guided Mood Check-In
+  // conversation (see `MoodCheckInScreen`) — every other call into `ask()`
+  // leaves these at their defaults. When active, the assistant narrows to
+  // one caring follow-up question at a time about how the patient feels,
+  // instead of its usual schedule/reminders/companionship range, and reports
+  // back when it judges the check-in complete — see the "MOOD CHECK-IN MODE"
+  // section of `GeminiAiService._assistantSystem` and the equivalent branch
+  // in `OnDeviceAiService.ask`.
+
+  /// True for every turn of the check-in conversation, from the patient's
+  /// first answer to the closing message.
+  final bool moodCheckInActive;
+
+  /// How many of the patient's answers this check-in has already received —
+  /// 0 for the very first one. Used so the model (and the on-device fallback)
+  /// know when to stop asking and wrap up, rather than running indefinitely.
+  final int moodCheckInTurn;
 
   // ── Derived signals ────────────────────────────────────────────────────
 
@@ -218,6 +241,20 @@ class PatientAiContext {
       'sleepQuality': intake.medical.sleepQuality?.name,
       'sleepHours': intake.medical.sleepHours,
       'lowMood': intake.medical.lowMood?.name,
+      // The strengths half of the onboarding. This is the part that actually
+      // changes what the companion says: a question built from what someone
+      // still enjoys lands as interest, and the same question built from a
+      // deficit list lands as a test.
+      'stillEnjoys': <String>[
+        for (final EnjoyedActivity e in intake.onboarding.enjoys) e.reportLabel,
+      ],
+      if (intake.onboarding.stillDoesWell.trim().isNotEmpty)
+        'stillDoesWell': intake.onboarding.stillDoesWell.trim(),
+      // What the family asked for, so the companion's suggestions answer their
+      // priorities rather than the product's.
+      'familyAskedForHelpWith': <String>[
+        for (final SupportGoal g in intake.onboarding.goals) g.reportLabel,
+      ],
       if (!redacted) 'hasCaregiver': intake.caregiver != null,
     };
   }
@@ -284,7 +321,7 @@ class PatientAiContext {
             e.key.name: <String, dynamic>{
               'accuracy': e.value.round(),
               'level': levelOf(e.key),
-              'domain': _domainOf(e.key).name,
+              'domain': _domainOf(e.key)?.name,
               'levelMeaning': AdaptiveDifficultyService.levelDescription(e.key, levelOf(e.key)),
             },
         },
@@ -316,8 +353,12 @@ class PatientAiContext {
       'conversation': <String, dynamic>{
         'recentTurns': <Map<String, String>>[
           for (final ConversationTurn t in recentTurns)
-            <String, String>{'from': t.fromUser ? 'patient' : 'mitra', 'text': t.text},
+            <String, String>{'from': t.fromUser ? 'patient' : 'Saathi', 'text': t.text},
         ],
+        'moodCheckIn': <String, dynamic>{
+          'active': moodCheckInActive,
+          'turnNumber': moodCheckInTurn,
+        },
       },
       'memoryCompanion': <String, dynamic>{
         'totalSharedMemories': totalSharedMemories,
@@ -352,7 +393,11 @@ class PatientAiContext {
   /// The domain an activity exercises, from the one canonical map in
   /// `models/game.dart`. This used to be a second copy here, and the copy
   /// disagreed — it filed the attention activity under memory.
-  static CognitiveDomain _domainOf(GameId id) => GameDomains.of(id);
+  ///
+  /// `null` for an activity with no cognitive-domain claim at all (Mood
+  /// Canvas) — in practice this is never actually reached for it, since it
+  /// never appears in a scored session that these callers iterate.
+  static CognitiveDomain? _domainOf(GameId id) => GameDomains.of(id);
 
-  static CognitiveDomain domainOf(GameId id) => _domainOf(id);
+  static CognitiveDomain? domainOf(GameId id) => _domainOf(id);
 }

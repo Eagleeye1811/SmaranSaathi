@@ -217,6 +217,12 @@ Color severityColor(AlertSeverity s) => switch (s) {
       AlertSeverity.urgent => AppColors.danger,
     };
 
+IconData severityIcon(AlertSeverity s) => switch (s) {
+      AlertSeverity.info => Icons.info_outline_rounded,
+      AlertSeverity.watch => Icons.visibility_rounded,
+      AlertSeverity.urgent => Icons.priority_high_rounded,
+    };
+
 /// Status chip that always pairs colour with an icon and a word, never colour
 /// alone.
 class StatusChip extends StatelessWidget {

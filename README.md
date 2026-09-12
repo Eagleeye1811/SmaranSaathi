@@ -1,6 +1,6 @@
-<div align="center">
+﻿<div align="center">
 
-# MemoryMitra
+# SmaranSaathi
 
 **From the first memory concern to clinician-ready insight.**
 
@@ -26,7 +26,7 @@ see a doctor? Meanwhile the clinician, when they are finally reached, gets
 fifteen minutes and a single snapshot of a person they have never measured
 before.
 
-MemoryMitra exists for that gap. It is **not a game app with a chart on top**:
+SmaranSaathi exists for that gap. It is **not a game app with a chart on top**:
 the six cognitive activities are one input among several, and the product is
 the **longitudinal cognitive health profile** they feed.
 
@@ -114,11 +114,11 @@ Location: Jorhat, Assam     → dhol, pepa and gogona replace generic tones
 Language: Assamese          → content and spoken prompts in her language
 ```
 
-### Mitra, the companion
+### Saathi, the companion
 
 A single character present through the whole patient experience, with seven
 emotional states — idle, happy, thinking, encouraging, celebrating, listening and
-gentle. Mitra breathes, blinks and reacts, and is the voice of every prompt,
+gentle. Saathi breathes, blinks and reacts, and is the voice of every prompt,
 every recommendation and every piece of feedback. The patient is never addressed
 by an interface; they are addressed by someone.
 
@@ -366,10 +366,10 @@ Firebase Hosting, or any object store. If it is served from a subdirectory
 rather than the domain root, pass the path at build time:
 
 ```bash
-flutter build web --release --base-href /memory-mitra/
+flutter build web --release --base-href /memory-Saathi/
 ```
 
-It is also installable: `frontend/web/manifest.json` declares MemoryMitra as a PWA, so a
+It is also installable: `frontend/web/manifest.json` declares SmaranSaathi as a PWA, so a
 caregiver can add it to a phone home screen and open it full-screen. Because a
 mouse is the primary pointer on desktop, `_AppScrollBehavior` in
 `frontend/lib/app/app.dart` lets mouse drags scroll every list and the onboarding
@@ -500,7 +500,7 @@ frontend/lib/
 │   │   ├── adaptive_difficulty_service.dart
 │   │   └── personalization_service.dart
 │   └── widgets/
-│       ├── companion.dart              Mitra — seven states, three controllers
+│       ├── companion.dart              Saathi — seven states, three controllers
 │       ├── illustration.dart           24 vector scenes
 │       ├── motifs.dart                 woven backgrounds and textile tiles
 │       ├── charts.dart                 trend · bar · radar · sparkline · week strip
@@ -643,14 +643,6 @@ The suite covers five layers:
   send staying retryable, and settings, reminders, profile and cognitive scores
   round-tripping.
 
-To render every screen for design review:
-
-```bash
-flutter test test_goldens --update-goldens
-```
-
-Output lands in `test_goldens/goldens/`.
-
 ---
 
 ## Roadmap
@@ -671,7 +663,7 @@ Output lands in `test_goldens/goldens/`.
 
 ## Clinical note
 
-MemoryMitra provides cognitive activity and performance insights to support
+SmaranSaathi provides cognitive activity and performance insights to support
 patients, caregivers and clinicians. **It is not a diagnostic tool and does not
 detect, diagnose or treat dementia.** Scores describe in-app activity performance
 only and are intended to be read alongside clinical assessment, never in place
@@ -695,6 +687,6 @@ care decision.
 
 <div align="center">
 
-**MemoryMitra** — because a person is more than their diagnosis.
+**SmaranSaathi** — because a person is more than their diagnosis.
 
 </div>

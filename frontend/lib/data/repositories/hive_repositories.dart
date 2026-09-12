@@ -6,6 +6,7 @@ import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
 import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
+import '../../core/models/mood_drawing.dart';
 import '../../core/models/patient.dart';
 import '../../core/models/settings.dart';
 import '../local/hive_store.dart';
@@ -39,9 +40,13 @@ class HivePatientRepository implements PatientRepository {
   @override
   Future<Patient?> current() async => _store.patients.get(_key);
 
+  /// Falls back to a *blank* profile, never to the sample one. Returning
+  /// `MockData.aama` here is what used to make a fresh install open on
+  /// somebody else's name and family: nothing had been saved yet, so every
+  /// read came back as her.
   @override
   Future<Patient> load(String id) async =>
-      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.aama;
+      _store.patients.get(id) ?? _store.patients.get(_key) ?? MockData.emptyPatient;
 
   @override
   Future<Patient?> byId(String id) async => _store.patients.get(id);
@@ -365,6 +370,55 @@ class HiveMemoryFragmentRepository implements MemoryFragmentRepository {
   }
 }
 
+/// Same `patientId|key` scoping as [HiveGameRepository], so two accounts on
+/// one device keep separate drawings.
+class HiveMoodDrawingRepository implements MoodDrawingRepository {
+  HiveMoodDrawingRepository(this._store);
+
+  final HiveStore _store;
+
+  static String _scoped(String patientId, String id) => '$patientId|$id';
+  static bool _belongsTo(String patientId, String key) => key.startsWith('$patientId|');
+
+  @override
+  Future<List<MoodDrawing>> all(String patientId) async {
+    // Ids are microsecond timestamps, so a plain descending sort of the keys
+    // is newest-first without reading every row to compare a field.
+    final List<String> keys = _store.moodDrawings.keys
+        .cast<String>()
+        .where((String k) => _belongsTo(patientId, k))
+        .toList()
+      ..sort((String a, String b) => b.compareTo(a));
+    return <MoodDrawing>[
+      for (final String k in keys)
+        if (_store.moodDrawings.get(k) != null) _store.moodDrawings.get(k)!,
+    ];
+  }
+
+  @override
+  Future<MoodDrawing> add(String patientId, MoodDrawing drawing) async {
+    await _store.moodDrawings.put(_scoped(patientId, drawing.id), drawing);
+    return drawing;
+  }
+
+  @override
+  Future<void> addDoctorNote(
+    String patientId,
+    String drawingId,
+    String note, {
+    required String notedBy,
+    required String notedAtIso,
+  }) async {
+    final String key = _scoped(patientId, drawingId);
+    final MoodDrawing? existing = _store.moodDrawings.get(key);
+    if (existing == null) return;
+    await _store.moodDrawings.put(
+      key,
+      existing.copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso),
+    );
+  }
+}
+
 class HiveSettingsRepository implements SettingsRepository {
   HiveSettingsRepository(this._store);
 
@@ -387,6 +441,8 @@ class HiveSettingsRepository implements SettingsRepository {
       lastAccountId: b.get('lastAccountId') as String?,
       safeZoneJson: b.get('safeZone') as String?,
       localeCode: b.get('localeCode') as String?,
+      patientUsername: b.get('patientUsername') as String?,
+      accountRolesJson: b.get('accountRoles') as String?,
     );
   }
 
@@ -402,6 +458,8 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.lastAccountId != null) 'lastAccountId': settings.lastAccountId,
       if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
       if (settings.localeCode != null) 'localeCode': settings.localeCode,
+      if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
+      if (settings.accountRolesJson != null) 'accountRoles': settings.accountRolesJson,
     });
     // A null account means "signed out", which has to *remove* the key —
     // skipping the write would leave the previous uid in the box and reopen

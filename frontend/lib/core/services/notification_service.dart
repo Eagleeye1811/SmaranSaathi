@@ -110,7 +110,7 @@ class LocalNotificationService {
       final String companionNote = switch (reminder.kind) {
         ReminderKind.medicine => 'Time for your medicine to stay healthy!',
         ReminderKind.hydration => 'Time for a fresh glass of water!',
-        ReminderKind.cognitive => 'Mitra is ready for your daily brain activity!',
+        ReminderKind.cognitive => 'Saathi is ready for your daily brain activity!',
         ReminderKind.appointment => 'You have an important appointment scheduled.',
         ReminderKind.routine => 'Time for your daily routine activity.',
         ReminderKind.social => 'Time to connect with family or friends!',
@@ -121,7 +121,7 @@ class LocalNotificationService {
       showPopUpNotification(
         id: reminder.id.hashCode,
         title: '🌸 $glyph ${reminder.title} (${reminder.time})',
-        body: 'Namaste! Mitra here.\n$companionNote$detail',
+        body: 'Namaste! Saathi here.\n$companionNote$detail',
       );
     });
   }

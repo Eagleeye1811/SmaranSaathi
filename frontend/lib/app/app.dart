@@ -1,4 +1,4 @@
-import 'package:flutter/gestures.dart';
+﻿import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../core/services/app_state.dart';
@@ -7,18 +7,19 @@ import '../l10n/app_localizations.dart';
 import '../l10n/locale_controller.dart';
 import '../features/intake/welcome_screens.dart';
 
-import '../features/patient/patient_entry.dart';
+import '../features/patient/patient_shell.dart';
+import '../features/auth/auth_role_screen.dart';
 import '../features/auth/splash_screen.dart';
 
-import '../features/caregiver/caregiver_shell.dart';
+import '../features/caregiver/caregiver_entry.dart';
 import '../features/doctor/doctor_shell.dart';
 import 'theme/app_theme.dart';
 
-class MemoryMitraApp extends StatefulWidget {
-  const MemoryMitraApp({super.key, this.state, this.authService});
+class SmaranSaathiApp extends StatefulWidget {
+  const SmaranSaathiApp({super.key, this.state, this.authService});
 
   /// A pre-built, already-hydrated state. `main` passes the persistent one;
-  /// tests and `const MemoryMitraApp()` fall back to an in-memory session.
+  /// tests and `const SmaranSaathiApp()` fall back to an in-memory session.
   final AppState? state;
 
   /// The active auth service, published to the tree through an `AuthScope`.
@@ -27,15 +28,15 @@ class MemoryMitraApp extends StatefulWidget {
   /// reached from the welcome screen (`WelcomeScreen.continueFrom`) so the
   /// person sees what the product is before being asked for an email. `main`
   /// passes a real `FirebaseAuthService` once Firebase has initialised; every
-  /// test and `const MemoryMitraApp()` gets `null`, and the sign-in step is
+  /// test and `const SmaranSaathiApp()` gets `null`, and the sign-in step is
   /// then skipped entirely. See `core/services/auth_service.dart`.
   final AuthService? authService;
 
   @override
-  State<MemoryMitraApp> createState() => _MemoryMitraAppState();
+  State<SmaranSaathiApp> createState() => _SmaranSaathiAppState();
 }
 
-class _MemoryMitraAppState extends State<MemoryMitraApp> {
+class _SmaranSaathiAppState extends State<SmaranSaathiApp> {
   late final AppState _state = widget.state ?? AppState();
 
   /// Only a state this widget created is ours to dispose.
@@ -55,7 +56,8 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
   late final LocaleController _locale =
       LocaleController(initial: _state.localeCode == null ? null : Locale(_state.localeCode!));
 
-  /// Lets a demo boot straight into one role, skipping the role picker:
+  /// Lets a demo boot straight into one role, skipping the greeting and the
+  /// authentication screen:
   ///
   ///     flutter run --dart-define=MM_START=patient
   ///
@@ -77,29 +79,36 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
 
   Widget get _home {
     return switch (_startRole) {
-      'patient' => const PatientEntry(),
-      'caregiver' => const CaregiverShell(),
+      'patient' => const PatientShell(),
+      'caregiver' => const CaregiverEntry(),
       'doctor' => const DoctorShell(),
-      // Everyone else starts at the splash. Where it goes next depends on
-      // whether there is a session to return to — `MM_START` skips both, so a
-      // kiosk build and the test suite are unaffected.
+      // Everyone else starts at the splash, then the greeting. Where that
+      // goes next depends on whether there is a session to return to —
+      // `MM_START` skips all of it, so a kiosk build and the test suite are
+      // unaffected.
       _ => SplashScreen(next: _afterSplash),
     };
   }
 
   /// Where a launch lands once the splash is done.
   ///
-  /// A signed-in person with a role already chosen goes straight to their own
-  /// app: `main` has bound their account and loaded their record before the
-  /// first frame, and `PatientEntry` then decides between the questionnaire
-  /// and the dashboard from what they have actually answered. Everyone else
-  /// gets the welcome screen, which explains the product before asking for an
-  /// email.
-  Widget get _afterSplash => _state.accountId == null
-      ? const WelcomeScreen()
-      // Signed in but never picked a role lands on the picker — one question,
-      // not the whole journey again.
-      : WelcomeScreen.sessionHome(_state);
+  /// A person with a role already chosen goes straight to their own app:
+  /// `main` has bound their account and loaded their record before the first
+  /// frame, and `CaregiverEntry` then decides between the onboarding and the
+  /// dashboard from what they have actually answered.
+  ///
+  /// The test is the *role*, not the account. Gating this on `accountId`
+  /// meant anyone whose session could not be re-bound at launch — no network,
+  /// a build with no Firebase, or someone who chose "continue without an
+  /// account" — was sent back through the greeting and the role picker on
+  /// every single launch, even though the app knew perfectly well who they
+  /// were. A signed-in account with no role yet still gets asked the one
+  /// question it cannot answer for them; only a genuinely fresh device sees
+  /// the greeting.
+  Widget get _afterSplash {
+    if (_state.canResumeSession) return WelcomeScreen.sessionHome(_state);
+    return _state.accountId == null ? const WelcomeScreen() : const AuthRoleScreen();
+  }
 
   @override
   void dispose() {
@@ -129,7 +138,7 @@ class _MemoryMitraAppState extends State<MemoryMitraApp> {
           animation: Listenable.merge(<Listenable>[_state, _locale]),
           builder: (BuildContext context, _) {
             return MaterialApp(
-              title: 'MemoryMitra',
+              title: 'SmaranSaathi',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.warm(highContrast: _state.highContrast),
               scrollBehavior: const _AppScrollBehavior(),

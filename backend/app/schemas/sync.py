@@ -6,9 +6,10 @@ stays a loose `Dict[str, Any]` at the top level (it's whatever the queued
 `PendingOperation` carried); `sync_service.py` re-validates it against the
 matching payload schema below once `kind` is known.
 """
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from app.models.common import APIModel
+from app.models.patient import FamilyMember, LifeMemory, MemoryAsset, RoutineItem
 
 SyncOperationKind = Literal[
     "gameSession",
@@ -75,9 +76,34 @@ class ReminderTogglePayload(APIModel):
 
 
 class ProfileUpdatePayload(APIModel):
+    """The person's profile as the app holds it.
+
+    Every field past `patient_id` is optional so that a small edit — a phone
+    number, a name — stays a small payload. A full push sends everything, and
+    `sync_service` applies only what was actually sent: that is what makes the
+    profile reconstructable on a second device without a partial write from
+    one screen wiping the answers given on another.
+    """
+
     patient_id: str
     name: Optional[str] = None
+    short_name: Optional[str] = None
+    age: Optional[int] = None
+    location: Optional[str] = None
+    language: Optional[str] = None
+    occupation: Optional[str] = None
+    favourite_activity: Optional[str] = None
+    favourite_food: Optional[str] = None
+    favourite_music: Optional[str] = None
+    tradition: Optional[str] = None
+    portrait_scene: Optional[str] = None
+    stage_note: Optional[str] = None
+    joined_on: Optional[str] = None
     phone_number: Optional[str] = None
+    family: Optional[List[FamilyMember]] = None
+    memories: Optional[List[LifeMemory]] = None
+    assets: Optional[List[MemoryAsset]] = None
+    routine: Optional[List[RoutineItem]] = None
 
 
 
@@ -126,3 +152,22 @@ class ReminderCreatePayload(APIModel):
     patient_id: str
     reminder: SyncReminderPayload
 
+
+
+class RestoreBundle(APIModel):
+    """Everything a second device needs to become this patient.
+
+    One response rather than five calls: a device coming online for the first
+    time should either have the whole record or none of it, and five separate
+    requests can half-succeed on a rural connection and leave a profile that
+    looks complete but is missing its history.
+    """
+
+    patient_id: str
+    patient: Optional[Dict[str, Any]] = None
+    intake: Optional[Dict[str, Any]] = None
+    baseline: Optional[Dict[str, Any]] = None
+    sessions: List[Dict[str, Any]] = []
+    reminders: List[Dict[str, Any]] = []
+    journal: List[Dict[str, Any]] = []
+    mood: Optional[str] = None

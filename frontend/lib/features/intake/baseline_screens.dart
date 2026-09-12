@@ -249,7 +249,9 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
         : AppState.baselinePlan[day];
     final List<GameId> remaining = state.baselineTodayRemaining;
     final int done = today.length - remaining.length;
-    final int totalDone = GameId.values.length - state.baselineRemaining.length;
+    final int baselineTotal =
+        AppState.baselinePlan.fold(0, (int sum, List<GameId> day) => sum + day.length);
+    final int totalDone = baselineTotal - state.baselineRemaining.length;
 
     return IntakeScaffold(
       eyebrow: l.intakeBaselineDayOfTotal(
@@ -278,9 +280,11 @@ class _BaselineSessionScreenState extends State<BaselineSessionScreen> {
           state: done == 0 ? CompanionState.encouraging : CompanionState.celebrating,
         ),
         const SizedBox(height: Insets.lg),
-        MeterBar(value: totalDone / GameId.values.length, height: 10),
+        MeterBar(value: totalDone / baselineTotal, height: 10),
         const SizedBox(height: 6),
-        Text(l.intakeBaselineTotalProgress(totalDone, GameId.values.length),
+        Text(
+            l.intakeBaselineTotalProgress(
+                totalDone, baselineTotal, AppState.baselinePlan.length),
             style: AppText.caption),
         if (_error != null) ...<Widget>[
           const SizedBox(height: Insets.md),
@@ -345,12 +349,16 @@ class _ActivityRow extends StatelessWidget {
       color: done ? AppColors.successTint : AppColors.surface,
       child: ListRow(
         leading: SoftIcon(
-          icon: done ? Icons.check_rounded : game.domain.icon,
+          // The baseline plan never includes an activity with no domain, so
+          // this fallback is unreachable in practice — kept only so the type
+          // checker doesn't need `game.domain` to be non-null everywhere.
+          icon: done ? Icons.check_rounded : (game.domain?.icon ?? Icons.brush_rounded),
           color: done ? AppColors.success : game.accent,
           background: done ? AppColors.successTint : game.tint,
         ),
         title: game.localizedName(l),
-        subtitle: l.intakeBaselineActivityMinutes(game.domain.clinicalLabel, game.estimatedMinutes),
+        subtitle: l.intakeBaselineActivityMinutes(
+            game.domain?.clinicalLabel ?? game.tagline, game.estimatedMinutes),
         trailing: done
             ? PillTag(label: l.intakeBaselineDone, color: AppColors.success, dense: true)
             : const Icon(Icons.chevron_right_rounded, color: AppColors.inkMuted),

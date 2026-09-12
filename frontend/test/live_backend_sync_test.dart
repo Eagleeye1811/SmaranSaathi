@@ -1,16 +1,16 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_ce/hive.dart';
 
-import 'package:memory_mitra/core/models/daily.dart';
-import 'package:memory_mitra/core/models/game.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/services/connectivity_service.dart';
-import 'package:memory_mitra/core/services/http_sync_transport.dart';
-import 'package:memory_mitra/data/local/hive_store.dart';
-import 'package:memory_mitra/data/local/sync_operation.dart';
-import 'package:memory_mitra/data/repositories/hive_repositories.dart';
+import 'package:smaran_saathi/core/models/daily.dart';
+import 'package:smaran_saathi/core/models/game.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/connectivity_service.dart';
+import 'package:smaran_saathi/core/services/http_sync_transport.dart';
+import 'package:smaran_saathi/data/local/hive_store.dart';
+import 'package:smaran_saathi/data/local/sync_operation.dart';
+import 'package:smaran_saathi/data/repositories/hive_repositories.dart';
 
 /// The real thing, end to end, against a live backend — not a mock, not
 /// `LoopbackTransport`. Run the backend first:

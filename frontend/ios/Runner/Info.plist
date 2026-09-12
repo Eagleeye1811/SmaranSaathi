@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -7,13 +7,13 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>MemoryMitra shows where you are on the map so your caregiver can keep you safe, and gently guides you home if you wander outside your safe zone.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>MemoryMitra uses the microphone so you can talk to Mitra and ask about your day.</string>
+	<string>SmaranSaathi uses the microphone so you can Talk to Saathi and ask about your day.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>MemoryMitra turns what you say into words so Mitra can answer your questions.</string>
+	<string>SmaranSaathi turns what you say into words so Saathi can answer your questions.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Memory Mitra</string>
+	<string>SmaranSaathi</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,7 +21,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>memory_mitra</string>
+	<string>smaran_saathi</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -53,5 +53,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose photographs of family and familiar places, so activities can show faces and scenes the person recognises.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Take a photograph of family or a familiar place to add to the memory profile.</string>
 </dict>
 </plist>

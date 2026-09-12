@@ -3,16 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/core/models/auth_user.dart';
-import 'package:memory_mitra/core/services/auth_service.dart';
-import 'package:memory_mitra/app/app.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/auth/sign_in_screen.dart';
-import 'package:memory_mitra/features/auth/role_selection_screen.dart';
-import 'package:memory_mitra/features/intake/welcome_screens.dart';
-import 'package:memory_mitra/features/patient/profile/patient_profile_screen.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-import 'package:memory_mitra/app/theme/app_theme.dart';
+import 'package:smaran_saathi/app/app.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/auth_user.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/auth_service.dart';
+import 'package:smaran_saathi/features/auth/auth_role_screen.dart';
+import 'package:smaran_saathi/features/auth/sign_in_screen.dart';
+import 'package:smaran_saathi/features/intake/welcome_screens.dart';
+import 'package:smaran_saathi/features/patient/profile/patient_profile_screen.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
 
 /// A fake, in-memory `AuthService` — the same "swap the real thing for a
 /// controllable fake" pattern already used for `ConnectivityService`
@@ -161,7 +161,7 @@ void main() {
 
   // ── Sign-in as a step in the journey, not a gate in front of it ─────────
 
-  testWidgets('the welcome screen routes into sign-in and on to role selection',
+  testWidgets('the greeting routes into the authentication screen, and sign-in from there',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;
@@ -183,12 +183,30 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 600));
 
-    // The welcome screen comes first — nobody is asked for an email before
-    // being told what the product is.
+    // The greeting comes first — nobody is asked for an email before being
+    // told what the product is.
     expect(find.text('Get started'), findsOneWidget);
-    expect(find.text('Sign in'), findsNothing);
+    expect(find.byType(SignInScreen), findsNothing);
 
     await tester.tap(find.text('Get started'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // The authentication screen: the account is an offer at the top, and the
+    // three roles are the choice that actually moves you on.
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
+    expect(find.text('Caregiver'), findsOneWidget);
+    expect(find.byType(SignInScreen), findsNothing);
+
+    // The role comes first; authenticating is what the button does next.
+    await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
+    await tester.dragUntilVisible(
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(SignInScreen), findsOneWidget);
@@ -202,10 +220,18 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
     }
 
-    // Signed in, the assessment is bound to the uid, and the journey continues.
+    // Bound to the uid, and carried straight into the role that was chosen
+    // before the form — the point of taking the role first is that the app
+    // never has to ask "and now where?" once you are in.
     expect(state.accountId, 'fake-uid');
     expect(find.byType(SignInScreen), findsNothing);
-    expect(find.text('Welcome to MemoryMitra'), findsOneWidget);
+    expect(state.role, AppRole.caregiver);
+
+    // Into their app, not into the questionnaire. Proving who you are should
+    // not be immediately followed by fifteen screens of questions — the
+    // dashboard offers the onboarding instead, and keeps offering it.
+    expect(find.text('Before we begin'), findsNothing);
+    expect(find.text('Finish setting up'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',
@@ -252,7 +278,7 @@ void main() {
     final AppState state = AppState();
     addTearDown(state.dispose);
 
-    await tester.pumpWidget(MemoryMitraApp(state: state, authService: auth));
+    await tester.pumpWidget(SmaranSaathiApp(state: state, authService: auth));
     for (int i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 500));
     }
@@ -264,8 +290,22 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
+    // The authentication screen is reached, and it can see the AuthScope
+    // through the push — otherwise choosing a role would skip sign-in.
+    expect(find.text('Welcome to SmaranSaathi'), findsOneWidget);
+    await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
+    await tester.dragUntilVisible(
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
     expect(find.byType(SignInScreen), findsOneWidget,
-        reason: 'the welcome screen must see the AuthScope through the push');
+        reason: 'the authentication screen must see the AuthScope through the push');
   });
 
   group('Google sign-in', () {
@@ -338,24 +378,22 @@ void main() {
     });
   });
 
-  testWidgets('sign-in can be skipped, and the journey still works',
+  testWidgets('a role can be chosen without an account, and the journey still works',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(393, 852) * 3;
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final FakeAuthService auth = FakeAuthService();
+    // No AuthScope at all — a build with no Firebase configured, which is the
+    // real "no account" case rather than a simulated one.
     final AppState state = AppState();
     addTearDown(state.dispose);
 
     await tester.pumpWidget(
       AppScope(
         state: state,
-        child: AuthScope(
-          authService: auth,
-          child: const MaterialApp(home: WelcomeScreen()),
-        ),
+        child: const MaterialApp(home: WelcomeScreen()),
       ),
     );
     await tester.pump(const Duration(milliseconds: 600));
@@ -363,29 +401,35 @@ void main() {
     await tester.tap(find.text('Get started'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
-    expect(find.byType(SignInScreen), findsOneWidget);
 
+    // Nothing stands between the greeting and the role: every screen in the
+    // app works with no account at all, so the button continues straight
+    // through rather than stranding someone in front of a form that cannot
+    // succeed.
+    expect(find.byType(SignInScreen), findsNothing);
+    await tester.tap(find.text('Caregiver'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final Finder go = find.textContaining('Continue as');
     await tester.dragUntilVisible(
-      find.text('Continue without an account'),
-      find.byType(Scrollable).first,
-      const Offset(0, -120),
-    );
-    await tester.tap(find.text('Continue without an account'));
+        go, find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(go);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
     // On to the journey, with the assessment left unbound rather than filed
     // under someone else's uid.
-    expect(find.byType(SignInScreen), findsNothing);
+    expect(find.text('Before we begin'), findsOneWidget);
+    expect(state.role, AppRole.caregiver);
     expect(state.accountId, isNull);
-    expect(auth.currentUser, isNull);
   });
 
-  group('there is always a way back to the role picker', () {
+  group('there is always a way back to the authentication screen', () {
     // A plain `test`, not `testWidgets`: `signInAccount` awaits repository
     // reads, and inside testWidgets' fake async those futures only complete
     // while the tester pumps.
-    test('signing out clears the role, so the picker is reachable', () async {
+    test('signing out clears the role, so the authentication screen is reachable', () async {
       final AppState state = AppState();
       addTearDown(state.dispose);
       // The real order: sign in, then choose a role. (A fresh uid with no
@@ -398,13 +442,13 @@ void main() {
       await state.signOutAccount();
 
       // The role went with the account. Without this, `sessionHome` sent the
-      // next sign-in straight back into the patient app and the role picker
-      // could never be reached again.
+      // next sign-in straight back into the patient app and the role could
+      // never be chosen again.
       expect(state.role, AppRole.none);
-      expect(WelcomeScreen.sessionHome(state), isA<RoleSelectionScreen>());
+      expect(WelcomeScreen.sessionHome(state), isA<AuthRoleScreen>());
     });
 
-    testWidgets('"Switch role" reaches the picker even from a root patient app',
+    testWidgets('"Switch role" reaches the authentication screen even from a root patient app',
         (WidgetTester tester) async {
       // Generous, because this test is about navigation and the destination
       // screen's own layout at small sizes is not what is under test.
@@ -439,7 +483,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.byType(RoleSelectionScreen), findsOneWidget);
+      expect(find.byType(AuthRoleScreen), findsOneWidget);
       expect(state.role, AppRole.none);
     });
   });

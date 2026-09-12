@@ -1,4 +1,4 @@
-"""Real integration tests against the actual Firebase project configured in
+﻿"""Real integration tests against the actual Firebase project configured in
 backend/.env — this is what the Phase 2 brief asked to verify: Firebase
 initialization, an authenticated request, a Firestore read/write round-trip,
 and unauthorized-request rejection.
@@ -38,11 +38,11 @@ def test_firebase_initializes() -> None:
 def test_firestore_read_write_roundtrip() -> None:
     db = get_firestore_client()
     doc_ref = db.collection("_pytest_smoke").document(f"pytest-{uuid.uuid4()}")
-    doc_ref.set({"hello": "memorymitra", "n": 1})
+    doc_ref.set({"hello": "SmaranSaathi", "n": 1})
     try:
         snapshot = doc_ref.get()
         assert snapshot.exists
-        assert snapshot.to_dict()["hello"] == "memorymitra"
+        assert snapshot.to_dict()["hello"] == "SmaranSaathi"
     finally:
         doc_ref.delete()
 

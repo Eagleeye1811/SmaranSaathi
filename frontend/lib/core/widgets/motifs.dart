@@ -29,42 +29,45 @@ class MotifBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: <Widget>[
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: CustomPaint(
-              painter: _MotifPainter(
-                color: (color ?? AppColors.primary).withValues(alpha: opacity),
-                density: density,
-              ),
-            ),
-          ),
-        ),
-        if (showTopWash)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 320,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: washColors ??
-                        <Color>[
-                          AppColors.primaryTint.withValues(alpha: 0.75),
-                          AppColors.primaryTint.withValues(alpha: 0.0),
-                        ],
-                  ),
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _MotifPainter(
+                  color: (color ?? AppColors.primary).withValues(alpha: opacity),
+                  density: density,
                 ),
               ),
             ),
           ),
-        Positioned.fill(child: child),
-      ],
+          if (showTopWash)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 320,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: washColors ??
+                          <Color>[
+                            AppColors.primaryTint.withValues(alpha: 0.75),
+                            AppColors.primaryTint.withValues(alpha: 0.0),
+                          ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          Positioned.fill(child: child),
+        ],
+      ),
     );
   }
 }

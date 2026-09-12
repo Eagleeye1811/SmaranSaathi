@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 
 /// A language the voice assistant can work in.
 ///
@@ -85,7 +85,7 @@ class ResolvedVoiceLanguage {
   bool get isSupported => resolved != null && localeId != null;
 
   /// True when we had to step down to another language — the UI says so, so
-  /// nobody is confused about why Mitra suddenly switched to Hindi.
+  /// nobody is confused about why Saathi suddenly switched to Hindi.
   bool get isFallback => isSupported && !isExactMatch;
 
   @override

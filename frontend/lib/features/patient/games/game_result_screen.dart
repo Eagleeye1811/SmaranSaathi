@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
@@ -380,7 +380,7 @@ class _AdaptiveCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Insets.md),
-          Text(l.resultWhatMitraNoticed, style: AppText.overline),
+          Text(l.resultWhatSaathiNoticed, style: AppText.overline),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

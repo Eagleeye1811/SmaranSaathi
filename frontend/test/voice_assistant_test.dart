@@ -1,22 +1,22 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/ai/ai_context.dart';
-import 'package:memory_mitra/core/ai/ai_context_builder.dart';
-import 'package:memory_mitra/core/ai/ai_models.dart';
-import 'package:memory_mitra/core/ai/ai_service.dart';
-import 'package:memory_mitra/core/ai/on_device_ai_service.dart';
-import 'package:memory_mitra/core/models/daily.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/voice/speech_engines.dart';
-import 'package:memory_mitra/core/voice/voice_assistant_controller.dart';
-import 'package:memory_mitra/core/voice/voice_language.dart';
-import 'package:memory_mitra/core/voice/voice_models.dart';
-import 'package:memory_mitra/features/patient/voice/ask_mitra_button.dart';
-import 'package:memory_mitra/features/patient/voice/voice_assistant_sheet.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/ai/ai_context.dart';
+import 'package:smaran_saathi/core/ai/ai_context_builder.dart';
+import 'package:smaran_saathi/core/ai/ai_models.dart';
+import 'package:smaran_saathi/core/ai/ai_service.dart';
+import 'package:smaran_saathi/core/ai/on_device_ai_service.dart';
+import 'package:smaran_saathi/core/models/daily.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/voice/speech_engines.dart';
+import 'package:smaran_saathi/core/voice/voice_assistant_controller.dart';
+import 'package:smaran_saathi/core/voice/voice_language.dart';
+import 'package:smaran_saathi/core/voice/voice_models.dart';
+import 'package:smaran_saathi/features/patient/voice/ask_saathi_button.dart';
+import 'package:smaran_saathi/features/patient/voice/voice_assistant_sheet.dart';
 
 /// An assistant that fails, for exercising the AI-error branch.
 class _FailingAssistant implements AiService {
@@ -559,12 +559,12 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('Ask Mitra'), findsOneWidget);
+      expect(find.text('Ask Saathi'), findsOneWidget);
       expect(find.text('Tap the microphone and ask me'), findsOneWidget);
-      expect(find.text('Talk to Mitra'), findsOneWidget);
+      expect(find.text('Talk to Saathi'), findsOneWidget);
 
       // Tap the microphone.
-      await tester.tap(find.text('Talk to Mitra'));
+      await tester.tap(find.text('Talk to Saathi'));
       await tester.pump();
       expect(find.text('I am listening…'), findsOneWidget);
       expect(find.text('I have finished'), findsOneWidget,
@@ -621,7 +621,7 @@ void main() {
 
       await tester.pumpWidget(harness(VoiceAssistantSheet(controller: c), state));
       await tester.pump();
-      await tester.tap(find.text('Talk to Mitra'));
+      await tester.tap(find.text('Talk to Saathi'));
       await tester.pump();
 
       expect(find.textContaining('permission to use the microphone'), findsOneWidget);
@@ -639,7 +639,7 @@ void main() {
       // Explicitly inject unavailable stubs to exercise the "no speech plugin"
       // code path — now that the default is the real SpeechToTextRecognizer.
       await tester.pumpWidget(harness(
-        const AskMitraButton(
+        const AskSaathiButton(
           recognizer: UnavailableSpeechRecognizer(),
           synthesizer: UnavailableSpeechSynthesizer(),
         ),
@@ -647,10 +647,10 @@ void main() {
       ));
       await tester.pump();
 
-      expect(find.text('Ask Mitra'), findsOneWidget);
+      expect(find.text('Ask Saathi'), findsOneWidget);
       expect(find.text('Talk to me about your day'), findsOneWidget);
 
-      await tester.tap(find.text('Ask Mitra'));
+      await tester.tap(find.text('Ask Saathi'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
 

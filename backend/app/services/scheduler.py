@@ -1,4 +1,4 @@
-"""SMS Scheduler background task.
+﻿"""SMS Scheduler background task.
 
 Starts on application boot, queries reminders due at the current minute across all
 patients, and dispatches SMS alerts for any non-completed, SMS-enabled reminders.
@@ -58,14 +58,14 @@ async def check_and_send_reminders() -> None:
                 )
                 continue
 
-            # Format interactive, warm companion reminder from Mitra
+            # Format interactive, warm companion reminder from Saathi
             glyph = getattr(reminder.kind, "glyph", "⏰")
             kind_val = reminder.kind.value if hasattr(reminder.kind, "value") else str(reminder.kind)
 
             companion_msg = {
                 "medicine": "Time to take your medication to stay healthy!",
                 "hydration": "Time for a fresh glass of water!",
-                "cognitive": "Mitra is ready for your daily activity!",
+                "cognitive": "Saathi is ready for your daily activity!",
                 "appointment": "You have a scheduled appointment.",
                 "routine": "Time for your daily routine activity.",
                 "social": "Time to connect with family or friends!",
@@ -74,7 +74,7 @@ async def check_and_send_reminders() -> None:
             detail_str = f"\nNote: {reminder.detail}" if reminder.detail else ""
 
             body = (
-                f"Namaste! 🌸 Mitra from SmaranSaathi here.\n"
+                f"Namaste! 🌸 Saathi from SmaranSaathi here.\n"
                 f"{glyph} Reminder: {reminder.title}\n"
                 f"⏰ Time: {reminder.time}\n"
                 f"💬 {companion_msg}{detail_str}\n"

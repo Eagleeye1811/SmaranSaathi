@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'onboarding.dart';
+
 /// Structured intake — everything the app learns about a person *before* and
 /// *around* the cognitive activities.
 ///
@@ -257,12 +259,14 @@ class SymptomCatalogue {
     SymptomItem('mem_appt', SymptomDomain.memory, 'Forget appointments'),
     SymptomItem('mem_misplace', SymptomDomain.memory, 'Misplace things'),
     SymptomItem('mem_new', SymptomDomain.memory, 'Forget newly learned information'),
+    SymptomItem('mem_orientation', SymptomDomain.memory, 'Get confused about the time or place'),
     // Attention & thinking
     SymptomItem('att_concentrate', SymptomDomain.attentionThinking, 'Concentrating'),
     SymptomItem('att_follow', SymptomDomain.attentionThinking, 'Following conversations'),
     SymptomItem('att_plan', SymptomDomain.attentionThinking, 'Planning tasks'),
     SymptomItem('att_money', SymptomDomain.attentionThinking, 'Managing money'),
     SymptomItem('att_solve', SymptomDomain.attentionThinking, 'Solving familiar problems'),
+    SymptomItem('att_tasks', SymptomDomain.attentionThinking, 'Completing familiar tasks'),
     // Language
     SymptomItem('lang_words', SymptomDomain.language, 'Difficulty finding words'),
     SymptomItem('lang_naming', SymptomDomain.language, 'Difficulty naming objects'),
@@ -272,6 +276,10 @@ class SymptomCatalogue {
     SymptomItem('beh_impulsive', SymptomDomain.behaviour, 'Impulsive behaviour'),
     SymptomItem('beh_social', SymptomDomain.behaviour, 'Socially unusual behaviour'),
     SymptomItem('beh_eating', SymptomDomain.behaviour, 'Changes in eating habits'),
+    SymptomItem('beh_mood', SymptomDomain.behaviour, 'Changes in mood or temper'),
+    SymptomItem('beh_sleep', SymptomDomain.behaviour, 'Changes in sleep'),
+    SymptomItem('beh_agitation', SymptomDomain.behaviour, 'Restlessness or agitation'),
+    SymptomItem('beh_suspicion', SymptomDomain.behaviour, 'Becoming suspicious of others'),
     // Movement & perception
     SymptomItem('mov_tremor', SymptomDomain.movementPerception, 'Tremor'),
     SymptomItem('mov_stiff', SymptomDomain.movementPerception, 'Stiffness'),
@@ -279,6 +287,8 @@ class SymptomCatalogue {
     SymptomItem('mov_halluc', SymptomDomain.movementPerception, 'Seeing things that are not there'),
     SymptomItem('mov_alert', SymptomDomain.movementPerception, 'Large changes in alertness'),
     SymptomItem('mov_dreams', SymptomDomain.movementPerception, 'Acting out dreams while asleep'),
+    SymptomItem('mov_wayfinding', SymptomDomain.movementPerception,
+        'Difficulty finding the way in familiar places'),
   ];
 
   static List<SymptomItem> of(SymptomDomain domain) =>
@@ -538,6 +548,7 @@ class MedicalHistory {
     this.sleepQuality,
     this.lowMood,
     this.medications = const <String>[],
+    this.anticholinergicBurden = 0,
   });
 
   final Set<MedicalCondition> conditions;
@@ -549,6 +560,14 @@ class MedicalHistory {
   /// reading a score — not as a finding of its own.
   final MoodFrequency? lowMood;
   final List<String> medications;
+
+  /// How many groups of medicine with a recognised anticholinergic or
+  /// sedative load were reported. One of the few genuinely reversible
+  /// contributors to a poor cognitive score, which is why it is surfaced
+  /// beside sleep and mood rather than buried in the medication list — and
+  /// why it is phrased as a question for the prescriber, never as advice to
+  /// stop anything.
+  final int anticholinergicBurden;
 
   bool get isComplete => sleepQuality != null && lowMood != null;
 
@@ -565,6 +584,8 @@ class MedicalHistory {
         if (lowMood == MoodFrequency.often) 'frequently low mood',
         if (conditions.contains(MedicalCondition.thyroid)) 'a thyroid condition',
         if (medications.length >= 4) 'several concurrent medications',
+        if (anticholinergicBurden > 0)
+          'medicines that can affect memory and alertness',
       ];
 
   MedicalHistory copyWith({
@@ -573,6 +594,7 @@ class MedicalHistory {
     SleepQuality? sleepQuality,
     MoodFrequency? lowMood,
     List<String>? medications,
+    int? anticholinergicBurden,
   }) {
     return MedicalHistory(
       conditions: conditions ?? this.conditions,
@@ -580,6 +602,7 @@ class MedicalHistory {
       sleepQuality: sleepQuality ?? this.sleepQuality,
       lowMood: lowMood ?? this.lowMood,
       medications: medications ?? this.medications,
+      anticholinergicBurden: anticholinergicBurden ?? this.anticholinergicBurden,
     );
   }
 
@@ -589,6 +612,7 @@ class MedicalHistory {
         'sleepQuality': sleepQuality?.name,
         'lowMood': lowMood?.name,
         'medications': medications,
+        'anticholinergicBurden': anticholinergicBurden,
       };
 
   static MedicalHistory fromJson(Map<dynamic, dynamic>? json) {
@@ -602,6 +626,7 @@ class MedicalHistory {
         for (final Object? m in (json['medications'] as List<dynamic>?) ?? const <dynamic>[])
           m.toString(),
       ],
+      anticholinergicBurden: (json['anticholinergicBurden'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -689,29 +714,57 @@ class CaregiverObservation {
 /// mid-questionnaire loses nothing.
 enum IntakeStep {
   consent,
-  profile,
-  reason,
-  safety,
-  symptoms,
-  function,
-  medical,
-  caregiver,
-  baseline,
+  person,
+  health,
+  everyday,
+  probes,
+  example,
+  independence,
+  behaviour,
+  dailySafety,
+  strengths,
+  goals,
+  summary,
   done,
 }
+
+/// Which half of the onboarding a step belongs to.
+///
+/// Shown on screen because two short named parts read as a conversation with
+/// a beginning and an end, while fifteen numbered questions read as a form —
+/// and the second part is the one that tells the person they are more than
+/// their difficulties, so it is worth naming out loud.
+enum IntakePart { setup, knowThePerson, knowTheirLife }
 
 extension IntakeStepX on IntakeStep {
   String get title => switch (this) {
         IntakeStep.consent => 'Consent & privacy',
-        IntakeStep.profile => 'About you',
-        IntakeStep.reason => 'Your concerns',
-        IntakeStep.safety => 'Safety check',
-        IntakeStep.symptoms => 'Symptom assessment',
-        IntakeStep.function => 'Daily function',
-        IntakeStep.medical => 'Medical history',
-        IntakeStep.caregiver => 'Caregiver input',
-        IntakeStep.baseline => 'Baseline assessment',
+        IntakeStep.person => 'About the person',
+        IntakeStep.health => 'Health & care background',
+        IntakeStep.everyday => 'Everyday life',
+        IntakeStep.probes => 'A little more detail',
+        IntakeStep.example => 'A recent example',
+        IntakeStep.independence => 'Independence & support',
+        IntakeStep.behaviour => 'Mood & behaviour',
+        IntakeStep.dailySafety => 'Safety',
+        IntakeStep.strengths => 'What they enjoy',
+        IntakeStep.goals => 'How we can help',
+        IntakeStep.summary => 'All done',
         IntakeStep.done => 'Complete',
+      };
+
+  IntakePart get part => switch (this) {
+        IntakeStep.consent || IntakeStep.summary || IntakeStep.done => IntakePart.setup,
+        IntakeStep.person ||
+        IntakeStep.health ||
+        IntakeStep.everyday ||
+        IntakeStep.probes ||
+        IntakeStep.example ||
+        IntakeStep.independence ||
+        IntakeStep.behaviour ||
+        IntakeStep.dailySafety =>
+          IntakePart.knowThePerson,
+        IntakeStep.strengths || IntakeStep.goals => IntakePart.knowTheirLife,
       };
 }
 
@@ -751,6 +804,7 @@ class ProfessionSuggestions {
 class IntakeRecord {
   const IntakeRecord({
     this.consent,
+    this.onboarding = OnboardingRecord.empty,
     this.completedBy,
     this.reason = const ReasonForVisit(),
     this.safety = const SafetyCheck(),
@@ -766,6 +820,15 @@ class IntakeRecord {
   });
 
   final ConsentRecord? consent;
+
+  /// The onboarding conversation as it was actually answered.
+  ///
+  /// This is the source of truth. [reason], [symptoms], [function], [medical]
+  /// and [caregiver] below are *derived* from it by [withOnboarding] rather
+  /// than collected separately, so the clinician report, the AI context and
+  /// the care plan keep reading the structures they already understand while
+  /// the questions on screen are free to change.
+  final OnboardingRecord onboarding;
 
   /// Who filled the questionnaire in. A caregiver's account of someone else's
   /// symptoms reads differently from that person's own, and the report says
@@ -807,36 +870,77 @@ class IntakeRecord {
 
   bool get isComplete => completedAtIso != null;
 
+  /// The screens the onboarding walks through, in order.
+  ///
+  /// One list, read by the flow, by [nextStep] and by [progress] alike, so
+  /// "how many steps are there" can never be answered two different ways.
+  static const List<IntakeStep> order = <IntakeStep>[
+    IntakeStep.consent,
+    IntakeStep.person,
+    IntakeStep.health,
+    IntakeStep.everyday,
+    IntakeStep.probes,
+    IntakeStep.example,
+    IntakeStep.independence,
+    IntakeStep.behaviour,
+    IntakeStep.dailySafety,
+    IntakeStep.strengths,
+    IntakeStep.goals,
+    IntakeStep.summary,
+  ];
+
   /// The first step that still needs answering — where "Continue" resumes.
+  ///
+  /// The follow-up screen is skipped entirely when nothing triggered it, so a
+  /// person who reported no difficulty is never shown an empty page.
   IntakeStep get nextStep {
     if (!consentGiven) return IntakeStep.consent;
-    if (completedBy == null) return IntakeStep.profile;
-    if (!reason.isComplete) return IntakeStep.reason;
-    if (!safety.isComplete) return IntakeStep.safety;
-    if (!symptoms.isComplete) return IntakeStep.symptoms;
-    if (!function.isComplete) return IntakeStep.function;
-    if (!medical.isComplete) return IntakeStep.medical;
-    return IntakeStep.baseline;
+    final OnboardingRecord o = onboarding;
+    if (!o.personDone) return IntakeStep.person;
+    if (!o.healthDone) return IntakeStep.health;
+    if (!o.everydayDone) return IntakeStep.everyday;
+    if (o.activeProbes.isNotEmpty && !o.probesDone) return IntakeStep.probes;
+    if (!o.independenceDone) return IntakeStep.independence;
+    if (!o.behaviourDone) return IntakeStep.behaviour;
+    if (!o.safetyDone) return IntakeStep.dailySafety;
+    if (!o.strengthsDone) return IntakeStep.strengths;
+    if (!o.goalsDone) return IntakeStep.goals;
+    return IntakeStep.summary;
   }
 
   double get progress {
-    const List<IntakeStep> ordered = <IntakeStep>[
-      IntakeStep.consent,
-      IntakeStep.profile,
-      IntakeStep.reason,
-      IntakeStep.safety,
-      IntakeStep.symptoms,
-      IntakeStep.function,
-      IntakeStep.medical,
-      IntakeStep.baseline,
-    ];
-    final int index = ordered.indexOf(nextStep);
+    final int index = order.indexOf(nextStep);
     if (index < 0) return 1;
-    return index / ordered.length;
+    return index / order.length;
+  }
+
+  /// Files an onboarding answer and re-derives everything that reads from it.
+  ///
+  /// Derivation happens here, in one place, rather than at each of the eleven
+  /// screens: a report that disagreed with the answers behind it because one
+  /// screen forgot to re-project would be the worst kind of wrong, and the
+  /// only way to make that impossible is to leave the screens no way to set
+  /// the derived fields at all.
+  IntakeRecord withOnboarding(OnboardingRecord next, {String caregiverName = ''}) {
+    final CaregiverObservation? observed =
+        next.toCaregiverObservation(caregiverName: caregiverName);
+    return copyWith(
+      onboarding: next,
+      completedBy: next.helper?.completedBy,
+      reason: next.toReasonForVisit(),
+      symptoms: next.toSymptomAssessment(),
+      function: next.toFunctionalAssessment(),
+      medical: next.toMedicalHistory(),
+      // Switching the answer back to "myself" has to *remove* the corroboration
+      // section, not leave the previous helper's observations standing.
+      caregiver: observed,
+      clearCaregiver: observed == null,
+    );
   }
 
   IntakeRecord copyWith({
     ConsentRecord? consent,
+    OnboardingRecord? onboarding,
     CompletedBy? completedBy,
     ReasonForVisit? reason,
     SafetyCheck? safety,
@@ -844,6 +948,7 @@ class IntakeRecord {
     FunctionalAssessment? function,
     MedicalHistory? medical,
     CaregiverObservation? caregiver,
+    bool clearCaregiver = false,
     Set<String>? baselineActivities,
     Set<String>? baselineSessionDates,
     String? accountId,
@@ -852,13 +957,14 @@ class IntakeRecord {
   }) {
     return IntakeRecord(
       consent: consent ?? this.consent,
+      onboarding: onboarding ?? this.onboarding,
       completedBy: completedBy ?? this.completedBy,
       reason: reason ?? this.reason,
       safety: safety ?? this.safety,
       symptoms: symptoms ?? this.symptoms,
       function: function ?? this.function,
       medical: medical ?? this.medical,
-      caregiver: caregiver ?? this.caregiver,
+      caregiver: clearCaregiver ? null : (caregiver ?? this.caregiver),
       baselineActivities: baselineActivities ?? this.baselineActivities,
       baselineSessionDates: baselineSessionDates ?? this.baselineSessionDates,
       accountId: accountId ?? this.accountId,
@@ -869,6 +975,7 @@ class IntakeRecord {
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'consent': consent?.toJson(),
+        'onboarding': onboarding.toJson(),
         'completedBy': completedBy?.name,
         'reason': reason.toJson(),
         'safety': safety.toJson(),
@@ -887,6 +994,7 @@ class IntakeRecord {
     if (json == null) return empty;
     return IntakeRecord(
       consent: ConsentRecord.fromJson(json['consent'] as Map<dynamic, dynamic>?),
+      onboarding: OnboardingRecord.fromJson(json['onboarding'] as Map<dynamic, dynamic>?),
       completedBy: _enumByName(json['completedBy'] as String?, CompletedBy.values),
       reason: ReasonForVisit.fromJson(json['reason'] as Map<dynamic, dynamic>?),
       safety: SafetyCheck.fromJson(json['safety'] as Map<dynamic, dynamic>?),
