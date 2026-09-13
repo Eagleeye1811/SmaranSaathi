@@ -264,31 +264,7 @@ class _AppointmentCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (isUpcoming && appointment.isVirtual)
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.clinicAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  icon: const Icon(Icons.videocam_rounded, size: 15),
-                  label: Text(l.doctorApptJoin, style: CT.caption.wght(700).tint(Colors.white)),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => AppointmentDetailScreen(
-                          appointment: appointment,
-                          autoLaunchVideo: true,
-                        ),
-                      ),
-                    );
-                  },
-                )
-              else
-                const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.clinicInkSoft),
             ],
           ),
           if (appointment.doctorNotes.isNotEmpty) ...<Widget>[

@@ -657,9 +657,14 @@ class PatientDetailScreen extends StatelessWidget {
                                   children: <Widget>[
                                     const Icon(Icons.stream_rounded, size: 14, color: AppColors.clinicInkSoft),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      'Test Camera, Audio & AI Scribe (Single Device Mirror)',
-                                      style: CT.caption.sized(11).tint(AppColors.clinicAccent),
+                                    Flexible(
+                                      child: Text(
+                                        'Test Camera, Audio & AI Scribe (Single Device Mirror)',
+                                        style: CT.caption.sized(11).tint(AppColors.clinicAccent),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1002,7 +1007,15 @@ class PatientDetailScreen extends StatelessWidget {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: <Widget>[
-                                      Text('Previous Follow-up Session', style: CT.bodySmall.wght(700)),
+                                      Expanded(
+                                        child: Text(
+                                          'Previous Follow-up Session',
+                                          style: CT.bodySmall.wght(700),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
                                       Text('13m duration', style: CT.caption.sized(10.5)),
                                     ],
                                   ),
@@ -1016,7 +1029,14 @@ class PatientDetailScreen extends StatelessWidget {
                                     children: <Widget>[
                                       const Icon(Icons.verified_rounded, size: 14, color: AppColors.clinicAccent),
                                       const SizedBox(width: 4),
-                                      Text('Doctor Approved & Signed', style: CT.caption.sized(11).tint(AppColors.clinicAccent)),
+                                      Expanded(
+                                        child: Text(
+                                          'Doctor Approved & Signed',
+                                          style: CT.caption.sized(11).tint(AppColors.clinicAccent),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],

@@ -10,8 +10,9 @@ import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
 import '../models/assessment.dart';
-import '../models/onboarding.dart';
+import '../models/chat_message.dart';
 import '../models/clinical.dart';
+import '../models/onboarding.dart';
 import '../models/daily.dart';
 import '../models/doctor.dart';
 import '../models/game.dart';
@@ -2192,6 +2193,108 @@ class AppState extends ChangeNotifier {
     );
     _doctorAppointments.insert(0, newAppt);
     notifyListeners();
+  }
+
+  late final List<DoctorConversation> _doctorConversations =
+      List<DoctorConversation>.from(MockData.doctorConversations());
+
+  /// Doctor conversations with connected patients and caregivers.
+  List<DoctorConversation> get doctorConversations =>
+      List<DoctorConversation>.unmodifiable(_doctorConversations);
+
+  /// Total unread messages across all doctor conversations.
+  int get totalDoctorUnreadChats =>
+      _doctorConversations.fold<int>(0, (int sum, DoctorConversation c) => sum + c.unreadCount);
+
+  /// Get specific conversation by patient id, or create an initial one if patient exists in caseload.
+  DoctorConversation getOrCreateDoctorConversation(String patientId) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1) {
+      return _doctorConversations[idx];
+    }
+    final ClinicPatient? patient = caseload.cast<ClinicPatient?>().firstWhere(
+      (ClinicPatient? p) => p?.id == patientId,
+      orElse: () => null,
+    );
+    final DoctorConversation newConv = DoctorConversation(
+      patientId: patientId,
+      patientName: patient?.name ?? 'Connected Patient',
+      caregiverName: 'Primary Caregiver',
+      patientAge: patient?.age ?? 70,
+      district: patient?.district ?? 'Assam',
+      sceneId: patient?.sceneId ?? 'portrait_aama',
+      messages: const <ChatMessage>[],
+      unreadCount: 0,
+      isOnline: true,
+      lastSeen: 'Online',
+    );
+    _doctorConversations.add(newConv);
+    notifyListeners();
+    return newConv;
+  }
+
+  /// Mark conversation as read.
+  void markDoctorConversationRead(String patientId) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1 && _doctorConversations[idx].unreadCount > 0) {
+      final List<ChatMessage> updated = _doctorConversations[idx].messages.map((ChatMessage m) {
+        if (!m.isFromDoctor && m.status != MessageStatus.read) {
+          return m.copyWith(status: MessageStatus.read);
+        }
+        return m;
+      }).toList();
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(
+        unreadCount: 0,
+        messages: updated,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Send a message from the doctor to a patient/caregiver.
+  void sendDoctorChatMessage({
+    required String patientId,
+    required String text,
+    String? attachmentType,
+    String? attachmentTitle,
+    String? attachmentSubtitle,
+  }) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    final ChatMessage newMsg = ChatMessage(
+      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      conversationId: patientId,
+      text: text,
+      timestamp: DateTime.now(),
+      isFromDoctor: true,
+      status: MessageStatus.delivered,
+      attachmentType: attachmentType,
+      attachmentTitle: attachmentTitle,
+      attachmentSubtitle: attachmentSubtitle,
+    );
+
+    if (idx != -1) {
+      final List<ChatMessage> list = List<ChatMessage>.from(_doctorConversations[idx].messages)..add(newMsg);
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(messages: list);
+      notifyListeners();
+    } else {
+      final DoctorConversation conv = getOrCreateDoctorConversation(patientId);
+      final List<ChatMessage> list = List<ChatMessage>.from(conv.messages)..add(newMsg);
+      final int newIdx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+      if (newIdx != -1) {
+        _doctorConversations[newIdx] = _doctorConversations[newIdx].copyWith(messages: list);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Add an incoming caregiver/patient message to the conversation.
+  void addCaregiverChatMessage(String patientId, ChatMessage message) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1) {
+      final List<ChatMessage> list = List<ChatMessage>.from(_doctorConversations[idx].messages)..add(message);
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(messages: list);
+      notifyListeners();
+    }
   }
 
   Future<List<DailyQuestion>> loadQuestions() => _patients.dailyQuestions(_patient);

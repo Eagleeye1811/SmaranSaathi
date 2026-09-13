@@ -95,13 +95,14 @@ class _PatientShellState extends State<PatientShell> {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final List<NavDestination> destinations = _destinationsFor(l);
-    return Scaffold(
-      backgroundColor: state.highContrast ? Colors.white : AppColors.background,
-      body: ReturnHomeBanner(
-        child: VoiceNavHost(
-          destinations: _voiceDestinations,
-          onNavigate: _onVoiceNavigate,
-          accent: AppColors.plum,
+    return VoiceNavHost(
+      destinations: _voiceDestinations,
+      onNavigate: _onVoiceNavigate,
+      accent: AppColors.primary,
+      showFloatingMic: false,
+      child: Scaffold(
+        backgroundColor: state.highContrast ? Colors.white : AppColors.background,
+        body: ReturnHomeBanner(
           child: IndexedStack(
             index: _index,
             children: <Widget>[
@@ -123,13 +124,13 @@ class _PatientShellState extends State<PatientShell> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AppNavBar(
-        destinations: destinations,
-        index: _index,
-        onChanged: _go,
-        large: true,
-        accent: AppColors.primary,
+        bottomNavigationBar: AppNavBar(
+          destinations: destinations,
+          index: _index,
+          onChanged: _go,
+          large: true,
+          accent: AppColors.primary,
+        ),
       ),
     );
   }

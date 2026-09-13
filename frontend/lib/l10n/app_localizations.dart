@@ -393,6 +393,7 @@ class AppLocalizations {
   // ── Doctor — nav ─────────────────────────────────────────────────
   String get doctorTabOverview => _s('doctorTabOverview');
   String get doctorTabPatients => _s('doctorTabPatients');
+  String get doctorTabChats => _s('doctorTabChats');
   String get doctorTabAnalytics => _s('doctorTabAnalytics');
   String get doctorTabAlerts => _s('doctorTabAlerts');
   String get doctorTabProfile => _s('doctorTabProfile');

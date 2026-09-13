@@ -325,8 +325,10 @@ class _QuickActions extends StatelessWidget {
                     children: <Widget>[
                       Icon(a.icon, size: 18, color: AppColors.primary),
                       const SizedBox(width: 8),
-                      Text(a.localizedLabel(l),
-                          style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700)),
+                      Text(
+                        a.localizedLabel(l),
+                        style: AppText.bodySmall.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ],
                   ),
                 ),

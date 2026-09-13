@@ -5,11 +5,14 @@ import '../../app/theme/app_text.dart';
 import '../../app/theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
+import 'voice_nav_host.dart';
+
 class NavDestination {
-  const NavDestination(this.label, this.icon, this.activeIcon);
+  const NavDestination(this.label, this.icon, this.activeIcon, {this.badgeCount = 0});
   final String label;
   final IconData icon;
   final IconData activeIcon;
+  final int badgeCount;
 }
 
 /// The app's bottom navigation.
@@ -26,6 +29,7 @@ class AppNavBar extends StatelessWidget {
     this.large = false,
     this.accent = AppColors.primary,
     this.background,
+    this.showMic = true,
   });
 
   final List<NavDestination> destinations;
@@ -34,14 +38,80 @@ class AppNavBar extends StatelessWidget {
   final bool large;
   final Color accent;
   final Color? background;
+  final bool showMic;
 
   @override
   Widget build(BuildContext context) {
-    final double barHeight = large ? 78 : 64;
-    return Container(
+    final double barHeight = large ? 62 : 58;
+    final VoiceNavHostState? voiceNav = VoiceNavScope.maybeOf(context);
+    final bool enableMic = showMic && voiceNav != null;
+    const double bulge = 22.0;
+    const double micDiameter = 64.0;
+
+    Widget navRow;
+    if (enableMic && destinations.length == 4) {
+      navRow = Row(
+        children: <Widget>[
+          Expanded(
+            child: _NavItem(
+              destination: destinations[0],
+              selected: 0 == index,
+              large: large,
+              accent: accent,
+              onTap: () => onChanged(0),
+            ),
+          ),
+          Expanded(
+            child: _NavItem(
+              destination: destinations[1],
+              selected: 1 == index,
+              large: large,
+              accent: accent,
+              onTap: () => onChanged(1),
+            ),
+          ),
+          const SizedBox(width: 74),
+          Expanded(
+            child: _NavItem(
+              destination: destinations[2],
+              selected: 2 == index,
+              large: large,
+              accent: accent,
+              onTap: () => onChanged(2),
+            ),
+          ),
+          Expanded(
+            child: _NavItem(
+              destination: destinations[3],
+              selected: 3 == index,
+              large: large,
+              accent: accent,
+              onTap: () => onChanged(3),
+            ),
+          ),
+        ],
+      );
+    } else {
+      navRow = Row(
+        children: <Widget>[
+          for (int i = 0; i < destinations.length; i++)
+            Expanded(
+              child: _NavItem(
+                destination: destinations[i],
+                selected: i == index,
+                large: large,
+                accent: accent,
+                onTap: () => onChanged(i),
+              ),
+            ),
+        ],
+      );
+    }
+
+    final Widget barContent = Container(
       decoration: BoxDecoration(
         color: background ?? Colors.white,
-        border: Border(top: BorderSide(color: AppColors.hairline)),
+        border: const Border(top: BorderSide(color: AppColors.hairline)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: const Color(0xFF3A2E1E).withValues(alpha: 0.05),
@@ -52,24 +122,41 @@ class AppNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: barHeight,
-          child: Row(
-            children: <Widget>[
-              for (int i = 0; i < destinations.length; i++)
-                Expanded(
-                  child: _NavItem(
-                    destination: destinations[i],
-                    selected: i == index,
-                    large: large,
-                    accent: accent,
-                    onTap: () => onChanged(i),
-                  ),
-                ),
-            ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: SizedBox(
+            height: barHeight,
+            child: navRow,
           ),
         ),
       ),
+    );
+
+    if (!enableMic) {
+      return barContent;
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.only(top: bulge),
+          child: barContent,
+        ),
+        Positioned(
+          top: 0,
+          child: VoiceMicButton(
+            accent: accent,
+            diameter: micDiameter,
+            iconSize: 32,
+            elevation: 6,
+            borderWidth: 4.0,
+            borderColor: background ?? Colors.white,
+            onTap: voiceNav.openPanel,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -99,34 +186,69 @@ class _NavItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: Corners.r(Corners.md),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            AnimatedContainer(
-              duration: Motion.normal,
-              curve: Curves.easeOutCubic,
-              padding: EdgeInsets.symmetric(
-                  horizontal: large ? 18 : 14, vertical: large ? 6 : 4),
-              decoration: BoxDecoration(
-                color: selected ? accent.withValues(alpha: 0.12) : Colors.transparent,
-                borderRadius: Corners.r(Corners.pill),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              AnimatedContainer(
+                duration: Motion.normal,
+                curve: Curves.easeOutCubic,
+                padding: EdgeInsets.symmetric(
+                    horizontal: large ? 10 : 8, vertical: large ? 4 : 3),
+                decoration: BoxDecoration(
+                  color: selected ? accent.withValues(alpha: 0.12) : Colors.transparent,
+                  borderRadius: Corners.r(Corners.pill),
+                ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    Icon(
+                      selected ? destination.activeIcon : destination.icon,
+                      size: large ? 24 : 22,
+                      color: color,
+                    ),
+                    if (destination.badgeCount > 0)
+                      Positioned(
+                        top: -4,
+                        right: -8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF25D366),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${destination.badgeCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-              child: Icon(
-                selected ? destination.activeIcon : destination.icon,
-                size: large ? 27 : 23,
-                color: color,
+              const SizedBox(height: 3),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    destination.label,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: (large ? AppText.caption.sized(11) : AppText.caption.sized(10.5))
+                        .tint(color)
+                        .wght(selected ? 800 : 600),
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: large ? 5 : 3),
-            Text(
-              destination.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: (large ? AppText.caption.sized(12.5) : AppText.caption.sized(11))
-                  .tint(color)
-                  .wght(selected ? 800 : 600),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

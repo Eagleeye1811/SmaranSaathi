@@ -190,7 +190,7 @@ class OnDeviceAiService implements AiService {
         _activityName(best.key, l),
         pronoun,
         best.value.round().toString(),
-        (PatientAiContext.domainOf(best.key)?.label ?? 'thinking').toLowerCase(),
+        PatientAiContext.domainOf(best.key)?.label.toLowerCase() ?? '',
       ));
     }
     final List<GameSession> unaided = context
@@ -312,12 +312,12 @@ class OnDeviceAiService implements AiService {
       return (
         pick,
         '${_activityName(pick, l)} has not been played in the last two weeks, so it '
-            // Safe to force-unwrap: `untouched` is already filtered to
-            // `PatientAiContext.domainOf(g) != null` above.
-            'exercises ${PatientAiContext.domainOf(pick)!.label.toLowerCase()} work that '
-            'nothing else has covered recently.'
-      );
+<<<<<<< HEAD
+            'exercises ${PatientAiContext.domainOf(pick)?.label.toLowerCase() ?? ''} work that '
+=======
+            'exercises ${(PatientAiContext.domainOf(pick)?.label ?? 'thinking').toLowerCase()} work that '
     }
+
     final List<MapEntry<GameId, double>> candidates = byGame.entries
         .where((MapEntry<GameId, double> e) =>
             !context.completedToday.contains(e.key) && e.key != context.lastPlayed)
@@ -691,11 +691,12 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelodyInvitation,
         GameId.weaves => l.aiGameWeavesInvitation,
         GameId.memoryCards => l.aiGameMemoryCardsInvitation,
-        // No dedicated aiGame*Invitation key exists for these two yet — each
-        // game's own intro-screen companion message already says exactly
-        // this ("shall we see what we can find?" / "let's draw and talk"),
-        // so reusing it here beats inventing a near-duplicate string.
+<<<<<<< HEAD
+        GameId.villageMarket => l.aiGameMemoryCardsInvitation,
+        GameId.moodCanvas => l.aiGameMemoryCardsInvitation,
+=======
         GameId.villageMarket => l.gameVillageMarketIntroMessage,
-        GameId.moodCanvas => l.gameMoodCanvasInstructions,
+        GameId.moodCanvas => l.gameMoodCanvasName,
+>>>>>>> 0a11920bf74e6fc301437d0df263183ddd9add2c
       };
 }
