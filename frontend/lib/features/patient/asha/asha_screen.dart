@@ -6,43 +6,45 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 
-// ── Active D-ID agent configuration ──────────────────────────────────────────
-const String _kClientKey = 'ck_0W8bbtkFlj3aeiJ3iQJDi';
-const String _kAgentId = 'v2_agt_eJTwq3XQ';
-
-String _buildAshaHtml(String clientKey, String agentId) => '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Asha - SmaranSaathi</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #0d1117;
-        }
-        body { position: relative; font-family: Arial, sans-serif; }
-    </style>
-</head>
-<body>
-    <script type="module"
-      src="https://agent.d-id.com/v2/index.js"
-      data-mode="fabio"
-      data-client-key="$clientKey"
-      data-agent-id="$agentId"
-      data-name="did-agent"
-      data-monitor="true"
-      data-orientation="horizontal"
-      data-position="right"
-      data-open-mode="expanded">
-    </script>
-</body>
-</html>
-''';
+// ── Where the Asha page is served from ───────────────────────────────────────
+//
+// This must be a real URL on a host we control, never `loadHtmlString` with an
+// invented `baseUrl`. D-ID client keys are domain-locked: the key only
+// authenticates from an origin listed in its `allowed_domains`. A page whose
+// origin we make up can never appear in that list, so the agent runtime answers
+// 401 — which a WebView surfaces only as an opaque CORS error, leaving the
+// patient on an endless black "Loading…".
+//
+// The default points at the sync backend's `/asha` route, which serves the page
+// (`backend/app/templates/asha.html`) with the client key filled in. Override
+// with `--dart-define=ASHA_URL=https://your-host/asha` to serve it elsewhere.
+//
+// Whichever origin ends up here has to satisfy *two* separate requirements:
+//
+//  1. It must be registered on the client key, or the agent runtime answers 401:
+//       curl -X POST https://api.d-id.com/agents/client-key \
+//         -H 'Authorization: Basic <D-ID API KEY>' -H 'Content-Type: application/json' \
+//         -d '{"allowed_domains": ["http://localhost:8000", "https://your-host"]}'
+//
+//  2. It must be a *secure context* — https, or http on localhost. Otherwise the
+//     browser never defines `navigator.mediaDevices`, the SDK dies on
+//     `Cannot read properties of undefined (reading 'getUserMedia')`, and Asha
+//     cannot hear the patient even once the key accepts the origin.
+//
+// Requirement 2 is why the emulator's usual `http://10.0.2.2:8000` is the wrong
+// host for this one screen: plain http on a non-localhost IP is insecure, so the
+// mic is gone. For emulator dev, forward the port and use localhost instead:
+//   adb reverse tcp:8000 tcp:8000
+//   flutter run --dart-define=ASHA_URL=http://localhost:8000/asha
+// In production the backend is served over https, so the default is already fine.
+const String _kSyncBaseUrl = String.fromEnvironment(
+  'MM_SYNC_BASE_URL',
+  defaultValue: 'http://10.0.2.2:8000',
+);
+const String _kAshaUrl = String.fromEnvironment(
+  'ASHA_URL',
+  defaultValue: '$_kSyncBaseUrl/asha',
+);
 
 /// JavaScript and CSS injected into the D-ID page to:
 /// 1. Hide the collapsed corner bubble visually from the patient while keeping it clickable.
@@ -50,8 +52,43 @@ String _buildAshaHtml(String clientKey, String agentId) => '''
 /// 3. Programmatically invoke D-ID's setWidgetOpen API to expand full screen.
 /// 4. Automatically trigger "Start Conversation" so the user talks directly to Asha.
 /// 5. Automatically dismiss/allow in-page mic permission prompts.
+/// 6. Report a failed bootstrap back to Flutter so the patient gets the retry
+///    screen instead of a black page that never resolves.
 const String _kFullscreenAndAutoStartScript = r'''
 (function () {
+  // 0. Tell Flutter how this turned out — exactly once, first result wins, so a
+  //    later hiccup can never tear down an agent that did come up.
+  //
+  //    This matters because the D-ID SDK swallows its own startup failures: a
+  //    rejected client key answers 401, the browser reports only an opaque CORS
+  //    error, and the widget sits on "Loading…" forever with nothing thrown that
+  //    `onWebResourceError` would ever see. So watch the API call ourselves.
+  var reported = false;
+  function report(outcome) {
+    if (reported) return;
+    reported = true;
+    try {
+      if (window.AshaChannel) {
+        window.AshaChannel.postMessage(outcome);
+      }
+    } catch (e) {}
+  }
+
+  var originalFetch = window.fetch;
+  window.fetch = function (input, init) {
+    var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+    var isAgentApi = url.indexOf('api.d-id.com') !== -1;
+    return originalFetch.apply(this, arguments).then(function (response) {
+      // A 401 here is the domain-locked client key rejecting this origin.
+      if (isAgentApi && !response.ok) report('error');
+      return response;
+    }).catch(function (err) {
+      // A CORS-blocked request rejects rather than resolving — same failure.
+      if (isAgentApi) report('error');
+      throw err;
+    });
+  };
+
   // 1. Inject styling to force full screen and hide the collapsed bubble
   var style = document.createElement('style');
   style.id = 'asha-fullscreen-style';
@@ -169,15 +206,14 @@ const String _kFullscreenAndAutoStartScript = r'''
     // Step E: Check if container is expanded and notify Flutter
     var fabContainer = document.querySelector('.didagent__fabio__container');
     if (fabContainer && fabContainer.getAttribute('data-enabled') === 'true') {
-      try {
-        if (window.AshaChannel) {
-          window.AshaChannel.postMessage('ready');
-        }
-      } catch (e) {}
+      report('ready');
     }
 
     if (attempts >= maxAttempts) {
       clearInterval(pollTimer);
+      // Never came up and never failed loudly either — still a dead end for
+      // the patient, so surface it rather than leaving the spinner running.
+      report('error');
     }
   }, 250);
 })();
@@ -186,7 +222,9 @@ const String _kFullscreenAndAutoStartScript = r'''
 /// The Asha conversational-avatar screen.
 ///
 /// Architecture:
-///   Flutter  →  WebView  →  Vercel D-ID page  →  D-ID Asha agent
+///   Flutter  →  WebView  →  hosted page at [_kAshaUrl]  →  D-ID Asha agent
+///
+/// The page has to be *hosted* rather than inlined — see [_kAshaUrl] for why.
 class AshaScreen extends StatefulWidget {
   const AshaScreen({
     super.key,
@@ -238,10 +276,7 @@ class _AshaScreenState extends State<AshaScreen> {
         _requestPermissionAndLoad();
       } else {
         setState(() => _state = _ViewState.loading);
-        _controller?.loadHtmlString(
-          _buildAshaHtml(_kClientKey, _kAgentId),
-          baseUrl: 'https://agent.d-id.com/',
-        );
+        _controller?.loadRequest(Uri.parse(_kAshaUrl));
       }
     } else if (oldWidget.active && !widget.active) {
       // Switched away from Asha tab: gracefully stop WebRTC tracks to prevent Qualcomm HW decoder crash
@@ -295,8 +330,14 @@ class _AshaScreenState extends State<AshaScreen> {
       ..addJavaScriptChannel(
         'AshaChannel',
         onMessageReceived: (JavaScriptMessage message) {
-          if (message.message == 'ready' && mounted) {
+          if (!mounted) return;
+          if (message.message == 'ready') {
             setState(() => _state = _ViewState.ready);
+          } else if (message.message == 'error') {
+            // The agent never came up. Show the retry screen rather than
+            // leaving the patient looking at a black page forever.
+            debugPrint('[Asha] agent bootstrap failed for $_kAshaUrl');
+            setState(() => _state = _ViewState.error);
           }
         },
       )
@@ -321,10 +362,7 @@ class _AshaScreenState extends State<AshaScreen> {
           },
         ),
       )
-      ..loadHtmlString(
-        _buildAshaHtml(_kClientKey, _kAgentId),
-        baseUrl: 'https://agent.d-id.com/',
-      );
+      ..loadRequest(Uri.parse(_kAshaUrl));
 
     setState(() => _controller = c);
   }

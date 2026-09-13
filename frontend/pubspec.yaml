@@ -51,9 +51,9 @@ dependencies:
   # Asha conversational avatar: loads the deployed D-ID Vercel page.
   # permission_handler surfaces a friendly permission prompt before opening
   # the WebView so the patient isn't surprised by the system dialog.
-  webview_flutter: ^4.10.0
-  webview_flutter_android: ^4.12.0
-  webview_flutter_platform_interface: ^2.15.1
+  webview_flutter: ">=4.10.0 <4.14.0"
+  webview_flutter_android: ">=4.3.0 <4.12.0"
+  webview_flutter_platform_interface: ">=2.10.0 <2.15.0"
   permission_handler: ^11.3.1
 
 dev_dependencies:
