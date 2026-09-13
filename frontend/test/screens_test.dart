@@ -136,7 +136,7 @@ void main() {
       ('large phone', kPhoneLarge),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all four tabs · $name', (WidgetTester tester) async {
+      testWidgets('all three tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.patient);
         await tester.pumpWidget(harness(const PatientShell(), state: state));
@@ -144,11 +144,11 @@ void main() {
 
         // Progress is no longer a destination: it lives on the home screen,
         // under the status it explains. Nor is the profile — that moved to
-        // the top right of the header, beside reminders.
+        // the top right of the header, beside reminders. The Companion page
+        // was also removed from the bar; the assistant opens via push.
         for (final String tab in <String>[
           'Activities',
           'Wellness',
-          'Companion',
           'Home',
         ]) {
           await tester.tap(find.text(tab).last);
@@ -170,22 +170,19 @@ void main() {
       });
     }
 
-    testWidgets('the check-in offers to talk, and the offer opens the companion',
+    testWidgets('the check-in offers to talk, and the offer pushes the companion',
         (WidgetTester tester) async {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.patient);
       await tester.pumpWidget(harness(const PatientShell(), state: state));
       await beat(tester);
 
-      // Asked once, not twice — the home screen used to render the whole
-      // check-in, question card and status block a second time.
+      // Asked once, not twice.
       expect(find.byKey(const Key('home_mood_picker')), findsOneWidget);
 
       // Nothing is offered until there is a mood to talk about.
       expect(find.text('Talk to Mitra'), findsNothing);
 
-      // `scrollTo` also clears the floating voice button, which sits over the
-      // bottom of the list and swallows the tap.
       await scrollTo(tester, 'Not good');
       await tester.tap(find.text('Not good').last);
       await beat(tester);
@@ -194,7 +191,6 @@ void main() {
       // screen does not move on its own.
       expect(find.text('Talk to Mitra'), findsOneWidget);
       expect(find.text('You do not have to carry it on your own.'), findsOneWidget);
-      expect(find.byType(AssistantScreen), findsNothing);
 
       await scrollTo(tester, 'Talk to Mitra');
       await tester.tap(find.text('Talk to Mitra'));
@@ -777,7 +773,7 @@ void main() {
       await beat(tester);
       expect(tester.takeException(), isNull);
 
-      for (final String tab in <String>['Activities', 'Wellness', 'Companion']) {
+      for (final String tab in <String>['Activities', 'Wellness']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
         final dynamic err = tester.takeException();

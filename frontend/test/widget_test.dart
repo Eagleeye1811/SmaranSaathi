@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter/material.dart';
 import 'package:smaran_saathi/app/app.dart';
@@ -123,14 +123,13 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('How are you feeling today?'), findsOneWidget);
-    // The four patient destinations are always labelled, never icon-only.
+    // The three patient destinations are always labelled, never icon-only.
     // The profile is not among them any more — it sits top right with
-    // reminders, where the caregiver's own two sit.
+    // reminders. The companion/assistant opens via push from the dashboard.
     for (final String label in <String>[
       'Home',
       'Activities',
       'Wellness',
-      'Companion',
     ]) {
       expect(find.text(label), findsWidgets, reason: 'missing $label tab');
     }

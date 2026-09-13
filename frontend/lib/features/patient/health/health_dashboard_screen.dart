@@ -25,6 +25,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../../../data/mock/mock_data.dart';
 import '../assistant/assistant_screen.dart';
+import '../asha/asha_screen.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
 import '../memories/memory_wallet_screen.dart';
@@ -198,15 +199,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 children: <Widget>[
                   Expanded(
                     child: _ActionCard(
-                      icon: Icons.forum_rounded,
-                      label: l.dashboardAskCompanion,
-                      detail: l.dashboardExplainResults,
-                      color: AppColors.primary,
-                      // 4, not 2 — this pointed at the activities tab, so the
-                      // "ask the companion" card opened a list of puzzles.
-                      onTap: () => widget.onOpenTab != null
-                          ? widget.onOpenTab!(4)
-                          : Nav.push(context, const AssistantScreen()),
+                      icon: Icons.face_retouching_natural_rounded,
+                      label: 'Asha',
+                      detail: 'Your friendly companion',
+                      color: AppColors.rose,
+                      onTap: () {
+                        if (widget.onOpenTab != null) {
+                          widget.onOpenTab!(4);
+                        } else {
+                          Nav.push(context, const AshaScreen());
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: Insets.sm),
