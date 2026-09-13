@@ -312,10 +312,11 @@ class OnDeviceAiService implements AiService {
       return (
         pick,
         '${_activityName(pick, l)} has not been played in the last two weeks, so it '
-<<<<<<< HEAD
-            'exercises ${PatientAiContext.domainOf(pick)?.label.toLowerCase() ?? ''} work that '
-=======
-            'exercises ${(PatientAiContext.domainOf(pick)?.label ?? 'thinking').toLowerCase()} work that '
+            // Safe to force-unwrap: `untouched` is already filtered to
+            // `PatientAiContext.domainOf(g) != null` above.
+            'exercises ${PatientAiContext.domainOf(pick)!.label.toLowerCase()} work that '
+            'nothing else has covered recently.'
+      );
     }
     final List<MapEntry<GameId, double>> candidates = byGame.entries
         .where((MapEntry<GameId, double> e) =>
@@ -330,7 +331,7 @@ class OnDeviceAiService implements AiService {
       if (e.value >= 45 && e.value <= 75) {
         return (
           e.key,
-          '${_activityName(e.key, l)} sits at ${e.value.round()}% — enough room to '
+          '${_activityName(e.key, l)} sits at ${e.value.round()}%, enough room to '
               'improve without being discouraging, which is where practice helps most.'
         );
       }
@@ -366,7 +367,7 @@ class OnDeviceAiService implements AiService {
       if (context.mood != null) 'Mood today: ${context.mood!.label}',
       'Adherence today ${context.adherencePercent}%',
       'Overall domain score ${context.cognitiveProfile.overall}',
-      'Level $level — ${AdaptiveDifficultyService.levelDescription(activity, level)}',
+      'Level $level: ${AdaptiveDifficultyService.levelDescription(activity, level)}',
     ];
   }
 
@@ -690,12 +691,11 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelodyInvitation,
         GameId.weaves => l.aiGameWeavesInvitation,
         GameId.memoryCards => l.aiGameMemoryCardsInvitation,
-<<<<<<< HEAD
-        GameId.villageMarket => l.aiGameMemoryCardsInvitation,
-        GameId.moodCanvas => l.aiGameMemoryCardsInvitation,
-=======
+        // No dedicated aiGame*Invitation key exists for these two yet — each
+        // game's own intro-screen companion message already says exactly
+        // this ("shall we see what we can find?" / "let's draw and talk"),
+        // so reusing it here beats inventing a near-duplicate string.
         GameId.villageMarket => l.gameVillageMarketIntroMessage,
-        GameId.moodCanvas => l.gameMoodCanvasName,
->>>>>>> 0a11920bf74e6fc301437d0df263183ddd9add2c
+        GameId.moodCanvas => l.gameMoodCanvasInstructions,
       };
 }

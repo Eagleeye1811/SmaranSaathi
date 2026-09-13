@@ -293,7 +293,7 @@ class MockData {
 
   static const String caregiverName = 'Priya';
   static const String doctorName = 'Dr. Neha Sharma';
-  static const String clinicName = 'Jorhat Medical College — Memory Clinic';
+  static const String clinicName = 'Jorhat Medical College, Memory Clinic';
 
   // ── Activities ─────────────────────────────────────────────────────────
 
@@ -303,7 +303,7 @@ class MockData {
       name: 'Procedure Reconstruction',
       tagline: 'Remember the steps of something familiar.',
       description:
-          'Put the steps of an everyday task back in the right order — making tea, cooking pitha, dressing the loom.',
+          'Put the steps of an everyday task back in the right order, making tea, cooking pitha, dressing the loom.',
       domain: CognitiveDomain.procedural,
       sceneId: 'pitha',
       accent: AppColors.terracotta,
@@ -371,8 +371,8 @@ class MockData {
       name: 'The Village Market Adventure',
       tagline: 'See what we can find at the market today.',
       description:
-          'Wander the market stalls with a basket, and see what catches your eye — '
-          'there are a few things for dinner worth remembering.',
+          'Wander the market stalls with a basket, and see what catches your eye. '
+          'There are a few things for dinner worth remembering.',
       domain: CognitiveDomain.procedural,
       sceneId: 'market',
       accent: AppColors.olive,
@@ -384,7 +384,7 @@ class MockData {
       name: 'Mood Canvas',
       tagline: 'Draw whatever you like.',
       description:
-          'A blank space to draw anything at all — no prompt, no right answer. '
+          'A blank space to draw anything at all, no prompt, no right answer. '
           'Your doctor may look at it later.',
       domain: null,
       hasLevels: false,
@@ -529,7 +529,7 @@ class MockData {
           id: 'r7',
           time: 'Thursday, 11:00 AM',
           minutesFromMidnight: 660,
-          title: 'Memory clinic — Dr. Sharma',
+          title: 'Memory clinic: Dr. Sharma',
           kind: ReminderKind.appointment,
           detail: 'Bhaskar will drive',
         ),
@@ -785,7 +785,7 @@ class MockData {
         const DoctorAlert(
           id: 'al2',
           patientName: 'Wanhun Kharkongor',
-          title: 'Reduced engagement — 3 sessions missed',
+          title: 'Reduced engagement: 3 sessions missed',
           detail:
               'No completed activity since Tuesday. Reminder adherence dropped to 70%. Caregiver contact suggested.',
           severity: AlertSeverity.watch,
@@ -898,7 +898,7 @@ class MockData {
               label: 'Show me',
               emoji: '👀',
               positive: false,
-              response: 'Here it is — the gamosa border you wove for fifty years.'),
+              response: 'Here it is, the gamosa border you wove for fifty years.'),
         ],
       ),
       DailyQuestion(
@@ -993,7 +993,7 @@ class MockData {
           id: 'doc_sharma',
           name: 'Neha Sharma',
           specialization: 'Neurologist',
-          hospital: 'Jorhat Medical College — Memory Clinic',
+          hospital: 'Jorhat Medical College, Memory Clinic',
           email: 'neha.sharma@jorhatmc.in',
           phone: '+91 94010 00001',
           avatarInitials: 'NS',
@@ -1026,7 +1026,7 @@ class MockData {
           id: 'doc_das',
           name: 'Bhaskar Das',
           specialization: 'Neuropsychologist',
-          hospital: 'Jorhat Medical College — Memory Clinic',
+          hospital: 'Jorhat Medical College, Memory Clinic',
           email: 'bhaskar.das@jorhatmc.in',
           phone: '+91 94010 00004',
           avatarInitials: 'BD',
@@ -1090,7 +1090,7 @@ class MockData {
           status: ReportStatus.summarised,
           fileName: 'blood_panel_aug2026.pdf',
           aiSummary:
-              'Routine blood panel results show haemoglobin within normal range. Vitamin B12 is low-normal (210 pg/mL; reference 200–900). Thyroid function tests (TSH, T3, T4) are within normal limits. HbA1c is 6.1%, indicating pre-diabetic range — dietary guidance recommended.\n\n⚠️ AI summary for doctor reference only. Not a diagnosis. Please review original lab report.',
+              'Routine blood panel results show haemoglobin within normal range. Vitamin B12 is low-normal (210 pg/mL; reference 200–900). Thyroid function tests (TSH, T3, T4) are within normal limits. HbA1c is 6.1%, indicating pre-diabetic range, dietary guidance recommended.\n\n⚠️ AI summary for doctor reference only. Not a diagnosis. Please review original lab report.',
         ),
         const MedicalReport(
           id: 'mr3',
@@ -1120,11 +1120,11 @@ class MockData {
           'Reduce evening screen time to under 30 minutes.',
           'Ensure 7–8 hours of uninterrupted sleep.',
           'Maintain regular meal timings to support circadian rhythm.',
-          'Encourage social interaction — phone call with Priya every evening.',
+          'Encourage social interaction: phone call with Priya every evening.',
         ],
         activities: <String>[
           'Crossword or word puzzle daily (memory stimulation).',
-          'SmaranSaathi cognitive games twice daily — morning and afternoon.',
+          'SmaranSaathi cognitive games twice daily, morning and afternoon.',
           'Guided breathing or yoga session thrice a week.',
           'Mood canvas drawing once a day as emotional expression.',
         ],

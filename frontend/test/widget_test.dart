@@ -86,12 +86,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    // The patient card is the one role that does not go through the
-    // authenticate button: there is no account for them to sign into, so it
-    // opens the handshake their caregiver approves instead.
-    await tester.tap(find.text('Patient'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    // Patient goes through the same select-then-continue flow as the other
+    // two roles now — there is no account for them to sign into, so
+    // continuing opens the handshake their caregiver approves instead.
+    await chooseRole(tester, 'Patient');
 
     expect(find.byType(PatientSignInScreen), findsOneWidget);
     expect(find.text('Username'), findsOneWidget);

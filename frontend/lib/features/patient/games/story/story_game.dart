@@ -152,7 +152,7 @@ class _StoryGameState extends State<StoryGame> {
         prompt: 'You have walked to the market, but when you reach the stall you '
             'realise you have forgotten your purse at home.',
         question: 'What would you do?',
-        subtitle: 'There is no wrong answer — tell me what feels right.',
+        subtitle: 'There is no wrong answer, tell me what feels right.',
         choices: <StoryChoice>[
           StoryChoice(
             text: 'Go home and fetch the purse.',
@@ -173,7 +173,7 @@ class _StoryGameState extends State<StoryGame> {
               (label: 'Depends on trust', ok: false),
             ],
             reply:
-                'That works too — you have bought rice from him for many years.',
+                'That works too, you have bought rice from him for many years.',
           ),
           StoryChoice(
             text: 'Take the vegetables anyway.',
@@ -362,6 +362,7 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
                             title: l.gameStoryLevelSimple,
                             subtitle: l.gameStorySubtitleStoryRecall,
@@ -374,6 +375,7 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
                             title: l.gameStoryLevelGuided,
                             subtitle: l.gameStorySubtitleStoryRecall,
@@ -386,6 +388,7 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
                             title: l.gameStoryLevelAdvanced,
                             subtitle: l.gameStorySubtitleOpenStory,
@@ -398,6 +401,7 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
                             title: l.gameStoryLevelOpen,
                             subtitle: l.gameStorySubtitleFreeMemory,
@@ -410,6 +414,7 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
                             title: l.gameStoryLevelDeepMemory,
                             subtitle: l.gameStorySubtitleFullRecall,

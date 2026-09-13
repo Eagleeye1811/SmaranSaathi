@@ -428,17 +428,32 @@ class _LevelChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(caption.toUpperCase(),
-              style: AppText.overline.sized(10), maxLines: 1, overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 5),
-          Text(AppLocalizations.of(context).gamesLevel(level),
-              style: AppText.body.wght(800).tint(color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 5),
-          DifficultyDots(level: level, color: color, size: 7),
+          // A coloured numeral badge — coloured by the adaptive direction
+          // (`color` is already muted for "this session" and success/accent
+          // for "next") — replaces the old "Level N" text row plus a
+          // separate dot bar below it; one glance now carries both the
+          // number and the direction's colour instead of three text/dot
+          // rows repeating each other.
+          Row(
+            children: <Widget>[
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: Text('$level', style: AppText.bodySmall.wght(800).tint(Colors.white)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(caption.toUpperCase(),
+                    style: AppText.overline.sized(10),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
           const SizedBox(height: 7),
-          Text(detail, style: AppText.caption.sized(11.5), maxLines: 3),
+          Text(detail, style: AppText.caption.sized(11.5), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

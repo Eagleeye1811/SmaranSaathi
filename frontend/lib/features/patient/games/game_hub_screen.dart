@@ -265,24 +265,30 @@ class _GameCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       if (game.hasLevels) ...<Widget>[
+                        // The full level description used to repeat here
+                        // verbatim — it's already said once, in full, on the
+                        // level picker this card opens into. A small
+                        // game-coloured numeral badge (the same language the
+                        // picker's own chips use) plus the dot bar is enough
+                        // to say "you're on level N" without saying it twice.
                         Row(
                           children: <Widget>[
-                            Flexible(
-                              child: Text(l.gamesLevel(level),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.caption.wght(700)),
+                            Container(
+                              width: 22,
+                              height: 22,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: game.accent,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '$level',
+                                style: AppText.caption.sized(11).wght(800).tint(Colors.white),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             DifficultyDots(level: level, color: game.accent, size: 7),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          localizedLevelDescription(l, game.id, level),
-                          style: AppText.caption,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ] else
                         Text(

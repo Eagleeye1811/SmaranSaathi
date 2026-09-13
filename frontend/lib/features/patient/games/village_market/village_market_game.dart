@@ -83,10 +83,22 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   bool _rainEnabledFor(int lvl) => lvl >= 3;
   bool _budgetEnabledFor(int lvl) => lvl >= 4;
 
+  /// The day's total, stated up front once [_budgetEnabled] — see
+  /// [_buildListMention]. Matches the ₹150-spent trigger point already used
+  /// by [_maybeShowNarrativeCues] for [gameVillageMarketBudgetMessage]'s
+  /// "only ₹200 left": 350 - 150 = 200, so that line stays true rather than
+  /// referring to a total the patient was never actually told.
+  static const int _budgetTotal = 350;
+
   int get _stallCount => _stallCountFor(_selectedLevel);
   int get _nudgeBudget => _nudgeBudgetFor(_selectedLevel);
   bool get _rainEnabled => _rainEnabledFor(_selectedLevel);
   bool get _budgetEnabled => _budgetEnabledFor(_selectedLevel);
+
+  /// What is left of [_budgetTotal] — never negative, so overspending (never
+  /// blocked; see the class doc comment on errorless design) reads as "₹0
+  /// left" rather than an alarming negative number.
+  int get _budgetRemaining => (_budgetTotal - _basketTotal).clamp(0, _budgetTotal);
 
   late final List<Stall> _stalls = MarketContent.layoutFor(_stallCount);
 
@@ -357,6 +369,7 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                           SizedBox(
                             width: 122,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: lvl,
                               title: localizedLevelDescription(l, GameId.villageMarket, lvl),
                               subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
@@ -396,7 +409,14 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: l.gameVillageMarketListMention(_listGiver),
+      // Levels 1-3 give the mentioned list with no budget pressure at all —
+      // only from level 4, where "watching the coin purse" is the whole
+      // point of the level, does the patient actually get told a number to
+      // plan against, rather than the budget existing only as an invisible
+      // internal threshold with no starting figure ever stated.
+      companionMessage: _budgetEnabled
+          ? l.gameVillageMarketListMentionWithBudget(_listGiver, _budgetTotal)
+          : l.gameVillageMarketListMention(_listGiver),
       companionState: CompanionState.thinking,
       bottom: BigButton(
         label: l.gameVillageMarketListMentionContinue,
@@ -563,6 +583,13 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
           ),
           const SizedBox(height: 10),
           MeterBar(value: _basketFullness, color: _game.accent, height: 8),
+          if (_budgetEnabled) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              l.gameVillageMarketBudgetRemaining(_budgetRemaining),
+              style: AppText.caption.wght(700).tint(_game.accent),
+            ),
+          ],
         ],
       ),
     );

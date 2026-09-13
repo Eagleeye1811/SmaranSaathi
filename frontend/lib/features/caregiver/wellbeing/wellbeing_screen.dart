@@ -219,7 +219,7 @@ class WellbeingScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: Insets.md),
-                          Text('Daily adherence — last 7 days',
+                          Text('Daily adherence: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
@@ -253,7 +253,7 @@ class WellbeingScreen extends StatelessWidget {
                               style: AppText.h3),
                           const SizedBox(height: 4),
                           Text(
-                              'Number of activities completed each day — target is 4.',
+                              'Number of activities completed each day, target is 4.',
                               style: AppText.caption),
                           const SizedBox(height: Insets.md),
                           WeekStrip(
@@ -285,7 +285,7 @@ class WellbeingScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Daily engagement — last 7 days',
+                          Text('Daily engagement: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(

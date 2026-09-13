@@ -121,7 +121,7 @@ class _DoctorConnectStepState extends State<DoctorConnectStep> {
                       icon: Icons.hourglass_bottom_rounded,
                       color: AppColors.accent),
                   title: d.displayName,
-                  subtitle: 'Invitation sent — you can carry on while they reply',
+                  subtitle: 'Invitation sent, you can carry on while they reply',
                 ),
               ),
             ),
@@ -227,7 +227,7 @@ class _DoctorConnectStepState extends State<DoctorConnectStep> {
             ),
         const SizedBox(height: Insets.sm),
         WhyWeAsk(
-          'A doctor sees the same summary you do — nothing extra, and only '
+          'A doctor sees the same summary you do, nothing extra, and only '
           'after they accept.',
           icon: Icons.lock_outline_rounded,
         ),

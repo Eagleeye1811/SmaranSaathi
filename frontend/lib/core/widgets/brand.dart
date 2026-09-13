@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_text.dart';
+import '../../app/theme/app_theme.dart';
 
 /// The SmaranSaathi mark — the shipped app icon, so the logo on screen and the
 /// icon on the home screen are the same image.
@@ -155,6 +156,46 @@ class BrandLockup extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The identity strip carrying the brand into screens that used to show no
+/// branding at all — the app's own mark, plus whatever belongs on the same
+/// line beside it.
+///
+/// Brand on the left, [trailing] on the right, a `Spacer` between: real,
+/// non-overlapping layout rather than centering the lockup against the
+/// strip's full width. A strip that also carries action buttons cannot
+/// afford true centering — the middle of the *whole* strip can sit closer
+/// to those buttons than the lockup's own width allows, overlapping them
+/// instead of sitting beside them. The plain, centered version of this
+/// lockup (no competing content) is what the authentication screens use
+/// directly, and stays as it is.
+class BrandHeaderBar extends StatelessWidget {
+  const BrandHeaderBar({
+    super.key,
+    this.leading,
+    this.trailing,
+    this.size = 32,
+  });
+
+  final Widget? leading;
+  final Widget? trailing;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Insets.sm, 6, Insets.gutter, 6),
+      child: Row(
+        children: <Widget>[
+          if (leading != null) ...<Widget>[leading!, const SizedBox(width: 10)],
+          BrandLockup(size: size, center: true, showTagline: false),
+          const Spacer(),
+          if (trailing != null) trailing!,
+        ],
+      ),
     );
   }
 }

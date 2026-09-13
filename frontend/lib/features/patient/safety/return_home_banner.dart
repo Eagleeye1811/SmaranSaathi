@@ -178,7 +178,7 @@ class _LetsHeadBack extends StatelessWidget {
                     Text(AppLocalizations.of(context).shallWeHeadBack, style: AppText.h3),
                     const SizedBox(height: 2),
                     Text(
-                      'You are a little way from $zoneLabel — about '
+                      'You are a little way from $zoneLabel, about '
                       '${_round(metresOut)} away.$direction',
                       style: AppText.bodySmall.tint(AppColors.inkSoft),
                     ),

@@ -899,7 +899,7 @@ class AiInsightBanner extends StatelessWidget {
     required this.insight,
     this.color = AppColors.primary,
     this.disclaimer =
-        'AI-observed pattern — for context only. Not a medical diagnosis.',
+        'AI-observed pattern, for context only. Not a medical diagnosis.',
   });
 
   final String insight;

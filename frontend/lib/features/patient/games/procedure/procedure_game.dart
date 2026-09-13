@@ -287,6 +287,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
                             title: 'Making tea',
                             subtitle: '4 steps • Video',
@@ -299,6 +300,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
                             title: 'Washing clothes',
                             subtitle: '5 steps • Video',
@@ -311,6 +313,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
                             title: 'Til pitha',
                             subtitle: '6 steps • Cards',
@@ -323,6 +326,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
                             title: 'Til pitha (Adv)',
                             subtitle: '6 steps • Advanced',
@@ -335,6 +339,7 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
                             title: 'Washing (Master)',
                             subtitle: '5 steps • Mastery',

@@ -779,7 +779,7 @@ class _CheckIn extends StatelessWidget {
         MoodLevel.good => 'You said you are feeling good today. '
             'I would love to hear what has made it a good day.',
         MoodLevel.okay => 'You said today feels about okay. '
-            'Tell me how it has gone so far — I have time.',
+            'Tell me how it has gone so far. I have time.',
         MoodLevel.low => 'You said you are not feeling good today, $name. '
             'I am here. Would you like to tell me what is on your mind?',
       };

@@ -95,6 +95,16 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
     final AppRole? role = _selected;
     if (role == null || _busy) return;
 
+    // The patient doesn't authenticate here at all — there is no account for
+    // them to sign into, so their whole "continue" is just opening the
+    // pairing handshake their caregiver approves instead (see
+    // `PatientSignInScreen`). Picking the card still only selects it, the
+    // same as the other two roles — nothing here jumps ahead of the button.
+    if (role == AppRole.patient) {
+      Nav.push(context, const PatientSignInScreen());
+      return;
+    }
+
     final AuthService? auth = AuthScope.maybeOf(context);
     final AppState state = AppScope.read(context);
 
@@ -179,18 +189,25 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
-                          const FadeInUp(child: BrandLockup(size: 46)),
-                          SizedBox(height: tall ? 20 : 12),
+                          const FadeInUp(child: BrandLockup(size: 40)),
+                          SizedBox(height: tall ? 14 : 8),
                           FadeInUp(
                             delayMs: 60,
                             child: Center(
                               child: Companion(
                                 state: CompanionState.happy,
-                                size: tall ? 150 : 118,
+                                // Smaller than the old 150/118: the mascot was
+                                // the single largest thing on the screen, and
+                                // trimming it is what actually gets the rest
+                                // of the page to fit a typical phone without
+                                // scrolling — see the class doc's "always a
+                                // way back" note for why scrolling here is
+                                // avoided rather than just tolerated.
+                                size: tall ? 118 : 92,
                               ),
                             ),
                           ),
-                          SizedBox(height: tall ? 12 : 8),
+                          SizedBox(height: tall ? 10 : 6),
                           FadeInUp(
                             delayMs: 110,
                             child: Column(
@@ -198,9 +215,9 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                                 Text(
                                   l.authTitle,
                                   textAlign: TextAlign.center,
-                                  style: AppText.hero.sized(tall ? 28 : 25),
+                                  style: AppText.hero.sized(tall ? 26 : 23),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 6),
                                 Text(
                                   l.authSubtitle,
                                   textAlign: TextAlign.center,
@@ -212,7 +229,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
 
                           // ── the account, offered rather than demanded ──
                           if (auth != null && state.accountId != null) ...<Widget>[
-                            SizedBox(height: tall ? 22 : 16),
+                            SizedBox(height: tall ? 16 : 12),
                             FadeInUp(
                               delayMs: 140,
                               child: _AccountCard(
@@ -224,7 +241,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                             ),
                           ],
 
-                          SizedBox(height: tall ? 24 : 18),
+                          SizedBox(height: tall ? 18 : 12),
                           FadeInUp(
                             delayMs: 170,
                             child: Row(
@@ -239,7 +256,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: Insets.md),
+                          const SizedBox(height: Insets.sm),
 
                           // ── the caregiver comes first ──────────────────
                           //
@@ -262,7 +279,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               selected: _selected == AppRole.caregiver,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: Insets.xs),
                           FadeInUp(
                             delayMs: 240,
                             child: _RoleCard(
@@ -272,10 +289,11 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               description: l.authPatientEntryBody,
                               accent: AppColors.terracotta,
                               tint: AppColors.terracottaTint,
-                              onTap: () => Nav.push(context, const PatientSignInScreen()),
+                              onTap: () => setState(() => _selected = AppRole.patient),
+                              selected: _selected == AppRole.patient,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: Insets.xs),
                           FadeInUp(
                             delayMs: 280,
                             child: _RoleCard(
@@ -289,7 +307,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               selected: _selected == AppRole.doctor,
                             ),
                           ),
-                          SizedBox(height: tall ? 22 : 16),
+                          SizedBox(height: tall ? 16 : 12),
                           FadeInUp(
                             delayMs: 300,
                             child: BigButton(
@@ -317,11 +335,6 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
                               textAlign: TextAlign.center,
                               style: AppText.caption.copyWith(height: 1.45),
                             ),
-                          ),
-                          SizedBox(height: tall ? 20 : 14),
-                          const FadeInUp(
-                            delayMs: 350,
-                            child: WovenStrip(height: 10, opacity: 0.5),
                           ),
                         ],
                       ),

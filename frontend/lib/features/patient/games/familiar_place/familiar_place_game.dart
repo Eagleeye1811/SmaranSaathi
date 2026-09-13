@@ -442,6 +442,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
                             title: l.gameLevelEasy,
                             subtitle: l.gameFamiliarPlaceRoomsCount(3),
@@ -454,6 +455,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
                             title: l.gameLevelMedium,
                             subtitle: l.gameFamiliarPlaceRoomsCount(4),
@@ -466,6 +468,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
                             title: l.gameLevelHard,
                             subtitle: l.gameFamiliarPlaceRoomsCount(5),
@@ -478,6 +481,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
                             title: l.gameLevelExpert,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
@@ -490,6 +494,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
                             title: l.gameLevelMastery,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,

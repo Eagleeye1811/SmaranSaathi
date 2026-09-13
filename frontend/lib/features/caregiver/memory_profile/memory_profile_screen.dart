@@ -199,7 +199,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         if (p.family.isEmpty)
           EmptyState(
             title: 'Nobody added yet',
-            message: 'Add the people who matter to them — the app uses these '
+            message: 'Add the people who matter to them. The app uses these '
                 'names and faces in the activities.',
             icon: Icons.groups_2_rounded,
           ),
@@ -295,7 +295,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         if (p.memories.isEmpty)
           EmptyState(
             title: 'No memories yet',
-            message: 'A question and the answer to it — the activities ask '
+            message: 'A question and the answer to it. The activities ask '
                 'these back in their own words.',
             icon: Icons.auto_stories_rounded,
           ),

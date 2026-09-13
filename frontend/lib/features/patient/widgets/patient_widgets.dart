@@ -5,6 +5,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
+import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
@@ -37,10 +38,17 @@ class PatientTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(Insets.gutter, 6, Insets.gutter, 10),
+      padding: const EdgeInsets.fromLTRB(Insets.md, 2, Insets.md, 8),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppColors.hairline)),
       ),
+      // Brand on the left, actions on the right, a Spacer between them —
+      // real, non-overlapping layout rather than centering the lockup
+      // against the strip's full width. This bar can carry two action
+      // buttons plus an exit button at once, and true centering does not
+      // leave room for that: the middle of the *whole* strip can sit
+      // closer to the buttons than the lockup's own width allows,
+      // overlapping them instead of sitting beside them.
       child: Row(
         children: <Widget>[
           if (Navigator.of(context).canPop()) ...<Widget>[
@@ -50,32 +58,40 @@ class PatientTopBar extends StatelessWidget {
               tooltip: l.actionBack,
               onPressed: () => Navigator.of(context).maybePop(),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
           ],
-          const Expanded(child: _Wordmark()),
-          if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 8)],
+          // No tagline, so this stays one line next to the buttons. The
+          // back button rarely shows here (only on a pushed sub-screen,
+          // not the root tabs, now that the preview's nested navigator
+          // makes canPop() correctly false on Home), so most of the time
+          // this has the full row to itself and the buttons.
+          const BrandLockup(size: 30, center: true, showTagline: false),
+          const Spacer(),
+          if (trailing != null) ...<Widget>[trailing!, const SizedBox(width: 6)],
           if (showActions) ...<Widget>[
             PatientHeaderAction(
               icon: Icons.notifications_none_rounded,
               tooltip: l.todayTitle,
-              // A dot, not a number: the count is on the page itself, and a
-              // digit small enough to fit here is a digit this reader cannot
-              // be asked to make out.
+              size: 42,
+              // A dot, not a number: the count is on the page itself, and
+              // a digit small enough to fit here is a digit this reader
+              // cannot be asked to make out.
               badge: AppScope.of(context)
                   .reminders
                   .where((Reminder r) => !r.done)
                   .isNotEmpty,
               onTap: () => Nav.open(context, const TodayScreen()),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             PatientHeaderAction(
               icon: Icons.person_outline_rounded,
               tooltip: 'My profile',
+              size: 42,
               onTap: () => Nav.open(context, const PatientProfileScreen()),
             ),
           ],
           if (onExit != null && showExit) ...<Widget>[
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             RoundIconButton(
               icon: Icons.logout_rounded,
               size: 40,
@@ -102,6 +118,7 @@ class PatientHeaderAction extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     this.badge = false,
+    this.size = 48,
   });
 
   static const Color color = AppColors.primary;
@@ -110,6 +127,7 @@ class PatientHeaderAction extends StatelessWidget {
   final String tooltip;
   final VoidCallback onTap;
   final bool badge;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -126,14 +144,14 @@ class PatientHeaderAction extends StatelessWidget {
             // each other; the colour belongs on the badge, where it means
             // something.
             Container(
-              width: 48,
-              height: 48,
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.hairline),
               ),
-              child: Icon(icon, size: 23, color: AppColors.inkSoft),
+              child: Icon(icon, size: size * 0.48, color: AppColors.inkSoft),
             ),
             if (badge)
               Positioned(
@@ -152,25 +170,6 @@ class PatientHeaderAction extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// The name, set in two weights so it reads as a mark rather than as a label.
-class _Wordmark extends StatelessWidget {
-  const _Wordmark();
-
-  @override
-  Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(
-        children: <InlineSpan>[
-          TextSpan(text: 'Memory', style: AppText.h3.wght(800).tint(AppColors.ink)),
-          TextSpan(text: 'Saathi', style: AppText.h3.wght(800).tint(AppColors.primary)),
-        ],
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
     );
   }
 }

@@ -48,7 +48,7 @@ class CaregiverProfileScreen extends StatelessWidget {
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
             title: Text('Log out?'),
-            content: Text('Nothing is deleted — this record stays on the phone under your '
+            content: Text('Nothing is deleted. This record stays on the phone under your '
                 'account and comes back the next time you sign in.'),
             actions: <Widget>[
               TextButton(

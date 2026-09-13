@@ -342,6 +342,7 @@ class LevelOptionChip extends StatelessWidget {
     required this.unlocked,
     required this.selected,
     required this.onTap,
+    this.accent = AppColors.primary,
   });
 
   final int levelNum;
@@ -351,76 +352,96 @@ class LevelOptionChip extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
+  /// The game's own accent colour. Every chip used to render its selected
+  /// state in the same hardcoded blue regardless of which game it belonged
+  /// to — the one place in the whole level-picker where a game's identity
+  /// *wasn't* visible. Defaults to [AppColors.primary] only so a caller that
+  /// genuinely has no game colour (there is none today) still compiles.
+  final Color accent;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Pressable(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        decoration: BoxDecoration(
-          color: unlocked
-              ? (selected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.surfaceMuted)
-              : AppColors.surfaceMuted.withValues(alpha: 0.4),
-          borderRadius: Corners.r(Corners.md),
-          border: Border.all(
+    final Color badgeColor = unlocked ? accent : AppColors.inkMuted.withValues(alpha: 0.35);
+    return Semantics(
+      button: true,
+      selected: selected,
+      // The spoken label keeps saying "Level N" even though the chip itself
+      // now shows that as a numeral in a coloured badge rather than as a
+      // words — the simplification is visual, not a loss of information.
+      label: '${l.gamesLevel(levelNum)}. $title'
+          '${unlocked ? '' : '. ${l.gameLevelLocked}'}',
+      child: Pressable(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          decoration: BoxDecoration(
             color: unlocked
-                ? (selected ? AppColors.primary : AppColors.hairline)
-                : AppColors.hairline.withValues(alpha: 0.4),
-            width: selected ? 2.0 : 1.0,
+                ? (selected ? accent.withValues(alpha: 0.12) : AppColors.surfaceMuted)
+                : AppColors.surfaceMuted.withValues(alpha: 0.4),
+            borderRadius: Corners.r(Corners.md),
+            border: Border.all(
+              color: unlocked
+                  ? (selected ? accent : AppColors.hairline)
+                  : AppColors.hairline.withValues(alpha: 0.4),
+              width: selected ? 2.0 : 1.0,
+            ),
           ),
-        ),
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Flexible(
-                  child: Text(
-                    l.gamesLevel(levelNum),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.caption.wght(800).tint(
-                          unlocked
-                              ? (selected ? AppColors.primary : AppColors.inkMuted)
-                              : AppColors.inkMuted.withValues(alpha: 0.5),
-                        ),
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              // A coloured numeral badge in place of the old plain "Level N"
+              // text row — the single biggest lever for making this chip
+              // read as designed rather than a stack of shrinking captions.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  shape: BoxShape.circle,
+                  boxShadow: unlocked && selected
+                      ? <BoxShadow>[
+                          BoxShadow(
+                            color: accent.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
                 ),
-                if (!unlocked) ...<Widget>[
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.lock_rounded,
-                    size: 12,
-                    color: AppColors.inkMuted.withValues(alpha: 0.5),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              title,
-              style: AppText.caption.sized(12).wght(700).tint(
-                    unlocked
-                        ? (selected ? AppColors.primary : AppColors.ink)
-                        : AppColors.inkMuted.withValues(alpha: 0.5),
-                  ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              unlocked ? subtitle : l.gameLevelLocked,
-              style: AppText.caption
-                  .sized(10)
-                  .tint(unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5)),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+                child: unlocked
+                    ? Text(
+                        '$levelNum',
+                        style: AppText.body.wght(800).tint(Colors.white),
+                      )
+                    : const Icon(Icons.lock_rounded, size: 15, color: Colors.white),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                style: AppText.caption.sized(12).wght(700).tint(
+                      unlocked
+                          ? (selected ? accent : AppColors.ink)
+                          : AppColors.inkMuted.withValues(alpha: 0.5),
+                    ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                unlocked ? subtitle : l.gameLevelLocked,
+                style: AppText.caption.sized(10).tint(
+                    unlocked ? AppColors.inkMuted : AppColors.inkMuted.withValues(alpha: 0.5)),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -482,6 +482,7 @@ class _WeavesGameState extends State<WeavesGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
                             title: l.gameLevelEasy,
                             subtitle: l.gameWeavesSubtitle1Blank,
@@ -494,6 +495,7 @@ class _WeavesGameState extends State<WeavesGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
                             title: l.gameLevelMedium,
                             subtitle: l.gameWeavesSubtitleHiddenWeave,
@@ -506,6 +508,7 @@ class _WeavesGameState extends State<WeavesGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
                             title: l.gameLevelHard,
                             subtitle: l.gameWeavesSubtitle2Blanks,
@@ -518,6 +521,7 @@ class _WeavesGameState extends State<WeavesGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
                             title: l.gameLevelExpert,
                             subtitle: l.gameWeavesSubtitleFastWeave,
@@ -530,6 +534,7 @@ class _WeavesGameState extends State<WeavesGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
                             title: l.gameLevelMastery,
                             subtitle: l.gameWeavesSubtitle4x4Grid,

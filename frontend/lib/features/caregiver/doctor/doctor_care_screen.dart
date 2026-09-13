@@ -42,11 +42,11 @@ const Appointment _past = Appointment(
         'sequencing activities. Maintain 5 sessions/week. Ensure afternoon '
         'rest is not disrupted.',
     recommendedActivities: <String>[
-      'Procedure Reconstruction — increase to daily',
-      'Melody of the Valleys — maintain current frequency',
-      'NER Memory Cards — 3x per week',
+      'Procedure Reconstruction: increase to daily',
+      'Melody of the Valleys: maintain current frequency',
+      'NER Memory Cards: 3x per week',
     ],
-    followUpLabel: '4 weeks — 18 September 2026',
+    followUpLabel: '4 weeks, 18 September 2026',
     doctorNotes: 'Patient appeared relaxed and engaged. Caregiver reported '
         'positive mood on most days. Continue monitoring sequencing domain.',
   ),

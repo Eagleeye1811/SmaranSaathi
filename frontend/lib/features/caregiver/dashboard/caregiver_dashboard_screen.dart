@@ -305,6 +305,10 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
+                // This is the caregiver's own dashboard, so the greeting
+                // names the caregiver signed in — not the patient. Confirmed
+                // directly against the running app after an earlier attempt
+                // to "fix" this got it backwards.
                 state.hasCaregiverProfile
                     ? '$greeting, ${state.caregiverName}'
                     : greeting,

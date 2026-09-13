@@ -96,7 +96,7 @@ class HealthAssistant {
       text: 'I cannot diagnose Alzheimer\'s disease or any other condition, and I '
           'would not want to guess about something this important. Several very '
           'different conditions can cause cognitive changes, and some of them are '
-          'treatable — telling them apart needs a professional assessment.\n\n'
+          'treatable, and telling them apart needs a professional assessment.\n\n'
           'What I can do is summarise exactly what you have reported and what your '
           'activities have measured, so you can take it to a doctor.',
       bullets: <String>[
@@ -162,7 +162,7 @@ class HealthAssistant {
       bullets: <String>[
         for (final DomainReading r in snapshot.assessed)
           '${r.domain.clinicalLabel}: ${r.current!.round()} '
-              '(baseline ${r.baseline?.round() ?? '—'}) — ${r.deltaLabel.toLowerCase()}',
+              '(baseline ${r.baseline?.round() ?? '—'}), ${r.deltaLabel.toLowerCase()}',
       ],
       followUps: <HealthQuickAction>[
         HealthQuickAction.whyChanged,
@@ -176,7 +176,7 @@ class HealthAssistant {
     return HealthAnswer(
       text: 'A single lower session usually is not decline. Performance on tasks '
           'like these moves with sleep, mood, illness, medication, pain, noise '
-          'and simple tiredness — and it varies naturally from day to day. '
+          'and simple tiredness, and it varies naturally from day to day. '
           'What matters is whether a change persists across several weeks.\n\n'
           '${contributors.isEmpty ? 'Nothing in your health record obviously explains a dip.' : 'From what you told us, these could be affecting your results: ${contributors.join(', ')}.'} '
           'If the change continues, it is worth discussing with a healthcare '
@@ -198,12 +198,12 @@ class HealthAssistant {
     final List<String> questions = <String>[
       if (snapshot.declining.isNotEmpty)
         'My ${snapshot.declining.first.domain.clinicalLabel.toLowerCase()} scores have moved away from my baseline over '
-            '${snapshot.assessmentsExpected} weeks — what could explain that?',
+            '${snapshot.assessmentsExpected} weeks. What could explain that?',
       if (intake.reason.onset != null)
         'I first noticed changes ${intake.reason.onset!.label.toLowerCase()} and they have been '
-            '${(intake.reason.progression?.label ?? 'changing').toLowerCase()} — is that pattern important?',
+            '${(intake.reason.progression?.label ?? 'changing').toLowerCase()}. Is that pattern important?',
       if (intake.function.needingHelp.isNotEmpty)
-        'I now need help with ${intake.function.needingHelp.map((FunctionalItem i) => i.label.toLowerCase()).join(' and ')} — should that be assessed?',
+        'I now need help with ${intake.function.needingHelp.map((FunctionalItem i) => i.label.toLowerCase()).join(' and ')}. Should that be assessed?',
       if (intake.medical.reversibleContributors.isNotEmpty)
         'Could ${intake.medical.reversibleContributors.join(' or ')} be contributing?',
       'Are there blood tests or scans that would rule anything out?',
@@ -211,9 +211,9 @@ class HealthAssistant {
     ];
 
     return HealthAnswer(
-      text: 'Here is what I would take to the appointment. Your full summary — '
+      text: 'Here is what I would take to the appointment. Your full summary of '
           'symptoms, caregiver observations, daily function and twelve weeks of '
-          'activity trends — is ready to share from the report screen.',
+          'activity trends is ready to share from the report screen.',
       bullets: questions,
       followUps: <HealthQuickAction>[HealthQuickAction.explainResults],
     );
@@ -221,7 +221,7 @@ class HealthAssistant {
 
   HealthAnswer _whatToMonitor(IntakeRecord intake, MonitoringSnapshot snapshot) {
     return HealthAnswer(
-      text: 'Keep the weekly assessment going — a trend is only as good as the '
+      text: 'Keep the weekly assessment going. A trend is only as good as the '
           'points in it. Alongside that, these are the things worth noticing '
           'between sessions, based on what you have already told us.',
       bullets: <String>[
@@ -230,7 +230,7 @@ class HealthAssistant {
         if (intake.function.needingHelp.isNotEmpty)
           'Whether help is needed with anything new beyond '
               '${intake.function.needingHelp.map((FunctionalItem i) => i.label.toLowerCase()).join(', ')}',
-        'Any sudden change over hours or days — that needs medical attention, not monitoring',
+        'Any sudden change over hours or days, which needs medical attention, not monitoring',
         'Sleep, mood and new medications, since all three affect performance',
         'Anything a family member notices that you have not',
       ],
@@ -246,7 +246,7 @@ class HealthAssistant {
           'of ageing.\n\n'
           'Forgetting a name and remembering it later is ordinary. Repeatedly '
           'losing track of recent conversations, or no longer managing tasks you '
-          'used to manage, is worth assessing — partly because some causes of '
+          'used to manage, is worth assessing, partly because some causes of '
           'cognitive change, such as thyroid problems, vitamin deficiency, '
           'depression, sleep disorders and medication effects, can be treated.',
       bullets: <String>[
