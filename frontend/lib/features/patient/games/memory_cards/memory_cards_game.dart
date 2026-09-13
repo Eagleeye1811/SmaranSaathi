@@ -302,6 +302,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 1,
+                            icon: Icons.grid_view_rounded,
                             title: l.gameLevelEasy,
                             subtitle: l.gameMemoryCardsPairsCount(4),
                             unlocked: 1 <= _maxUnlockedLevel,
@@ -315,6 +316,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 2,
+                            icon: Icons.grid_3x3_rounded,
                             title: l.gameLevelMedium,
                             subtitle: l.gameMemoryCardsPairsCount(6),
                             unlocked: 2 <= _maxUnlockedLevel,
@@ -328,6 +330,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 3,
+                            icon: Icons.view_comfy_rounded,
                             title: l.gameLevelHard,
                             subtitle: l.gameMemoryCardsPairsCount(8),
                             unlocked: 3 <= _maxUnlockedLevel,
@@ -341,6 +344,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 4,
+                            icon: Icons.apps_rounded,
                             title: l.gameLevelExpert,
                             subtitle: l.gameMemoryCardsPairsCount(10),
                             unlocked: 4 <= _maxUnlockedLevel,
@@ -354,6 +358,7 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 5,
+                            icon: Icons.workspace_premium_rounded,
                             title: l.gameLevelMastery,
                             subtitle: l.gameMemoryCardsPairsCount(12),
                             unlocked: 5 <= _maxUnlockedLevel,
@@ -379,6 +384,23 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                   Text(
                     l.gameMemoryCardsInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // A handful of faces from today's deck, so the pairs
+                  // being matched are something recognisable from the
+                  // very first glance, not a mystery until the cards flip.
+                  SizedBox(
+                    height: 56,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: deck.length,
+                      separatorBuilder: (BuildContext context, int i) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (BuildContext context, int i) => ClipRRect(
+                        borderRadius: Corners.r(Corners.sm),
+                        child: SceneImage(sceneId: deck[i].sceneId, size: 56),
+                      ),
+                    ),
                   ),
                 ],
               ),

@@ -81,8 +81,12 @@ void main() {
       expect(state.viewingAsPatient, isTrue);
       expect(state.role, AppRole.patient);
 
-      // The way back out, as a person would use it.
-      await tester.pageBack();
+      // The way back out, as a person would use it. `tester.pageBack()`
+      // only recognises a tooltip of exactly "Back" or a Cupertino back
+      // button, and this app's own back buttons carry a more descriptive
+      // tooltip ("Back to caregiver view") on plain Material icon buttons,
+      // so the tap is aimed at the icon directly instead.
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
       await beat(tester);
 
       expect(state.viewingAsPatient, isFalse);

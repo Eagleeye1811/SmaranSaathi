@@ -484,6 +484,7 @@ class _WeavesGameState extends State<WeavesGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 1,
+                            icon: Icons.grid_view_rounded,
                             title: l.gameLevelEasy,
                             subtitle: l.gameWeavesSubtitle1Blank,
                             unlocked: 1 <= _maxUnlockedLevel,
@@ -497,6 +498,7 @@ class _WeavesGameState extends State<WeavesGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 2,
+                            icon: Icons.view_module_rounded,
                             title: l.gameLevelMedium,
                             subtitle: l.gameWeavesSubtitleHiddenWeave,
                             unlocked: 2 <= _maxUnlockedLevel,
@@ -510,6 +512,7 @@ class _WeavesGameState extends State<WeavesGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 3,
+                            icon: Icons.dashboard_customize_rounded,
                             title: l.gameLevelHard,
                             subtitle: l.gameWeavesSubtitle2Blanks,
                             unlocked: 3 <= _maxUnlockedLevel,
@@ -523,6 +526,7 @@ class _WeavesGameState extends State<WeavesGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 4,
+                            icon: Icons.auto_awesome_mosaic_rounded,
                             title: l.gameLevelExpert,
                             subtitle: l.gameWeavesSubtitleFastWeave,
                             unlocked: 4 <= _maxUnlockedLevel,
@@ -536,6 +540,7 @@ class _WeavesGameState extends State<WeavesGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 5,
+                            icon: Icons.diamond_rounded,
                             title: l.gameLevelMastery,
                             subtitle: l.gameWeavesSubtitle4x4Grid,
                             unlocked: 5 <= _maxUnlockedLevel,
@@ -561,6 +566,19 @@ class _WeavesGameState extends State<WeavesGame> {
                   Text(
                     l.gameWeavesInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // A first look at today's colours, in the same woven
+                  // strip the actual pattern is built from — the palette
+                  // this round is drawn in, before a single tile is shown.
+                  ClipRRect(
+                    borderRadius: Corners.r(Corners.sm),
+                    child: WovenStrip(height: 16, colors: _textile.palette),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${_textile.name} · ${_textile.origin}',
+                    style: AppText.caption.tint(AppColors.inkMuted),
                   ),
                 ],
               ),

@@ -312,10 +312,9 @@ class OnDeviceAiService implements AiService {
       return (
         pick,
         '${_activityName(pick, l)} has not been played in the last two weeks, so it '
-<<<<<<< HEAD
-            'exercises ${PatientAiContext.domainOf(pick)?.label.toLowerCase() ?? ''} work that '
-=======
             'exercises ${(PatientAiContext.domainOf(pick)?.label ?? 'thinking').toLowerCase()} work that '
+            'nothing else has covered recently.'
+      );
     }
 
     final List<MapEntry<GameId, double>> candidates = byGame.entries
@@ -691,12 +690,11 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelodyInvitation,
         GameId.weaves => l.aiGameWeavesInvitation,
         GameId.memoryCards => l.aiGameMemoryCardsInvitation,
-<<<<<<< HEAD
-        GameId.villageMarket => l.aiGameMemoryCardsInvitation,
-        GameId.moodCanvas => l.aiGameMemoryCardsInvitation,
-=======
+        // No dedicated aiGame*Invitation key exists for these two yet — each
+        // game's own intro-screen companion message already says exactly
+        // this ("shall we see what we can find?" / "let's draw and talk"),
+        // so reusing it here beats inventing a near-duplicate string.
         GameId.villageMarket => l.gameVillageMarketIntroMessage,
-        GameId.moodCanvas => l.gameMoodCanvasName,
->>>>>>> 0a11920bf74e6fc301437d0df263183ddd9add2c
+        GameId.moodCanvas => l.gameMoodCanvasInstructions,
       };
 }

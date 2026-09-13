@@ -5,7 +5,6 @@ import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
 import 'package:smaran_saathi/features/doctor/chat/doctor_chat_conversation_screen.dart';
-import 'package:smaran_saathi/features/doctor/chat/doctor_chats_screen.dart';
 import 'package:smaran_saathi/core/models/doctor.dart';
 import 'package:smaran_saathi/features/caregiver/doctor/doctor_care_screen.dart';
 import 'package:smaran_saathi/features/caregiver/patient_view_screen.dart';
@@ -639,7 +638,10 @@ void main() {
       tester.setSurface(kPhone);
       await tester.pumpWidget(harness(const ProcedureGame()));
       await beat(tester);
-      expect(find.text('Making tea'), findsOneWidget);
+      // A new account starts at level 1, so "Making tea" now appears twice:
+      // once as the level-1 chip's own label, and again as the selected
+      // procedure's heading, since level 1 is what's actually selected.
+      expect(find.text('Making tea'), findsWidgets);
 
       await tester.tap(find.text('Show me the steps'));
       await beat(tester);

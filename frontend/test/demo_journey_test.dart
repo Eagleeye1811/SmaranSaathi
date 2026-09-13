@@ -81,13 +81,13 @@ void main() {
     await beat(tester);
     expect(find.text('THE SEQUENCE SO FAR'), findsOneWidget);
 
-    // The five steps of level 2, "Washing clothes", in order.
+    // The four steps of level 1, "Making tea" — a fresh account's actual
+    // starting level, in order.
     for (final String step in <String>[
-      'Soak in soapy water',
-      'Gently scrub clean',
-      'Rinse with fresh water',
-      'Squeeze excess water',
-      'Hang on clothesline to dry',
+      'Fill the kettle',
+      'Boil the water',
+      'Add the tea leaves',
+      'Add milk and sugar',
     ]) {
       await tapVisible(tester, find.text(step));
     }

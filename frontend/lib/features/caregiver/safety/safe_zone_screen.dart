@@ -182,7 +182,12 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
               top: Insets.sm,
               left: Insets.gutter,
               right: Insets.gutter,
+              // No top inset: this screen only ever renders inside
+              // `CaregiverShell`, whose own header already clears the
+              // status bar — the `Insets.sm` offset above is the only gap
+              // this card needs from it.
               child: SafeArea(
+                top: false,
                 bottom: false,
                 child: Column(
                   children: <Widget>[

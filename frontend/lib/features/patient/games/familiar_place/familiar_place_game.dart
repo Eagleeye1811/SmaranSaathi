@@ -444,6 +444,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 1,
+                            icon: Icons.holiday_village_rounded,
                             title: l.gameLevelEasy,
                             subtitle: l.gameFamiliarPlaceRoomsCount(3),
                             unlocked: 1 <= _maxUnlockedLevel,
@@ -457,6 +458,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 2,
+                            icon: Icons.meeting_room_rounded,
                             title: l.gameLevelMedium,
                             subtitle: l.gameFamiliarPlaceRoomsCount(4),
                             unlocked: 2 <= _maxUnlockedLevel,
@@ -470,6 +472,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 3,
+                            icon: Icons.map_rounded,
                             title: l.gameLevelHard,
                             subtitle: l.gameFamiliarPlaceRoomsCount(5),
                             unlocked: 3 <= _maxUnlockedLevel,
@@ -483,6 +486,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 4,
+                            icon: Icons.timer_outlined,
                             title: l.gameLevelExpert,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
                             unlocked: 4 <= _maxUnlockedLevel,
@@ -496,6 +500,7 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                           child: LevelOptionChip(
                             accent: _game.accent,
                             levelNum: 5,
+                            icon: Icons.workspace_premium_rounded,
                             title: l.gameLevelMastery,
                             subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,
                             unlocked: 5 <= _maxUnlockedLevel,
@@ -522,6 +527,46 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
                     l.gameFamiliarPlaceInstructions,
                     style: AppText.bodySmall,
                   ),
+                  const SizedBox(height: 14),
+                  // The rooms this level actually walks through — not the
+                  // fixed set `_rooms` would lock in on first read, which
+                  // is exactly the room count changing level here must
+                  // still reflect.
+                  Builder(builder: (BuildContext context) {
+                    final List<Room> preview = _buildRooms().take(_roomCount).toList();
+                    return Row(
+                      children: <Widget>[
+                        for (int i = 0; i < preview.length; i++) ...<Widget>[
+                          Expanded(
+                            child: Column(
+                              children: <Widget>[
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: preview[i].floor.withValues(alpha: 0.4),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: preview[i].floor),
+                                  ),
+                                  child: Icon(preview[i].icon, size: 20, color: AppColors.ink),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  preview[i].name,
+                                  style: AppText.caption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (i < preview.length - 1) const SizedBox(width: 4),
+                        ],
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),

@@ -93,7 +93,10 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
     return MotifBackground(
       opacity: 0.04,
       showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[

@@ -65,6 +65,16 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   // rather than drifting apart the way the level pickers in the six earlier
   // activities did.
 
+  /// One glyph per level of market-readiness, from a light basket to the
+  /// coin purse the higher levels actually start watching.
+  IconData _levelIcon(int lvl) => switch (lvl) {
+        1 => Icons.shopping_basket_outlined,
+        2 => Icons.storefront_outlined,
+        3 => Icons.local_grocery_store_rounded,
+        4 => Icons.account_balance_wallet_rounded,
+        _ => Icons.emoji_events_rounded,
+      };
+
   int _stallCountFor(int lvl) => switch (lvl) {
         1 => 3,
         2 => 4,
@@ -371,6 +381,7 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                             child: LevelOptionChip(
                               accent: _game.accent,
                               levelNum: lvl,
+                              icon: _levelIcon(lvl),
                               title: localizedLevelDescription(l, GameId.villageMarket, lvl),
                               subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
                               unlocked: lvl <= _maxUnlockedLevel,
@@ -395,6 +406,49 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                   Text(_game.localizedName(l), style: AppText.h1.sized(24)),
                   const SizedBox(height: 8),
                   Text(l.gameVillageMarketInstructions, style: AppText.bodySmall),
+                  const SizedBox(height: 14),
+                  // Recomputed from the level, not read off `_stalls` —
+                  // that field locks in on first access, before a level
+                  // chosen here has a chance to change it.
+                  Builder(builder: (BuildContext context) {
+                    final List<Stall> preview = MarketContent.layoutFor(_stallCount);
+                    return SizedBox(
+                      height: 66,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: preview.length,
+                        separatorBuilder: (BuildContext context, int i) =>
+                            const SizedBox(width: 10),
+                        itemBuilder: (BuildContext context, int i) => SizedBox(
+                          width: 56,
+                          child: Column(
+                            children: <Widget>[
+                              Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: preview[i].awning.withValues(alpha: 0.16),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: preview[i].awning.withValues(alpha: 0.4)),
+                                ),
+                                child: Icon(preview[i].icon, size: 20, color: preview[i].awning),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                preview[i].name,
+                                style: AppText.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),

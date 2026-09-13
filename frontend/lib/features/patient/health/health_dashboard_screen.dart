@@ -118,13 +118,17 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                 Insets.gutter, Insets.md, Insets.gutter, Insets.xxl),
             children: <Widget>[
               _Header(name: state.patient.shortName, state: state),
-              const SizedBox(height: Insets.md),
+              // The same gap as every other section boundary below — this
+              // was the one spot on the page still on the tighter `md`
+              // rhythm, which made the space right under the greeting read
+              // as cramped compared to everywhere else on the screen.
+              const SizedBox(height: Insets.lg),
 
               // Offline is a normal state here, not an error: everything keeps
               // working and the queue drains when the connection returns.
               if (state.offline) ...<Widget>[
                 OfflineBanner(pending: state.pendingSync),
-                const SizedBox(height: Insets.md),
+                const SizedBox(height: Insets.lg),
               ],
 
               // ── The one thing to do ───────────────────────────────────
@@ -185,7 +189,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               const SizedBox(height: Insets.lg),
 
               _RemindersStrip(state: state, onOpenTab: widget.onOpenTab),
-              const SizedBox(height: Insets.md),
+              const SizedBox(height: Insets.lg),
 
               // ── The warm parts of the app ─────────────────────────────
               //
@@ -194,8 +198,18 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               // a caregiver to act on, and neither is something this person
               // opens for themselves. They are on the caregiver side, where
               // they are used.
-              Row(
-                children: <Widget>[
+              // Stretched, not just wrapped in `Expanded`: three cards this
+              // close together read as one set, and without this each one's
+              // own box still only grows as tall as its own text needs —
+              // whichever label happened to wrap onto a second line ended
+              // up visibly taller than its two neighbours. `IntrinsicHeight`
+              // first, because this Row sits directly in a `ListView` —
+              // unbounded height — and `stretch` alone has nothing to
+              // stretch *to* without it first measuring a real height.
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
                   Expanded(
                     child: _ActionCard(
                       icon: Icons.forum_rounded,
@@ -232,6 +246,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                     ),
                   ),
                 ],
+                ),
               ),
                   ],
                 ),
@@ -278,13 +293,19 @@ class _Header extends StatelessWidget {
           animate: !state.reduceMotion,
         ),
         const SizedBox(height: Insets.sm),
-        Text('$part, $name', style: AppText.h2, textAlign: TextAlign.center),
-        const SizedBox(height: 2),
+        // The same heading size the Activities tab's own title uses
+        // (`AppText.patientTitle`, not the smaller general-purpose `h2`) —
+        // this is the same person's app, one screen to the next, and a
+        // noticeably smaller greeting here than the heading one tab over
+        // read as two different apps rather than one.
+        Text('$part, $name',
+            style: AppText.patientTitle.sized(28), textAlign: TextAlign.center),
+        const SizedBox(height: 4),
         Text(
           state.baselineReady
               ? l.dashboardCognitiveHealthOnePlace
               : l.dashboardBuildStartingPoint,
-          style: AppText.bodySmall,
+          style: AppText.body.tint(AppColors.inkSoft),
           textAlign: TextAlign.center,
         ),
       ],
@@ -326,23 +347,20 @@ class _JourneyCard extends StatelessWidget {
       // the whole page already sits on, so the card read as a smudge rather
       // than as a surface lifted off it.
       color: AppColors.surface,
+      // Centered, matching the check-in card directly beneath it — the two
+      // sit stacked as an obvious pair, and one left-aligned against one
+      // centered read as two different components rather than a pair.
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  restingToday
-                      ? 'You have done enough for today. Come back when you are ready.'
-                      : totalDone == 0
-                          ? 'A few gentle activities, whenever you feel like it. '
-                              'There is no score to beat and no wrong answer.'
-                          : 'Good to see you again. Shall we carry on where we left off?',
-                  style: AppText.body.wght(600),
-                ),
-              ),
-            ],
+          Text(
+            restingToday
+                ? 'You have done enough for today. Come back when you are ready.'
+                : totalDone == 0
+                    ? 'A few gentle activities, whenever you feel like it. '
+                        'There is no score to beat and no wrong answer.'
+                    : 'Good to see you again. Shall we carry on where we left off?',
+            style: AppText.body.wght(600),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: Insets.md),
           if (restingToday)
@@ -875,8 +893,17 @@ class _ActionCard extends StatelessWidget {
         children: <Widget>[
           SoftIcon(icon: icon, color: color, background: color.withValues(alpha: 0.12)),
           const SizedBox(height: Insets.sm),
-          Text(label, style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
-          Text(detail, style: AppText.caption),
+          // `FittedBox` rather than a bare `Text`: three of these sit in a
+          // row sharing the width three ways, and at a larger accessibility
+          // text size a single long word ("companion") could run out of
+          // room mid-word rather than wrap at a word boundary — this
+          // shrinks the label to fit instead of ever breaking a word.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(label, style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
+          ),
+          Text(detail, style: AppText.caption, maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

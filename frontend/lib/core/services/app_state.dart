@@ -376,12 +376,17 @@ class AppState extends ChangeNotifier {
   /// previous person's day to whoever signed in next.
   Future<void> _loadPatientScopedData() async {
     final Map<GameId, int> levels = await _games.levels(_patient.id);
-    _levels
-      ..clear()
-      ..addAll(MockData.startingLevels);
+    _levels.clear();
+    // Only a demo build starts an activity partway through, matching the
+    // sample fortnight of history below. A real account starts every
+    // activity at level 1 — `levelOf` already falls back to 1 for a game
+    // with nothing recorded, so there is nothing to write here.
     if (levels.isEmpty) {
-      for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
-        await _games.saveLevel(_patient.id, e.key, e.value);
+      if (_seedDemo) {
+        _levels.addAll(MockData.startingLevels);
+        for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
+          await _games.saveLevel(_patient.id, e.key, e.value);
+        }
       }
     } else {
       _levels.addAll(levels);
@@ -451,7 +456,11 @@ class AppState extends ChangeNotifier {
   }
 
   // ── Games ──────────────────────────────────────────────────────────────
-  final Map<GameId, int> _levels = Map<GameId, int>.from(MockData.startingLevels);
+  //
+  // Empty until `_loadPatientScopedData` hydrates it: `levelOf` falls back
+  // to 1 for anything not in this map, which is the correct starting point
+  // for a real account rather than the demo's partway-through levels.
+  final Map<GameId, int> _levels = <GameId, int>{};
   Map<GameId, int> get levels => Map<GameId, int>.unmodifiable(_levels);
   int levelOf(GameId id) => _levels[id] ?? 1;
 
@@ -1859,7 +1868,11 @@ class AppState extends ChangeNotifier {
     return MockData.series(base);
   }
 
-  /// The clinician caseload, with the demo patient kept in step with the app.
+  /// The clinician caseload, with the demo patient kept in step with the
+  /// app — and, once someone has actually filled in a real profile, that
+  /// real patient appended too. Without this, a genuinely onboarded person
+  /// never had an id matching any of the eight fictional demo patients, so
+  /// they simply never appeared in a doctor's list at all.
   List<ClinicPatient> get caseload {
     final List<ClinicPatient> list = MockData.caseload();
     final int i = list.indexWhere((ClinicPatient c) => c.id == _patient.id);
@@ -1871,8 +1884,33 @@ class AppState extends ChangeNotifier {
         profile: _profile,
         thirtyDay: trend,
       );
+      return list;
     }
+    if (hasPatientProfile) list.add(_liveClinicPatient());
     return list;
+  }
+
+  /// A [ClinicPatient] built from this device's own live patient, for the
+  /// doctor's caseload. No invented week-by-week shape: the trend line
+  /// sits flat at today's real score, honest about there being no history
+  /// to draw yet rather than a fabricated one.
+  ClinicPatient _liveClinicPatient() {
+    return ClinicPatient(
+      id: _patient.id,
+      name: _patient.name,
+      age: _patient.age,
+      district: _patient.location,
+      score: _profile.overall,
+      trend: TrendDirection.flat,
+      status: ClinicalStatus.stable,
+      sceneId: _patient.portraitScene,
+      language: _patient.language,
+      lastSession: _sessions.isEmpty ? 'No sessions yet' : 'Recently',
+      profile: _profile,
+      thirtyDay: List<double>.filled(30, _profile.overall.toDouble()),
+      adherence: adherencePercent,
+      engagement: _sessions.isEmpty ? 0 : adherencePercent,
+    );
   }
 
   List<DoctorAlert> get alerts => MockData.alerts();

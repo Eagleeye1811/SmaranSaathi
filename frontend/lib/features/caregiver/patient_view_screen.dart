@@ -128,10 +128,24 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
           // was true because this whole preview was itself poppable, not
           // because there was anything to go back to inside the patient's
           // app. Isolating the stack here fixes that at the source.
+          //
+          // The banner above and this branch are siblings in the outer
+          // Column, not ancestor and descendant, so every patient screen's
+          // own top `SafeArea` has no way to know the banner already
+          // cleared the status bar — it consumed that inset a second time,
+          // which is what showed up as a band of the decorative wash
+          // colour between the banner and the header below it.
+          // `removePadding` tells every screen under here there is
+          // nothing left to consume, the same way it would be if the
+          // banner and the screen were one continuous SafeArea.
           Expanded(
-            child: Navigator(
-              onGenerateRoute: (RouteSettings settings) => MaterialPageRoute<void>(
-                builder: (_) => const PatientShell(),
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: Navigator(
+                onGenerateRoute: (RouteSettings settings) => MaterialPageRoute<void>(
+                  builder: (_) => const PatientShell(),
+                ),
               ),
             ),
           ),

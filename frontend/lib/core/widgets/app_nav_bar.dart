@@ -70,7 +70,12 @@ class AppNavBar extends StatelessWidget {
               onTap: () => onChanged(1),
             ),
           ),
-          const SizedBox(width: 74),
+          // Wider than the mic's own footprint (64 diameter + 4+4 border =
+          // 72), not just equal to it — with zero margin, the item on
+          // either side only had to grow a few points at a larger text
+          // size before its icon (a fixed size, not part of what shrinks
+          // to fit) crossed into the mic's own space.
+          const SizedBox(width: 96),
           Expanded(
             child: _NavItem(
               destination: destinations[2],

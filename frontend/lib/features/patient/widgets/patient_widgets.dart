@@ -38,8 +38,15 @@ class PatientTopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(Insets.md, 2, Insets.md, 8),
+      padding: const EdgeInsets.fromLTRB(Insets.md, 0, Insets.md, 6),
+      // Opaque, not just bordered: every patient screen sits on a
+      // [MotifBackground] with a decorative wash painted across its top
+      // 320 px, and a transparent header let that colour bleed straight
+      // through behind it — reading as a gap between this bar and the
+      // banner above it in the caregiver's preview, when it was really
+      // just the wash showing through empty space.
       decoration: const BoxDecoration(
+        color: AppColors.surface,
         border: Border(bottom: BorderSide(color: AppColors.hairline)),
       ),
       // Brand on the left, actions on the right, a Spacer between them —
