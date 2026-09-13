@@ -593,6 +593,7 @@ class IntakeField extends StatelessWidget {
     this.hint,
     this.keyboardType,
     this.lines = 1,
+    this.autofocus = false,
   });
 
   final TextEditingController controller;
@@ -601,6 +602,11 @@ class IntakeField extends StatelessWidget {
   final String? hint;
   final TextInputType? keyboardType;
   final int lines;
+
+  /// Opens the keyboard immediately — worth it on a screen whose one field is
+  /// the entire task, not worth it inside a long questionnaire where it would
+  /// yank focus away from whatever the person was just reading.
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -623,6 +629,7 @@ class IntakeField extends StatelessWidget {
             keyboardType: lines > 1 ? TextInputType.multiline : keyboardType,
             minLines: lines,
             maxLines: lines == 1 ? 1 : lines + 3,
+            autofocus: autofocus,
             style: AppText.bodyLarge,
             onChanged: (_) => onChanged(),
             decoration: InputDecoration(

@@ -725,6 +725,7 @@ enum IntakeStep {
   strengths,
   goals,
   doctor,
+  patientUsername,
   summary,
   done,
 }
@@ -751,6 +752,7 @@ extension IntakeStepX on IntakeStep {
         IntakeStep.strengths => 'What they enjoy',
         IntakeStep.goals => 'How we can help',
         IntakeStep.doctor => 'A doctor, if you have one',
+        IntakeStep.patientUsername => 'How they will sign in',
         IntakeStep.summary => 'All done',
         IntakeStep.done => 'Complete',
       };
@@ -758,6 +760,7 @@ extension IntakeStepX on IntakeStep {
   IntakePart get part => switch (this) {
         IntakeStep.consent ||
         IntakeStep.doctor ||
+        IntakeStep.patientUsername ||
         IntakeStep.summary ||
         IntakeStep.done =>
           IntakePart.setup,
@@ -893,6 +896,7 @@ class IntakeRecord {
     IntakeStep.strengths,
     IntakeStep.goals,
     IntakeStep.doctor,
+    IntakeStep.patientUsername,
     IntakeStep.summary,
   ];
 

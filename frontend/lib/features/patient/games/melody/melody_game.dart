@@ -12,6 +12,7 @@ import '../../../../core/models/game.dart';
 import '../../../../core/services/adaptive_difficulty_service.dart';
 import '../../../../core/services/app_state.dart';
 import '../../../../core/widgets/companion.dart';
+import '../../../../core/widgets/illustration.dart';
 import '../../../../core/widgets/ui_kit.dart';
 import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -342,7 +343,9 @@ class _MelodyGameState extends State<MelodyGame> {
                           SizedBox(
                             width: 104,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: 1,
+                              icon: Icons.graphic_eq_rounded,
                               title: l.gameLevelEasy,
                               subtitle: l.gameMelodySubtitle2Notes,
                               unlocked: 1 <= _maxUnlockedLevel,
@@ -354,7 +357,9 @@ class _MelodyGameState extends State<MelodyGame> {
                           SizedBox(
                             width: 104,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: 2,
+                              icon: Icons.queue_music_rounded,
                               title: l.gameLevelMedium,
                               subtitle: l.gameMelodySubtitle3Notes,
                               unlocked: 2 <= _maxUnlockedLevel,
@@ -366,7 +371,9 @@ class _MelodyGameState extends State<MelodyGame> {
                           SizedBox(
                             width: 104,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: 3,
+                              icon: Icons.equalizer_rounded,
                               title: l.gameLevelHard,
                               subtitle: l.gameMelodySubtitle4Notes,
                               unlocked: 3 <= _maxUnlockedLevel,
@@ -378,7 +385,9 @@ class _MelodyGameState extends State<MelodyGame> {
                           SizedBox(
                             width: 104,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: 4,
+                              icon: Icons.speed_rounded,
                               title: l.gameLevelExpert,
                               subtitle: l.gameMelodySubtitle4NotesFast,
                               unlocked: 4 <= _maxUnlockedLevel,
@@ -390,7 +399,9 @@ class _MelodyGameState extends State<MelodyGame> {
                           SizedBox(
                             width: 104,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: 5,
+                              icon: Icons.military_tech_rounded,
                               title: l.gameLevelMastery,
                               subtitle: l.gameMelodySubtitle5NotesFast,
                               unlocked: 5 <= _maxUnlockedLevel,
@@ -400,6 +411,43 @@ class _MelodyGameState extends State<MelodyGame> {
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: Insets.md),
+              // Meet the instruments before the first round asks for them
+              // by ear — three little portraits standing in for a sound
+              // this prototype can't guarantee will play on every device.
+              MmCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('MEET THE INSTRUMENTS', style: AppText.overline),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: <Widget>[
+                        for (final Instrument ins in instruments) ...<Widget>[
+                          Expanded(
+                            child: Column(
+                              children: <Widget>[
+                                ClipRRect(
+                                  borderRadius: Corners.r(Corners.md),
+                                  child: SceneImage(sceneId: ins.sceneId, size: 64),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  ins.name,
+                                  style: AppText.caption.wght(700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (ins != instruments.last) const SizedBox(width: 8),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -582,8 +630,14 @@ class _SequenceStrip extends StatelessWidget {
         ? _MelodyGameState.instruments[input[i]]
         : (reveal ? _MelodyGameState.instruments[sequence[i]] : null);
 
-    Color border = AppColors.hairline;
-    if (entered) border = correct ? AppColors.success : AppColors.danger;
+    // Correct taps get a warm green border — the app's usual positive-only
+    // signal. A wrong tap was previously flagged with a red border and a
+    // close/✕ icon in place of the instrument's own; that was the one
+    // clearly punitive visual in the whole game suite (nothing else here
+    // ever tells a patient "wrong"), so an unmatched slot now just stays
+    // neutral and still shows what was actually tapped.
+    final Color border =
+        entered ? (correct ? AppColors.success : AppColors.hairline) : AppColors.hairline;
 
     return AnimatedContainer(
       duration: Motion.quick,
@@ -591,26 +645,32 @@ class _SequenceStrip extends StatelessWidget {
       decoration: BoxDecoration(
         color: shown == null ? AppColors.surfaceMuted : shown.color.withValues(alpha: 0.12),
         borderRadius: Corners.r(Corners.sm),
-        border: Border.all(color: border, width: entered ? 2 : 1.2),
+        border: Border.all(color: border, width: entered && correct ? 2 : 1.2),
       ),
-      child: Center(
-        child: shown == null
-            ? Text('${i + 1}', style: AppText.body.wght(700).tint(AppColors.inkMuted))
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    entered && !correct ? Icons.close_rounded : Icons.music_note_rounded,
-                    size: 20,
-                    color: entered && !correct ? AppColors.danger : shown.color,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    shown.name,
-                    style: AppText.caption.sized(11).wght(700).tint(shown.color),
-                  ),
-                ],
-              ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: <Widget>[
+          if (shown == null)
+            Text('${i + 1}', style: AppText.body.wght(700).tint(AppColors.inkMuted))
+          else
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(Icons.music_note_rounded, size: 20, color: shown.color),
+                const SizedBox(height: 2),
+                Text(
+                  shown.name,
+                  style: AppText.caption.sized(11).wght(700).tint(shown.color),
+                ),
+              ],
+            ),
+          if (entered && correct)
+            const Positioned(
+              top: 3,
+              right: 3,
+              child: Icon(Icons.check_circle_rounded, size: 14, color: AppColors.success),
+            ),
+        ],
       ),
     );
   }

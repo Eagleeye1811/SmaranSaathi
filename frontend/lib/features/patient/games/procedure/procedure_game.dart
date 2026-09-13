@@ -287,7 +287,9 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
+                            icon: Icons.emoji_food_beverage_rounded,
                             title: 'Making tea',
                             subtitle: '4 steps • Video',
                             unlocked: 1 <= _maxUnlockedLevel,
@@ -299,7 +301,9 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
+                            icon: Icons.local_laundry_service_rounded,
                             title: 'Washing clothes',
                             subtitle: '5 steps • Video',
                             unlocked: 2 <= _maxUnlockedLevel,
@@ -311,7 +315,9 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
+                            icon: Icons.cookie_rounded,
                             title: 'Til pitha',
                             subtitle: '6 steps • Cards',
                             unlocked: 3 <= _maxUnlockedLevel,
@@ -323,7 +329,9 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
+                            icon: Icons.auto_awesome_rounded,
                             title: 'Til pitha (Adv)',
                             subtitle: '6 steps • Advanced',
                             unlocked: 4 <= _maxUnlockedLevel,
@@ -335,7 +343,9 @@ class _ProcedureGameState extends State<ProcedureGame> {
                         SizedBox(
                           width: 112,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
+                            icon: Icons.workspace_premium_rounded,
                             title: 'Washing (Master)',
                             subtitle: '5 steps • Mastery',
                             unlocked: 5 <= _maxUnlockedLevel,
@@ -377,6 +387,39 @@ class _ProcedureGameState extends State<ProcedureGame> {
                           icon: Icons.play_circle_rounded,
                         ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+                  // A sneak peek at the steps themselves, in their own
+                  // colours and icons, joined by a path — the same
+                  // ingredients the actual activity is built from, so this
+                  // card reads as the start of the game rather than a form
+                  // describing it.
+                  SizedBox(
+                    height: 52,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _procedure.steps.length,
+                      separatorBuilder: (BuildContext context, int i) => Container(
+                        width: 16,
+                        height: 2,
+                        margin: const EdgeInsets.symmetric(vertical: 25),
+                        color: AppColors.hairline,
+                      ),
+                      itemBuilder: (BuildContext context, int i) {
+                        final ProcedureStep step = _procedure.steps[i];
+                        return Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: step.color.withValues(alpha: 0.14),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: step.color.withValues(alpha: 0.35)),
+                          ),
+                          child: Icon(step.icon, size: 20, color: step.color),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

@@ -171,7 +171,7 @@ class _ReportViewerScreenState extends State<ReportViewerScreen> {
                     Text('IMPRESSION:', style: CT.caption.wght(800)),
                     Text(
                       '1. Mild pre-diabetic glycemic profile (HbA1c 6.1%).\n'
-                      '2. Borderline serum B12 level — oral supplementation advised to support neural health.\n'
+                      '2. Borderline serum B12 level, oral supplementation advised to support neural health.\n'
                       '3. Normal thyroid function and hematological markers.',
                       style: CT.caption.sized(11.5).wght(600),
                     ),

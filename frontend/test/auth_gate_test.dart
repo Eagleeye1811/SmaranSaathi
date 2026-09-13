@@ -100,6 +100,16 @@ class FakeAuthService implements AuthService {
   Future<Map<String, dynamic>?> fetchMe() async => _current == null ? null : me;
 }
 
+/// Pump without settling. `SignInScreen` now carries a `Companion`, whose
+/// breathe/blink animations repeat forever (see `companion.dart`) — so
+/// `pumpAndSettle` never returns once that screen is on screen, exactly the
+/// reason `screens_test.dart` keeps its own `beat()` instead of using
+/// `pumpAndSettle` anywhere a `Companion` might be mounted.
+Future<void> beat(WidgetTester tester, [int ms = 600]) async {
+  await tester.pump();
+  await tester.pump(Duration(milliseconds: ms));
+}
+
 void main() {
   testWidgets('unauthenticated: shows the sign-in screen, not role selection', (WidgetTester tester) async {
     final FakeAuthService auth = FakeAuthService();
@@ -121,8 +131,12 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'correcthorse');
+    // The form's own Companion mascot pushes "Continue" below the fold on
+    // this test's small default surface — scroll to it explicitly rather
+    // than assume it is already on-screen.
+    await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await beat(tester);
 
     expect(find.text('Role selection reached'), findsOneWidget);
     expect(find.text('Care team sign-in'), findsNothing);
@@ -137,8 +151,9 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'wrongpassword');
+    await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await beat(tester);
 
     expect(find.text('Incorrect email or password.'), findsOneWidget);
     expect(find.text('Role selection reached'), findsNothing);
@@ -151,8 +166,9 @@ void main() {
       home: AuthGate(authService: auth, child: const Text('Role selection reached')),
     ));
 
+    await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
+    await beat(tester);
 
     expect(find.text('Enter an email address.'), findsOneWidget);
     expect(find.text('Role selection reached'), findsNothing);
@@ -168,7 +184,7 @@ void main() {
     expect(find.text('Role selection reached'), findsOneWidget);
 
     await auth.signOut();
-    await tester.pumpAndSettle();
+    await beat(tester);
 
     expect(find.text('Care team sign-in'), findsOneWidget);
   });

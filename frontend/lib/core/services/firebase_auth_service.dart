@@ -156,7 +156,7 @@ class FirebaseAuthService implements AuthService {
   /// Matched by [signInOrCreate], so it is a constant rather than a literal
   /// repeated in two places that could drift apart.
   static const String _emailInUseMessage =
-      'An account already exists with that email — signing you in instead.';
+      'An account already exists with that email. Signing you in instead.';
 
   String _readableMessage(fb.FirebaseAuthException error) {
     switch (error.code) {
@@ -174,7 +174,7 @@ class FirebaseAuthService implements AuthService {
       case 'weak-password':
         return 'Please choose a longer password (at least 6 characters).';
       case 'network-request-failed':
-        return 'No connection right now — please check your internet and try again.';
+        return 'No connection right now. Please check your internet and try again.';
       case 'too-many-requests':
         return 'Too many attempts. Please wait a moment and try again.';
       case 'account-exists-with-different-credential':

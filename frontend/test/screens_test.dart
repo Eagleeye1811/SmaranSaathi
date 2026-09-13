@@ -5,7 +5,6 @@ import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
 import 'package:smaran_saathi/features/doctor/chat/doctor_chat_conversation_screen.dart';
-import 'package:smaran_saathi/features/doctor/chat/doctor_chats_screen.dart';
 import 'package:smaran_saathi/core/models/doctor.dart';
 import 'package:smaran_saathi/features/caregiver/doctor/doctor_care_screen.dart';
 import 'package:smaran_saathi/features/caregiver/patient_view_screen.dart';
@@ -200,7 +199,7 @@ void main() {
   });
 
   group('patient preview', () {
-    testWidgets('the cross leaves the preview from inside the patient app',
+    testWidgets('the back arrow leaves the preview from inside the patient app',
         (WidgetTester tester) async {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
@@ -210,17 +209,31 @@ void main() {
       expect(find.text("You are viewing the patient's app"), findsOneWidget);
       expect(state.viewingAsPatient, isTrue);
 
-      // Go a screen deeper inside the preview — the patient's app pushes onto
-      // the same navigator, so this is what used to make one pop land back
-      // inside the preview rather than out of it.
+      // The cross/close button was removed deliberately (the banner is meant
+      // to stay up, with no way to dismiss just the banner) — the back arrow
+      // is now the only way out, so it alone has to carry the "always a way
+      // back" guarantee this screen's own class doc comment promises.
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+      // Go a screen deeper inside the preview — the patient's app has its
+      // own nested navigator, so this stays inside the preview instead of
+      // touching the caregiver's own stack, and the banner keeps showing.
       await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
       await beat(tester, 600);
-      expect(find.text("You are viewing the patient's app"), findsNothing);
+      expect(find.text("You are viewing the patient's app"), findsOneWidget);
 
-      await tester.pageBack();
+      // The second arrow is the patient app's own back button, showing
+      // because there is genuinely a page to return to inside that nested
+      // stack — tapping it stays inside the preview.
+      expect(find.byIcon(Icons.arrow_back_rounded), findsNWidgets(2));
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).last);
       await beat(tester, 600);
+      expect(state.viewingAsPatient, isTrue);
 
-      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      // Back at the patient's root tab, only the banner's own arrow remains
+      // — and only it ends the preview.
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
       await beat(tester, 600);
 
       // Out of the preview entirely, and the caregiver has their own role back.
@@ -621,7 +634,10 @@ void main() {
       tester.setSurface(kPhone);
       await tester.pumpWidget(harness(const ProcedureGame()));
       await beat(tester);
-      expect(find.text('Making tea'), findsOneWidget);
+      // A new account starts at level 1, so "Making tea" now appears twice:
+      // once as the level-1 chip's own label, and again as the selected
+      // procedure's heading, since level 1 is what's actually selected.
+      expect(find.text('Making tea'), findsWidgets);
 
       await tester.tap(find.text('Show me the steps'));
       await beat(tester);

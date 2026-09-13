@@ -60,7 +60,7 @@ class PersonalizationService {
       candidates.add(Recommendation(
         gameId: GameId.procedure,
         headline: 'Procedure Reconstruction',
-        reason: 'Let us try something you know well — the steps of dressing the loom.',
+        reason: 'Let us try something you know well: the steps of dressing the loom.',
         evidence: <String>[
           'Occupation: ${patient.occupation}',
           'Procedural memory is her strongest recent domain',
@@ -120,7 +120,7 @@ class PersonalizationService {
       return const Recommendation(
         gameId: GameId.memoryCards,
         headline: 'NER Memory Cards',
-        reason: 'Shall we start with something gentle — finding pairs?',
+        reason: 'Shall we start with something gentle, finding pairs?',
         evidence: <String>['Default starting activity for a new profile'],
       );
     }

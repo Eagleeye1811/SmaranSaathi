@@ -142,13 +142,20 @@ class PairingService {
 
     for (final String candidate in _candidates) {
       try {
+        // A free-tier deployment (this app's default backend included) can
+        // spin down when idle and take well past 5 seconds to wake up on
+        // the first request after a while — a real device's first attempt
+        // used to fail outright as "cannot reach the server" during exactly
+        // that wake-up window, not because the backend was actually
+        // unreachable. 20 seconds is generous enough to ride that out
+        // without leaving a broken connection hanging indefinitely.
         final http.Response minted = await _client
             .post(
               Uri.parse('$candidate/api/v1/auth/device'),
               headers: const <String, String>{'Content-Type': 'application/json'},
               body: jsonEncode(const <String, dynamic>{}),
             )
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 20));
         if (minted.statusCode != 200) continue;
 
         final String fresh =
@@ -160,7 +167,7 @@ class PairingService {
               Uri.parse('$candidate/api/v1/pairing/requests?caregiverUid=__probe__'),
               headers: <String, String>{'Authorization': 'Bearer $fresh'},
             )
-            .timeout(const Duration(seconds: 5));
+            .timeout(const Duration(seconds: 20));
         if (probe.statusCode == 404) {
           sawBackendWithoutPairing = true;
           continue;
@@ -203,7 +210,7 @@ class PairingService {
             'patientName': patientName,
           }),
         )
-        .timeout(const Duration(seconds: 8));
+        .timeout(const Duration(seconds: 12));
     if (r.statusCode == 409) throw const UsernameTakenException();
     if (r.statusCode != 200) throw StateError('Could not claim (${r.statusCode}).');
     return PairingClaim.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
@@ -225,7 +232,7 @@ class PairingService {
             'deviceLabel': deviceLabel,
           }),
         )
-        .timeout(const Duration(seconds: 8));
+        .timeout(const Duration(seconds: 12));
     if (r.statusCode == 404) throw const UnknownUsernameException();
     if (r.statusCode != 201 && r.statusCode != 200) {
       throw StateError('Could not ask for access (${r.statusCode}).');
@@ -240,7 +247,7 @@ class PairingService {
           Uri.parse('${await _root}/api/v1/pairing/requests?caregiverUid=$caregiverUid'),
           headers: await _headers(),
         )
-        .timeout(const Duration(seconds: 6));
+        .timeout(const Duration(seconds: 10));
     if (r.statusCode != 200) return const <PairingRequest>[];
     return <PairingRequest>[
       for (final Object? item in jsonDecode(r.body) as List<dynamic>)
@@ -255,7 +262,7 @@ class PairingService {
           Uri.parse('${await _root}/api/v1/pairing/status?requestId=$requestId'),
           headers: await _headers(),
         )
-        .timeout(const Duration(seconds: 6));
+        .timeout(const Duration(seconds: 10));
     if (r.statusCode != 200) return null;
     return PairingRequest.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }
@@ -275,7 +282,7 @@ class PairingService {
             'approve': approve,
           }),
         )
-        .timeout(const Duration(seconds: 8));
+        .timeout(const Duration(seconds: 12));
     if (r.statusCode != 200) return null;
     return PairingRequest.fromJson(jsonDecode(r.body) as Map<String, dynamic>);
   }

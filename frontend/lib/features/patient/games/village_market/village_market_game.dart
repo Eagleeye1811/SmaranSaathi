@@ -65,6 +65,16 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   // rather than drifting apart the way the level pickers in the six earlier
   // activities did.
 
+  /// One glyph per level of market-readiness, from a light basket to the
+  /// coin purse the higher levels actually start watching.
+  IconData _levelIcon(int lvl) => switch (lvl) {
+        1 => Icons.shopping_basket_outlined,
+        2 => Icons.storefront_outlined,
+        3 => Icons.local_grocery_store_rounded,
+        4 => Icons.account_balance_wallet_rounded,
+        _ => Icons.emoji_events_rounded,
+      };
+
   int _stallCountFor(int lvl) => switch (lvl) {
         1 => 3,
         2 => 4,
@@ -83,10 +93,22 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   bool _rainEnabledFor(int lvl) => lvl >= 3;
   bool _budgetEnabledFor(int lvl) => lvl >= 4;
 
+  /// The day's total, stated up front once [_budgetEnabled] — see
+  /// [_buildListMention]. Matches the ₹150-spent trigger point already used
+  /// by [_maybeShowNarrativeCues] for [gameVillageMarketBudgetMessage]'s
+  /// "only ₹200 left": 350 - 150 = 200, so that line stays true rather than
+  /// referring to a total the patient was never actually told.
+  static const int _budgetTotal = 350;
+
   int get _stallCount => _stallCountFor(_selectedLevel);
   int get _nudgeBudget => _nudgeBudgetFor(_selectedLevel);
   bool get _rainEnabled => _rainEnabledFor(_selectedLevel);
   bool get _budgetEnabled => _budgetEnabledFor(_selectedLevel);
+
+  /// What is left of [_budgetTotal] — never negative, so overspending (never
+  /// blocked; see the class doc comment on errorless design) reads as "₹0
+  /// left" rather than an alarming negative number.
+  int get _budgetRemaining => (_budgetTotal - _basketTotal).clamp(0, _budgetTotal);
 
   late final List<Stall> _stalls = MarketContent.layoutFor(_stallCount);
 
@@ -357,7 +379,9 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                           SizedBox(
                             width: 122,
                             child: LevelOptionChip(
+                              accent: _game.accent,
                               levelNum: lvl,
+                              icon: _levelIcon(lvl),
                               title: localizedLevelDescription(l, GameId.villageMarket, lvl),
                               subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
                               unlocked: lvl <= _maxUnlockedLevel,
@@ -382,6 +406,49 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                   Text(_game.localizedName(l), style: AppText.h1.sized(24)),
                   const SizedBox(height: 8),
                   Text(l.gameVillageMarketInstructions, style: AppText.bodySmall),
+                  const SizedBox(height: 14),
+                  // Recomputed from the level, not read off `_stalls` —
+                  // that field locks in on first access, before a level
+                  // chosen here has a chance to change it.
+                  Builder(builder: (BuildContext context) {
+                    final List<Stall> preview = MarketContent.layoutFor(_stallCount);
+                    return SizedBox(
+                      height: 66,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: preview.length,
+                        separatorBuilder: (BuildContext context, int i) =>
+                            const SizedBox(width: 10),
+                        itemBuilder: (BuildContext context, int i) => SizedBox(
+                          width: 56,
+                          child: Column(
+                            children: <Widget>[
+                              Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: preview[i].awning.withValues(alpha: 0.16),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: preview[i].awning.withValues(alpha: 0.4)),
+                                ),
+                                child: Icon(preview[i].icon, size: 20, color: preview[i].awning),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                preview[i].name,
+                                style: AppText.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -396,7 +463,14 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: l.gameVillageMarketListMention(_listGiver),
+      // Levels 1-3 give the mentioned list with no budget pressure at all —
+      // only from level 4, where "watching the coin purse" is the whole
+      // point of the level, does the patient actually get told a number to
+      // plan against, rather than the budget existing only as an invisible
+      // internal threshold with no starting figure ever stated.
+      companionMessage: _budgetEnabled
+          ? l.gameVillageMarketListMentionWithBudget(_listGiver, _budgetTotal)
+          : l.gameVillageMarketListMention(_listGiver),
       companionState: CompanionState.thinking,
       bottom: BigButton(
         label: l.gameVillageMarketListMentionContinue,
@@ -563,6 +637,13 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
           ),
           const SizedBox(height: 10),
           MeterBar(value: _basketFullness, color: _game.accent, height: 8),
+          if (_budgetEnabled) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              l.gameVillageMarketBudgetRemaining(_budgetRemaining),
+              style: AppText.caption.wght(700).tint(_game.accent),
+            ),
+          ],
         ],
       ),
     );

@@ -13,6 +13,7 @@ import 'onboarding_summary_screen.dart';
 import 'welcome_screens.dart';
 import 'step_consent.dart';
 import 'step_doctor.dart';
+import 'step_patient_username.dart';
 import 'steps_everyday.dart';
 import 'steps_life.dart';
 import 'steps_person_health.dart';
@@ -211,6 +212,11 @@ class _IntakeFlowScreenState extends State<IntakeFlowScreen> {
       IntakeStep.goals => GoalsStep(onDone: _advance, onBack: _onBack),
       // Offered last, and never in the way: see `DoctorConnectStep`.
       IntakeStep.doctor => DoctorConnectStep(onDone: _advance, onBack: _onBack),
+      // Right after onboarding, not buried in the dashboard: this is the
+      // moment the patient's account becomes something they can actually
+      // sign into.
+      IntakeStep.patientUsername =>
+        PatientUsernameStep(onDone: _advance, onBack: _onBack),
       // The onboarding ends by reading the answers back. The six activities
       // are not run off the back of it: the three daily baseline sessions are
       // invited by the companion on the dashboard instead.

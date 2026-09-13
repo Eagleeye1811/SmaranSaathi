@@ -42,11 +42,11 @@ const Appointment _past = Appointment(
         'sequencing activities. Maintain 5 sessions/week. Ensure afternoon '
         'rest is not disrupted.',
     recommendedActivities: <String>[
-      'Procedure Reconstruction — increase to daily',
-      'Melody of the Valleys — maintain current frequency',
-      'NER Memory Cards — 3x per week',
+      'Procedure Reconstruction: increase to daily',
+      'Melody of the Valleys: maintain current frequency',
+      'NER Memory Cards: 3x per week',
     ],
-    followUpLabel: '4 weeks — 18 September 2026',
+    followUpLabel: '4 weeks, 18 September 2026',
     doctorNotes: 'Patient appeared relaxed and engaged. Caregiver reported '
         'positive mood on most days. Continue monitoring sequencing domain.',
   ),
@@ -93,7 +93,10 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
     return MotifBackground(
       opacity: 0.04,
       showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[

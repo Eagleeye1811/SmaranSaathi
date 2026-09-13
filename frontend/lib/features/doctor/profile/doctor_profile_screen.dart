@@ -280,7 +280,7 @@ class DoctorProfileScreen extends StatelessWidget {
                           _Row(
                             label: 'Specialisation',
                             value: mine.specialization.isEmpty
-                                ? 'Not set — families search by this'
+                                ? 'Not set. Families search by this'
                                 : mine.specialization,
                           ),
                           _Row(

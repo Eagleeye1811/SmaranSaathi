@@ -59,7 +59,7 @@ class AdaptiveDifficultyService {
     } else if (accuracy > 85 && hints <= 1) {
       direction = DifficultyDirection.increase;
       reason =
-          'High accuracy with almost no hints — ${performance.accuracy.round()}% at level $currentLevel. '
+          'High accuracy with almost no hints: ${performance.accuracy.round()}% at level $currentLevel. '
           'The next session adds a step and reduces on-screen assistance.';
     } else if (accuracy >= 60) {
       direction = DifficultyDirection.maintain;

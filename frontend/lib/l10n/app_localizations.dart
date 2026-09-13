@@ -1634,6 +1634,9 @@ class AppLocalizations {
   String get gameVillageMarketInstructions => _s('gameVillageMarketInstructions');
   String gameVillageMarketListMention(String listGiver) =>
       _f('gameVillageMarketListMention', <String, Object?>{'listGiver': listGiver});
+  String gameVillageMarketListMentionWithBudget(String listGiver, int amount) => _f(
+      'gameVillageMarketListMentionWithBudget',
+      <String, Object?>{'listGiver': listGiver, 'amount': amount});
   String get gameVillageMarketListMentionContinue => _s('gameVillageMarketListMentionContinue');
   String get gameVillageMarketYouAreAt => _s('gameVillageMarketYouAreAt');
   String get gameVillageMarketTapAnything => _s('gameVillageMarketTapAnything');
@@ -1652,6 +1655,8 @@ class AppLocalizations {
   String get gameVillageMarketHeadHome => _s('gameVillageMarketHeadHome');
   String get gameVillageMarketTripComplete => _s('gameVillageMarketTripComplete');
   String get gameVillageMarketBasketLabel => _s('gameVillageMarketBasketLabel');
+  String gameVillageMarketBudgetRemaining(int amount) =>
+      _f('gameVillageMarketBudgetRemaining', <String, Object?>{'amount': amount});
   String gameVillageMarketHintsLeft(int n) =>
       _f('gameVillageMarketHintsLeft', <String, Object?>{'n': n});
   String get gameVillageMarketTapLightbulb => _s('gameVillageMarketTapLightbulb');

@@ -54,24 +54,17 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
     super.dispose();
   }
 
-  /// Leaves the preview, from however deep inside it the caregiver is.
+  /// Leaves the preview, closing it in one pop.
   ///
-  /// `maybePop` removed one route, which is the preview itself only when
-  /// nothing has been opened on top of it. The patient's app pushes onto this
-  /// same navigator — their profile, the reminders screen, the companion — so
-  /// from any of those a single pop landed back *inside* the preview rather
-  /// than out of it. Unwinding to this route first and then popping it closes
-  /// the whole thing, every time.
+  /// [PatientShell] lives in its own nested [Navigator] (below), so whatever
+  /// the patient's app pushes on top of it — their profile, a game, the
+  /// companion — stays inside that stack and never touches the caregiver's
+  /// own. A single `pop` here always removes exactly this screen.
   ///
   /// The role the caregiver arrived with is restored in `dispose`, so leaving
   /// by this button, by the system gesture or by any other route out all end
   /// the preview the same way.
-  void _close() {
-    final NavigatorState navigator = Navigator.of(context);
-    final Route<dynamic>? self = ModalRoute.of(context);
-    if (self != null) navigator.popUntil((Route<dynamic> route) => route == self);
-    navigator.pop();
-  }
+  void _close() => Navigator.of(context).pop();
 
   @override
   Widget build(BuildContext context) {
@@ -89,12 +82,17 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: <Widget>[
+          // A single slim line rather than a two-line block: the patient
+          // view is already enlarged for easier reading, so every extra
+          // pixel this strip claims pushes that content further down the
+          // screen. The back arrow's tooltip still carries the fuller
+          // "back to caregiver view" wording for anyone who taps and holds.
           Material(
             color: AppColors.terracottaTint,
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(Insets.sm, 6, Insets.md, 6),
+                padding: const EdgeInsets.fromLTRB(Insets.xs, 2, Insets.md, 2),
                 child: Row(
                   children: <Widget>[
                     IconButton(
@@ -102,46 +100,55 @@ class _PatientViewScreenState extends State<PatientViewScreen> {
                       color: AppColors.terracotta,
                       tooltip: l.caregiverBackToCaregiver,
                       onPressed: _close,
+                      iconSize: 20,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                     ),
+                    const SizedBox(width: 6),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Text(
-                            l.caregiverViewingAsPatient,
-                            style: AppText.caption.copyWith(
-                              color: AppColors.terracotta,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            l.caregiverBackToCaregiver,
-                            style: AppText.caption.copyWith(color: AppColors.inkMuted),
-                          ),
-                        ],
+                      child: Text(
+                        l.caregiverViewingAsPatient,
+                        style: AppText.caption.copyWith(
+                          color: AppColors.terracotta,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    // The same exit as the arrow, at the end of the banner
-                    // where a thing you are dismissing is closed. The arrow
-                    // reads as "back one screen" inside the patient's app,
-                    // which is not what leaving the preview is.
-                    //
-                    // It only closes the preview. Changing role for real is a
-                    // deliberate act and lives on the caregiver's own profile
-                    // page, where signing out does too.
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      color: AppColors.terracotta,
-                      tooltip: l.caregiverBackToCaregiver,
-                      onPressed: _close,
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          const Expanded(child: PatientShell()),
+          // A Navigator of its own, not a direct child: without this,
+          // pushing a patient screen (their profile, a game) pushes onto
+          // the caregiver's own navigator, which is what made a "back
+          // arrow" show up on the patient's *root* tabs too — canPop()
+          // was true because this whole preview was itself poppable, not
+          // because there was anything to go back to inside the patient's
+          // app. Isolating the stack here fixes that at the source.
+          //
+          // The banner above and this branch are siblings in the outer
+          // Column, not ancestor and descendant, so every patient screen's
+          // own top `SafeArea` has no way to know the banner already
+          // cleared the status bar — it consumed that inset a second time,
+          // which is what showed up as a band of the decorative wash
+          // colour between the banner and the header below it.
+          // `removePadding` tells every screen under here there is
+          // nothing left to consume, the same way it would be if the
+          // banner and the screen were one continuous SafeArea.
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: Navigator(
+                onGenerateRoute: (RouteSettings settings) => MaterialPageRoute<void>(
+                  builder: (_) => const PatientShell(),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     ),

@@ -56,7 +56,10 @@ class ReportsScreen extends StatelessWidget {
     return MotifBackground(
       opacity: 0.04,
       showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[
@@ -136,7 +139,7 @@ class ReportsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Daily engagement — last 7 days',
+                          Text('Daily engagement: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
@@ -241,7 +244,7 @@ class _WeeklyReportCard extends StatelessWidget {
               icon: Icons.medication_liquid_rounded,
               color: AppColors.terracotta,
               label: 'Reminder adherence',
-              value: '$adherence% — ${state.remindersDone}/${state.remindersTotal} acknowledged'),
+              value: '$adherence%, ${state.remindersDone}/${state.remindersTotal} acknowledged'),
           _SummaryRow(
               icon: Icons.shield_outlined,
               color: AppColors.primary,
@@ -327,7 +330,7 @@ class _AiInsightsCard extends StatelessWidget {
           const Divider(color: AppColors.hairline),
           const SizedBox(height: 10),
           Text(
-            '✦ AI-observed patterns — for context only. '
+            '✦ AI-observed patterns, for context only. '
             'Not a medical diagnosis. Consult your doctor for clinical decisions.',
             style: AppText.caption
                 .tint(AppColors.inkMuted)
@@ -493,7 +496,7 @@ class _ReportCardState extends State<_ReportCard> {
                     Text(r.aiSummary!, style: AppText.bodySmall),
                     const SizedBox(height: 8),
                     Text(
-                      'AI-generated explanation — for understanding only. '
+                      'AI-generated explanation, for understanding only. '
                       'The original report is always available to your doctor.',
                       style: AppText.caption
                           .tint(AppColors.inkMuted)

@@ -62,7 +62,14 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen> {
     return MotifBackground(
       opacity: 0.04,
       showTopWash: false,
+      // No top inset here: this screen only ever renders inside
+      // `CaregiverShell`, whose own header already clears the status bar.
+      // A second top-safe-area on top of that left a band of blank space
+      // between the header and the greeting below it — status-bar height,
+      // doing nothing — and made the list look like it started well past
+      // where the header actually ends.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -305,6 +312,10 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
+                // This is the caregiver's own dashboard, so the greeting
+                // names the caregiver signed in — not the patient. Confirmed
+                // directly against the running app after an earlier attempt
+                // to "fix" this got it backwards.
                 state.hasCaregiverProfile
                     ? '$greeting, ${state.caregiverName}'
                     : greeting,

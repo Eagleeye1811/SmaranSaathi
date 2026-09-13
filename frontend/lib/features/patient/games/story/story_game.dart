@@ -152,7 +152,7 @@ class _StoryGameState extends State<StoryGame> {
         prompt: 'You have walked to the market, but when you reach the stall you '
             'realise you have forgotten your purse at home.',
         question: 'What would you do?',
-        subtitle: 'There is no wrong answer — tell me what feels right.',
+        subtitle: 'There is no wrong answer, tell me what feels right.',
         choices: <StoryChoice>[
           StoryChoice(
             text: 'Go home and fetch the purse.',
@@ -173,7 +173,7 @@ class _StoryGameState extends State<StoryGame> {
               (label: 'Depends on trust', ok: false),
             ],
             reply:
-                'That works too — you have bought rice from him for many years.',
+                'That works too, you have bought rice from him for many years.',
           ),
           StoryChoice(
             text: 'Take the vegetables anyway.',
@@ -362,7 +362,9 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 1,
+                            icon: Icons.menu_book_rounded,
                             title: l.gameStoryLevelSimple,
                             subtitle: l.gameStorySubtitleStoryRecall,
                             unlocked: 1 <= _maxUnlockedLevel,
@@ -374,7 +376,9 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 2,
+                            icon: Icons.route_rounded,
                             title: l.gameStoryLevelGuided,
                             subtitle: l.gameStorySubtitleStoryRecall,
                             unlocked: 2 <= _maxUnlockedLevel,
@@ -386,7 +390,9 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 3,
+                            icon: Icons.psychology_rounded,
                             title: l.gameStoryLevelAdvanced,
                             subtitle: l.gameStorySubtitleOpenStory,
                             unlocked: 3 <= _maxUnlockedLevel,
@@ -398,7 +404,9 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 4,
+                            icon: Icons.chat_bubble_rounded,
                             title: l.gameStoryLevelOpen,
                             subtitle: l.gameStorySubtitleFreeMemory,
                             unlocked: 4 <= _maxUnlockedLevel,
@@ -410,7 +418,9 @@ class _StoryGameState extends State<StoryGame> {
                         SizedBox(
                           width: 104,
                           child: LevelOptionChip(
+                            accent: _game.accent,
                             levelNum: 5,
+                            icon: Icons.favorite_rounded,
                             title: l.gameStoryLevelDeepMemory,
                             subtitle: l.gameStorySubtitleFullRecall,
                             unlocked: 5 <= _maxUnlockedLevel,
@@ -436,6 +446,30 @@ class _StoryGameState extends State<StoryGame> {
                   Text(
                     l.gameStoryInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // What kind of scene is coming, before the first one
+                  // arrives — a market moment, an everyday decision, a
+                  // memory of their own — so the round ahead is never a
+                  // total surprise.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      for (final String mode in _rounds.map((StoryRound r) => r.mode).toSet())
+                        PillTag(
+                          label: mode,
+                          color: _game.accent,
+                          icon: Icons.theater_comedy_rounded,
+                          dense: true,
+                        ),
+                      PillTag(
+                        label: 'Your own memories',
+                        color: AppColors.terracotta,
+                        icon: Icons.favorite_rounded,
+                        dense: true,
+                      ),
+                    ],
                   ),
                 ],
               ),

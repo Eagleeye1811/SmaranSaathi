@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/models/daily.dart';
 import '../../core/services/app_state.dart';
 import '../../core/voice/voice_nav_intent.dart';
+import '../../core/widgets/brand.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../core/widgets/voice_nav_host.dart';
 import 'dashboard/caregiver_dashboard_screen.dart';
@@ -146,22 +147,48 @@ class _CaregiverShellState extends State<CaregiverShell> {
         ),
         body: Column(
           children: <Widget>[
-            // ── Top app bar ─────────────────────────────────────────────
-            SafeArea(
-              bottom: false,
-              child: _CaregiverTopAppBar(
-                title: _destinations[_index].label,
-                state: state,
-                index: _index,
-                onGo: _go,
+            // ── Header ──────────────────────────────────────────────────
+            //
+            // One line: the brand, and the two things reached for at a
+            // moment — reminders, the account — rather than browsed. A page
+            // title used to sit here too, but it only repeated the name the
+            // bar below already shows selected.
+            //
+            // Opaque on purpose, not just bordered: Android's default
+            // stretch-overscroll effect paints a dragged list's content
+            // outside its own normal bounds while the drag is active, and a
+            // transparent header let that bleed straight through it — the
+            // caregiver's own greeting appeared to scroll up behind the
+            // brand row. A solid fill stops that fully.
+            Container(
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(bottom: BorderSide(color: AppColors.hairline)),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: BrandHeaderBar(
+                  trailing: _CaregiverHeaderActions(
+                    state: state,
+                    index: _index,
+                    onGo: _go,
+                  ),
+                ),
               ),
             ),
             // ── Page body ───────────────────────────────────────────────
+            //
+            // Clipped to its own bounds for the same reason the header
+            // above is opaque now: the stretch-overscroll effect otherwise
+            // paints past the top of this box, over the header, regardless
+            // of what the header itself looks like.
             Expanded(
-              child: IndexedStack(
-                index: _index,
-                children: List<Widget>.generate(
-                    _destinations.length, (int i) => _page(i)),
+              child: ClipRect(
+                child: IndexedStack(
+                  index: _index,
+                  children: List<Widget>.generate(
+                      _destinations.length, (int i) => _page(i)),
+                ),
               ),
             ),
           ],
@@ -171,17 +198,21 @@ class _CaregiverShellState extends State<CaregiverShell> {
   }
 }
 
-// ── Top app bar ───────────────────────────────────────────────────────────────
+// ── Header actions ─────────────────────────────────────────────────────────
 
-class _CaregiverTopAppBar extends StatelessWidget {
-  const _CaregiverTopAppBar({
-    required this.title,
+/// The right-hand cluster of the caregiver header: a connectivity chip when
+/// there is something to say, then reminders and the account.
+///
+/// Off the bottom bar rather than on it — both are reached for at a moment
+/// rather than browsed, and taking them off the bar leaves five destinations,
+/// which is what a thumb can pick between on a small phone.
+class _CaregiverHeaderActions extends StatelessWidget {
+  const _CaregiverHeaderActions({
     required this.state,
     required this.index,
     required this.onGo,
   });
 
-  final String title;
   final AppState state;
 
   /// The destination currently showing, so the header can mark its own two.
@@ -190,59 +221,38 @@ class _CaregiverTopAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(Insets.gutter, 4, 12, 4),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              title,
-              style: AppText.h3.wght(800),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        if (state.offline)
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: SyncStatusChip(label: 'Offline', isOffline: true),
+          )
+        else if (state.pendingSync > 0)
+          const Padding(
+            padding: EdgeInsets.only(right: 6),
+            child: SyncStatusChip(label: 'Syncing…', isOffline: false),
           ),
-          const SizedBox(width: 4),
-          // Connectivity indicator
-          if (state.offline)
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: SyncStatusChip(label: 'Offline', isOffline: true),
-            )
-          else if (state.pendingSync > 0)
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: SyncStatusChip(
-                  label: 'Syncing…', isOffline: false),
-            ),
-
-          // ── Reminders and the account ───────────────────────────────
-          //
-          // Top right rather than on the bar: both are reached for at a
-          // moment — "mark the tablets done", "log out" — rather than
-          // browsed, and taking them off the bar leaves five destinations,
-          // which is what a thumb can pick between on a small phone.
-          const SizedBox(width: 4),
-          _HeaderAction(
-            icon: Icons.notifications_none_rounded,
-            activeIcon: Icons.notifications_rounded,
-            selected: index == 6,
-            tooltip: 'Reminders',
-            // The count of what is still owed today, so the header answers
-            // the question without being opened.
-            badge: state.reminders.where((Reminder r) => !r.done).length,
-            onTap: () => onGo(6),
-          ),
-          const SizedBox(width: 6),
-          _HeaderAction(
-            icon: Icons.person_outline_rounded,
-            activeIcon: Icons.person_rounded,
-            selected: index == 7,
-            tooltip: 'My profile',
-            onTap: () => onGo(7),
-          ),
-        ],
-      ),
+        _HeaderAction(
+          icon: Icons.notifications_none_rounded,
+          activeIcon: Icons.notifications_rounded,
+          selected: index == 6,
+          tooltip: 'Reminders',
+          // The count of what is still owed today, so the header answers
+          // the question without being opened.
+          badge: state.reminders.where((Reminder r) => !r.done).length,
+          onTap: () => onGo(6),
+        ),
+        const SizedBox(width: 6),
+        _HeaderAction(
+          icon: Icons.person_outline_rounded,
+          activeIcon: Icons.person_rounded,
+          selected: index == 7,
+          tooltip: 'My profile',
+          onTap: () => onGo(7),
+        ),
+      ],
     );
   }
 }
@@ -433,28 +443,28 @@ class _CaregiverBottomNavBar extends StatelessWidget {
           icon: Icons.space_dashboard_outlined,
           activeIcon: Icons.space_dashboard_rounded,
           label: AppLocalizations.of(context).caregiverNavDashboard,
-          color: AppColors.plum,
+          color: AppColors.primary,
         ),
         const _BottomDest(
           index: 2,
           icon: Icons.groups_2_outlined,
           activeIcon: Icons.groups_2_rounded,
           label: 'Family',
-          color: AppColors.terracotta,
+          color: AppColors.primary,
         ),
         const _BottomDest(
           index: 4,
           icon: Icons.medical_services_outlined,
           activeIcon: Icons.medical_services_rounded,
           label: 'Doctors',
-          color: AppColors.secondary,
+          color: AppColors.primary,
         ),
         const _BottomDest(
           index: 5,
           icon: Icons.insert_chart_outlined_rounded,
           activeIcon: Icons.insert_chart_rounded,
           label: 'Reports',
-          color: AppColors.seriesTeal,
+          color: AppColors.primary,
         ),
       ];
 }
