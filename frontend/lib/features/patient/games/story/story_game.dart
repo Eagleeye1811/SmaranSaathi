@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text.dart';
@@ -14,6 +14,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 /// A choice the patient can make in a story or scenario, with the simulated
 /// semantic evaluation the language model would produce for it.
@@ -348,91 +349,50 @@ class _StoryGameState extends State<StoryGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 1,
-                            icon: Icons.menu_book_rounded,
-                            title: l.gameStoryLevelSimple,
-                            subtitle: l.gameStorySubtitleStoryRecall,
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 2,
-                            icon: Icons.route_rounded,
-                            title: l.gameStoryLevelGuided,
-                            subtitle: l.gameStorySubtitleStoryRecall,
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 3,
-                            icon: Icons.psychology_rounded,
-                            title: l.gameStoryLevelAdvanced,
-                            subtitle: l.gameStorySubtitleOpenStory,
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 4,
-                            icon: Icons.chat_bubble_rounded,
-                            title: l.gameStoryLevelOpen,
-                            subtitle: l.gameStorySubtitleFreeMemory,
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 5,
-                            icon: Icons.favorite_rounded,
-                            title: l.gameStoryLevelDeepMemory,
-                            subtitle: l.gameStorySubtitleFullRecall,
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.story,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameStoryLevelSimple,
+                  subtitle: l.gameStorySubtitleStoryRecall,
+                  icon: Icons.menu_book_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameStoryLevelGuided,
+                  subtitle: l.gameStorySubtitleStoryRecall,
+                  icon: Icons.route_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameStoryLevelAdvanced,
+                  subtitle: l.gameStorySubtitleOpenStory,
+                  icon: Icons.psychology_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameStoryLevelOpen,
+                  subtitle: l.gameStorySubtitleFreeMemory,
+                  icon: Icons.chat_bubble_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameStoryLevelDeepMemory,
+                  subtitle: l.gameStorySubtitleFullRecall,
+                  icon: Icons.favorite_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(

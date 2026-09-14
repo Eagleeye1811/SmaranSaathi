@@ -18,6 +18,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 class Instrument {
   const Instrument({
@@ -329,91 +330,50 @@ class _MelodyGameState extends State<MelodyGame> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             if (_phase == _Phase.intro) ...<Widget>[
-              MmCard(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                    const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: <Widget>[
-                          SizedBox(
-                            width: 104,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: 1,
-                              icon: Icons.graphic_eq_rounded,
-                              title: l.gameLevelEasy,
-                              subtitle: l.gameMelodySubtitle2Notes,
-                              unlocked: 1 <= _maxUnlockedLevel,
-                              selected: _selectedLevel == 1,
-                              onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 104,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: 2,
-                              icon: Icons.queue_music_rounded,
-                              title: l.gameLevelMedium,
-                              subtitle: l.gameMelodySubtitle3Notes,
-                              unlocked: 2 <= _maxUnlockedLevel,
-                              selected: _selectedLevel == 2,
-                              onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 104,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: 3,
-                              icon: Icons.equalizer_rounded,
-                              title: l.gameLevelHard,
-                              subtitle: l.gameMelodySubtitle4Notes,
-                              unlocked: 3 <= _maxUnlockedLevel,
-                              selected: _selectedLevel == 3,
-                              onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 104,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: 4,
-                              icon: Icons.speed_rounded,
-                              title: l.gameLevelExpert,
-                              subtitle: l.gameMelodySubtitle4NotesFast,
-                              unlocked: 4 <= _maxUnlockedLevel,
-                              selected: _selectedLevel == 4,
-                              onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            width: 104,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: 5,
-                              icon: Icons.military_tech_rounded,
-                              title: l.gameLevelMastery,
-                              subtitle: l.gameMelodySubtitle5NotesFast,
-                              unlocked: 5 <= _maxUnlockedLevel,
-                              selected: _selectedLevel == 5,
-                              onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              // ── Level Path Map ──────────────────────────────────────
+              GameLevelPathMap(
+                gameId: GameId.melody,
+                accentColor: _game.accent,
+                selectedLevel: _selectedLevel,
+                maxUnlockedLevel: _maxUnlockedLevel,
+                onLevelSelected: _changeLevel,
+                levels: <GameLevelItem>[
+                  GameLevelItem(
+                    levelNum: 1,
+                    title: l.gameLevelEasy,
+                    subtitle: l.gameMelodySubtitle2Notes,
+                    icon: Icons.graphic_eq_rounded,
+                    stars: 3,
+                  ),
+                  GameLevelItem(
+                    levelNum: 2,
+                    title: l.gameLevelMedium,
+                    subtitle: l.gameMelodySubtitle3Notes,
+                    icon: Icons.queue_music_rounded,
+                    stars: 2,
+                  ),
+                  GameLevelItem(
+                    levelNum: 3,
+                    title: l.gameLevelHard,
+                    subtitle: l.gameMelodySubtitle4Notes,
+                    icon: Icons.equalizer_rounded,
+                    stars: 2,
+                  ),
+                  GameLevelItem(
+                    levelNum: 4,
+                    title: l.gameLevelExpert,
+                    subtitle: l.gameMelodySubtitle4NotesFast,
+                    icon: Icons.speed_rounded,
+                    stars: 1,
+                  ),
+                  GameLevelItem(
+                    levelNum: 5,
+                    title: l.gameLevelMastery,
+                    subtitle: l.gameMelodySubtitle5NotesFast,
+                    icon: Icons.military_tech_rounded,
+                    stars: 0,
+                  ),
+                ],
               ),
               const SizedBox(height: Insets.md),
               // Meet the instruments before the first round asks for them

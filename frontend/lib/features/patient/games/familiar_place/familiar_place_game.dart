@@ -15,6 +15,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 import 'house_map.dart';
 
 /// Progressive hints for one target object — general, then situational, then
@@ -428,91 +429,50 @@ class _FamiliarPlaceGameState extends State<FamiliarPlaceGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 1,
-                            icon: Icons.holiday_village_rounded,
-                            title: l.gameLevelEasy,
-                            subtitle: l.gameFamiliarPlaceRoomsCount(3),
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 2,
-                            icon: Icons.meeting_room_rounded,
-                            title: l.gameLevelMedium,
-                            subtitle: l.gameFamiliarPlaceRoomsCount(4),
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 3,
-                            icon: Icons.map_rounded,
-                            title: l.gameLevelHard,
-                            subtitle: l.gameFamiliarPlaceRoomsCount(5),
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 4,
-                            icon: Icons.timer_outlined,
-                            title: l.gameLevelExpert,
-                            subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 5,
-                            icon: Icons.workspace_premium_rounded,
-                            title: l.gameLevelMastery,
-                            subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.familiarPlace,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameLevelEasy,
+                  subtitle: l.gameFamiliarPlaceRoomsCount(3),
+                  icon: Icons.holiday_village_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameLevelMedium,
+                  subtitle: l.gameFamiliarPlaceRoomsCount(4),
+                  icon: Icons.meeting_room_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameLevelHard,
+                  subtitle: l.gameFamiliarPlaceRoomsCount(5),
+                  icon: Icons.map_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameLevelExpert,
+                  subtitle: l.gameFamiliarPlaceSubtitle5RoomsOneHint,
+                  icon: Icons.timer_outlined,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameLevelMastery,
+                  subtitle: l.gameFamiliarPlaceSubtitle5RoomsFast,
+                  icon: Icons.workspace_premium_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(
