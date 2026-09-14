@@ -692,14 +692,6 @@ class _StoryGameState extends State<StoryGame> {
               const SizedBox(height: Insets.lg),
               const _AnalysingStrip(),
             ],
-            if (_storyEvaluated) ...<Widget>[
-              _StoryScoreCard(
-                coherence: (58 + _fragments.length * 9).clamp(45, 96),
-                details: (52 + _fragments.length * 11).clamp(45, 97),
-                association: (50 + _fragments.length * 10).clamp(40, 95),
-                accent: _game.accent,
-              ),
-            ],
             const SizedBox(height: 20),
           ],
         ),
@@ -882,79 +874,3 @@ class _EvaluationPanel extends StatelessWidget {
   }
 }
 
-class _StoryScoreCard extends StatelessWidget {
-  const _StoryScoreCard({
-    required this.coherence,
-    required this.details,
-    required this.association,
-    required this.accent,
-  });
-
-  final int coherence;
-  final int details;
-  final int association;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return MmCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(Icons.auto_awesome_rounded, size: 17, color: accent),
-              const SizedBox(width: 7),
-              Text(l.gameStoryHowMitraReadYourStory, style: AppText.overline.tint(accent)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _ScoreRow(label: l.gameStoryCoherence, value: coherence, color: accent),
-          const SizedBox(height: 12),
-          _ScoreRow(label: l.gameStoryRelevantDetails, value: details, color: accent),
-          const SizedBox(height: 12),
-          _ScoreRow(label: l.gameStoryMemoryAssociation, value: association, color: accent),
-          const SizedBox(height: Insets.md),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              borderRadius: Corners.r(Corners.sm),
-            ),
-            child: Text(
-              l.gameStorySimulatedCaption,
-              style: AppText.caption,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreRow extends StatelessWidget {
-  const _ScoreRow({required this.label, required this.value, required this.color});
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 140,
-          child: Text(label, style: AppText.body.wght(600).tint(AppColors.inkSoft)),
-        ),
-        Expanded(child: MeterBar(value: value / 100, color: color, height: 9)),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 44,
-          child: Text('$value%',
-              textAlign: TextAlign.right, style: AppText.body.wght(800).tint(color)),
-        ),
-      ],
-    );
-  }
-}

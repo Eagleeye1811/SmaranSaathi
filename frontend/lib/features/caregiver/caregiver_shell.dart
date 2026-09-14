@@ -37,6 +37,71 @@ class CaregiverShell extends StatefulWidget {
 class _CaregiverShellState extends State<CaregiverShell> {
   int _index = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Once per time the caregiver lands on this shell (fresh login, or
+    // returning to the app), not once per tab switch — `initState` only
+    // fires when this State is created, and switching tabs below just
+    // changes `_index` on the same instance.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _maybePromptForCaregiverNote(AppScope.of(context));
+    });
+  }
+
+  /// Nudges the caregiver to add at least one note or concern check-in this
+  /// cycle — without this, a patient could finish all 7 activities with the
+  /// doctor's weekly report carrying no caregiver input at all, simply
+  /// because the notes card in Reports is easy to miss.
+  Future<void> _maybePromptForCaregiverNote(AppState state) async {
+    if (state.concernUpdatesThisCycle.isNotEmpty || state.notesThisCycle.isNotEmpty) return;
+
+    final TextEditingController controller = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('A quick note for the doctor?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              "Have you noticed anything — better or worse — in how ${state.patient.shortName} "
+              "has been doing? A quick note helps their doctor, and takes a moment.",
+              style: AppText.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'e.g. Seemed a bit more forgetful about names this week',
+                filled: true,
+                fillColor: AppColors.surfaceMuted,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: Corners.r(Corners.md)),
+              ),
+            ),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Not now'),
+          ),
+          TextButton(
+            onPressed: () {
+              state.addCaregiverNote(controller.text);
+              Navigator.of(dialogContext).pop();
+            },
+            child: const Text('Save note'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Navigation destinations ──────────────────────────────────────────────
 
   static const List<_NavDest> _destinations = <_NavDest>[

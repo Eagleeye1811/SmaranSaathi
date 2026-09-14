@@ -1,17 +1,27 @@
-"""In-memory pairing store.
+"""Pairing: a durable claimed-username store plus an ephemeral request queue.
 
-Deliberately process-local, like the other memory repositories: a pairing is a
-short-lived handshake, not a record. A restart losing a pending request is the
-correct behaviour — the patient simply asks again and the caregiver approves
-again — whereas a *claimed username* does need to outlive the handshake, which
-is why it is written through to the patient repository as well.
+The two halves have deliberately different lifetimes. A pending *request* is
+a short-lived handshake — a restart losing it is the correct behaviour, the
+patient simply asks again and the caregiver approves again — so it stays a
+plain process-local dict here, same as before. A *claimed username*, though,
+needs to outlive both the handshake and the process: a patient's device may
+look it up long after the caregiver claimed it, possibly after the backend
+has restarted (this app's free-tier hosting spins down on idle). That half is
+now backed by `PairingClaimRepository` (Firestore in production, matching
+every other durable resource in this backend; in-memory only for local dev)
+instead of a bare dict — the previous version kept claims in-memory too,
+which meant a caregiver's claim could vanish on the very next cold start,
+indistinguishable from "it never saved."
 """
 from __future__ import annotations
 
 import time
 import uuid
+from functools import lru_cache
 from typing import Dict, List, Optional
 
+from app.core.dependencies import get_pairing_claim_repository
+from app.repositories.base import PairingClaimRepository
 from app.schemas.pairing import (
     AccessRequest,
     ClaimUsernameRequest,
@@ -34,16 +44,15 @@ def _normalise(username: str) -> str:
 
 
 class PairingService:
-    def __init__(self) -> None:
-        # username -> claim
-        self._claims: Dict[str, ClaimUsernameResponse] = {}
+    def __init__(self, claims: PairingClaimRepository) -> None:
+        self._claims = claims
         # request id -> request
         self._requests: Dict[str, PairingRequestResponse] = {}
 
     # ── claiming ────────────────────────────────────────────────────────
-    def claim(self, data: ClaimUsernameRequest) -> ClaimUsernameResponse:
+    async def claim(self, data: ClaimUsernameRequest) -> ClaimUsernameResponse:
         name = _normalise(data.username)
-        existing = self._claims.get(name)
+        existing = await self._claims.get(name)
         if existing is not None:
             # Same caregiver re-claiming the same name for the same patient is
             # a retry, not a collision.
@@ -58,15 +67,26 @@ class PairingService:
             patient_name=data.patient_name,
             already_claimed=False,
         )
-        self._claims[name] = claim
-        return claim
+        return await self._claims.save(claim)
 
-    def lookup(self, username: str) -> Optional[ClaimUsernameResponse]:
-        return self._claims.get(_normalise(username))
+    async def lookup(self, username: str) -> Optional[ClaimUsernameResponse]:
+        return await self._claims.get(_normalise(username))
+
+    async def claims_for(self, caregiver_uid: str) -> List[ClaimUsernameResponse]:
+        """What this caregiver has already claimed, if anything.
+
+        Exists so a device that has forgotten its own `patientUsername` cache
+        — the caregiver signed out and back in, or reinstalled — can ask the
+        durable backend record instead of assuming nothing was ever claimed.
+        Without this, a returning caregiver silently stops seeing incoming
+        pairing requests: the claim is still there, but the app no longer
+        knows to poll for requests against it.
+        """
+        return await self._claims.list_for_caregiver(caregiver_uid)
 
     # ── requesting ──────────────────────────────────────────────────────
-    def request_access(self, data: AccessRequest) -> PairingRequestResponse:
-        claim = self.lookup(data.username)
+    async def request_access(self, data: AccessRequest) -> PairingRequestResponse:
+        claim = await self.lookup(data.username)
         if claim is None:
             raise LookupError("unknown_username")
 
@@ -94,11 +114,10 @@ class PairingService:
         self._requests[request.request_id] = request
         return request
 
-    def pending_for(self, caregiver_uid: str) -> List[PairingRequestResponse]:
+    async def pending_for(self, caregiver_uid: str) -> List[PairingRequestResponse]:
         self._expire_stale()
-        usernames = {
-            c.username for c in self._claims.values() if c.caregiver_uid == caregiver_uid
-        }
+        claims = await self._claims.list_for_caregiver(caregiver_uid)
+        usernames = {c.username for c in claims}
         return [
             r
             for r in self._requests.values()
@@ -110,12 +129,12 @@ class PairingService:
         return self._requests.get(request_id)
 
     # ── deciding ────────────────────────────────────────────────────────
-    def decide(self, request_id: str, caregiver_uid: str, approve: bool) -> PairingRequestResponse:
+    async def decide(self, request_id: str, caregiver_uid: str, approve: bool) -> PairingRequestResponse:
         request = self._requests.get(request_id)
         if request is None:
             raise LookupError("unknown_request")
 
-        claim = self._claims.get(request.username)
+        claim = await self.lookup(request.username)
         # Only the caregiver who claimed the username may decide. Without this
         # anyone holding a request id could approve their own access.
         if claim is None or claim.caregiver_uid != caregiver_uid:
@@ -140,8 +159,10 @@ class PairingService:
                 self._requests[rid] = req.model_copy(update={"status": "expired"})
 
 
-_service = PairingService()
-
-
+@lru_cache
 def get_pairing_service() -> PairingService:
-    return _service
+    # A real singleton, not a per-request construction like `SyncService`:
+    # `_requests` is deliberately in-memory state that has to survive between
+    # one HTTP call creating a request and a later one approving it. Only the
+    # durable half (claims) goes through a swappable repository.
+    return PairingService(claims=get_pairing_claim_repository())

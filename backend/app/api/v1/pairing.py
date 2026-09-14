@@ -32,7 +32,7 @@ async def claim_username(
     service: PairingService = Depends(get_pairing_service),
 ) -> ClaimUsernameResponse:
     try:
-        return service.claim(data)
+        return await service.claim(data)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -45,10 +45,18 @@ async def lookup_username(
     username: str = Query(...),
     service: PairingService = Depends(get_pairing_service),
 ) -> ClaimUsernameResponse:
-    claim = service.lookup(username)
+    claim = await service.lookup(username)
     if claim is None:
         raise HTTPException(status_code=404, detail="No account with that username.")
     return claim
+
+
+@router.get("/claims", response_model=List[ClaimUsernameResponse])
+async def claims_for_caregiver(
+    caregiverUid: str = Query(...),
+    service: PairingService = Depends(get_pairing_service),
+) -> List[ClaimUsernameResponse]:
+    return await service.claims_for(caregiverUid)
 
 
 @router.post("/request", response_model=PairingRequestResponse, status_code=201)
@@ -57,7 +65,7 @@ async def request_access(
     service: PairingService = Depends(get_pairing_service),
 ) -> PairingRequestResponse:
     try:
-        return service.request_access(data)
+        return await service.request_access(data)
     except LookupError:
         raise HTTPException(status_code=404, detail="No account with that username.")
 
@@ -67,7 +75,7 @@ async def pending_requests(
     caregiverUid: str = Query(...),
     service: PairingService = Depends(get_pairing_service),
 ) -> List[PairingRequestResponse]:
-    return service.pending_for(caregiverUid)
+    return await service.pending_for(caregiverUid)
 
 
 @router.get("/status", response_model=PairingRequestResponse)
@@ -87,7 +95,7 @@ async def respond(
     service: PairingService = Depends(get_pairing_service),
 ) -> PairingRequestResponse:
     try:
-        return service.decide(data.request_id, data.caregiver_uid, data.approve)
+        return await service.decide(data.request_id, data.caregiver_uid, data.approve)
     except LookupError:
         raise HTTPException(status_code=404, detail="Unknown request.")
     except PermissionError:

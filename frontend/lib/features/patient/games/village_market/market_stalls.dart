@@ -24,7 +24,9 @@ class MarketItem {
   final IconData icon;
   final Color color;
 
-  /// Flavour only — shown on the tile, never summed exactly for the patient.
+  /// Shown on the tile and deducted from the patient's real, on-screen
+  /// budget the moment the item is bought — see `_tapItem` in
+  /// `village_market_game.dart`.
   final int price;
   final MarketItemRole role;
 }
@@ -60,8 +62,8 @@ class Stall {
 /// Stalls open in a fixed order as the level rises — three at level 1,
 /// growing to all six by level 5 — kept in lockstep with
 /// `AdaptiveDifficultyService.levelDescription` for `GameId.villageMarket`
-/// and the game's own `_stallCountFor`. Prices are flavour only, never
-/// summed exactly for the patient.
+/// and the game's own `_stallCountFor`. Prices are real: they're deducted
+/// from the patient's stated starting budget as items go into the basket.
 class MarketContent {
   const MarketContent._();
 

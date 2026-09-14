@@ -1,10 +1,12 @@
 ﻿import 'package:flutter/foundation.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 
+import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
 import '../../core/models/mood_drawing.dart';
+import '../../core/models/onboarding.dart';
 import '../../core/models/patient.dart';
 import 'adapters.dart';
 import 'sync_operation.dart';
@@ -45,6 +47,12 @@ class HiveStore {
   /// this one carries binary image data, not a growing set of loosely-typed
   /// fields.
   static const String moodDrawingsBox = 'mm_mood_drawings';
+
+  /// A caregiver's ongoing "Better/Same/Worse" check-ins on onboarding-
+  /// flagged concerns, and their freeform notes for the doctor — the two
+  /// inputs the weekly report is built from. See `WeeklyReportBuilder`.
+  static const String caregiverConcernsBox = 'mm_caregiver_concerns';
+  static const String caregiverNotesBox = 'mm_caregiver_notes';
 
   static bool _adaptersRegistered = false;
   static HiveStore? _instance;
@@ -88,7 +96,13 @@ class HiveStore {
       ..registerAdapter(EnumAdapter<SyncOperationKind>(HiveTypeIds.syncOperationKind,
           SyncOperationKind.values, SyncOperationKind.unknown))
       ..registerAdapter(EnumAdapter<SyncStatus>(
-          HiveTypeIds.syncStatus, SyncStatus.values, SyncStatus.pending));
+          HiveTypeIds.syncStatus, SyncStatus.values, SyncStatus.pending))
+      ..registerAdapter(CaregiverConcernUpdateAdapter())
+      ..registerAdapter(CaregiverNoteEntryAdapter())
+      ..registerAdapter(EnumAdapter<ConcernTrend>(
+          HiveTypeIds.concernTrend, ConcernTrend.values, ConcernTrend.same))
+      ..registerAdapter(EnumAdapter<DailyDifficulty>(HiveTypeIds.dailyDifficulty,
+          DailyDifficulty.values, DailyDifficulty.somethingElse));
     _adaptersRegistered = true;
   }
 
@@ -119,6 +133,8 @@ class HiveStore {
       Hive.openBox<PendingOperation>(syncQueueBox),
       Hive.openBox<dynamic>(assessmentBox),
       Hive.openBox<dynamic>(memoriesBox),
+      Hive.openBox<CaregiverConcernUpdate>(caregiverConcernsBox),
+      Hive.openBox<CaregiverNoteEntry>(caregiverNotesBox),
     ]);
     store._open = true;
     _instance = store;
@@ -150,6 +166,9 @@ class HiveStore {
   Box<PendingOperation> get syncQueue => Hive.box<PendingOperation>(syncQueueBox);
   Box<dynamic> get assessment => Hive.box<dynamic>(assessmentBox);
   Box<dynamic> get memories => Hive.box<dynamic>(memoriesBox);
+  Box<CaregiverConcernUpdate> get caregiverConcerns =>
+      Hive.box<CaregiverConcernUpdate>(caregiverConcernsBox);
+  Box<CaregiverNoteEntry> get caregiverNotes => Hive.box<CaregiverNoteEntry>(caregiverNotesBox);
 
   Future<void> close() async {
     _open = false;
@@ -172,6 +191,8 @@ class HiveStore {
       syncQueue.clear(),
       assessment.clear(),
       memories.clear(),
+      caregiverConcerns.clear(),
+      caregiverNotes.clear(),
     ]);
   }
 }

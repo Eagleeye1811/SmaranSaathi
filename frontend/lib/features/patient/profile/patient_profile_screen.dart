@@ -311,9 +311,19 @@ class PatientProfileScreen extends StatelessWidget {
                       // anyone who signed in, since `sessionHome` arrives
                       // here through `Nav.rootTo`. Clearing the role and
                       // going to the picker works from either entry.
+                      //
+                      // The preview branch needs `rootNavigator: true`:
+                      // `PatientShell` (and this screen inside it) lives in
+                      // `PatientViewScreen`'s own private `Navigator`, so a
+                      // plain `Navigator.of(context)` here resolves to that
+                      // nested one — popping within the patient app's own
+                      // stack rather than leaving the preview at all. The
+                      // true root pop removes `PatientViewScreen` itself,
+                      // whose `dispose()` is what actually calls
+                      // `endPatientPreview()`.
                       onPressed: () {
                         if (state.viewingAsPatient) {
-                          Navigator.of(context).maybePop();
+                          Navigator.of(context, rootNavigator: true).pop();
                           return;
                         }
                         AppScope.read(context).setRole(AppRole.none);

@@ -151,7 +151,6 @@ class Appointment {
     required this.status,
     this.isVirtual = false,
     this.joinLink = '',
-    this.summary,
   });
 
   final String id;
@@ -163,29 +162,6 @@ class Appointment {
   final AppointmentStatus status;
   final bool isVirtual;
   final String joinLink;
-  final ConsultationSummary? summary;
-}
-
-/// Notes and care plan from the doctor after a completed consultation.
-@immutable
-class ConsultationSummary {
-  const ConsultationSummary({
-    required this.appointmentId,
-    required this.dateLabel,
-    required this.observations,
-    required this.careplan,
-    required this.recommendedActivities,
-    required this.followUpLabel,
-    this.doctorNotes = '',
-  });
-
-  final String appointmentId;
-  final String dateLabel;
-  final List<String> observations;
-  final String careplan;
-  final List<String> recommendedActivities;
-  final String followUpLabel;
-  final String doctorNotes;
 }
 
 // ── Doctor-side appointment (from doctor perspective) ─────────────────────

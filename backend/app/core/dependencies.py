@@ -14,6 +14,7 @@ from app.repositories.base import (
     CaregiverLinkRepository,
     DailyRepository,
     GameSessionRepository,
+    PairingClaimRepository,
     PatientRepository,
     ReminderRepository,
     SyncLedgerRepository,
@@ -22,6 +23,7 @@ from app.repositories.memory.analytics import InMemoryAnalyticsRepository
 from app.repositories.memory.assessments import InMemoryAssessmentRepository
 from app.repositories.memory.caregivers import InMemoryCaregiverLinkRepository
 from app.repositories.memory.daily import InMemoryDailyRepository
+from app.repositories.memory.pairing import InMemoryPairingClaimRepository
 from app.repositories.memory.patients import InMemoryPatientRepository
 from app.repositories.memory.reminders import InMemoryReminderRepository
 from app.repositories.memory.sessions import InMemoryGameSessionRepository
@@ -98,3 +100,12 @@ def get_assessment_repository() -> AssessmentRepository:
 
         return FirestoreAssessmentRepository()
     return InMemoryAssessmentRepository()
+
+
+@lru_cache
+def get_pairing_claim_repository() -> PairingClaimRepository:
+    if get_settings().firebase_configured:
+        from app.repositories.firestore.pairing import FirestorePairingClaimRepository
+
+        return FirestorePairingClaimRepository()
+    return InMemoryPairingClaimRepository()

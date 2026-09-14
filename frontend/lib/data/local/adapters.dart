@@ -2,10 +2,12 @@ import 'dart:typed_data';
 
 import 'package:hive_ce/hive.dart';
 
+import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
 import '../../core/models/mood_drawing.dart';
+import '../../core/models/onboarding.dart';
 import '../../core/models/patient.dart';
 import 'sync_operation.dart';
 
@@ -43,6 +45,10 @@ class HiveTypeIds {
   static const int reminderKind = 25;
   static const int syncOperationKind = 26;
   static const int syncStatus = 27;
+  static const int caregiverConcernUpdate = 28;
+  static const int caregiverNoteEntry = 29;
+  static const int concernTrend = 30;
+  static const int dailyDifficulty = 31;
 }
 
 /// Reads the `(index, value)` pairs an adapter wrote into a plain map.
@@ -364,13 +370,16 @@ class GameSessionAdapter extends TypeAdapter<GameSession> {
       level: f[2] as int? ?? 1,
       performance: f[3] as GamePerformance,
       timeLabel: f[4] as String? ?? '',
+      playedAt: f[5] != null
+          ? DateTime.fromMillisecondsSinceEpoch(f[5] as int)
+          : DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 
   @override
   void write(BinaryWriter writer, GameSession obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.gameId)
       ..writeByte(1)
@@ -380,7 +389,9 @@ class GameSessionAdapter extends TypeAdapter<GameSession> {
       ..writeByte(3)
       ..write(obj.performance)
       ..writeByte(4)
-      ..write(obj.timeLabel);
+      ..write(obj.timeLabel)
+      ..writeByte(5)
+      ..write(obj.playedAt.millisecondsSinceEpoch);
   }
 }
 
@@ -621,5 +632,73 @@ class PendingOperationAdapter extends TypeAdapter<PendingOperation> {
       ..write(obj.syncedAtMillis)
       ..writeByte(7)
       ..write(obj.lastError);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Caregiver weekly notes
+// ─────────────────────────────────────────────────────────────────────────
+
+class CaregiverConcernUpdateAdapter extends TypeAdapter<CaregiverConcernUpdate> {
+  @override
+  final int typeId = HiveTypeIds.caregiverConcernUpdate;
+
+  @override
+  CaregiverConcernUpdate read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return CaregiverConcernUpdate(
+      id: f[0] as String? ?? '',
+      difficulty: f[1] as DailyDifficulty? ?? DailyDifficulty.somethingElse,
+      trend: f[2] as ConcernTrend? ?? ConcernTrend.same,
+      comment: f[3] as String? ?? '',
+      at: f[4] != null
+          ? DateTime.fromMillisecondsSinceEpoch(f[4] as int)
+          : DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, CaregiverConcernUpdate obj) {
+    writer
+      ..writeByte(5)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.difficulty)
+      ..writeByte(2)
+      ..write(obj.trend)
+      ..writeByte(3)
+      ..write(obj.comment)
+      ..writeByte(4)
+      ..write(obj.at.millisecondsSinceEpoch);
+  }
+}
+
+class CaregiverNoteEntryAdapter extends TypeAdapter<CaregiverNoteEntry> {
+  @override
+  final int typeId = HiveTypeIds.caregiverNoteEntry;
+
+  @override
+  CaregiverNoteEntry read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return CaregiverNoteEntry(
+      id: f[0] as String? ?? '',
+      text: f[1] as String? ?? '',
+      at: f[2] != null
+          ? DateTime.fromMillisecondsSinceEpoch(f[2] as int)
+          : DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, CaregiverNoteEntry obj) {
+    writer
+      ..writeByte(3)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.text)
+      ..writeByte(2)
+      ..write(obj.at.millisecondsSinceEpoch);
   }
 }

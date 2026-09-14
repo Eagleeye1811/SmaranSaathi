@@ -1668,6 +1668,12 @@ class AppLocalizations {
       _f('gameVillageMarketStallsOpen', <String, Object?>{'n': n});
   String gameVillageMarketPriceTag(int price) =>
       _f('gameVillageMarketPriceTag', <String, Object?>{'price': price});
+  String get gameVillageMarketListLabel => _s('gameVillageMarketListLabel');
+  String gameVillageMarketListProgress(int found, int total) => _f(
+      'gameVillageMarketListProgress', <String, Object?>{'found': found, 'total': total});
+  String get gameVillageMarketNotEnoughMoney => _s('gameVillageMarketNotEnoughMoney');
+  String get gameVillageMarketListComplete => _s('gameVillageMarketListComplete');
+  String get gameVillageMarketFundsLow => _s('gameVillageMarketFundsLow');
 
   // ── Games — mood canvas ─────────────────────────────────────────
   String get gameMoodCanvasName => _s('gameMoodCanvasName');
@@ -1852,6 +1858,7 @@ class AppLocalizations {
   String get pairTaken => _s('pairTaken');
   String get pairUnknown => _s('pairUnknown');
   String get pairOffline => _s('pairOffline');
+  String get pairSlowStart => _s('pairSlowStart');
   String get pairAskAction => _s('pairAskAction');
   String get pairWaitingTitle => _s('pairWaitingTitle');
   String get pairWaitingBody => _s('pairWaitingBody');

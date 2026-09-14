@@ -82,6 +82,7 @@ class DemoJourney {
           dayOffset: dayOffset,
           level: level,
           timeLabel: week.isEven ? '10:20 AM' : '4:45 PM',
+          playedAt: DateTime.now().subtract(Duration(days: dayOffset)),
           performance: GamePerformance(
             accuracy: score,
             focus: (score - 2 + random.nextDouble() * 6).clamp(35, 99),

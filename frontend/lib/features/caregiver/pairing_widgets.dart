@@ -85,6 +85,17 @@ class _ClaimSheetState extends State<_ClaimSheet> {
           _busy = false;
         });
       }
+    } on PairingUnreachableException {
+      // Every candidate timed out or refused — on a real device this is
+      // almost always the one real backend still waking up from idle, not
+      // an actual connectivity problem, so this gets its own honest message
+      // rather than reusing `pairOffline`'s "you're offline" framing.
+      if (mounted) {
+        setState(() {
+          _error = l.pairSlowStart;
+          _busy = false;
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {

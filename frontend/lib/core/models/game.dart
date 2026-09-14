@@ -200,6 +200,7 @@ class GameSession {
     required this.level,
     required this.performance,
     required this.timeLabel,
+    required this.playedAt,
   });
 
   final GameId gameId;
@@ -209,6 +210,12 @@ class GameSession {
   final int level;
   final GamePerformance performance;
   final String timeLabel;
+
+  /// When this was actually played — used to bucket sessions into a real
+  /// rolling 7-day reporting window (see `WeeklyReportBuilder`). Added after
+  /// the first release; a box written by an older build has no field 5,
+  /// which the adapter defaults to the epoch rather than crashing.
+  final DateTime playedAt;
 }
 
 /// What the adaptive engine decided to do next.

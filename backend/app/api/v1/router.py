@@ -16,6 +16,7 @@ from . import (
     sessions,
     sync,
     telehealth,
+    weekly_reports,
 )
 
 api_router = APIRouter()
@@ -34,3 +35,4 @@ api_router.include_router(pairing.router)
 api_router.include_router(sync.router)
 api_router.include_router(telehealth.router)
 api_router.include_router(chat.router)
+api_router.include_router(weekly_reports.router)

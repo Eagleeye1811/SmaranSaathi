@@ -1,9 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/positive_feedback.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/celebration.dart';
 import '../../../core/widgets/companion.dart';
@@ -14,7 +15,11 @@ import '../../../l10n/content_labels.dart';
 
 /// The end of every activity. Encouraging first, informative second — and
 /// never phrased like an exam result.
-class GameResultScreen extends StatefulWidget {
+///
+/// Deliberately shows no number, count, or level anywhere: a dementia
+/// patient should never see anything that could read as a bad score on a
+/// bad day. See `PositiveFeedbackEngine` for the guardrail this is built on.
+class GameResultScreen extends StatelessWidget {
   const GameResultScreen({
     super.key,
     required this.game,
@@ -29,47 +34,23 @@ class GameResultScreen extends StatefulWidget {
   final AdaptiveDecision decision;
   final int playedLevel;
 
-  /// Optional activity-specific figures (objects found, pairs matched…).
+  /// Kept for call-site compatibility; deliberately unused here — activity
+  /// tallies (pairs found, hints used…) are exactly the kind of raw count
+  /// this screen no longer shows.
   final List<({String label, String value})> highlights;
-
-  @override
-  State<GameResultScreen> createState() => _GameResultScreenState();
-}
-
-class _GameResultScreenState extends State<GameResultScreen> {
-  bool _showAdaptive = false;
-
-  @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() => _showAdaptive = true);
-    });
-  }
-
-  String _headline(AppLocalizations l) {
-    final int s = widget.performance.overall;
-    if (s >= 85) return l.resultWonderful;
-    if (s >= 70) return l.resultVeryWellDone;
-    if (s >= 55) return l.resultNicelyDone;
-    return l.resultThankYouForTrying;
-  }
-
-  String _closing(AppLocalizations l) {
-    final int s = widget.performance.overall;
-    if (s >= 85) return l.resultPraiseHigh;
-    if (s >= 70) return l.resultPraiseMid;
-    if (s >= 55) return l.resultPraiseSteady;
-    return l.resultPraiseIncomplete;
-  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final AppState state = AppScope.of(context);
-    final GamePerformance p = widget.performance;
-    final Color accent = widget.game.accent;
-    final bool celebrate = p.overall >= 70 && !state.reduceMotion;
+    final Color accent = game.accent;
+    final PositiveFeedback feedback = PositiveFeedbackEngine.build(
+      game: game,
+      performance: performance,
+      decision: decision,
+      l: l,
+    );
+    final bool celebrate = feedback.celebrate && !state.reduceMotion;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -79,7 +60,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
             opacity: 0.04,
             color: accent,
             washColors: <Color>[
-              widget.game.tint.withValues(alpha: 0.95),
+              game.tint.withValues(alpha: 0.95),
               AppColors.background.withValues(alpha: 0),
             ],
             child: SafeArea(
@@ -90,9 +71,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     child: Center(
                       child: Companion(
-                        state: p.overall >= 70
-                            ? CompanionState.celebrating
-                            : CompanionState.encouraging,
+                        state: feedback.companionState,
                         size: 150,
                         animate: !state.reduceMotion,
                       ),
@@ -102,7 +81,7 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     delayMs: 60,
                     child: Text(
-                      '${_headline(l)}, ${state.patient.shortName}!',
+                      '${feedback.headline}, ${state.patient.shortName}!',
                       textAlign: TextAlign.center,
                       style: AppText.hero.sized(29),
                     ),
@@ -111,14 +90,14 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   FadeInUp(
                     delayMs: 90,
                     child: Text(
-                      l.resultCompleted(widget.game.localizedName(l)),
+                      l.resultCompleted(game.localizedName(l)),
                       textAlign: TextAlign.center,
                       style: AppText.bodyLarge.tint(AppColors.inkSoft),
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
 
-                  // ── Headline number ────────────────────────────────────
+                  // ── How it went, in words only ─────────────────────────
                   FadeInUp(
                     delayMs: 130,
                     child: MmCard(
@@ -128,57 +107,21 @@ class _GameResultScreenState extends State<GameResultScreen> {
                       child: Column(
                         children: <Widget>[
                           ProgressRing(
-                            value: p.overall / 100,
-                            size: 150,
+                            value: feedback.ringValue,
+                            size: 130,
                             stroke: 14,
                             color: accent,
-                            center: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                TweenAnimationBuilder<double>(
-                                  tween: Tween<double>(begin: 0, end: p.overall.toDouble()),
-                                  duration: const Duration(milliseconds: 1000),
-                                  curve: Curves.easeOutCubic,
-                                  builder: (BuildContext context, double v, _) => Text(
-                                    '${v.round()}%',
-                                    style: AppText.statHuge.sized(42).tint(accent),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(l.resultCognitivePerformance,
-                                    textAlign: TextAlign.center, style: AppText.caption),
-                              ],
+                            center: Icon(
+                              Icons.favorite_rounded,
+                              color: accent,
+                              size: 40,
                             ),
                           ),
                           const SizedBox(height: Insets.lg),
-                          _MetricRow(
-                              label: l.resultAccuracy, value: p.accuracy.round(), color: accent),
-                          const SizedBox(height: 12),
-                          _MetricRow(label: l.resultFocus, value: p.focus.round(), color: accent),
-                          const SizedBox(height: 12),
-                          _MetricRow(label: l.resultMemory, value: p.memory.round(), color: accent),
-                          const SizedBox(height: Insets.md),
-                          const Divider(color: AppColors.hairline),
-                          const SizedBox(height: Insets.md),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: <Widget>[
-                              _MiniStat(
-                                icon: Icons.schedule_rounded,
-                                label: l.resultTime,
-                                value: p.durationLabel,
-                              ),
-                              _MiniStat(
-                                icon: Icons.lightbulb_outline_rounded,
-                                label: l.resultHints,
-                                value: '${p.hintsUsed}',
-                              ),
-                              _MiniStat(
-                                icon: Icons.replay_rounded,
-                                label: l.resultRetries,
-                                value: '${p.mistakes}',
-                              ),
-                            ],
+                          Text(
+                            feedback.domainNote,
+                            textAlign: TextAlign.center,
+                            style: AppText.body.wght(700),
                           ),
                         ],
                       ),
@@ -186,42 +129,11 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   ),
                   const SizedBox(height: Insets.md),
 
-                  // ── Activity-specific figures ──────────────────────────
-                  if (widget.highlights.isNotEmpty) ...<Widget>[
-                    FadeInUp(
-                      delayMs: 150,
-                      child: MmCard(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: Insets.md, vertical: Insets.md),
-                        child: Wrap(
-                          alignment: WrapAlignment.spaceAround,
-                          spacing: 8,
-                          runSpacing: 14,
-                          children: <Widget>[
-                            for (final ({String label, String value}) h in widget.highlights)
-                              SizedBox(
-                                width: 92,
-                                child: Column(
-                                  children: <Widget>[
-                                    Text(h.value, style: AppText.stat.tint(accent)),
-                                    const SizedBox(height: 3),
-                                    Text(h.label,
-                                        textAlign: TextAlign.center, style: AppText.caption),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: Insets.md),
-                  ],
-
                   // ── Companion's closing words ──────────────────────────
                   FadeInUp(
                     delayMs: 170,
                     child: CompanionSpeech(
-                      message: _closing(l),
+                      message: feedback.body,
                       state: CompanionState.happy,
                       companionSize: 68,
                       compact: true,
@@ -229,19 +141,12 @@ class _GameResultScreenState extends State<GameResultScreen> {
                   ),
                   const SizedBox(height: Insets.md),
 
-                  // ── Adaptive difficulty ────────────────────────────────
-                  AnimatedSlide(
-                    offset: _showAdaptive ? Offset.zero : const Offset(0, 0.12),
-                    duration: Motion.slow,
-                    curve: Curves.easeOutCubic,
-                    child: AnimatedOpacity(
-                      opacity: _showAdaptive ? 1 : 0,
-                      duration: Motion.slow,
-                      child: _AdaptiveCard(
-                        decision: widget.decision,
-                        game: widget.game,
-                        playedLevel: widget.playedLevel,
-                      ),
+                  // ── What happens next, in plain language ───────────────
+                  FadeInUp(
+                    delayMs: 200,
+                    child: _NextTimeCard(
+                      direction: decision.direction,
+                      message: feedback.nextSessionNote,
                     ),
                   ),
                   const SizedBox(height: Insets.lg),
@@ -263,67 +168,18 @@ class _GameResultScreenState extends State<GameResultScreen> {
   }
 }
 
-class _MetricRow extends StatelessWidget {
-  const _MetricRow({required this.label, required this.value, required this.color});
-  final String label;
-  final int value;
-  final Color color;
+/// A single, plain-language line about the next session — no level numbers,
+/// no internal "signals", no reasoning sentence. Just what changes and why
+/// it's a good thing either way.
+class _NextTimeCard extends StatelessWidget {
+  const _NextTimeCard({required this.direction, required this.message});
+
+  final DifficultyDirection direction;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 86,
-          child: Text(label, style: AppText.body.wght(600).tint(AppColors.inkSoft)),
-        ),
-        Expanded(child: MeterBar(value: value / 100, color: color, height: 9)),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 46,
-          child: Text('$value%',
-              textAlign: TextAlign.right, style: AppText.body.wght(800).tint(color)),
-        ),
-      ],
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.icon, required this.label, required this.value});
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Icon(icon, size: 20, color: AppColors.inkMuted),
-        const SizedBox(height: 6),
-        Text(value, style: AppText.body.wght(800)),
-        const SizedBox(height: 2),
-        Text(label, style: AppText.caption),
-      ],
-    );
-  }
-}
-
-class _AdaptiveCard extends StatelessWidget {
-  const _AdaptiveCard({
-    required this.decision,
-    required this.game,
-    required this.playedLevel,
-  });
-
-  final AdaptiveDecision decision;
-  final GameDefinition game;
-  final int playedLevel;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final Color color = switch (decision.direction) {
+    final Color color = switch (direction) {
       DifficultyDirection.increase => AppColors.success,
       DifficultyDirection.maintain => AppColors.secondary,
       DifficultyDirection.decrease => AppColors.accent,
@@ -332,128 +188,13 @@ class _AdaptiveCard extends StatelessWidget {
     return MmCard(
       color: color.withValues(alpha: 0.07),
       border: Border.all(color: color.withValues(alpha: 0.25)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              SoftIcon(icon: decision.direction.icon, color: color, size: 42),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(l.resultAdjusted,
-                        style: AppText.body.wght(800)),
-                    const SizedBox(height: 3),
-                    Text(decision.direction.localizedMessage(l), style: AppText.bodySmall),
-                  ],
-                ),
-              ),
-            ],
+          SoftIcon(icon: direction.icon, color: color, size: 42),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(message, style: AppText.bodySmall.wght(600)),
           ),
-          const SizedBox(height: Insets.md),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _LevelChip(
-                  caption: l.resultThisSession,
-                  level: playedLevel,
-                  detail: localizedLevelDescription(l, game.id, playedLevel),
-                  color: AppColors.inkMuted,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Icon(Icons.arrow_forward_rounded, size: 20, color: color),
-              ),
-              Expanded(
-                child: _LevelChip(
-                  caption: l.resultNextSession,
-                  level: decision.nextLevel,
-                  detail:
-                      localizedLevelDescription(l, game.id, decision.nextLevel),
-                  color: color,
-                  emphasised: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.md),
-          Text(l.resultWhatSaathiNoticed, style: AppText.overline),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              for (final String s in decision.signals)
-                PillTag(label: s, color: AppColors.inkSoft, dense: true),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(decision.reason, style: AppText.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _LevelChip extends StatelessWidget {
-  const _LevelChip({
-    required this.caption,
-    required this.level,
-    required this.detail,
-    required this.color,
-    this.emphasised = false,
-  });
-
-  final String caption;
-  final int level;
-  final String detail;
-  final Color color;
-  final bool emphasised;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: Corners.r(Corners.sm),
-        border: Border.all(
-          color: emphasised ? color.withValues(alpha: 0.4) : AppColors.hairline,
-          width: emphasised ? 1.8 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // A coloured numeral badge — coloured by the adaptive direction
-          // (`color` is already muted for "this session" and success/accent
-          // for "next") — replaces the old "Level N" text row plus a
-          // separate dot bar below it; one glance now carries both the
-          // number and the direction's colour instead of three text/dot
-          // rows repeating each other.
-          Row(
-            children: <Widget>[
-              Container(
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                child: Text('$level', style: AppText.bodySmall.wght(800).tint(Colors.white)),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(caption.toUpperCase(),
-                    style: AppText.overline.sized(10),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          const SizedBox(height: 7),
-          Text(detail, style: AppText.caption.sized(11.5), maxLines: 2, overflow: TextOverflow.ellipsis),
         ],
       ),
     );

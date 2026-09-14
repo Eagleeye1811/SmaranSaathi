@@ -117,14 +117,6 @@ class GameHubScreen extends StatelessWidget {
                           level: state.levelOf(order[i]),
                           completed: state.completedToday.contains(order[i]),
                           recommended: order[i] == rec.gameId,
-                          lastAccuracy: state.sessionsFor(order[i]).isEmpty
-                              ? null
-                              : state
-                                  .sessionsFor(order[i])
-                                  .first
-                                  .performance
-                                  .accuracy
-                                  .round(),
                           onPlay: () => GameLauncher.open(context, order[i]),
                         ),
                       ),
@@ -146,7 +138,6 @@ class _GameCard extends StatelessWidget {
     required this.completed,
     required this.recommended,
     required this.onPlay,
-    this.lastAccuracy,
   });
 
   final GameDefinition game;
@@ -154,7 +145,6 @@ class _GameCard extends StatelessWidget {
   final bool completed;
   final bool recommended;
   final VoidCallback onPlay;
-  final int? lastAccuracy;
 
   @override
   Widget build(BuildContext context) {
@@ -297,10 +287,6 @@ class _GameCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      if (lastAccuracy != null) ...<Widget>[
-                        const SizedBox(height: 3),
-                        Text(l.gamesLastTime(lastAccuracy!), style: AppText.caption),
-                      ],
                     ],
                   ),
                 ),

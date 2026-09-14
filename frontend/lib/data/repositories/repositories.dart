@@ -1,4 +1,5 @@
 ﻿import '../../core/models/assessment.dart';
+import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
@@ -113,6 +114,27 @@ abstract class MoodDrawingRepository {
     required String notedBy,
     required String notedAtIso,
   });
+}
+
+/// The caregiver's ongoing input for the doctor's weekly report — concern
+/// check-ins and freeform notes. See `WeeklyReportBuilder`.
+abstract class CaregiverNoteRepository {
+  Future<List<CaregiverConcernUpdate>> concernUpdates(String patientId);
+  Future<CaregiverConcernUpdate> addConcernUpdate(
+      String patientId, CaregiverConcernUpdate update);
+  Future<List<CaregiverNoteEntry>> notes(String patientId);
+  Future<CaregiverNoteEntry> addNote(String patientId, CaregiverNoteEntry note);
+
+  /// Drops everything for this patient once a 7-day cycle closes and its
+  /// contents have been folded into a `WeeklyClinicalReport`.
+  Future<void> clearCycle(String patientId);
+
+  /// When the current 7-day reporting window began. Persisted so the cycle
+  /// boundary survives an app restart — without this, a session recorded
+  /// before a restart could fall outside the window a report built after it
+  /// uses, even though the session itself is safely on disk.
+  Future<DateTime?> loadCycleStart(String patientId);
+  Future<void> saveCycleStart(String patientId, DateTime start);
 }
 
 abstract class SettingsRepository {
@@ -372,6 +394,48 @@ class MockMoodDrawingRepository implements MoodDrawingRepository {
     final int i = _drawings.indexWhere((MoodDrawing d) => d.id == drawingId);
     if (i < 0) return;
     _drawings[i] = _drawings[i].copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso);
+  }
+}
+
+class MockCaregiverNoteRepository implements CaregiverNoteRepository {
+  final List<CaregiverConcernUpdate> _updates = <CaregiverConcernUpdate>[];
+  final List<CaregiverNoteEntry> _notes = <CaregiverNoteEntry>[];
+
+  @override
+  Future<List<CaregiverConcernUpdate>> concernUpdates(String patientId) async =>
+      List<CaregiverConcernUpdate>.of(_updates);
+
+  @override
+  Future<CaregiverConcernUpdate> addConcernUpdate(
+      String patientId, CaregiverConcernUpdate update) async {
+    _updates.add(update);
+    return update;
+  }
+
+  @override
+  Future<List<CaregiverNoteEntry>> notes(String patientId) async =>
+      List<CaregiverNoteEntry>.of(_notes);
+
+  @override
+  Future<CaregiverNoteEntry> addNote(String patientId, CaregiverNoteEntry note) async {
+    _notes.add(note);
+    return note;
+  }
+
+  @override
+  Future<void> clearCycle(String patientId) async {
+    _updates.clear();
+    _notes.clear();
+  }
+
+  DateTime? _cycleStart;
+
+  @override
+  Future<DateTime?> loadCycleStart(String patientId) async => _cycleStart;
+
+  @override
+  Future<void> saveCycleStart(String patientId, DateTime start) async {
+    _cycleStart = start;
   }
 }
 

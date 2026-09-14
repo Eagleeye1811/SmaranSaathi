@@ -71,6 +71,21 @@ Future<void> beat(WidgetTester tester, [int ms = 500]) async {
   await tester.pump(Duration(milliseconds: ms));
 }
 
+/// Dismisses the "quick note for the doctor" prompt `CaregiverShell` shows
+/// once per session when nothing has been logged yet this cycle — a fresh
+/// `AppState` always starts in that state, so every caregiver-shell test
+/// meets it. Most of those tests want to interact with the shell itself, not
+/// this prompt, so they dismiss it immediately the way a caregiver tapping
+/// "Not now" would.
+Future<void> dismissCaregiverNotePrompt(WidgetTester tester) async {
+  await tester.pump();
+  final Finder notNow = find.text('Not now');
+  if (notNow.evaluate().isNotEmpty) {
+    await tester.tap(notNow);
+    await tester.pump();
+  }
+}
+
 /// Taps a destination on the caregiver bottom bar.
 ///
 /// There is no drawer any more, so this is how every caregiver test moves
@@ -373,6 +388,8 @@ void main() {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.caregiver);
         await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+        await dismissCaregiverNotePrompt(tester);
+      await dismissCaregiverNotePrompt(tester);
         await beat(tester);
 
         // Every destination on the bar, then back to the dashboard.
@@ -403,6 +420,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
       await goToTab(tester, 'Family');
 
@@ -418,6 +436,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
 
       // The patient hero card is gone: the profile has its own tab, and the
@@ -466,6 +485,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
       await goToTab(tester, 'Family');
 
@@ -506,6 +526,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await scrollTo(tester, 'Set a safe zone');
       await tester.tap(find.text('Set a safe zone'));
       await beat(tester);
@@ -544,6 +565,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
 
       await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
@@ -831,6 +853,7 @@ void main() {
       expect(state.journeyDone.contains('checkin'), isTrue);
 
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester, 1200);
       expect(find.textContaining('Good'), findsWidgets);
       expect(tester.takeException(), isNull);

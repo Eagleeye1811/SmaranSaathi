@@ -10,6 +10,7 @@ import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
 import '../models/assessment.dart';
+import '../models/caregiver_note.dart';
 import '../models/chat_message.dart';
 import '../models/clinical.dart';
 import '../models/onboarding.dart';
@@ -24,6 +25,7 @@ import '../models/patient.dart';
 import '../models/report.dart';
 import '../models/safety.dart';
 import '../models/settings.dart';
+import '../models/weekly_report.dart';
 import '../models/wellness.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
@@ -32,6 +34,7 @@ import 'notification_service.dart';
 import 'pairing_service.dart';
 import 'personalization_service.dart';
 import 'sync_manager.dart';
+import 'weekly_report_service.dart';
 
 export '../models/settings.dart' show AppSettings, TextSizePreference, TextSizePreferenceX;
 export '../models/wellness.dart' show WellnessSession, WellnessType, WellnessTypeX;
@@ -61,6 +64,7 @@ class AppState extends ChangeNotifier {
     AssessmentRepository? assessment,
     MemoryFragmentRepository? memories,
     MoodDrawingRepository? moodDrawings,
+    CaregiverNoteRepository? caregiverNotes,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -75,6 +79,7 @@ class AppState extends ChangeNotifier {
         _assessment = assessment ?? MockAssessmentRepository(),
         _memories = memories ?? MockMemoryFragmentRepository(),
         _moodDrawingRepo = moodDrawings ?? MockMoodDrawingRepository(),
+        _caregiverNoteRepo = caregiverNotes ?? MockCaregiverNoteRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()),
@@ -94,6 +99,7 @@ class AppState extends ChangeNotifier {
   final AssessmentRepository _assessment;
   final MemoryFragmentRepository _memories;
   final MoodDrawingRepository _moodDrawingRepo;
+  final CaregiverNoteRepository _caregiverNoteRepo;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   /// Kept alongside the sync manager because restoring is a *pull*, which the
@@ -235,6 +241,14 @@ class AppState extends ChangeNotifier {
   bool get hydrated => _hydrated;
 
   void setRole(AppRole r) {
+    // "Switch role" sends someone back to the role picker without a full
+    // sign-out — if a caregiver's patient-app preview was ever left stuck
+    // active (see `beginPatientPreview`), this is the other place that
+    // preview state needs clearing, or the next role picked inherits it.
+    if (r == AppRole.none) {
+      _viewingAsPatient = false;
+      _previewReturnRole = AppRole.none;
+    }
     _role = r;
     // Picking "doctor" is the moment a clinician becomes findable.
     final String? signedIn = _accountId;
@@ -408,6 +422,23 @@ class AppState extends ChangeNotifier {
       _sessions.addAll(history);
     }
 
+    _concernUpdates
+      ..clear()
+      ..addAll(await _caregiverNoteRepo.concernUpdates(_patient.id));
+    _notes
+      ..clear()
+      ..addAll(await _caregiverNoteRepo.notes(_patient.id));
+
+    final DateTime? storedCycleStart = await _caregiverNoteRepo.loadCycleStart(_patient.id);
+    if (storedCycleStart != null) {
+      _cycleStart = storedCycleStart;
+    } else {
+      // First time this patient has ever been loaded: fix the cycle's start
+      // now, once, so it survives every restart from here on rather than
+      // silently re-picking `DateTime.now()` on each cold launch.
+      await _caregiverNoteRepo.saveCycleStart(_patient.id, _cycleStart);
+    }
+
     // Computed from the sessions just loaded rather than read back, so the
     // scores on screen always correspond to activities that were really
     // played by this person.
@@ -539,6 +570,7 @@ class AppState extends ChangeNotifier {
       level: level,
       performance: p,
       timeLabel: _clockLabel(),
+      playedAt: DateTime.now(),
     );
     _sessions.insert(0, session);
 
@@ -593,11 +625,156 @@ class AppState extends ChangeNotifier {
         'correct': p.correct,
         'responseMillis': p.responseMillis,
         'timeLabel': session.timeLabel,
+        'playedAt': session.playedAt.toIso8601String(),
       });
     });
 
     notifyListeners();
+    unawaited(_syncWeeklyReport());
     return decision;
+  }
+
+  // ── Caregiver weekly notes & the doctor-only weekly report ────────────────
+  //
+  // Neither the patient nor the caregiver ever sees the report this builds —
+  // only the ability to add to it (a concern check-in, a freeform note).
+  // Every write here re-derives the whole report and best-effort upserts it
+  // to the backend, so the doctor's copy is never more than one write stale;
+  // there is no "send" button and no scheduler. See `WeeklyReportBuilder`.
+  final WeeklyReportService _weeklyReports = WeeklyReportService();
+  final List<CaregiverConcernUpdate> _concernUpdates = <CaregiverConcernUpdate>[];
+  final List<CaregiverNoteEntry> _notes = <CaregiverNoteEntry>[];
+  DateTime _cycleStart = DateTime.now();
+
+  List<CaregiverConcernUpdate> get concernUpdatesThisCycle =>
+      List<CaregiverConcernUpdate>.unmodifiable(_concernUpdates);
+  List<CaregiverNoteEntry> get notesThisCycle => List<CaregiverNoteEntry>.unmodifiable(_notes);
+
+  /// The 7 scored games — Mood Canvas is deliberately excluded, same as
+  /// everywhere else that counts "activities" (see `GameDomains.of`).
+  int get _totalScoredGames =>
+      GameId.values.where((GameId g) => GameDomains.of(g) != null).length;
+
+  /// Which of the 7 scored games have been played at least once since
+  /// `_cycleStart` — the cycle is a *set of 7 unique activities*, not a fixed
+  /// number of days, so replaying the same game repeatedly never closes it.
+  Set<GameId> get _scoredGamesPlayedThisCycle => _sessions
+      .where((GameSession s) =>
+          !s.playedAt.isBefore(_cycleStart) && GameDomains.of(s.gameId) != null)
+      .map((GameSession s) => s.gameId)
+      .toSet();
+
+  /// 0–7. How many of the 7 activities have been played at least once this
+  /// cycle — the caregiver's status strip shows this instead of a day count.
+  int get cycleActivitiesCompleted =>
+      _scoredGamesPlayedThisCycle.length.clamp(0, _totalScoredGames);
+
+  /// DEBUG/DEMO ONLY. Fills in every scored activity except one with a
+  /// plausible finished session, through the exact same `finishGame` path a
+  /// real play-through uses — so a demo can show one real activity
+  /// completing the round and triggering the weekly report live, instead of
+  /// sitting through all 7. Returns which activity is left to play for real.
+  ///
+  /// Never called from production code; only ever wired behind a
+  /// `kDebugMode` check in the UI (see `reports_screen.dart`).
+  GameId simulateRestOfRoundForDemo() {
+    final List<GameId> scored =
+        GameId.values.where((GameId g) => GameDomains.of(g) != null).toList();
+    final GameId leftToPlay = scored.last;
+    final math.Random random = math.Random();
+
+    for (final GameId id in scored) {
+      if (id == leftToPlay) continue;
+      if (_scoredGamesPlayedThisCycle.contains(id)) continue;
+      final double accuracy = 60 + random.nextDouble() * 35;
+      finishGame(
+        id,
+        GamePerformance(
+          accuracy: accuracy,
+          focus: (accuracy - 5 + random.nextDouble() * 10).clamp(30, 99),
+          memory: (accuracy - 5 + random.nextDouble() * 10).clamp(30, 99),
+          hintsUsed: random.nextInt(3),
+          mistakes: random.nextInt(3),
+          seconds: 90 + random.nextInt(120),
+          completed: true,
+          attempts: 8,
+          correct: ((accuracy / 100) * 8).round(),
+          responseMillis: 1000 + random.nextInt(1500),
+        ),
+      );
+    }
+    return leftToPlay;
+  }
+
+  void logConcernUpdate(DailyDifficulty difficulty, ConcernTrend trend, {String comment = ''}) {
+    final CaregiverConcernUpdate update = CaregiverConcernUpdate(
+      id: 'concern_${DateTime.now().microsecondsSinceEpoch}',
+      difficulty: difficulty,
+      trend: trend,
+      comment: comment,
+      at: DateTime.now(),
+    );
+    _concernUpdates.add(update);
+    notifyListeners();
+    _write(() => _caregiverNoteRepo.addConcernUpdate(_patient.id, update));
+    unawaited(_syncWeeklyReport());
+  }
+
+  void addCaregiverNote(String text) {
+    if (text.trim().isEmpty) return;
+    final CaregiverNoteEntry note = CaregiverNoteEntry(
+      id: 'note_${DateTime.now().microsecondsSinceEpoch}',
+      text: text.trim(),
+      at: DateTime.now(),
+    );
+    _notes.add(note);
+    notifyListeners();
+    _write(() => _caregiverNoteRepo.addNote(_patient.id, note));
+    unawaited(_syncWeeklyReport());
+  }
+
+  /// The report the doctor was actually sent at the end of the most recently
+  /// *completed* cycle — kept around purely so the caregiver's own screen
+  /// can show a stable "this week's report was sent" confirmation, since the
+  /// live "X of 7" counter itself resets to 0 the moment a new cycle opens.
+  WeeklyClinicalReport? _lastCompletedReport;
+  WeeklyClinicalReport? get lastCompletedReport => _lastCompletedReport;
+
+  /// A cycle is a set of 7 *unique* activities, not a fixed number of days:
+  /// it closes exactly when every one of the 7 scored games has been played
+  /// at least once since `_cycleStart`, however long — or short — that takes.
+  /// Playing the same game repeatedly never closes it on its own.
+  ///
+  /// Only ever contacts the backend once the cycle is actually complete —
+  /// an in-progress round is never posted at all. The first version of this
+  /// synced on every single change, which meant a genuinely-completed
+  /// week's report could be overwritten and lost the moment the very next
+  /// activity (in the new cycle) synced, before a doctor ever saw it. The
+  /// backend now also refuses anything short of a full cycle, so this is
+  /// belt-and-suspenders, not the only thing preventing that.
+  Future<void> _syncWeeklyReport() async {
+    final int activitiesCompleted = _scoredGamesPlayedThisCycle.length;
+    if (activitiesCompleted < _totalScoredGames) return;
+
+    final WeeklyClinicalReport report = WeeklyReportBuilder.build(
+      patient: _patient,
+      doctorId: connectedDoctor?.id,
+      sessions: _sessions,
+      concernUpdates: _concernUpdates,
+      notes: _notes,
+      onboarding: _intake.onboarding,
+      cycleStart: _cycleStart,
+      activitiesCompleted: activitiesCompleted,
+    );
+    await _weeklyReports.upsertReport(report);
+    _lastCompletedReport = report;
+
+    _cycleStart = DateTime.now();
+    _concernUpdates.clear();
+    _notes.clear();
+    notifyListeners();
+    await _write(() => _caregiverNoteRepo.clearCycle(_patient.id));
+    await _write(() => _caregiverNoteRepo.saveCycleStart(_patient.id, _cycleStart));
   }
 
   // ── Wellness Sessions & Recommendation ────────────────────────────────────
@@ -1475,6 +1652,29 @@ class AppState extends ChangeNotifier {
       if (storedPatient == null) {
         await restoreFromServer(patientId: _patientIdFor(uid));
       }
+
+      // The claimed username's durable copy lives on the backend, not this
+      // device: `signOutAccount` clears the local `_patientUsername` cache
+      // on the way out, and nothing else ever repopulates it. Without this,
+      // a caregiver who signs out and back in — or reinstalls — still has
+      // their claim on the server, but the app no longer knows to poll for
+      // incoming pairing requests against it, so the approve/decline popup
+      // silently never appears again. Best-effort: offline at sign-in just
+      // means the next "open patient app" re-syncs it, same as before.
+      if (_pairing != null) {
+        try {
+          final List<PairingClaim> claims = await _pairing.claimsFor(uid);
+          if (claims.isNotEmpty) {
+            final PairingClaim mine = claims.firstWhere(
+              (PairingClaim c) => c.patientId == _patient.id,
+              orElse: () => claims.first,
+            );
+            _patientUsername = mine.username;
+          }
+        } catch (_) {
+          // Unreachable backend at sign-in time — not fatal to signing in.
+        }
+      }
     }
 
     // Last, so it wins over the blank-slate reset above: whatever role this
@@ -1523,6 +1723,14 @@ class AppState extends ChangeNotifier {
     _accountRoles.clear();
     _patientUsername = '';
     _role = AppRole.none;
+    // Neither of these is otherwise touched by signing out — a caregiver's
+    // preview-of-the-patient's-app session left mid-preview (see
+    // `beginPatientPreview`/`endPatientPreview`) would otherwise survive a
+    // full sign-out and corrupt whichever account signs in next, showing
+    // the "viewing as patient" banner and its role-picker restrictions to a
+    // genuine, freshly-signed-in patient.
+    _viewingAsPatient = false;
+    _previewReturnRole = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;
     _baseline = null;
