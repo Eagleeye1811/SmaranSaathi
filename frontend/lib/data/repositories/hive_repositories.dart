@@ -508,6 +508,7 @@ class HiveSettingsRepository implements SettingsRepository {
       safeZoneJson: b.get('safeZone') as String?,
       localeCode: b.get('localeCode') as String?,
       patientUsername: b.get('patientUsername') as String?,
+      pendingPairingRequestId: b.get('pendingPairingRequestId') as String?,
       accountRolesJson: b.get('accountRoles') as String?,
       registeredDoctorsJson: b.get('registeredDoctors') as String?,
     );
@@ -526,6 +527,8 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
       if (settings.localeCode != null) 'localeCode': settings.localeCode,
       if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
+      if (settings.pendingPairingRequestId != null)
+        'pendingPairingRequestId': settings.pendingPairingRequestId,
       if (settings.accountRolesJson != null) 'accountRoles': settings.accountRolesJson,
       if (settings.registeredDoctorsJson != null)
         'registeredDoctors': settings.registeredDoctorsJson,
@@ -545,6 +548,7 @@ class HiveSettingsRepository implements SettingsRepository {
       'accountRoles': settings.accountRolesJson,
       'registeredDoctors': settings.registeredDoctorsJson,
       'patientUsername': settings.patientUsername,
+      'pendingPairingRequestId': settings.pendingPairingRequestId,
       'safeZone': settings.safeZoneJson,
       'localeCode': settings.localeCode,
     }.entries) {

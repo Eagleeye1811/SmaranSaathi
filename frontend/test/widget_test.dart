@@ -75,7 +75,7 @@ void main() {
     // Nothing answered yet, so the caregiver lands on consent, not on a
     // dashboard with nothing behind it.
     expect(find.text('Before we begin'), findsOneWidget);
-    expect(find.text('Step 1 of 13'), findsOneWidget);
+    expect(find.text('Step 1 of 14'), findsOneWidget);
   });
 
   testWidgets('selecting Patient asks for their username, not a password',

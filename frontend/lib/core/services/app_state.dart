@@ -209,6 +209,27 @@ class AppState extends ChangeNotifier {
     _write(() async => _persistSettings());
   }
 
+  /// The pairing request this device is currently waiting on, if any.
+  ///
+  /// Held here — not just as local widget state on [PatientSignInScreen] —
+  /// because leaving that screen (the back button, an accidental navigation,
+  /// the app being closed) used to throw the whole handshake away: the widget
+  /// forgot the request id it was polling, so coming back showed the empty
+  /// "enter a username" form again. Asking again created a *second* pending
+  /// request, and any approval the caregiver had already given the first one
+  /// landed nowhere — the screen waiting on it was gone. Persisting the id
+  /// here means the sign-in screen can always resume the request it already
+  /// made (or notice it was approved while the screen was away) instead of
+  /// starting over.
+  String? _pendingPairingRequestId;
+  String? get pendingPairingRequestId => _pendingPairingRequestId;
+
+  void setPendingPairingRequestId(String? value) {
+    _pendingPairingRequestId = value;
+    notifyListeners();
+    _write(() async => _persistSettings());
+  }
+
   Patient _patient = MockData.emptyPatient;
   Patient get patient => _patient;
 
@@ -329,6 +350,7 @@ class AppState extends ChangeNotifier {
     _voicePrompts = settings.voicePrompts;
     _localeCode = settings.localeCode;
     _patientUsername = settings.patientUsername ?? '';
+    _pendingPairingRequestId = settings.pendingPairingRequestId;
     _connectivity.forcedOffline = settings.offlineOverride;
     _safeZone = SafeZone.decode(settings.safeZoneJson);
 
@@ -1687,6 +1709,49 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Binds this device to the patient a pairing request was just approved
+  /// for. Used only by [PatientSignInScreen] — never call [signInAccount]
+  /// for this.
+  ///
+  /// [signInAccount] exists for a Firebase *account* (`uid`): everywhere it
+  /// derives a patient id, it does so as `'acct_$uid'` (`_patientIdFor`). A
+  /// paired patient device has no account — the id it is handed back on
+  /// approval (`PairingRequest.patientId`, sourced from the caregiver's own
+  /// `state.patient.id`) is already that final, `'acct_'`-prefixed patient
+  /// id. Passing it through `signInAccount` ran it through `_patientIdFor` a
+  /// *second* time, doubling the prefix into an id nothing had ever saved
+  /// anything under — the intake and account-keyed data loaded correctly
+  /// (they read the given id as-is), but the patient record and every
+  /// session/level/cycle lookup, all keyed by `_patient.id`, silently landed
+  /// on an empty phantom profile. That is what an approved pairing showing
+  /// "0 of 7 activities" — on a device the caregiver had already played 6 of
+  /// them on — actually was.
+  Future<void> signInAsPairedPatient(String patientId) async {
+    if (_accountId == null && _patient.id == patientId) return;
+
+    _accountId = null;
+    final Patient? storedPatient = await _patients.byId(patientId);
+    _patient = storedPatient ?? MockData.emptyPatient.copyWith(id: patientId);
+    if (storedPatient == null) {
+      final Patient fresh = _patient;
+      await _write(() async => _patients.save(fresh));
+    }
+
+    await _loadPatientScopedData();
+    _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
+    _baseline = await _assessment.baseline(_assessmentScope);
+    _memoryFragments = await _memories.all(_assessmentScope);
+
+    // This device has not necessarily seen this patient before — pull down
+    // whatever the caregiver has already entered, the same way a brand-new
+    // account does in `signInAccount`.
+    await restoreFromServer(patientId: patientId);
+
+    _profileReady = true;
+    _persistSettings();
+    notifyListeners();
+  }
+
   /// Restores the role [uid] belongs to — this device's saved flag first,
   /// then the token's claim. Returns true when something changed. Writes no
   /// settings and notifies nobody; the caller decides when to do both.
@@ -1969,6 +2034,7 @@ class AppState extends ChangeNotifier {
       safeZoneJson: _safeZone?.encode(),
       localeCode: _localeCode,
       patientUsername: _patientUsername.isEmpty ? null : _patientUsername,
+      pendingPairingRequestId: _pendingPairingRequestId,
       accountRolesJson: _accountRoles.isEmpty ? null : jsonEncode(_accountRoles),
       registeredDoctorsJson: _registeredDoctors.isEmpty
           ? null

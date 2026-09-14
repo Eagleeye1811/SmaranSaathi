@@ -481,29 +481,38 @@ class _DemoRoundButton extends StatefulWidget {
 }
 
 class _DemoRoundButtonState extends State<_DemoRoundButton> {
-  GameId? _leftToPlay;
+  // Only set once *this* button has actually been tapped, so the "play X to
+  // finish" wording can name the game. Coming back to this screen after the
+  // round already finished elsewhere (played on another device, or simply a
+  // fresh instance of this widget) has no such name to show — `caption`
+  // below falls back to the live count instead of assuming nothing happened.
+  GameId? _justFastForwarded;
 
   @override
   Widget build(BuildContext context) {
-    final GameId? left = _leftToPlay;
+    final int done = widget.state.cycleActivitiesCompleted;
+    final GameId? left = _justFastForwarded;
+    final String caption = done >= 7
+        ? 'Round complete — 7 of 7 played'
+        : left != null
+            ? 'Fast-forwarded 6/7 — play "${MockData.game(left).name}" to finish the round'
+            : done > 0
+                ? 'Fast-forwarded $done/7 — play the last activity to finish the round'
+                : 'Fast-forward 6 of 7 activities';
     return Row(
       children: <Widget>[
         const Icon(Icons.science_outlined, size: 15, color: AppColors.inkMuted),
         const SizedBox(width: 6),
         Expanded(
-          child: Text(
-            left == null
-                ? 'Demo: simulate 6 of 7 activities'
-                : 'Simulated 6/7 — play "${MockData.game(left).name}" to finish the round',
-            style: AppText.caption.tint(AppColors.inkMuted),
+          child: Text(caption, style: AppText.caption.tint(AppColors.inkMuted)),
+        ),
+        if (done < 7)
+          TextButton(
+            onPressed: () => setState(() {
+              _justFastForwarded = widget.state.simulateRestOfRoundForDemo();
+            }),
+            child: const Text('Fast-forward'),
           ),
-        ),
-        TextButton(
-          onPressed: () => setState(() {
-            _leftToPlay = widget.state.simulateRestOfRoundForDemo();
-          }),
-          child: const Text('Simulate'),
-        ),
       ],
     );
   }
