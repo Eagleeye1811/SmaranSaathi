@@ -35,6 +35,7 @@ class AppSettings {
     this.safeZoneJson,
     this.localeCode,
     this.patientUsername,
+    this.pendingPairingRequestId,
     this.accountRolesJson,
     this.registeredDoctorsJson,
   });
@@ -53,6 +54,11 @@ class AppSettings {
   /// with the settings rather than the profile because it identifies the
   /// account, not the person.
   final String? patientUsername;
+
+  /// The pairing request the patient's device is currently waiting on, if
+  /// any — so leaving and returning to the sign-in screen resumes it instead
+  /// of asking for the username again and starting a second request.
+  final String? pendingPairingRequestId;
 
   /// The caregiver's manual "work offline" switch, distinct from the device
   /// actually having no connection.
@@ -107,6 +113,7 @@ class AppSettings {
     bool clearSafeZone = false,
     String? localeCode,
     String? patientUsername,
+    String? pendingPairingRequestId,
     String? accountRolesJson,
     String? registeredDoctorsJson,
   }) {
@@ -122,6 +129,7 @@ class AppSettings {
           clearSafeZone ? null : (safeZoneJson ?? this.safeZoneJson),
       localeCode: localeCode ?? this.localeCode,
       patientUsername: patientUsername ?? this.patientUsername,
+      pendingPairingRequestId: pendingPairingRequestId ?? this.pendingPairingRequestId,
       accountRolesJson: accountRolesJson ?? this.accountRolesJson,
       registeredDoctorsJson: registeredDoctorsJson ?? this.registeredDoctorsJson,
     );

@@ -45,6 +45,21 @@ class _CaregiverEntryState extends State<CaregiverEntry> {
   /// even though the record needs a moment to be written and read back.
   bool _justFinished = false;
 
+  /// Set the first time this instance actually shows [IntakeFlowScreen].
+  ///
+  /// `isAlreadySetUp`'s `hasPatientProfile` half exists for a *returning*
+  /// caregiver — someone who named their patient in an earlier session and
+  /// closed the app before finishing. It cannot tell that case apart from a
+  /// brand-new caregiver who just answered the first question of *this*
+  /// onboarding: [PersonStep] writes the patient's name back to [AppState]
+  /// as soon as its own "Continue" is pressed, which makes `hasPatientProfile`
+  /// true two questions in. Because `build` re-reads the state on every
+  /// rebuild (see below), that alone was enough to bounce a first-time
+  /// caregiver out to an empty dashboard right after step 2, never reaching
+  /// step 3. Once onboarding has actually been shown, only finishing it here
+  /// — not a profile field arriving mid-flow — is allowed to leave it.
+  bool _enteredOnboarding = false;
+
   @override
   Widget build(BuildContext context) {
     // Read through `AppScope.of`, not `read`, and decided on every build
@@ -68,11 +83,17 @@ class _CaregiverEntryState extends State<CaregiverEntry> {
     // Someone whose account already names the person they care for has
     // plainly done this before.
     //
+    // But that "plainly done this before" test only holds before onboarding
+    // has been shown *in this instance* — see `_enteredOnboarding`.
+    //
     // The dashboard still offers to finish it, for as long as it is unfinished.
-    if (CaregiverEntry.isAlreadySetUp(state, justFinished: _justFinished)) {
+    final bool alreadySetUp =
+        _justFinished || (!_enteredOnboarding && CaregiverEntry.isAlreadySetUp(state));
+    if (alreadySetUp) {
       return const CaregiverShell();
     }
 
+    _enteredOnboarding = true;
     return IntakeFlowScreen(
       onFinished: () => setState(() => _justFinished = true),
     );

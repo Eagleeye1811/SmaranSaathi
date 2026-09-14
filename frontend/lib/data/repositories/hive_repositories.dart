@@ -1,6 +1,7 @@
 import 'package:hive_ce/hive.dart';
 
 import '../../core/models/assessment.dart';
+import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
@@ -419,6 +420,71 @@ class HiveMoodDrawingRepository implements MoodDrawingRepository {
   }
 }
 
+class HiveCaregiverNoteRepository implements CaregiverNoteRepository {
+  HiveCaregiverNoteRepository(this._store);
+
+  final HiveStore _store;
+
+  static String _scoped(String patientId, String id) => '$patientId|$id';
+  static bool _belongsTo(String patientId, String key) => key.startsWith('$patientId|');
+
+  @override
+  Future<List<CaregiverConcernUpdate>> concernUpdates(String patientId) async {
+    return <CaregiverConcernUpdate>[
+      for (final String k in _store.caregiverConcerns.keys.cast<String>())
+        if (_belongsTo(patientId, k)) _store.caregiverConcerns.get(k)!,
+    ];
+  }
+
+  @override
+  Future<CaregiverConcernUpdate> addConcernUpdate(
+      String patientId, CaregiverConcernUpdate update) async {
+    await _store.caregiverConcerns.put(_scoped(patientId, update.id), update);
+    return update;
+  }
+
+  @override
+  Future<List<CaregiverNoteEntry>> notes(String patientId) async {
+    return <CaregiverNoteEntry>[
+      for (final String k in _store.caregiverNotes.keys.cast<String>())
+        if (_belongsTo(patientId, k)) _store.caregiverNotes.get(k)!,
+    ];
+  }
+
+  @override
+  Future<CaregiverNoteEntry> addNote(String patientId, CaregiverNoteEntry note) async {
+    await _store.caregiverNotes.put(_scoped(patientId, note.id), note);
+    return note;
+  }
+
+  @override
+  Future<void> clearCycle(String patientId) async {
+    final Iterable<String> concernKeys = _store.caregiverConcerns.keys
+        .cast<String>()
+        .where((String k) => _belongsTo(patientId, k));
+    final Iterable<String> noteKeys =
+        _store.caregiverNotes.keys.cast<String>().where((String k) => _belongsTo(patientId, k));
+    await _store.caregiverConcerns.deleteAll(concernKeys);
+    await _store.caregiverNotes.deleteAll(noteKeys);
+  }
+
+  // The cycle boundary is one small value with one owner, so it rides in the
+  // generic settings box (same reasoning as `AppSettings.safeZoneJson`)
+  // rather than getting its own box and adapter.
+  static String _cycleStartKey(String patientId) => 'weeklyCycleStart_$patientId';
+
+  @override
+  Future<DateTime?> loadCycleStart(String patientId) async {
+    final int? millis = _store.settings.get(_cycleStartKey(patientId)) as int?;
+    return millis != null ? DateTime.fromMillisecondsSinceEpoch(millis) : null;
+  }
+
+  @override
+  Future<void> saveCycleStart(String patientId, DateTime start) async {
+    await _store.settings.put(_cycleStartKey(patientId), start.millisecondsSinceEpoch);
+  }
+}
+
 class HiveSettingsRepository implements SettingsRepository {
   HiveSettingsRepository(this._store);
 
@@ -442,6 +508,7 @@ class HiveSettingsRepository implements SettingsRepository {
       safeZoneJson: b.get('safeZone') as String?,
       localeCode: b.get('localeCode') as String?,
       patientUsername: b.get('patientUsername') as String?,
+      pendingPairingRequestId: b.get('pendingPairingRequestId') as String?,
       accountRolesJson: b.get('accountRoles') as String?,
       registeredDoctorsJson: b.get('registeredDoctors') as String?,
     );
@@ -460,6 +527,8 @@ class HiveSettingsRepository implements SettingsRepository {
       if (settings.safeZoneJson != null) 'safeZone': settings.safeZoneJson,
       if (settings.localeCode != null) 'localeCode': settings.localeCode,
       if (settings.patientUsername != null) 'patientUsername': settings.patientUsername,
+      if (settings.pendingPairingRequestId != null)
+        'pendingPairingRequestId': settings.pendingPairingRequestId,
       if (settings.accountRolesJson != null) 'accountRoles': settings.accountRolesJson,
       if (settings.registeredDoctorsJson != null)
         'registeredDoctors': settings.registeredDoctorsJson,
@@ -479,6 +548,7 @@ class HiveSettingsRepository implements SettingsRepository {
       'accountRoles': settings.accountRolesJson,
       'registeredDoctors': settings.registeredDoctorsJson,
       'patientUsername': settings.patientUsername,
+      'pendingPairingRequestId': settings.pendingPairingRequestId,
       'safeZone': settings.safeZoneJson,
       'localeCode': settings.localeCode,
     }.entries) {

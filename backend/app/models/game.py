@@ -5,7 +5,10 @@ that lives in the Flutter app's `MockData`, not user-generated data, so it is
 deliberately not modelled here — the backend only needs to know about the
 sessions a patient actually plays.
 """
+from datetime import datetime
 from enum import Enum
+
+from pydantic import Field
 
 from .common import APIModel
 
@@ -17,6 +20,8 @@ class GameId(str, Enum):
     melody = "melody"
     weaves = "weaves"
     memory_cards = "memoryCards"
+    village_market = "villageMarket"
+    mood_canvas = "moodCanvas"
 
 
 class CognitiveDomain(str, Enum):
@@ -42,6 +47,9 @@ class GamePerformance(APIModel):
     mistakes: int
     seconds: int
     completed: bool
+    attempts: int = 0
+    correct: int = 0
+    response_millis: int = 0
 
 
 class GameSession(APIModel):
@@ -50,6 +58,7 @@ class GameSession(APIModel):
     level: int
     performance: GamePerformance
     time_label: str
+    played_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class AdaptiveDecision(APIModel):

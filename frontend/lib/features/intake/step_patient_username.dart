@@ -78,6 +78,16 @@ class _PatientUsernameStepState extends State<PatientUsernameStep> {
           _busy = false;
         });
       }
+    } on PairingUnreachableException {
+      // See `pairing_widgets.dart`'s identical catch: on a real device this
+      // is almost always the one real backend waking from idle, not an
+      // actual connectivity problem.
+      if (mounted) {
+        setState(() {
+          _error = l.pairSlowStart;
+          _busy = false;
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {

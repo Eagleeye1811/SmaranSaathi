@@ -12,6 +12,7 @@ and mood/profile updates are naturally idempotent (re-applying the same value
 is a no-op), so no deterministic id is needed there.
 """
 import time
+from datetime import datetime
 
 from app.core.errors import ApiError
 from app.models.daily import JournalEntry, MoodLevel, Reminder, ReminderKind
@@ -81,6 +82,9 @@ class SyncService:
     async def _dispatch(self, kind: str, patient_id: str, raw_payload: dict, operation_id: str) -> None:
         if kind == "gameSession":
             payload = GameSessionPayload.model_validate(raw_payload)
+            played_at = (
+                datetime.fromisoformat(payload.played_at) if payload.played_at else datetime.utcnow()
+            )
             session = GameSession(
                 game_id=GameId(payload.game_id),
                 level=payload.level,
@@ -92,8 +96,12 @@ class SyncService:
                     mistakes=payload.mistakes,
                     seconds=payload.seconds,
                     completed=payload.completed,
+                    attempts=payload.attempts,
+                    correct=payload.correct,
+                    response_millis=payload.response_millis,
                 ),
                 time_label=payload.time_label,
+                played_at=played_at,
             )
             await self._sessions.add(operation_id, patient_id, session)
 

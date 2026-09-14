@@ -28,6 +28,7 @@ GameSession session(GameId id, {required int dayOffset, required double score}) 
     dayOffset: dayOffset,
     level: 2,
     timeLabel: '10:00 AM',
+    playedAt: DateTime.now().subtract(Duration(days: dayOffset)),
     performance: GamePerformance(
       // `overall` is 50% accuracy + 25% focus + 25% memory, so equal values
       // make the composite exactly `score`.

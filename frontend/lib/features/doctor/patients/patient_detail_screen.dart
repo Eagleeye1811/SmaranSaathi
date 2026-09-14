@@ -13,9 +13,15 @@ import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../core/models/telehealth.dart';
+import '../../../core/models/weekly_report.dart';
+import '../../../core/services/weekly_report_service.dart';
+import '../../../core/telehealth/telehealth_service.dart';
 import '../../chat/doctor_patient_chat_screen.dart';
 import '../../patient/health/report_screen.dart';
 import '../../telehealth/video_consultation_screen.dart';
+import '../../telehealth/widgets/clinic_consultation_report_card.dart';
+import 'weekly_report_card.dart';
 import '../../../l10n/content_labels.dart';
 import '../careplan/care_plan_screen.dart';
 import '../consultation/ai_preconsult_screen.dart';
@@ -963,87 +969,22 @@ class PatientDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: Insets.lg),
 
+                    // ── Weekly Cognitive Report (doctor-only) ────────────
+                    FadeInUp(
+                      delayMs: 130,
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        child: _WeeklyReportHistoryCard(patientId: patient.id),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
                     // ── AI Clinical Scribe Consultation History ─────────
                     FadeInUp(
                       delayMs: 140,
                       child: ClinicCard(
                         padding: const EdgeInsets.all(Insets.lg),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Row(
-                              children: <Widget>[
-                                const Icon(Icons.history_edu_rounded,
-                                    color: AppColors.clinicAccent, size: 20),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text('AI Scribe Consultation Records', style: CT.h3.sized(16)),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    '1 Completed',
-                                    style: TextStyle(
-                                        color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.clinicBackground,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppColors.clinicHairline),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: <Widget>[
-                                      Expanded(
-                                        child: Text(
-                                          'Previous Follow-up Session',
-                                          style: CT.bodySmall.wght(700),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text('13m duration', style: CT.caption.sized(10.5)),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'SOAP Assessment: Mild age-associated cognitive variation. Mood positive. Advised daily morning game routine and vitamin supplementation.',
-                                    style: CT.caption.sized(12),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: <Widget>[
-                                      const Icon(Icons.verified_rounded, size: 14, color: AppColors.clinicAccent),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          'Doctor Approved & Signed',
-                                          style: CT.caption.sized(11).tint(AppColors.clinicAccent),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: _ConsultationHistoryCard(patientId: patient.id),
                       ),
                     ),
                   ],
@@ -1084,6 +1025,160 @@ class PatientDetailScreen extends StatelessWidget {
         l.doctorDetailConsiderationReviewDue,
       l.doctorDetailConsiderationFooter,
     ];
+  }
+}
+
+/// The doctor's view of the patient's current-cycle weekly report — the only
+/// place in the app this data is ever rendered (see `WeeklyReportCard`'s doc
+/// comment). Automatic: there is no caregiver "send" action to wait on, just
+/// whatever the caregiver's device last posted.
+class _WeeklyReportHistoryCard extends StatefulWidget {
+  const _WeeklyReportHistoryCard({required this.patientId});
+
+  final String patientId;
+
+  @override
+  State<_WeeklyReportHistoryCard> createState() => _WeeklyReportHistoryCardState();
+}
+
+class _WeeklyReportHistoryCardState extends State<_WeeklyReportHistoryCard> {
+  final WeeklyReportService _service = WeeklyReportService();
+  bool _loading = true;
+  WeeklyClinicalReport? _report;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final WeeklyClinicalReport? report = await _service.getReport(widget.patientId);
+    if (mounted) {
+      setState(() {
+        _report = report;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: AppColors.clinicAccent)),
+      );
+    }
+    if (_report == null) {
+      return Row(
+        children: <Widget>[
+          const Icon(Icons.fact_check_outlined, color: AppColors.clinicAccent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('No weekly report yet — one builds automatically as the patient plays and the caregiver adds notes.',
+                style: CT.caption),
+          ),
+        ],
+      );
+    }
+    return WeeklyReportCard(report: _report!);
+  }
+}
+
+/// The doctor's own view of a patient's AI Clinical Scribe history — backed
+/// by the same [ConsultationSession] records the patient/caregiver app
+/// reads, so both sides show the same report.
+class _ConsultationHistoryCard extends StatefulWidget {
+  const _ConsultationHistoryCard({required this.patientId});
+
+  final String patientId;
+
+  @override
+  State<_ConsultationHistoryCard> createState() => _ConsultationHistoryCardState();
+}
+
+class _ConsultationHistoryCardState extends State<_ConsultationHistoryCard> {
+  final TelehealthService _telehealth = TelehealthService();
+  bool _loading = true;
+  List<ConsultationSession> _sessions = <ConsultationSession>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final List<ConsultationSession> sessions =
+        await _telehealth.getPatientConsultations(widget.patientId);
+    if (mounted) {
+      setState(() {
+        _sessions = sessions.where((ConsultationSession s) => s.soapNote != null).toList()
+          ..sort((ConsultationSession a, ConsultationSession b) =>
+              (b.endedAt ?? b.startedAt).compareTo(a.endedAt ?? a.startedAt));
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator(color: AppColors.clinicAccent)),
+      );
+    }
+
+    if (_sessions.isEmpty) {
+      return Row(
+        children: <Widget>[
+          const Icon(Icons.history_edu_rounded, color: AppColors.clinicAccent, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text('No AI Scribe consultation records yet.', style: CT.caption),
+          ),
+        ],
+      );
+    }
+
+    final ConsultationSession latest = _sessions.first;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            const Icon(Icons.history_edu_rounded, color: AppColors.clinicAccent, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text('AI Scribe Consultation Records', style: CT.h3.sized(16)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '${_sessions.length} Completed',
+                style: const TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.clinicBackground,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.clinicHairline),
+          ),
+          child: ClinicConsultationReportCard(session: latest),
+        ),
+      ],
+    );
   }
 }
 

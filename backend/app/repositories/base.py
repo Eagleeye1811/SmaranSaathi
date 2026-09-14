@@ -15,6 +15,7 @@ from app.models.daily import JournalEntry, MoodLevel, Reminder
 from app.models.game import GameSession
 from app.models.patient import Patient
 from app.models.relationship import CaregiverPatientLink
+from app.schemas.pairing import ClaimUsernameResponse
 
 
 class PatientRepository(ABC):
@@ -103,6 +104,23 @@ class CaregiverLinkRepository(ABC):
 
     @abstractmethod
     async def list_for_caregiver(self, caregiver_id: str) -> List[CaregiverPatientLink]: ...
+
+
+class PairingClaimRepository(ABC):
+    """The username a caregiver claims for their patient — unlike a pending
+    pairing *request* (a short-lived handshake, fine to lose on a restart),
+    a claim needs to outlive the process: it is the durable mapping a
+    patient's device looks up by name, potentially long after the caregiver
+    claimed it. Keyed by the normalised (lowercased, trimmed) username."""
+
+    @abstractmethod
+    async def get(self, username: str) -> Optional[ClaimUsernameResponse]: ...
+
+    @abstractmethod
+    async def save(self, claim: ClaimUsernameResponse) -> ClaimUsernameResponse: ...
+
+    @abstractmethod
+    async def list_for_caregiver(self, caregiver_uid: str) -> List[ClaimUsernameResponse]: ...
 
 
 class AssessmentRepository(ABC):

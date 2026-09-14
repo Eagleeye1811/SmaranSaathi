@@ -4,7 +4,10 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/doctor.dart';
+import '../../../core/models/telehealth.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/telehealth/consultation_format.dart';
+import '../../../core/telehealth/telehealth_service.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
 
@@ -19,37 +22,6 @@ const Appointment _upcoming = Appointment(
   timeLabel: '4:00 PM',
   status: AppointmentStatus.upcoming,
   isVirtual: true,
-);
-
-const Appointment _past = Appointment(
-  id: 'apt_000',
-  doctorId: 'doc_sharma',
-  doctorName: 'Neha Sharma',
-  specialization: 'Neurologist',
-  dateLabel: 'Thursday, 21 August 2026',
-  timeLabel: '4:00 PM',
-  status: AppointmentStatus.completed,
-  isVirtual: true,
-  summary: ConsultationSummary(
-    appointmentId: 'apt_000',
-    dateLabel: '21 August 2026',
-    observations: <String>[
-      'Stable mood and engagement since last visit.',
-      'Sequencing activities show slightly more hints required.',
-      'Family connection and memory recall remain strong.',
-    ],
-    careplan: 'Continue current cognitive activity schedule with focus on '
-        'sequencing activities. Maintain 5 sessions/week. Ensure afternoon '
-        'rest is not disrupted.',
-    recommendedActivities: <String>[
-      'Procedure Reconstruction: increase to daily',
-      'Melody of the Valleys: maintain current frequency',
-      'NER Memory Cards: 3x per week',
-    ],
-    followUpLabel: '4 weeks, 18 September 2026',
-    doctorNotes: 'Patient appeared relaxed and engaged. Caregiver reported '
-        'positive mood on most days. Continue monitoring sequencing domain.',
-  ),
 );
 
 /// Doctor & Care screen — connection, appointments, and consultation summaries.
@@ -71,6 +43,31 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
   final TextEditingController _hospitalCtrl = TextEditingController();
   final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _phoneCtrl = TextEditingController();
+
+  final TelehealthService _telehealth = TelehealthService();
+  bool _loadingConsultations = true;
+  ConsultationSession? _lastConsultation;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadConsultations();
+  }
+
+  Future<void> _loadConsultations() async {
+    final AppState state = AppScope.read(context);
+    final List<ConsultationSession> sessions =
+        await _telehealth.getPatientConsultations(state.patient.id);
+    sessions.retainWhere((ConsultationSession s) => s.soapNote != null);
+    sessions.sort((ConsultationSession a, ConsultationSession b) =>
+        (b.endedAt ?? b.startedAt).compareTo(a.endedAt ?? a.startedAt));
+    if (mounted) {
+      setState(() {
+        _lastConsultation = sessions.isNotEmpty ? sessions.first : null;
+        _loadingConsultations = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -247,11 +244,16 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                         icon: Icons.notes_rounded,
                       ),
                     ),
-                    if (_past.summary != null)
+                    if (_loadingConsultations)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_lastConsultation != null)
                       FadeInUp(
                         delayMs: 130,
                         child: _ConsultationSummaryCard(
-                            summary: _past.summary!),
+                            session: _lastConsultation!),
                       ),
                     const SizedBox(height: Insets.lg),
 
@@ -789,12 +791,20 @@ class _DateRow extends StatelessWidget {
 
 // ── Consultation summary card ─────────────────────────────────────────────────
 
+/// The caregiver/patient-facing view of the doctor's AI Clinical Scribe
+/// report. Mirrors, section-for-section, the SOAP note + Patient & Caregiver
+/// Mitra Plan the doctor reviewed and approved right after the call — same
+/// fields, same order — so this is the same report, not a re-invented one.
 class _ConsultationSummaryCard extends StatelessWidget {
-  const _ConsultationSummaryCard({required this.summary});
-  final ConsultationSummary summary;
+  const _ConsultationSummaryCard({required this.session});
+  final ConsultationSession session;
 
   @override
   Widget build(BuildContext context) {
+    final ClinicalSoapNote? soap = session.soapNote;
+    final PatientMitraSummary? summary = session.patientSummary;
+    final DateTime when = session.endedAt ?? session.startedAt;
+
     return MmCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -812,78 +822,97 @@ class _ConsultationSummaryCard extends StatelessWidget {
                   children: <Widget>[
                     Text('Consultation Summary',
                         style: AppText.body.wght(700)),
-                    Text(summary.dateLabel, style: AppText.caption),
+                    Text(
+                      '${formatConsultationDate(when)} · ${formatConsultationDuration(session.durationSeconds)}',
+                      style: AppText.caption,
+                    ),
                   ],
                 ),
               ),
+              PillTag(
+                label: session.doctorApproved ? 'Approved' : 'Pending sign-off',
+                color: session.doctorApproved ? AppColors.success : AppColors.warning,
+                dense: true,
+              ),
             ],
           ),
-          const SizedBox(height: Insets.md),
-          Text('Observations', style: AppText.label),
-          const SizedBox(height: 8),
-          for (final String obs in summary.observations)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const Padding(
-                    padding: EdgeInsets.only(top: 3),
-                    child: Icon(Icons.circle,
-                        size: 6, color: AppColors.primary),
+          if (soap != null) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            const Divider(color: AppColors.hairline),
+            const SizedBox(height: Insets.md),
+            Text('Subjective', style: AppText.label),
+            const SizedBox(height: 6),
+            Text(soap.subjective, style: AppText.bodySmall),
+            const SizedBox(height: Insets.sm),
+            Text('Objective', style: AppText.label),
+            const SizedBox(height: 6),
+            Text(soap.objective, style: AppText.bodySmall),
+            const SizedBox(height: Insets.sm),
+            Text('Assessment', style: AppText.label),
+            const SizedBox(height: 6),
+            Text(soap.assessment, style: AppText.bodySmall),
+            const SizedBox(height: Insets.sm),
+            Text('Plan & Recommendations', style: AppText.label),
+            const SizedBox(height: 6),
+            Text(soap.plan, style: AppText.bodySmall),
+            if (soap.prescriptions.isNotEmpty) ...<Widget>[
+              const SizedBox(height: Insets.md),
+              Text('Prescriptions & Adjustments', style: AppText.label),
+              const SizedBox(height: 8),
+              for (final String rx in soap.prescriptions)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.check_circle_outline_rounded,
+                          size: 16, color: AppColors.success),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(rx, style: AppText.bodySmall)),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child:
-                          Text(obs, style: AppText.bodySmall)),
-                ],
-              ),
-            ),
-          const SizedBox(height: Insets.md),
-          const Divider(color: AppColors.hairline),
-          const SizedBox(height: Insets.md),
-          Text("Doctor's Care Plan", style: AppText.label),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(Insets.md),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTint,
-              borderRadius: Corners.r(Corners.md),
-            ),
-            child: Text(summary.careplan, style: AppText.bodySmall),
-          ),
-          const SizedBox(height: Insets.md),
-          Text('Recommended Activities', style: AppText.label),
-          const SizedBox(height: 8),
-          for (final String act in summary.recommendedActivities)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: <Widget>[
-                  const Icon(Icons.arrow_right_rounded,
-                      size: 20, color: AppColors.primary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                      child:
-                          Text(act, style: AppText.bodySmall)),
-                ],
-              ),
-            ),
-          const SizedBox(height: Insets.md),
-          const Divider(color: AppColors.hairline),
-          const SizedBox(height: Insets.sm),
-          Row(
-            children: <Widget>[
-              const Icon(Icons.event_repeat_rounded,
-                  size: 16, color: AppColors.inkMuted),
-              const SizedBox(width: 8),
-              Text('Follow-up: ', style: AppText.label),
-              Expanded(
-                child: Text(summary.followUpLabel,
-                    style: AppText.bodySmall.wght(600)),
-              ),
+                ),
             ],
-          ),
+          ],
+          if (summary != null) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            const Divider(color: AppColors.hairline),
+            const SizedBox(height: Insets.md),
+            Text('Patient & Caregiver Mitra Plan', style: AppText.label),
+            const SizedBox(height: 8),
+            Text(summary.title, style: AppText.bodySmall.wght(700)),
+            const SizedBox(height: 8),
+            for (final String item in summary.keyTakeaways)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Padding(
+                      padding: EdgeInsets.only(top: 3),
+                      child: Icon(Icons.circle,
+                          size: 6, color: AppColors.primary),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(item, style: AppText.bodySmall)),
+                  ],
+                ),
+              ),
+            const SizedBox(height: Insets.sm),
+            const Divider(color: AppColors.hairline),
+            const SizedBox(height: Insets.sm),
+            Row(
+              children: <Widget>[
+                const Icon(Icons.event_repeat_rounded,
+                    size: 16, color: AppColors.inkMuted),
+                const SizedBox(width: 8),
+                Text('Next Checkup: ', style: AppText.label),
+                Expanded(
+                  child: Text(summary.nextCheckup,
+                      style: AppText.bodySmall.wght(600)),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

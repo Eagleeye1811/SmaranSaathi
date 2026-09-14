@@ -52,6 +52,10 @@ class GameSessionPayload(APIModel):
     completed: bool
     overall: int
     time_label: str
+    attempts: int = 0
+    correct: int = 0
+    response_millis: int = 0
+    played_at: Optional[str] = None
 
 
 class MoodCheckInPayload(APIModel):

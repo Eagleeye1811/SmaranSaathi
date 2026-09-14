@@ -43,10 +43,56 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    // Resume a request already in flight rather than showing the empty
+    // "enter a username" form — see `AppState.pendingPairingRequestId` for
+    // why leaving this screen must not throw the handshake away.
+    final String? requestId = _state.pendingPairingRequestId;
+    if (requestId != null) {
+      // Optimistic: assume it is still pending so the "waiting" screen shows
+      // immediately instead of flashing the entry form while the real status
+      // is fetched.
+      _request = PairingRequest(
+        requestId: requestId,
+        username: '',
+        patientId: '',
+        deviceId: '',
+        status: PairingStatus.pending,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resume(requestId));
+    }
+  }
+
+  @override
   void dispose() {
     _poll?.cancel();
     _username.dispose();
     super.dispose();
+  }
+
+  /// Picks a request this device already made back up, in case it was
+  /// approved (or declined, or expired) while nobody was on this screen to
+  /// see it.
+  Future<void> _resume(String requestId) async {
+    final PairingService? pairing = _state.pairing;
+    if (pairing == null || !mounted) return;
+    final PairingRequest? latest = await pairing.statusOf(requestId);
+    if (!mounted) return;
+    if (latest == null) {
+      // The backend no longer knows this id — most likely it expired, or
+      // this is talking to a different backend than the one that made it.
+      // Nothing to resume; let the person start over.
+      _state.setPendingPairingRequestId(null);
+      setState(() => _request = null);
+      return;
+    }
+    if (latest.status == PairingStatus.pending) {
+      setState(() => _request = latest);
+      _startPolling(pairing, requestId);
+      return;
+    }
+    await _settle(latest);
   }
 
   Future<void> _ask() async {
@@ -68,6 +114,11 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
         deviceLabel: _username.text.trim(),
       );
       if (!mounted) return;
+      // Persisted before anything else can go wrong: even if this screen
+      // never sees the approval (closed, backgrounded, navigated away), the
+      // next time it opens it resumes this exact request instead of asking
+      // again and orphaning the one the caregiver is about to approve.
+      _state.setPendingPairingRequestId(request.requestId);
       setState(() {
         _request = request;
         _busy = false;
@@ -110,23 +161,30 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
       if (latest.status == PairingStatus.pending) return;
 
       t.cancel();
-      setState(() => _request = latest);
-
-      if (latest.status == PairingStatus.approved) {
-        // The account this device now belongs to. Everything the app writes
-        // from here is filed under it, on this phone and on the server.
-        await _state.signInAccount(latest.patientId);
-        // And everything the caregiver already entered comes down: without
-        // this the patient's phone opens on a correctly-named but empty
-        // profile, which to the person holding it is indistinguishable from
-        // having lost their record.
-        await _state.restoreFromServer(patientId: latest.patientId);
-        if (!mounted) return;
-        _state.setRole(AppRole.patient);
-        AuthScope.maybeOf(context)?.declareRole(AppRole.patient.name);
-        Nav.rootTo(context, const PatientShell());
-      }
+      await _settle(latest);
     });
+  }
+
+  /// A request has stopped being pending — approved, declined or expired.
+  /// Whatever happens next, this device is done waiting on it.
+  Future<void> _settle(PairingRequest latest) async {
+    _state.setPendingPairingRequestId(null);
+    if (!mounted) return;
+    setState(() => _request = latest);
+
+    if (latest.status == PairingStatus.approved) {
+      // The patient this device now belongs to. Everything the app writes
+      // from here is filed under this id, on this phone and on the server —
+      // and everything the caregiver already entered (and any activities
+      // already played, e.g. via the caregiver's demo fast-forward) comes
+      // down with it. `signInAccount` is for a Firebase account and must not
+      // be used here — see `signInAsPairedPatient`'s doc for why.
+      await _state.signInAsPairedPatient(latest.patientId);
+      if (!mounted) return;
+      _state.setRole(AppRole.patient);
+      AuthScope.maybeOf(context)?.declareRole(AppRole.patient.name);
+      Nav.rootTo(context, const PatientShell());
+    }
   }
 
   @override

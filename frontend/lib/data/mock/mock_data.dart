@@ -459,6 +459,7 @@ class MockData {
       dayOffset: day,
       level: level,
       timeLabel: time,
+      playedAt: DateTime.now().subtract(Duration(days: day)),
       performance: GamePerformance(
         accuracy: acc,
         focus: focus,
