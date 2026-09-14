@@ -30,6 +30,7 @@ import '../models/wellness.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
+import 'doctor_connection_service.dart';
 import 'notification_service.dart';
 import 'pairing_service.dart';
 import 'personalization_service.dart';
@@ -164,6 +165,17 @@ class AppState extends ChangeNotifier {
   final PairingService? _pairing;
   PairingService? get pairing => _pairing;
 
+  /// Attached after construction, not injected in the constructor — unlike
+  /// [_pairing], this needs a Firebase ID token, which only exists once
+  /// [AuthService] has been built, and `bootstrapAppState`/`bootstrapAuth`
+  /// in `app/bootstrap.dart` run as two separate calls (`main.dart` builds
+  /// `AppState` first). `main.dart` wires this in once both exist, before
+  /// the first frame.
+  DoctorConnectionService? _doctorConnections;
+  void attachDoctorConnections(DoctorConnectionService service) {
+    _doctorConnections = service;
+  }
+
   /// True while a signed-in caregiver is *looking at* the patient's app
   /// rather than being the patient.
   ///
@@ -274,7 +286,7 @@ class AppState extends ChangeNotifier {
     // Picking "doctor" is the moment a clinician becomes findable.
     final String? signedIn = _accountId;
     if (r == AppRole.doctor && signedIn != null) {
-      ensureDoctorListing(uid: signedIn);
+      unawaited(ensureDoctorListing(uid: signedIn));
     }
     // The role belongs to the person, so remember it against their account
     // and not just against the phone. This is the flag that lets a returning
@@ -357,10 +369,6 @@ class AppState extends ChangeNotifier {
     _accountRoles
       ..clear()
       ..addAll(_decodeAccountRoles(settings.accountRolesJson));
-
-    _registeredDoctors
-      ..clear()
-      ..addAll(_decodeDoctors(settings.registeredDoctorsJson));
 
     // The account first: everything below is scoped to it.
     _accountId = settings.lastAccountId;
@@ -939,25 +947,6 @@ class AppState extends ChangeNotifier {
   /// uid → role name, for every account that has picked a role on this
   /// device. See [AppSettings.accountRolesJson].
   final Map<String, String> _accountRoles = <String, String>{};
-
-  static Map<String, DoctorProfile> _decodeDoctors(String? encoded) {
-    if (encoded == null || encoded.isEmpty) return <String, DoctorProfile>{};
-    try {
-      final Object? decoded = jsonDecode(encoded);
-      if (decoded is! Map) return <String, DoctorProfile>{};
-      final Map<String, DoctorProfile> out = <String, DoctorProfile>{};
-      for (final MapEntry<Object?, Object?> e in decoded.entries) {
-        if (e.key is! String || e.value is! Map) continue;
-        final DoctorProfile? d =
-            DoctorProfile.fromJson(Map<String, dynamic>.from(e.value! as Map));
-        if (d != null) out[e.key! as String] = d;
-      }
-      return out;
-    } catch (error) {
-      debugPrint('AppState: could not read the saved doctor listings ($error)');
-      return <String, DoctorProfile>{};
-    }
-  }
 
   static Map<String, String> _decodeAccountRoles(String? encoded) {
     if (encoded == null || encoded.isEmpty) return <String, String>{};
@@ -1702,7 +1691,7 @@ class AppState extends ChangeNotifier {
     // Last, so it wins over the blank-slate reset above: whatever role this
     // account already belongs to is what it comes back as.
     _resolveRoleFor(uid, roleHint);
-    if (_role == AppRole.doctor) ensureDoctorListing(uid: uid);
+    if (_role == AppRole.doctor) await ensureDoctorListing(uid: uid);
 
     _profileReady = true;
     _persistSettings();
@@ -2036,12 +2025,6 @@ class AppState extends ChangeNotifier {
       patientUsername: _patientUsername.isEmpty ? null : _patientUsername,
       pendingPairingRequestId: _pendingPairingRequestId,
       accountRolesJson: _accountRoles.isEmpty ? null : jsonEncode(_accountRoles),
-      registeredDoctorsJson: _registeredDoctors.isEmpty
-          ? null
-          : jsonEncode(<String, dynamic>{
-              for (final MapEntry<String, DoctorProfile> e in _registeredDoctors.entries)
-                e.key: e.value.toJson(),
-            }),
     );
     _write(() => _settingsRepo.save(snapshot));
   }
@@ -2142,49 +2125,25 @@ class AppState extends ChangeNotifier {
     return MockData.series(base);
   }
 
-  /// The clinician caseload, with the demo patient kept in step with the
-  /// app — and, once someone has actually filled in a real profile, that
-  /// real patient appended too. Without this, a genuinely onboarded person
-  /// never had an id matching any of the eight fictional demo patients, so
-  /// they simply never appeared in a doctor's list at all.
-  List<ClinicPatient> get caseload {
-    final List<ClinicPatient> list = MockData.caseload();
-    final int i = list.indexWhere((ClinicPatient c) => c.id == _patient.id);
-    if (i >= 0) {
-      final List<double> trend = List<double>.from(list[i].thirtyDay);
-      trend[trend.length - 1] = _profile.overall.toDouble();
-      list[i] = list[i].copyWith(
-        score: _profile.overall,
-        profile: _profile,
-        thirtyDay: trend,
-      );
-      return list;
-    }
-    if (hasPatientProfile) list.add(_liveClinicPatient());
-    return list;
-  }
+  /// The clinician caseload — real connected patients, with scores computed
+  /// backend-side from their actual synced game sessions (see
+  /// `clinical_aggregation_service.py`), not a fabricated demo list.
+  /// Starts empty until [loadCaseload] is called (e.g. from the doctor's
+  /// Patients screen's `initState`, the same load-then-cache shape
+  /// `loadDoctorDirectory`/`refreshConnectedDoctor` below use).
+  List<ClinicPatient> _caseload = <ClinicPatient>[];
+  List<ClinicPatient> get caseload => List<ClinicPatient>.unmodifiable(_caseload);
 
-  /// A [ClinicPatient] built from this device's own live patient, for the
-  /// doctor's caseload. No invented week-by-week shape: the trend line
-  /// sits flat at today's real score, honest about there being no history
-  /// to draw yet rather than a fabricated one.
-  ClinicPatient _liveClinicPatient() {
-    return ClinicPatient(
-      id: _patient.id,
-      name: _patient.name,
-      age: _patient.age,
-      district: _patient.location,
-      score: _profile.overall,
-      trend: TrendDirection.flat,
-      status: ClinicalStatus.stable,
-      sceneId: _patient.portraitScene,
-      language: _patient.language,
-      lastSession: _sessions.isEmpty ? 'No sessions yet' : 'Recently',
-      profile: _profile,
-      thirtyDay: List<double>.filled(30, _profile.overall.toDouble()),
-      adherence: adherencePercent,
-      engagement: _sessions.isEmpty ? 0 : adherencePercent,
-    );
+  Future<void> loadCaseload() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _caseload = await service.caseload();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort: keep whatever was already cached rather than blank the
+      // screen on a transient network failure.
+    }
   }
 
   List<DoctorAlert> get alerts => MockData.alerts();
@@ -2202,118 +2161,133 @@ class AppState extends ChangeNotifier {
   /// Medical reports for the demo patient (visible to the connected doctor).
   List<MedicalReport> get patientMedicalReports => MockData.patientMedicalReports();
 
-  late final List<ConnectionRequest> _connectionRequests =
-      List<ConnectionRequest>.from(MockData.connectionRequests());
+  /// Pending connection requests for the signed-in doctor to accept or
+  /// decline — real, from the backend, not a shared in-memory list two
+  /// roles on the same device used to read out of each other's way.
+  List<ConnectionRequest> _pendingDoctorRequests = <ConnectionRequest>[];
+  List<ConnectionRequest> get pendingDoctorRequests =>
+      List<ConnectionRequest>.unmodifiable(_pendingDoctorRequests);
 
-  /// Pending connection requests for the doctor to accept or decline.
-  ///
-  /// Shared state, not a copy the doctor screen keeps to itself: an
-  /// invitation a caregiver sends has to turn up here, and accepting it here
-  /// has to show as connected over there. On one device that is the only way
-  /// either half of the handshake can be seen at all.
-  List<ConnectionRequest> get connectionRequests =>
-      List<ConnectionRequest>.unmodifiable(_connectionRequests);
-
-  /// The requests the signed-in clinician should actually see.
-  ///
-  /// Their own, plus the sample ones that come with the demo caseload. A real
-  /// doctor account showing every invitation on the device — including ones
-  /// addressed to a different clinic — would be a privacy problem dressed up
-  /// as a demo convenience.
-  List<ConnectionRequest> get myConnectionRequests {
-    final DoctorProfile? mine = myDoctorProfile;
-    if (mine == null) return connectionRequests;
-    return List<ConnectionRequest>.unmodifiable(<ConnectionRequest>[
-      for (final ConnectionRequest r in _connectionRequests)
-        if (r.doctorId.isEmpty || r.doctorId == mine.id) r,
-    ]);
+  Future<void> loadPendingDoctorRequests() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _pendingDoctorRequests = await service.pendingRequests();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
-  /// The doctor accepts: they join this patient's care, and the caregiver's
-  /// screen shows them as connected.
-  void acceptConnectionRequest(String requestId) {
-    final int i = _connectionRequests.indexWhere((ConnectionRequest r) => r.id == requestId);
-    if (i < 0) return;
-    final ConnectionRequest request = _connectionRequests.removeAt(i);
-    if (request.doctorId.isEmpty) {
-      notifyListeners();
-      return;
+  /// The doctor accepts: the backend writes a durable link, and the
+  /// caregiver's next `refreshConnectedDoctor` sees it.
+  Future<void> acceptConnectionRequest(String requestId) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.respond(requestId: requestId, approve: true);
+    } catch (_) {
+      // Best-effort.
     }
-    connectDoctor(request.doctorId);
+    await loadPendingDoctorRequests();
   }
 
   /// The doctor declines: the invitation is withdrawn and the caregiver is
   /// free to invite somebody else.
-  void declineConnectionRequest(String requestId) {
-    final int i = _connectionRequests.indexWhere((ConnectionRequest r) => r.id == requestId);
-    if (i < 0) return;
-    final ConnectionRequest request = _connectionRequests.removeAt(i);
-    if (request.doctorId.isNotEmpty) {
-      _setDoctorStatus(request.doctorId, InvitationStatus.notSent);
-      return;
+  Future<void> declineConnectionRequest(String requestId) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.respond(requestId: requestId, approve: false);
+    } catch (_) {
+      // Best-effort.
     }
-    notifyListeners();
+    await loadPendingDoctorRequests();
   }
 
   // ── The doctor directory ───────────────────────────────────────────────
+  //
+  // Real, backend-persisted accounts only — no fictional sample clinics
+  // mixed in anymore. `DoctorProfile.id` is the doctor's own Firebase uid,
+  // matching what the backend's connection endpoints expect as `doctorUid`.
 
-  late final List<DoctorProfile> _doctors =
-      List<DoctorProfile>.from(MockData.doctors());
+  List<DoctorProfile> _doctorDirectory = <DoctorProfile>[];
+  List<DoctorProfile> get doctorDirectory => List<DoctorProfile>.unmodifiable(_doctorDirectory);
 
-  /// Clinicians who created an account in this app, keyed by Firebase uid.
-  ///
-  /// Kept apart from the sample clinics so they survive a restart and can be
-  /// edited by the person they belong to — a sample entry is scenery, this is
-  /// somebody's professional listing.
-  final Map<String, DoctorProfile> _registeredDoctors = <String, DoctorProfile>{};
-
-  /// The signed-in clinician's own listing, if this account is a doctor.
-  DoctorProfile? get myDoctorProfile {
-    final String? uid = _accountId;
-    return uid == null ? null : _registeredDoctors[uid];
+  Future<void> loadDoctorDirectory() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _doctorDirectory = await service.directory();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
-  /// Creates the listing the first time a doctor account reaches the app, so
-  /// signing up is enough to be findable. Everything but the email starts
-  /// blank and is theirs to fill in on their profile.
-  void ensureDoctorListing({required String uid, String? email, String? name}) {
-    if (_registeredDoctors.containsKey(uid)) return;
+  /// The signed-in clinician's own listing, if this account is a doctor.
+  /// Set optimistically by [ensureDoctorListing] the moment a doctor signs
+  /// in, then reconciled with the backend's copy once that call returns.
+  DoctorProfile? _myDoctorProfile;
+  DoctorProfile? get myDoctorProfile => _myDoctorProfile;
+
+  /// Registers (or re-registers) the signed-in doctor's own listing, so
+  /// signing up is enough to be durably findable in every caregiver's
+  /// directory — not just cached on the one device they happened to sign
+  /// into, which is what a local-only listing used to mean in practice.
+  Future<void> ensureDoctorListing({required String uid, String? email, String? name}) async {
     final String display = (name != null && name.trim().isNotEmpty)
         ? name.trim()
         : _nameFromEmail(email) ?? 'New doctor';
-    _registeredDoctors[uid] = DoctorProfile(
-      id: 'acct_$uid',
+    // Optimistic local placeholder so the doctor's own screens have
+    // something to show immediately, before the network round trip lands.
+    _myDoctorProfile ??= DoctorProfile(
+      id: uid,
       name: display,
       specialization: '',
       hospital: '',
       email: email ?? '',
       avatarInitials: display.isEmpty ? '?' : display[0].toUpperCase(),
-      status: InvitationStatus.notSent,
     );
-    _persistSettings();
     notifyListeners();
+
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _myDoctorProfile = await service.upsertProfile(
+        name: display,
+        avatarInitials: display.isEmpty ? '?' : display[0].toUpperCase(),
+      );
+      notifyListeners();
+    } catch (_) {
+      // Best-effort — keeps the optimistic local placeholder either way.
+    }
   }
 
   /// Edits the signed-in doctor's own listing.
-  void updateMyDoctorProfile({
+  Future<void> updateMyDoctorProfile({
     String? name,
     String? specialization,
     String? hospital,
     String? phone,
     String? registrationNumber,
-  }) {
-    final String? uid = _accountId;
-    final DoctorProfile? mine = uid == null ? null : _registeredDoctors[uid];
-    if (uid == null || mine == null) return;
-    _registeredDoctors[uid] = mine.copyWith(
-      name: name,
-      specialization: specialization,
-      hospital: hospital,
-      phone: phone,
-      registrationNumber: registrationNumber,
-    );
-    _persistSettings();
-    notifyListeners();
+  }) async {
+    final DoctorProfile? mine = _myDoctorProfile;
+    final DoctorConnectionService? service = _doctorConnections;
+    if (mine == null || service == null) return;
+    try {
+      _myDoctorProfile = await service.upsertProfile(
+        name: name ?? mine.name,
+        specialization: specialization ?? mine.specialization,
+        hospital: hospital ?? mine.hospital,
+        phone: phone ?? mine.phone,
+        registrationNumber: registrationNumber ?? mine.registrationNumber,
+        avatarInitials: mine.avatarInitials,
+      );
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
   /// "neha.sharma@clinic.in" → "Neha Sharma", so a fresh listing is not a
@@ -2328,35 +2302,54 @@ class AppState extends ChangeNotifier {
         .join(' ');
   }
 
-  /// Everyone a caregiver could connect to, connected ones first so the
-  /// person already involved in this family's care is not somewhere down a
-  /// list of strangers.
-  List<DoctorProfile> get doctorDirectory {
-    // Sample clinics and real sign-ups in one list: a family looking for help
-    // should not have to know which of the two they are looking at.
-    final List<DoctorProfile> sorted = <DoctorProfile>[
-      ..._doctors,
-      ..._registeredDoctors.values,
-    ];
-    int rank(InvitationStatus s) => switch (s) {
-          InvitationStatus.connected => 0,
-          InvitationStatus.pending => 1,
-          InvitationStatus.sent => 2,
-          InvitationStatus.notSent => 3,
-        };
-    sorted.sort((DoctorProfile a, DoctorProfile b) {
-      final int byStatus = rank(a.status).compareTo(rank(b.status));
-      return byStatus != 0 ? byStatus : a.name.compareTo(b.name);
-    });
-    return List<DoctorProfile>.unmodifiable(sorted);
+  /// The doctor actually looking after this patient, if any — the durable
+  /// backend link, not a locally-mutated status flag.
+  DoctorProfile? _connectedDoctor;
+  DoctorProfile? get connectedDoctor => _connectedDoctor;
+
+  Future<void> refreshConnectedDoctor() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      final String? doctorUid = await service.forPatient(_patient.id);
+      if (doctorUid == null) {
+        _connectedDoctor = null;
+        notifyListeners();
+        return;
+      }
+      DoctorProfile? match = _findInDirectory(doctorUid);
+      if (match == null) {
+        // This device may not have loaded the directory yet.
+        await loadDoctorDirectory();
+        match = _findInDirectory(doctorUid);
+      }
+      _connectedDoctor = match ??
+          DoctorProfile(id: doctorUid, name: 'Your doctor', specialization: '', hospital: '', email: '');
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
-  /// The doctor actually looking after this patient, if any.
-  DoctorProfile? get connectedDoctor {
-    for (final DoctorProfile d in doctorDirectory) {
-      if (d.status == InvitationStatus.connected) return d;
+  DoctorProfile? _findInDirectory(String uid) {
+    for (final DoctorProfile d in _doctorDirectory) {
+      if (d.id == uid) return d;
     }
     return null;
+  }
+
+  /// Invitations this device has sent out in this session, so the directory
+  /// can show "waiting for reply" immediately — the backend has no separate
+  /// "my sent invites" listing (only "pending for this doctor"), so this is
+  /// the caregiver-side echo of its own `invite` calls, reconciled against
+  /// [connectedDoctor] once one is actually accepted.
+  final Set<String> _pendingInviteDoctorUids = <String>{};
+
+  /// What the caregiver's directory card should show for [doctor] right now.
+  InvitationStatus statusOf(DoctorProfile doctor) {
+    if (_connectedDoctor?.id == doctor.id) return InvitationStatus.connected;
+    if (_pendingInviteDoctorUids.contains(doctor.id)) return InvitationStatus.sent;
+    return InvitationStatus.notSent;
   }
 
   /// Sends an invitation, and puts it in front of the doctor.
@@ -2366,77 +2359,31 @@ class AppState extends ChangeNotifier {
   /// own screen — a caregiver who could connect a clinician to a patient
   /// record by themselves would not be inviting anyone, they would be
   /// granting themselves access to a professional's caseload.
-  void inviteDoctor(String id) {
-    final DoctorProfile? found = _doctorById(id);
-    if (found == null) return;
-    final DoctorProfile doctor = found;
-    _setDoctorStatus(id, InvitationStatus.sent);
-    _connectionRequests.insert(
-      0,
-      ConnectionRequest(
-        id: 'req_${doctor.id}',
-        patientName: _patient.name.isEmpty ? 'Your patient' : _patient.name,
-        patientAge: _patient.age,
-        district: _patient.location,
-        requestedByLabel: caregiverName.isEmpty
-            ? 'Caregiver'
-            : '$caregiverName (caregiver)',
-        timeAgo: 'just now',
-        doctorId: doctor.id,
-      ),
+  Future<void> inviteDoctor(String doctorUid) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    await service.invite(
+      doctorUid: doctorUid,
+      patientId: _patient.id,
+      patientName: _patient.name.isEmpty ? 'Your patient' : _patient.name,
+      patientAge: _patient.age,
+      district: _patient.location,
     );
+    _pendingInviteDoctorUids.add(doctorUid);
     notifyListeners();
   }
 
-  /// One doctor at a time: connecting to a second while the first is still
-  /// connected would leave two clinicians each believing they hold the care
-  /// plan.
-  void connectDoctor(String id) {
-    for (final DoctorProfile d in doctorDirectory) {
-      if (d.status == InvitationStatus.connected && d.id != id) {
-        _setDoctorStatus(d.id, InvitationStatus.notSent);
-      }
-    }
-    _setDoctorStatus(id, InvitationStatus.connected);
-  }
-
-  DoctorProfile? _doctorById(String id) {
-    for (final DoctorProfile d in doctorDirectory) {
-      if (d.id == id) return d;
-    }
-    return null;
-  }
-
-  void disconnectDoctor(String id) {
-    // The request goes with it, or the doctor is left holding an invitation
-    // to a record they have just been removed from.
-    _connectionRequests.removeWhere((ConnectionRequest r) => r.doctorId == id);
-    _setDoctorStatus(id, InvitationStatus.notSent);
-  }
-
-  void _setDoctorStatus(String id, InvitationStatus status) {
-    final int i = _doctors.indexWhere((DoctorProfile d) => d.id == id);
-    if (i >= 0) {
-      _doctors[i] = _doctors[i].copyWith(status: status);
+  Future<void> disconnectDoctor(String doctorUid) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.disconnect(_patient.id);
+      _pendingInviteDoctorUids.remove(doctorUid);
+      _connectedDoctor = null;
       notifyListeners();
-      return;
+    } catch (_) {
+      // Best-effort.
     }
-    // A real sign-up, not one of the samples.
-    for (final MapEntry<String, DoctorProfile> e in _registeredDoctors.entries) {
-      if (e.value.id == id) {
-        _registeredDoctors[e.key] = e.value.copyWith(status: status);
-        _persistSettings();
-        notifyListeners();
-        return;
-      }
-    }
-  }
-
-  /// Adds a doctor the caregiver typed in themselves, invitation already
-  /// sent — they are giving an email address, not browsing.
-  void addDoctor(DoctorProfile doctor) {
-    _doctors.add(doctor);
-    notifyListeners();
   }
 
   late final List<DoctorSlot> _doctorSlots =
@@ -2611,7 +2558,6 @@ class AppState extends ChangeNotifier {
 
   Future<List<DailyQuestion>> loadQuestions() => _patients.dailyQuestions(_patient);
   Future<List<GameDefinition>> loadGames() => _games.catalogue();
-  Future<List<ClinicPatient>> loadCaseload() => _analytics.caseload();
 
   @override
   void dispose() {

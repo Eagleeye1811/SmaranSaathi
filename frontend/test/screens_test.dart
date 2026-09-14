@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/clinical.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/doctor_connection_service.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
 import 'package:smaran_saathi/features/doctor/chat/doctor_chat_conversation_screen.dart';
-import 'package:smaran_saathi/core/models/doctor.dart';
 import 'package:smaran_saathi/features/caregiver/doctor/doctor_care_screen.dart';
 import 'package:smaran_saathi/features/caregiver/patient_view_screen.dart';
 import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
@@ -63,6 +64,43 @@ Widget harness(Widget child, {AppState? state}) {
       ),
     ),
   );
+}
+
+/// Stands in for a real backend caseload in layout tests that need a patient
+/// on screen — real `DoctorProfile`/`ClinicPatient` data only ever exists
+/// via the network now, and these are pure layout checks with no interest
+/// in the connection handshake itself (see `doctor_directory_test.dart` for
+/// that).
+class _FakeCaseloadService extends DoctorConnectionService {
+  _FakeCaseloadService()
+      : super(baseUrl: 'https://fake', idToken: ({bool forceRefresh = false}) async => 'token');
+
+  @override
+  Future<List<ClinicPatient>> caseload() async => <ClinicPatient>[
+        ClinicPatient(
+          id: 'p_aama',
+          name: 'Aama Devi',
+          age: 72,
+          district: 'Jorhat, Assam',
+          score: 68,
+          trend: TrendDirection.up,
+          status: ClinicalStatus.stable,
+          sceneId: 'portrait_aama',
+          language: 'Assamese',
+          lastSession: 'Today',
+          profile: const CognitiveProfile(
+            scores: <CognitiveDomain, int>{
+              CognitiveDomain.memory: 70,
+              CognitiveDomain.attention: 65,
+            },
+            overall: 68,
+            updated: 'Updated just now',
+          ),
+          thirtyDay: List<double>.filled(30, 68),
+          adherence: 80,
+          engagement: 75,
+        ),
+      ];
 }
 
 /// Pump without settling — the companion animates forever.
@@ -259,71 +297,35 @@ void main() {
   });
 
   group('doctor directory', () {
-    testWidgets('a caregiver can browse doctors and connect to one',
+    // The invite/accept handshake is now real and backend-persisted (see
+    // `doctor_connection_service_test.dart` for that coverage against a
+    // mocked HTTP client) — no fake pre-connected doctor, no local mutation
+    // to exercise here. What a pure widget test can still usefully check is
+    // that a caregiver with no backend attached (this harness's bare
+    // `AppState()`, same as every other screen test here) renders the
+    // honest "nothing connected yet" state instead of crashing on an empty
+    // directory/caseload, which the old fixed-non-empty mock data never
+    // exercised.
+    testWidgets('with no doctor connected, the screen shows the empty state, not a crash',
         (WidgetTester tester) async {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const DoctorCareScreen(), state: state));
       await beat(tester, 800);
 
-      // One doctor is connected out of the box, so the directory is not shown
-      // until that connection is ended — and ending it has to be reachable
-      // from the screen, not just from the state.
-      expect(state.connectedDoctor, isNotNull);
-      await scrollTo(tester, 'Disconnect');
-      await tester.tap(find.text('Disconnect').first);
-      await beat(tester, 600);
-      expect(find.textContaining('Disconnect Dr.'), findsOneWidget);
-      await tester.tap(find.text('Disconnect').last);
-      await beat(tester, 600);
       expect(state.connectedDoctor, isNull);
+      expect(state.doctorDirectory, isEmpty);
+      expect(find.text('No doctor connected yet'), findsOneWidget);
 
       await scrollTo(tester, 'Doctors near you');
       expect(find.text('Doctors near you'), findsOneWidget);
-
-      // More than the one hardcoded clinician this screen used to carry, and
-      // a spread of specialisations rather than six neurologists.
-      expect(state.doctorDirectory.length, greaterThan(3));
-      expect(
-        state.doctorDirectory.map((DoctorProfile d) => d.specialization).toSet().length,
-        greaterThan(3),
-      );
-
-      // Inviting one, then accepting on their behalf, connects it — and
-      // connecting is what brings the booking section back.
-      final DoctorProfile pick = state.doctorDirectory
-          .firstWhere((DoctorProfile d) => d.status == InvitationStatus.notSent);
-      state.inviteDoctor(pick.id);
-      await beat(tester, 400);
-      expect(state.doctorDirectory.firstWhere((DoctorProfile d) => d.id == pick.id).status,
-          InvitationStatus.sent);
-
-      // "Invitation sent" and "Pending" are one state to the caregiver: they
-      // have written, and they are waiting.
-      expect(InvitationStatus.sent.label, InvitationStatus.pending.label);
-      expect(InvitationStatus.sent.label, 'Waiting for reply');
-      expect(find.text('Waiting for reply'), findsWidgets);
+      // No backend attached, so the directory has nothing real to show —
+      // the "ask them to sign up" copy, not a fabricated entry.
+      expect(find.textContaining("Can't find your doctor?"), findsOneWidget);
 
       // The caregiver cannot connect a doctor themselves — no button on this
       // screen does it, because agreeing is the doctor's to give.
       expect(find.text('Connect now'), findsNothing);
-      expect(state.connectedDoctor, isNull);
-
-      // The invitation turns up on the doctor's side, and accepting it there
-      // is what connects them here.
-      final ConnectionRequest request = state.connectionRequests
-          .firstWhere((ConnectionRequest r) => r.doctorId == pick.id);
-      state.acceptConnectionRequest(request.id);
-      await beat(tester, 400);
-      expect(state.connectedDoctor?.id, pick.id);
-
-      // Only ever one, or two clinicians would each think they hold the plan.
-      expect(
-        state.doctorDirectory
-            .where((DoctorProfile d) => d.status == InvitationStatus.connected)
-            .length,
-        1,
-      );
     });
   });
 
@@ -615,8 +617,16 @@ void main() {
 
     testWidgets('patient record renders', (WidgetTester tester) async {
       tester.setSurface(kPhone);
+      // The caseload is real now (see the doctor-connection rework) — starts
+      // empty until `AppState.loadCaseload` resolves, unlike the old fixed
+      // `MockData.caseload()` this screen used to read straight off. A
+      // small fake service, pre-loaded before the first pump, stands in for
+      // the backend the same way `doctor_directory_test.dart` does.
+      final AppState state = AppState();
+      state.attachDoctorConnections(_FakeCaseloadService());
+      await state.loadCaseload();
       await tester.pumpWidget(
-        harness(const PatientDetailScreen(patientId: 'p_aama')),
+        harness(const PatientDetailScreen(patientId: 'p_aama'), state: state),
       );
       await beat(tester, 1200);
       expect(find.text('Patient record'), findsOneWidget);

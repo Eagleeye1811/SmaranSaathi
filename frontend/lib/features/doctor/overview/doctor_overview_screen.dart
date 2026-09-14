@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -56,6 +58,11 @@ class DoctorOverviewScreen extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
+    // Real, backend-loaded — starts empty until this lands. Re-fires while
+    // still empty rather than once in an `initState` this stateless screen
+    // does not have; harmless, since `loadCaseload` is a plain idempotent
+    // re-fetch and this only re-triggers until the cache is actually filled.
+    if (caseload.isEmpty) unawaited(state.loadCaseload());
     final String docName = (state.myDoctorProfile?.displayName.trim().isNotEmpty ?? false)
         ? state.myDoctorProfile!.displayName.trim()
         : MockData.doctorName;
@@ -71,12 +78,25 @@ class DoctorOverviewScreen extends StatelessWidget {
             p.adherence < 75)
         .toList();
 
-    // Domain averages across the cohort
+    // Real counts from the real caseload — used to be fixed `MockData`
+    // constants that never matched whatever the list above actually held.
+    final int caseloadStable =
+        caseload.where((ClinicPatient p) => p.status == ClinicalStatus.stable).length;
+    final int caseloadAttention =
+        caseload.where((ClinicPatient p) => p.status == ClinicalStatus.needsAttention).length;
+    final int caseloadFollowUp =
+        caseload.where((ClinicPatient p) => p.status == ClinicalStatus.followUp).length;
+
+    // Domain averages across the cohort — an empty real caseload (nobody
+    // connected yet) is now a genuine, common state, not just a demo edge
+    // case, so this can no longer assume there is always at least one row.
     final Map<String, int> domainAverages = <String, int>{
       for (final CognitiveDomain d in CognitiveDomain.values)
-        d.localizedLabel(l): (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
-                caseload.length)
-            .round(),
+        d.localizedLabel(l): caseload.isEmpty
+            ? 0
+            : (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
+                    caseload.length)
+                .round(),
     };
 
     // Score distribution
@@ -168,7 +188,7 @@ class DoctorOverviewScreen extends StatelessWidget {
                             Expanded(
                               child: ClinicStat(
                                 label: l.doctorTabPatients,
-                                value: '${MockData.caseloadTotal}',
+                                value: '${caseload.length}',
                                 caption: l.doctorOverviewActiveCaption,
                                 icon: Icons.groups_rounded,
                               ),
@@ -190,23 +210,23 @@ class DoctorOverviewScreen extends StatelessWidget {
                         Text(l.doctorOverviewCaseloadStatusLabel, style: CT.overline),
                         const SizedBox(height: 10),
                         _StatusBar(
-                          stable: MockData.caseloadStable,
-                          attention: MockData.caseloadAttention,
-                          followUp: MockData.caseloadFollowUp,
+                          stable: caseloadStable,
+                          attention: caseloadAttention,
+                          followUp: caseloadFollowUp,
                         ),
                         const SizedBox(height: 12),
                         ChartLegend(
                           entries: <({String label, Color color})>[
                             (
-                              label: l.doctorOverviewLegendStable(MockData.caseloadStable),
+                              label: l.doctorOverviewLegendStable(caseloadStable),
                               color: AppColors.success
                             ),
                             (
-                              label: l.doctorOverviewLegendNeedsAttention(MockData.caseloadAttention),
+                              label: l.doctorOverviewLegendNeedsAttention(caseloadAttention),
                               color: AppColors.danger
                             ),
                             (
-                              label: l.doctorOverviewLegendFollowUp(MockData.caseloadFollowUp),
+                              label: l.doctorOverviewLegendFollowUp(caseloadFollowUp),
                               color: AppColors.warning
                             ),
                           ],

@@ -7,7 +7,7 @@ from . import (
     caregivers,
     chat,
     daily,
-    doctors,
+    doctor_connections,
     health,
     insights,
     pairing,
@@ -28,7 +28,7 @@ api_router.include_router(analytics.router)
 api_router.include_router(daily.router)
 api_router.include_router(reminders.router)
 api_router.include_router(caregivers.router)
-api_router.include_router(doctors.router)
+api_router.include_router(doctor_connections.router)
 api_router.include_router(alerts.router)
 api_router.include_router(insights.router)
 api_router.include_router(pairing.router)

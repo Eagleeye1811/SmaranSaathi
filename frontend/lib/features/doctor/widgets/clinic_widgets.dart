@@ -114,7 +114,7 @@ class ClinicTopBar extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
 
     final bool hasAlerts = state.alerts.any((DoctorAlert a) => a.severity == AlertSeverity.urgent) ||
-        state.connectionRequests.isNotEmpty;
+        state.pendingDoctorRequests.isNotEmpty;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(Insets.gutter, 12, Insets.gutter, 10),
