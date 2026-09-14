@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug-only: let the WebView load the Asha page from a local backend over
+         plain http (10.0.2.2 / localhost). Release builds are unaffected and
+         remain HTTPS-only. -->
+    <application android:networkSecurityConfig="@xml/network_security_config" />
 </manifest>

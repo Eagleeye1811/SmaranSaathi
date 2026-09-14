@@ -7,7 +7,9 @@ import '../../core/voice/voice_nav_intent.dart';
 import '../../core/widgets/app_nav_bar.dart';
 import '../../core/widgets/voice_nav_host.dart';
 import '../../l10n/app_localizations.dart';
-import 'assistant/assistant_screen.dart';
+// assistant_screen is still referenced by HealthDashboardScreen internally
+// but is no longer used as the companion destination in the shell.
+import 'asha/asha_screen.dart';
 import 'games/game_hub_screen.dart';
 import 'health/care_plan_screen.dart';
 import 'health/cognitive_profile_screen.dart';
@@ -32,19 +34,20 @@ class _PatientShellState extends State<PatientShell> {
 
   /// One entry per child of the `IndexedStack` below, **in the same order**.
   ///
-  /// Four, not five: the profile moved to the top right of `PatientTopBar`,
-  /// alongside reminders, matching where the caregiver's own two sit. Both
-  /// are reached for at a moment rather than browsed, and four destinations
-  /// leave the bar's targets as wide as this reader needs them.
+  /// Four destinations: Home, Activities, Wellness, Asha.
+  /// Asha is a persistent nav tab rather than a pushed screen so the patient
+  /// can reach their companion from anywhere with one large tap target.
   static const int _destinationCount = 4;
 
   /// Localised, so the bar reads in whatever language the app is set to.
+  /// 'Asha' is a proper name and is not translated.
   static List<NavDestination> _destinationsFor(AppLocalizations l) => <NavDestination>[
         NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
         NavDestination(
             l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
         NavDestination(l.patientNavWellness, Icons.spa_outlined, Icons.spa_rounded),
-        NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
+        const NavDestination(
+            'Asha', Icons.record_voice_over_outlined, Icons.record_voice_over_rounded),
       ];
 
   void _go(int i) => setState(() => _index = i);
@@ -73,6 +76,7 @@ class _PatientShellState extends State<PatientShell> {
       case VoiceDestination.activities:
         _go(1);
       case VoiceDestination.companion:
+        // Switch to the Asha tab (index 3) — same as tapping it in the bar.
         _go(3);
       case VoiceDestination.profile:
         Nav.open(context, const PatientProfileScreen());
@@ -107,10 +111,11 @@ class _PatientShellState extends State<PatientShell> {
             index: _index,
             children: <Widget>[
               HealthDashboardScreen(onOpenTab: (int tabIndex) {
-                // 1 is reminders, which is a pushed screen rather than a
-                // destination; everything above it shifts down by one to skip
-                // the gap. Clamped, because the bar is now four wide and an
-                // index past the end would throw rather than do nothing.
+                // Dashboard tab indices (from action cards):
+                //   0 → Home, 1 → Today (pushed), 2 → Activities,
+                //   3 → Wellness, 4 → Asha.
+                // Everything above 1 shifts down by one to skip the
+                // non-tab Reminders/Today screen (shell indices 0..3).
                 if (tabIndex == 1) {
                   Nav.open(context, const TodayScreen());
                 } else {
@@ -120,7 +125,7 @@ class _PatientShellState extends State<PatientShell> {
               }),
               const GameHubScreen(),
               const WellnessCornerScreen(),
-              const AssistantScreen(embedded: true),
+              AshaScreen(embedded: true, active: _index == 3),
             ],
           ),
         ),
