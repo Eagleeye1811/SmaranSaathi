@@ -105,22 +105,17 @@ class AppLocalizations {
   String get aiFunctionNotTodayReply => _s('aiFunctionNotTodayReply');
   String get authWelcomeTitle => _s('authWelcomeTitle');
   String get authWelcomeSubtitle => _s('authWelcomeSubtitle');
-  String get authRolePatient => _s('authRolePatient');
   String get authRolePatientName => _s('authRolePatientName');
   String get authRolePatientDesc => _s('authRolePatientDesc');
-  String get authRoleCaregiver => _s('authRoleCaregiver');
   String get authRoleCaregiverName => _s('authRoleCaregiverName');
   String get authRoleCaregiverDesc => _s('authRoleCaregiverDesc');
-  String get authRoleDoctor => _s('authRoleDoctor');
   String get authRoleDoctorName => _s('authRoleDoctorName');
   String get authRoleDoctorDesc => _s('authRoleDoctorDesc');
   String get actionLogOut => _s('actionLogOut');
   String get doctorSettingsSub => _s('doctorSettingsSub');
-  String get authWhoAreYou => _s('authWhoAreYou');
   String get accountSignedInAs => _s('accountSignedInAs');
   String accountRole(String role) => _f('accountRole', <String, Object?>{'role': role});
   String get safeZoneHomeLabel => _s('safeZoneHomeLabel');
-  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
   String get dashboardStartTodaySession => _s('dashboardStartTodaySession');
   String get mockReminderMorningMedicine => _s('mockReminderMorningMedicine');
   String get shallWeHeadBack => _s('shallWeHeadBack');
@@ -1688,9 +1683,6 @@ class AppLocalizations {
   String get familyNoteNirmali => _s('familyNoteNirmali');
 
   // ── Clinical status, trend & alert severity ───────────────────────────
-  String get clinicalStatusStable => _s('clinicalStatusStable');
-  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
-  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
   String get clinicalTrendImproving => _s('clinicalTrendImproving');
   String get clinicalTrendStable => _s('clinicalTrendStable');
   String get clinicalTrendDeclining => _s('clinicalTrendDeclining');

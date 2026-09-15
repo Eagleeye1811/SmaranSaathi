@@ -352,7 +352,6 @@
   "doctorOverviewMonthNovember": "November",
   "doctorOverviewMonthDecember": "December",
   "doctorSettingsSub": "Review permissions, connection status, and application preferences.",
-  "authWhoAreYou": "WHO ARE YOU?",
   "accountSignedInAs": "Signed in as",
   "accountRole": "Role: {role}",
   "@accountRole": {

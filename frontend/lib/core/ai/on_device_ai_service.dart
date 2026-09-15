@@ -190,7 +190,7 @@ class OnDeviceAiService implements AiService {
         _activityName(best.key, l),
         pronoun,
         best.value.round().toString(),
-        PatientAiContext.domainOf(best.key).label.toLowerCase(),
+        (PatientAiContext.domainOf(best.key)?.label ?? '').toLowerCase(),
       ));
     }
     final List<GameSession> unaided = context
@@ -312,7 +312,7 @@ class OnDeviceAiService implements AiService {
       return (
         pick,
         '${_activityName(pick, l)} has not been played in the last two weeks, so it '
-            'exercises ${PatientAiContext.domainOf(pick).label.toLowerCase()} work that '
+            'exercises ${(PatientAiContext.domainOf(pick)?.label ?? '').toLowerCase()} work that '
             'nothing else has covered recently.'
       );
     }
@@ -679,6 +679,8 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelody,
         GameId.weaves => l.aiGameWeaves,
         GameId.memoryCards => l.aiGameMemoryCards,
+        GameId.villageMarket => l.gameVillageMarketName,
+        GameId.moodCanvas => l.gameMoodCanvasName,
       };
 
   static String _activityInvitation(GameId id, Patient p, AppLocalizations l) => switch (id) {
@@ -688,5 +690,7 @@ class OnDeviceAiService implements AiService {
         GameId.melody => l.aiGameMelodyInvitation,
         GameId.weaves => l.aiGameWeavesInvitation,
         GameId.memoryCards => l.aiGameMemoryCardsInvitation,
+        GameId.villageMarket => l.aiGameMemoryCardsInvitation,
+        GameId.moodCanvas => l.aiGameMemoryCardsInvitation,
       };
 }

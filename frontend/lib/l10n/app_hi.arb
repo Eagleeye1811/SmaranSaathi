@@ -156,7 +156,6 @@
   "doctorProfileLogOut": "लॉग आउट करें",
   "doctorDetailTitle": "मरीज़ का रिकॉर्ड",
   "doctorSettingsSub": "अनुमतियों, कनेक्शन की स्थिति और एप्लिकेशन प्राथमिकताओं की समीक्षा करें।",
-  "authWhoAreYou": "आप कौन हैं?",
   "accountSignedInAs": "इस रूप में साइन इन हैं",
   "accountRole": "भूमिका: {role}",
   "safeZoneHomeLabel": "घर",

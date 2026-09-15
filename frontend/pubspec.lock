@@ -625,6 +625,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.1"
+  jinja:
+    dependency: transitive
+    description:
+      name: jinja
+      sha256: dab58a5cd10e174bbbe33c33020d39281510ea795dc43c9afba359f6fd6a90f5
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.7"
   jni:
     dependency: transitive
     description:
@@ -998,6 +1006,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.12"
+  textwrap:
+    dependency: transitive
+    description:
+      name: textwrap
+      sha256: fd5db6fda8e378c06742254d21a60ea435075e482ab73029c7de1b66a77b5989
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.1"
   timezone:
     dependency: transitive
     description:
@@ -1127,5 +1143,5 @@ packages:
     source: hosted
     version: "3.1.4"
 sdks:
-  dart: ">=3.12.0 <4.0.0"
+  dart: ">=3.13.0 <4.0.0"
   flutter: ">=3.44.0"
