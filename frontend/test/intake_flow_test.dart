@@ -616,9 +616,12 @@ void main() {
     await next();
 
     // 12 · a doctor, offered rather than required — nothing here has to be
-    // answered for the questionnaire to end.
+    // answered for the questionnaire to end. No doctor is connected by
+    // default any more (the old mock system pre-connected a fictional one,
+    // which is why this used to read the generic "Continue" label instead).
     expect(find.text('Is a doctor involved?'), findsOneWidget);
-    await next();
+    await tester.tap(find.text('Continue without a doctor'));
+    await beat(tester, 400);
 
     // 13 · how the patient will sign in, also offered rather than required
     expect(find.text('Give them a way to sign in'), findsOneWidget);

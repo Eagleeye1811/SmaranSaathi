@@ -215,7 +215,12 @@ class _PatientTile extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Sparkline(
-            values: patient.thirtyDay.sublist(patient.thirtyDay.length - 14),
+            // A newly-connected, not-yet-scored real patient can have fewer
+            // than 14 points (even zero) — the old fixed 8-patient mock
+            // caseload never hit that case, a real one routinely does.
+            values: patient.thirtyDay.length <= 14
+                ? patient.thirtyDay
+                : patient.thirtyDay.sublist(patient.thirtyDay.length - 14),
             color: tc,
             width: 58,
             height: 26,

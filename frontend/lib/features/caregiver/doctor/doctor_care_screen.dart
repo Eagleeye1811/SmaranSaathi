@@ -6,13 +6,20 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/models/doctor.dart';
 import '../../../core/models/telehealth.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/services/doctor_connection_service.dart';
 import '../../../core/telehealth/consultation_format.dart';
 import '../../../core/telehealth/telehealth_service.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../telehealth/video_consultation_screen.dart';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
-
+//
+// Still a fixture — the "Upcoming Appointment" section it feeds is part of
+// the separate appointment-booking system, which stays out of scope here
+// (see the doctor-connection plan). Its `doctorId` is display-only in this
+// card; the real one used to actually route a video call comes from
+// `state.connectedDoctor` in `joinConsultation` below.
 const Appointment _upcoming = Appointment(
   id: 'apt_001',
   doctorId: 'doc_sharma',
@@ -33,25 +40,51 @@ class DoctorCareScreen extends StatefulWidget {
 }
 
 class _DoctorCareScreenState extends State<DoctorCareScreen> {
-  /// For demo: toggle between connected and no-doctor views.
-
-  bool _showAddForm = false;
-
-  // Add-doctor form controllers
-  final TextEditingController _nameCtrl = TextEditingController();
-  final TextEditingController _specCtrl = TextEditingController();
-  final TextEditingController _hospitalCtrl = TextEditingController();
-  final TextEditingController _emailCtrl = TextEditingController();
-  final TextEditingController _phoneCtrl = TextEditingController();
-
   final TelehealthService _telehealth = TelehealthService();
   bool _loadingConsultations = true;
   ConsultationSession? _lastConsultation;
+
+  bool _inviting = false;
+  String? _invitingDoctorId;
 
   @override
   void initState() {
     super.initState();
     _loadConsultations();
+    final AppState state = AppScope.read(context);
+    state.loadDoctorDirectory();
+    state.refreshConnectedDoctor();
+  }
+
+  Future<void> _invite(AppState state, DoctorProfile doctor) async {
+    setState(() {
+      _inviting = true;
+      _invitingDoctorId = doctor.id;
+    });
+    try {
+      await state.inviteDoctor(doctor.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invitation sent to ${doctor.displayName}')),
+      );
+    } on DoctorAlreadyConnectedException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${doctor.displayName} is already connected to this record.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not send the invitation. Please try again.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _inviting = false;
+          _invitingDoctorId = null;
+        });
+      }
+    }
   }
 
   Future<void> _loadConsultations() async {
@@ -70,22 +103,34 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
   }
 
   @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _specCtrl.dispose();
-    _hospitalCtrl.dispose();
-    _emailCtrl.dispose();
-    _phoneCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final DoctorProfile? doctor = state.connectedDoctor;
     final List<DoctorAppointment> bookedAppointments = state.doctorAppointments
         .where((DoctorAppointment a) => a.id.startsWith('apt_'))
         .toList();
+
+    // The real, per-account connected doctor's uid — the WebRTC room name is
+    // derived from `doctorId`+`patientId` alone (see `webrtc_service.dart`),
+    // so this has to be the actual connected doctor, not a shared constant
+    // every doctor login used to fall back to (which meant the two sides
+    // never actually landed in the same room regardless of who was really
+    // connected).
+    void joinConsultation() {
+      final DoctorProfile? connected = doctor;
+      if (connected == null) return;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => VideoConsultationScreen(
+            doctorId: connected.id,
+            patientId: state.patient.id,
+            patientName: state.patient.name,
+            doctorName: connected.displayName,
+            isDoctor: false,
+          ),
+        ),
+      );
+    }
 
     return MotifBackground(
       opacity: 0.04,
@@ -103,20 +148,16 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                     Insets.gutter, 0, Insets.gutter, 32),
                 children: <Widget>[
                   if (doctor == null) ...<Widget>[
-                    _NoDoctorState(
-                      onConnect: () =>
-                          setState(() => _showAddForm = true),
-                      onAddExisting: () =>
-                          setState(() => _showAddForm = true),
-                    ),
+                    const _NoDoctorState(),
                     const SizedBox(height: Insets.lg),
 
                     // ── The directory ─────────────────────────────────
                     //
-                    // Before this there was one doctor, hardcoded, and the
-                    // only way to "connect" was to type their details in
-                    // from memory. A family that has been given a clinic's
-                    // name should be able to find the person in it.
+                    // Real, signed-up doctor accounts only — no more typing
+                    // one in from memory. A family that has been given a
+                    // clinic's name should be able to find the person in
+                    // it; a doctor who has not signed up on SmaranSaathi
+                    // simply is not here yet, rather than being invented.
                     FadeInUp(
                       delayMs: 30,
                       child: SectionHeader(
@@ -125,50 +166,28 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                         subtitle: 'Memory clinics and specialists in the region',
                       ),
                     ),
-                    for (final DoctorProfile d in state.doctorDirectory)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _DirectoryDoctorCard(
-                          doctor: d,
-                          onInvite: () {
-                            state.inviteDoctor(d.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Invitation sent to ${d.displayName}')),
-                            );
-                          },
+                    if (state.doctorDirectory.isEmpty)
+                      MmCard(
+                        padding: const EdgeInsets.all(Insets.md),
+                        child: Text(
+                          "Can't find your doctor? Ask them to sign up on "
+                          "SmaranSaathi as a doctor — they'll appear here "
+                          "once they do.",
+                          style: AppText.bodySmall,
                         ),
-                      ),
-                    if (_showAddForm) ...<Widget>[
-                      const SizedBox(height: Insets.lg),
-                      FadeInUp(
-                        child: _AddDoctorForm(
-                          nameCtrl: _nameCtrl,
-                          specCtrl: _specCtrl,
-                          hospitalCtrl: _hospitalCtrl,
-                          emailCtrl: _emailCtrl,
-                          phoneCtrl: _phoneCtrl,
-                          onSend: () {
-                            final String name = _nameCtrl.text.trim().isEmpty
-                                ? 'Doctor'
-                                : _nameCtrl.text.trim();
-                            state.addDoctor(DoctorProfile(
-                              id: 'doc_${DateTime.now().millisecondsSinceEpoch}',
-                              name: name,
-                              specialization: _specCtrl.text.trim(),
-                              hospital: _hospitalCtrl.text.trim(),
-                              email: _emailCtrl.text.trim(),
-                              phone: _phoneCtrl.text.trim(),
-                              avatarInitials: name.isEmpty ? '' : name[0].toUpperCase(),
-                              status: InvitationStatus.sent,
-                            ));
-                            setState(() => _showAddForm = false);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Invitation sent to Dr. $name')),
-                            );
-                          },
+                      )
+                    else
+                      for (final DoctorProfile d in state.doctorDirectory)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _DirectoryDoctorCard(
+                            doctor: d,
+                            status: state.statusOf(d),
+                            onInvite: (_inviting && _invitingDoctorId == d.id)
+                                ? null
+                                : () => _invite(state, d),
+                          ),
                         ),
-                      ),
-                    ],
                   ] else ...<Widget>[
                     // ── Connected doctor card ──────────────────────────
                     FadeInUp(
@@ -226,13 +245,14 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                             status: AppointmentStatus.upcoming,
                             isVirtual: appt.isVirtual,
                           ),
+                          onJoin: joinConsultation,
                         ),
                       ),
                       const SizedBox(height: Insets.md),
                     ],
                     FadeInUp(
                       delayMs: 80,
-                      child: _AppointmentCard(appointment: _upcoming),
+                      child: _AppointmentCard(appointment: _upcoming, onJoin: joinConsultation),
                     ),
                     const SizedBox(height: Insets.lg),
 
@@ -284,9 +304,7 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
 // ── No-doctor empty state ─────────────────────────────────────────────────────
 
 class _NoDoctorState extends StatelessWidget {
-  const _NoDoctorState({required this.onConnect, required this.onAddExisting});
-  final VoidCallback onConnect;
-  final VoidCallback onAddExisting;
+  const _NoDoctorState();
 
   @override
   Widget build(BuildContext context) {
@@ -306,146 +324,13 @@ class _NoDoctorState extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Connecting your doctor lets them view progress, '
-                  'share a care plan, and coordinate care directly through SmaranSaathi.',
+                  'share a care plan, and coordinate care directly through '
+                  'SmaranSaathi. Invite one from the real, signed-up doctors '
+                  'below.',
                   style: AppText.bodySmall,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: Insets.lg),
-                SoftButton(
-                  label: 'Add Your Existing Doctor',
-                  icon: Icons.person_add_outlined,
-                  color: AppColors.indigo,
-                  filled: true,
-                  onPressed: onAddExisting,
-                ),
-                const SizedBox(height: 10),
-                SoftButton(
-                  label: 'Find a Doctor on SmaranSaathi',
-                  icon: Icons.search_rounded,
-                  color: AppColors.secondary,
-                  onPressed: onConnect,
-                ),
               ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Add doctor form ───────────────────────────────────────────────────────────
-
-class _AddDoctorForm extends StatelessWidget {
-  const _AddDoctorForm({
-    required this.nameCtrl,
-    required this.specCtrl,
-    required this.hospitalCtrl,
-    required this.emailCtrl,
-    required this.phoneCtrl,
-    required this.onSend,
-  });
-  final TextEditingController nameCtrl;
-  final TextEditingController specCtrl;
-  final TextEditingController hospitalCtrl;
-  final TextEditingController emailCtrl;
-  final TextEditingController phoneCtrl;
-  final VoidCallback onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    return MmCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text('Add Your Doctor', style: AppText.h3),
-          const SizedBox(height: 4),
-          Text(
-            'We will send them an invitation to join your care profile on SmaranSaathi.',
-            style: AppText.bodySmall,
-          ),
-          const SizedBox(height: Insets.lg),
-          _Field(ctrl: nameCtrl, label: 'Doctor name', hint: 'Dr. Neha Sharma'),
-          const SizedBox(height: 12),
-          _Field(
-              ctrl: specCtrl,
-              label: 'Specialization',
-              hint: 'Neurologist'),
-          const SizedBox(height: 12),
-          _Field(
-              ctrl: hospitalCtrl,
-              label: 'Hospital / Clinic',
-              hint: 'Jorhat Medical College'),
-          const SizedBox(height: 12),
-          _Field(
-              ctrl: emailCtrl,
-              label: 'Email',
-              hint: 'doctor@hospital.com',
-              type: TextInputType.emailAddress),
-          const SizedBox(height: 12),
-          _Field(
-              ctrl: phoneCtrl,
-              label: 'Phone (optional)',
-              hint: '+91 98000 00000',
-              type: TextInputType.phone),
-          const SizedBox(height: Insets.lg),
-          SoftButton(
-            label: 'Send Invitation',
-            icon: Icons.send_rounded,
-            color: AppColors.primary,
-            filled: true,
-            onPressed: onSend,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Field extends StatelessWidget {
-  const _Field({
-    required this.ctrl,
-    required this.label,
-    required this.hint,
-    this.type = TextInputType.text,
-  });
-  final TextEditingController ctrl;
-  final String label;
-  final String hint;
-  final TextInputType type;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(label, style: AppText.label),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: type,
-          style: AppText.body,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppText.body.tint(AppColors.inkMuted),
-            filled: true,
-            fillColor: AppColors.surfaceMuted,
-            contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: Corners.r(Corners.md),
-              borderSide:
-                  const BorderSide(color: AppColors.hairline),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: Corners.r(Corners.md),
-              borderSide:
-                  const BorderSide(color: AppColors.hairline),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: Corners.r(Corners.md),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5),
             ),
           ),
         ),
@@ -462,10 +347,14 @@ class _Field extends StatelessWidget {
 /// look identical until you can see which is which, and a caregiver who has
 /// already written to a clinic should not be invited to write again.
 class _DirectoryDoctorCard extends StatelessWidget {
-  const _DirectoryDoctorCard({required this.doctor, required this.onInvite});
+  const _DirectoryDoctorCard({required this.doctor, required this.status, required this.onInvite});
 
   final DoctorProfile doctor;
-  final VoidCallback onInvite;
+  // Computed by `AppState.statusOf` — real `DoctorProfile` rows from the
+  // backend carry no status of their own; whether this caregiver has
+  // invited or connected to them lives in `AppState`, not on the profile.
+  final InvitationStatus status;
+  final VoidCallback? onInvite;
 
   @override
   Widget build(BuildContext context) {
@@ -512,15 +401,15 @@ class _DirectoryDoctorCard extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               PillTag(
-                label: doctor.status.label,
-                color: doctor.status.color,
-                icon: doctor.status.icon,
+                label: status.label,
+                color: status.color,
+                icon: status.icon,
                 dense: true,
               ),
             ],
           ),
           const SizedBox(height: Insets.sm),
-          switch (doctor.status) {
+          switch (status) {
             // Nothing sent yet, so the only thing to offer is sending it —
             // and it is the same button, in the same green, as the one on the
             // form for a doctor the family already has.
@@ -701,8 +590,9 @@ class _InfoChip extends StatelessWidget {
 // ── Upcoming appointment card ─────────────────────────────────────────────────
 
 class _AppointmentCard extends StatelessWidget {
-  const _AppointmentCard({required this.appointment});
+  const _AppointmentCard({required this.appointment, required this.onJoin});
   final Appointment appointment;
+  final VoidCallback onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -753,7 +643,7 @@ class _AppointmentCard extends StatelessWidget {
                   icon: Icons.video_call_rounded,
                   color: AppColors.primary,
                   filled: true,
-                  onPressed: () {},
+                  onPressed: onJoin,
                 ),
               ),
               const SizedBox(width: 10),

@@ -54,10 +54,10 @@ class _DoctorChatsScreenState extends State<DoctorChatsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => DoctorPatientChatScreen(
-          doctorId: 'doc_001',
+          doctorId: state.myDoctorProfile?.id ?? '',
           patientId: conv.patientId,
           patientName: conv.patientName,
-          doctorName: 'Dr. Sharma',
+          doctorName: state.myDoctorProfile?.displayName ?? 'Doctor',
           isDoctor: true,
         ),
       ),

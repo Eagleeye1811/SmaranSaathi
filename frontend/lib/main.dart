@@ -7,6 +7,7 @@ import 'app/bootstrap.dart';
 import 'core/services/app_state.dart';
 import 'core/models/auth_user.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/doctor_connection_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,13 @@ Future<void> main() async {
   // to the welcome screen. So wait for the auth stream's first event — with a
   // short timeout, because an offline launch must still open the app, using
   // the session already on disk.
+  // Only buildable once `auth` exists (see `bootstrapDoctorConnections`'s
+  // doc comment for why it is not part of `bootstrapAppState` itself).
+  final DoctorConnectionService? doctorConnections = bootstrapDoctorConnections(auth);
+  if (doctorConnections != null) {
+    state.attachDoctorConnections(doctorConnections);
+  }
+
   final AuthUser? restored = await _restoreSession(auth);
   if (restored != null) {
     // Binding the account before the first frame is what lets the app open

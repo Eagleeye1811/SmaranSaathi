@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -22,13 +24,17 @@ class DoctorAnalyticsScreen extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
+    if (caseload.isEmpty) unawaited(state.loadCaseload());
 
-    // Domain averages across the cohort.
+    // Domain averages across the cohort — a real caseload can genuinely be
+    // empty (nobody connected yet), unlike the old fixed 8-patient mock.
     final Map<String, int> domainAverages = <String, int>{
       for (final CognitiveDomain d in CognitiveDomain.values)
-        d.localizedLabel(l): (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
-                caseload.length)
-            .round(),
+        d.localizedLabel(l): caseload.isEmpty
+            ? 0
+            : (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
+                    caseload.length)
+                .round(),
     };
 
     // Score distribution in bands.
@@ -335,11 +341,13 @@ class DoctorAnalyticsScreen extends StatelessWidget {
   static int _countIn(List<ClinicPatient> list, int lo, int hi) =>
       list.where((ClinicPatient c) => c.score >= lo && c.score < hi).length;
 
-  static int _mean(List<ClinicPatient> list) =>
-      (list.fold<int>(0, (int a, ClinicPatient c) => a + c.score) / list.length).round();
+  static int _mean(List<ClinicPatient> list) => list.isEmpty
+      ? 0
+      : (list.fold<int>(0, (int a, ClinicPatient c) => a + c.score) / list.length).round();
 
-  static int _meanAdherence(List<ClinicPatient> list) =>
-      (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
+  static int _meanAdherence(List<ClinicPatient> list) => list.isEmpty
+      ? 0
+      : (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
 }
 
 class _Card extends StatelessWidget {

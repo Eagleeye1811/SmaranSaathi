@@ -3,7 +3,7 @@ from typing import List, Optional
 from starlette.concurrency import run_in_threadpool
 
 from app.core.firebase import get_firestore_client
-from app.models.clinical import ClinicPatient, CognitiveProfile, DoctorAlert, SeriesPoint
+from app.models.clinical import CognitiveProfile, DoctorAlert, SeriesPoint
 from app.repositories.base import AnalyticsRepository
 
 
@@ -39,12 +39,6 @@ class FirestoreAnalyticsRepository(AnalyticsRepository):
                 .stream()
             )
             return [SeriesPoint.model_validate(d.to_dict()) for d in docs]
-
-        return await run_in_threadpool(_list)
-
-    async def caseload(self) -> List[ClinicPatient]:
-        def _list() -> List[ClinicPatient]:
-            return [ClinicPatient.model_validate(d.to_dict()) for d in self._db.collection("caseload").stream()]
 
         return await run_in_threadpool(_list)
 
