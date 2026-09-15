@@ -67,7 +67,7 @@ Future<void> main() async {
     // sign in and answer the questionnaire all over again. The role claim
     // comes along so an account set up on another device still lands in the
     // right app rather than back on the role picker.
-    await state.signInAccount(restored.uid, roleHint: restored.role);
+    await state.signInAccount(restored.uid, roleHint: restored.role, displayName: restored.displayName, email: restored.email);
   }
 
   runApp(SmaranSaathiApp(state: state, authService: auth));

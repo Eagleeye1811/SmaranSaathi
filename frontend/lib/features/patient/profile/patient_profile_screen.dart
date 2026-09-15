@@ -647,7 +647,12 @@ class _AccountCard extends StatelessWidget {
                 SignInScreen(
                   authService: service,
                   onSignedIn: (AuthResult result) async {
-                    await state.signInAccount(result.user!.uid);
+                    await state.signInAccount(
+                      result.user!.uid,
+                      roleHint: result.user!.role,
+                      displayName: result.user!.displayName,
+                      email: result.user!.email,
+                    );
                     if (context.mounted) Navigator.of(context).maybePop();
                   },
                 ),

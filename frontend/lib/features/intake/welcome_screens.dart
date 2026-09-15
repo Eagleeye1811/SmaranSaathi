@@ -11,6 +11,7 @@ import '../../core/widgets/brand.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../auth/auth_role_screen.dart';
+import 'intake_kit.dart';
 import '../caregiver/caregiver_entry.dart';
 import '../doctor/doctor_shell.dart';
 import '../patient/patient_shell.dart';
@@ -160,7 +161,7 @@ class WelcomeScreen extends StatelessWidget {
       // Bind the assessment to this uid *before* anything is answered, so the
       // first answer is already filed under the right account. The role the
       // account already belongs to comes back with it.
-      await state.signInAccount(existing.uid, roleHint: existing.role);
+      await state.signInAccount(existing.uid, roleHint: existing.role, displayName: existing.displayName, email: existing.email);
       if (!context.mounted) return;
       Nav.rootTo(context, sessionHome(state));
       return;
@@ -266,7 +267,7 @@ class WelcomeScreen extends StatelessWidget {
                           'not detect, diagnose or treat dementia, and it does not '
                           'replace a professional assessment.',
                     ),
-                  ),
+                  ],
                 ),
               ),
               Padding(

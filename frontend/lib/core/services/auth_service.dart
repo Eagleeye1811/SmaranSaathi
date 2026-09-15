@@ -40,7 +40,14 @@ abstract class AuthService {
 
   Future<AuthResult> signIn({required String email, required String password});
 
-  Future<AuthResult> signUp({required String email, required String password});
+  /// [displayName] is written to the new account's Firebase profile, so the
+  /// name a doctor types on the sign-up form is what every caregiver later
+  /// sees in the directory.
+  Future<AuthResult> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+  });
 
   /// One button for "I am new here" and "I have been here before".
   ///
@@ -55,7 +62,11 @@ abstract class AuthService {
   /// with email-enumeration protection on, Firebase reports an unknown email
   /// and a wrong password identically, so "no such account, let me make one"
   /// could not be told apart from "you mistyped your password".
-  Future<AuthResult> signInOrCreate({required String email, required String password});
+  Future<AuthResult> signInOrCreate({
+    required String email,
+    required String password,
+    String? displayName,
+  });
 
   /// Google sign-in.
   ///
@@ -115,11 +126,19 @@ class NoAuthRequiredService implements AuthService {
   Future<AuthResult> signInWithGoogle() async => const AuthResult.success(_demoUser);
 
   @override
-  Future<AuthResult> signUp({required String email, required String password}) async =>
+  Future<AuthResult> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async =>
       const AuthResult.success(_demoUser);
 
   @override
-  Future<AuthResult> signInOrCreate({required String email, required String password}) async =>
+  Future<AuthResult> signInOrCreate({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async =>
       const AuthResult.success(_demoUser);
 
   @override

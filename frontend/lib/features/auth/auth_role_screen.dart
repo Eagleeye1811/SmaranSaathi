@@ -116,7 +116,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
       setState(() => _busy = true);
       final AuthUser? existing = auth.currentUser;
       if (existing != null) {
-        await state.signInAccount(existing.uid, roleHint: existing.role);
+        await state.signInAccount(existing.uid, roleHint: existing.role, displayName: existing.displayName, email: existing.email);
       } else {
         final bool signedIn = await _promptSignIn(auth, state);
         if (!mounted) return;
@@ -152,7 +152,7 @@ class _AuthRoleScreenState extends State<AuthRoleScreen> {
           // server, so the role claim is the only hint — and for a new
           // account there is not one yet either. Either way the role the
           // person just picked on this screen is applied after this returns.
-          await state.signInAccount(user.uid, roleHint: user.role);
+          await state.signInAccount(user.uid, roleHint: user.role, displayName: user.displayName, email: user.email);
           signedIn = true;
           if (mounted) Navigator.of(context).pop();
         },

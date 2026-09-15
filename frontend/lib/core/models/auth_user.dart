@@ -5,10 +5,16 @@ import 'package:flutter/foundation.dart';
 /// `core/services/` needs to know it's really a `firebase_auth.User`.
 @immutable
 class AuthUser {
-  const AuthUser({required this.uid, this.email, this.role});
+  const AuthUser({required this.uid, this.email, this.displayName, this.role});
 
   final String uid;
   final String? email;
+
+  /// The name the person gave when they created the account, as stored on
+  /// their Firebase profile. Null for accounts made before the sign-up form
+  /// asked for one, and for a Google sign-in that carries no name — callers
+  /// fall back to deriving something from the email.
+  final String? displayName;
 
   /// The `role` custom claim on the user's Firebase ID token, if any has
   /// been set yet (`patient` | `caregiver` | `doctor`). `null` until the
@@ -17,5 +23,10 @@ class AuthUser {
   /// `POST /auth/role`.
   final String? role;
 
-  AuthUser copyWith({String? role}) => AuthUser(uid: uid, email: email, role: role ?? this.role);
+  AuthUser copyWith({String? role, String? displayName}) => AuthUser(
+        uid: uid,
+        email: email,
+        displayName: displayName ?? this.displayName,
+        role: role ?? this.role,
+      );
 }

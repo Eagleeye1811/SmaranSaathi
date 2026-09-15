@@ -105,6 +105,10 @@ class AppLocalizations {
   String get aiFunctionNotTodayReply => _s('aiFunctionNotTodayReply');
   String get authWelcomeTitle => _s('authWelcomeTitle');
   String get authWelcomeSubtitle => _s('authWelcomeSubtitle');
+  String get authWhoAreYou => _s('authWhoAreYou');
+  String get authRolePatient => _s('authRolePatient');
+  String get authRoleCaregiver => _s('authRoleCaregiver');
+  String get authRoleDoctor => _s('authRoleDoctor');
   String get authRolePatientName => _s('authRolePatientName');
   String get authRolePatientDesc => _s('authRolePatientDesc');
   String get authRoleCaregiverName => _s('authRoleCaregiverName');
@@ -2148,6 +2152,10 @@ class AppLocalizations {
   String get lifeMemoryCategoryStories => _s('lifeMemoryCategoryStories');
   String get lifeMemoryCategoryFood => _s('lifeMemoryCategoryFood');
   String get lifeMemoryCategoryTraditions => _s('lifeMemoryCategoryTraditions');
+  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
+  String get clinicalStatusStable => _s('clinicalStatusStable');
+  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
+  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

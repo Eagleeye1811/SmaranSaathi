@@ -47,7 +47,9 @@ class FirebaseAuthService implements AuthService {
   @override
   AuthUser? get currentUser {
     final fb.User? user = _auth.currentUser;
-    return user == null ? null : AuthUser(uid: user.uid, email: user.email);
+    return user == null
+        ? null
+        : AuthUser(uid: user.uid, email: user.email, displayName: user.displayName);
   }
 
   Future<AuthUser?> _toAuthUser(fb.User? user) async {
@@ -63,7 +65,7 @@ class FirebaseAuthService implements AuthService {
     } catch (error) {
       debugPrint('FirebaseAuthService: reading role claim failed ($error)');
     }
-    return AuthUser(uid: user.uid, email: user.email, role: role);
+    return AuthUser(uid: user.uid, email: user.email, displayName: user.displayName, role: role);
   }
 
   @override
@@ -71,16 +73,37 @@ class FirebaseAuthService implements AuthService {
       _attempt(() => _auth.signInWithEmailAndPassword(email: email.trim(), password: password));
 
   @override
-  Future<AuthResult> signUp({required String email, required String password}) =>
-      _attempt(() => _auth.createUserWithEmailAndPassword(email: email.trim(), password: password),
-          isNewAccount: true);
+  Future<AuthResult> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+  }) =>
+      _attempt(
+        () async {
+          final fb.UserCredential credential = await _auth
+              .createUserWithEmailAndPassword(email: email.trim(), password: password);
+          final String name = (displayName ?? '').trim();
+          if (name.isNotEmpty) {
+            // Written to the Firebase profile rather than kept in app state,
+            // so it is the account that carries the name — a doctor signing
+            // in on a second device is still listed under the name they gave,
+            // instead of one derived from their email address.
+            await credential.user?.updateDisplayName(name);
+            await credential.user?.reload();
+          }
+          return credential;
+        },
+        isNewAccount: true,
+      );
 
   @override
   Future<AuthResult> signInOrCreate({
     required String email,
     required String password,
+    String? displayName,
   }) async {
-    final AuthResult created = await signUp(email: email, password: password);
+    final AuthResult created =
+        await signUp(email: email, password: password, displayName: displayName);
     if (created.isSuccess) return created;
 
     // The only outcome that means "you already have one of these". Every
@@ -141,7 +164,7 @@ class FirebaseAuthService implements AuthService {
       final fb.User? user = credential.user;
       if (user == null) return const AuthResult.failure('Sign-in did not return a user.');
       return AuthResult.success(
-        AuthUser(uid: user.uid, email: user.email),
+        AuthUser(uid: user.uid, email: user.email, displayName: user.displayName),
         // Firebase says so itself for a federated sign-in; for email/password
         // the caller knows which method it used.
         isNewAccount: isNewAccount || (credential.additionalUserInfo?.isNewUser ?? false),

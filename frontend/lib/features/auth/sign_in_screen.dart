@@ -51,10 +51,19 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
+/// Which of the two things the form is doing right now.
+enum _AuthMode { signIn, signUp }
+
 class _SignInScreenState extends State<SignInScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
+
+  /// Returning is the common case once a device has been set up, so the form
+  /// opens on it; a first-time doctor or caregiver switches once.
+  _AuthMode _mode = _AuthMode.signIn;
+  bool get _isSignUp => _mode == _AuthMode.signUp;
 
   bool _submitting = false;
   bool _obscurePassword = true;
@@ -63,23 +72,45 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
+    _name.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
-  /// One button. The account is created if it is not there and signed in to
-  /// if it is — see `AuthService.signInOrCreate` for why that is a single
-  /// action rather than two the person has to choose between.
+  /// Creating an account and signing in used to be one button, on the
+  /// reasoning that somebody setting a phone up for a parent should not have
+  /// to know which they need. That works until the form has to collect
+  /// something only a *new* account has — a name — which cannot sensibly be
+  /// asked of someone who is only signing back in. So the two are separate
+  /// now, and `signInOrCreate` still covers the ambiguous case underneath:
+  /// choosing "Create account" for an email that already exists falls back to
+  /// signing in rather than failing.
   Future<void> _submit() async {
     if (_submitting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     await _run(
-      () => widget.authService.signInOrCreate(
-        email: _email.text,
-        password: _password.text,
-      ),
+      () => _isSignUp
+          ? widget.authService.signInOrCreate(
+              email: _email.text,
+              password: _password.text,
+              displayName: _name.text,
+            )
+          : widget.authService.signIn(
+              email: _email.text,
+              password: _password.text,
+            ),
     );
+  }
+
+  void _setMode(_AuthMode mode) {
+    if (_mode == mode || _submitting) return;
+    setState(() {
+      _mode = mode;
+      // Errors belong to the attempt that produced them, not to the form.
+      _error = null;
+      _notice = null;
+    });
   }
 
   Future<void> _google() => _run(widget.authService.signInWithGoogle);
@@ -229,14 +260,19 @@ class _SignInScreenState extends State<SignInScreen> {
                               child: Column(
                                 children: <Widget>[
                                   Text(
-                                    'Care team sign-in',
+                                    _isSignUp
+                                        ? 'Create your account'
+                                        : 'Care team sign-in',
                                     textAlign: TextAlign.center,
                                     style: AppText.h1.sized(26),
                                   ),
                                   const SizedBox(height: Insets.xs),
                                   Text(
-                                    'New or returning, one button covers both. '
-                                    'The patient never needs to sign in here.',
+                                    _isSignUp
+                                        ? 'For a caregiver or a doctor. Your name is '
+                                              'what the other side sees.'
+                                        : 'Welcome back. The patient never needs to '
+                                              'sign in here.',
                                     textAlign: TextAlign.center,
                                     style: AppText.body.copyWith(
                                       color: AppColors.inkSoft,
@@ -253,6 +289,39 @@ class _SignInScreenState extends State<SignInScreen> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: <Widget>[
+                                    _ModeToggle(
+                                      mode: _mode,
+                                      enabled: !_submitting,
+                                      onChanged: _setMode,
+                                    ),
+                                    const SizedBox(height: Insets.lg),
+                                    // Only a new account has a name to give;
+                                    // asking a returning person for one would
+                                    // be asking them to retype something the
+                                    // account already knows.
+                                    if (_isSignUp) ...<Widget>[
+                                      _fieldLabel('Your name'),
+                                      TextFormField(
+                                        controller: _name,
+                                        enabled: !_submitting,
+                                        autofillHints: const <String>[
+                                          AutofillHints.name,
+                                        ],
+                                        textCapitalization:
+                                            TextCapitalization.words,
+                                        textInputAction: TextInputAction.next,
+                                        style: AppText.bodyLarge,
+                                        decoration: _fieldDecoration(),
+                                        validator: (String? value) {
+                                          if (!_isSignUp) return null;
+                                          if ((value ?? '').trim().isEmpty) {
+                                            return 'Enter your name.';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const SizedBox(height: Insets.md),
+                                    ],
                                     _fieldLabel('Email'),
                                     TextFormField(
                                       controller: _email,
@@ -334,14 +403,17 @@ class _SignInScreenState extends State<SignInScreen> {
                                     BigButton(
                                       label: _submitting
                                           ? 'Please wait…'
-                                          : 'Continue',
+                                          : (_isSignUp
+                                                ? 'Create account'
+                                                : 'Sign in'),
                                       icon: Icons.arrow_forward_rounded,
                                       onPressed: _submitting ? null : _submit,
                                     ),
                                     const SizedBox(height: Insets.sm),
                                     Text(
-                                      'We will create your account if you do not have '
-                                      'one yet.',
+                                      _isSignUp
+                                          ? 'Already have an account? Choose Sign in above.'
+                                          : 'New here? Choose Create account above.',
                                       textAlign: TextAlign.center,
                                       style: AppText.caption.tint(
                                         AppColors.inkMuted,
@@ -378,6 +450,98 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Sign in / Create account, as a two-segment switch.
+///
+/// A segmented control rather than a "don't have an account?" link at the
+/// bottom: both states have to be visible at a glance here, because the form
+/// above changes shape between them (the name field appears), and a person
+/// who cannot see why it changed will think something went wrong.
+class _ModeToggle extends StatelessWidget {
+  const _ModeToggle({
+    required this.mode,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final _AuthMode mode;
+  final bool enabled;
+  final ValueChanged<_AuthMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.primaryTint.withValues(alpha: 0.45),
+        borderRadius: Corners.r(Corners.md),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: _Segment(
+              label: 'Sign in',
+              selected: mode == _AuthMode.signIn,
+              enabled: enabled,
+              onTap: () => onChanged(_AuthMode.signIn),
+            ),
+          ),
+          Expanded(
+            child: _Segment(
+              label: 'Create account',
+              selected: mode == _AuthMode.signUp,
+              enabled: enabled,
+              onTap: () => onChanged(_AuthMode.signUp),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? AppColors.surface : Colors.transparent,
+        borderRadius: Corners.r(Corners.sm),
+        elevation: selected ? 1 : 0,
+        shadowColor: AppColors.ink.withValues(alpha: 0.12),
+        child: InkWell(
+          borderRadius: Corners.r(Corners.sm),
+          onTap: enabled ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 11),
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: AppText.body.copyWith(
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? AppColors.primary : AppColors.inkSoft,
+              ),
+            ),
           ),
         ),
       ),

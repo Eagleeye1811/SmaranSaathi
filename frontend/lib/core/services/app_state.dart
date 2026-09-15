@@ -305,7 +305,11 @@ class AppState extends ChangeNotifier {
     // Picking "doctor" is the moment a clinician becomes findable.
     final String? signedIn = _accountId;
     if (r == AppRole.doctor && signedIn != null) {
-      unawaited(ensureDoctorListing(uid: signedIn));
+      unawaited(ensureDoctorListing(
+        uid: signedIn,
+        email: _accountEmail,
+        name: _accountDisplayName,
+      ));
     }
     // The role belongs to the person, so remember it against their account
     // and not just against the phone. This is the flag that lets a returning
@@ -1038,6 +1042,12 @@ class AppState extends ChangeNotifier {
   String? _accountId;
   String? get accountId => _accountId;
 
+  /// The name and email of the signed-in account, as Firebase holds them.
+  /// Kept so [ensureDoctorListing] can list a doctor under the name they
+  /// typed on the sign-up form rather than one derived from their address.
+  String? _accountDisplayName;
+  String? _accountEmail;
+
   /// uid → role name, for every account that has picked a role on this
   /// device. See [AppSettings.accountRolesJson].
   final Map<String, String> _accountRoles = <String, String>{};
@@ -1742,7 +1752,19 @@ class AppState extends ChangeNotifier {
   /// only when this device has no saved role for the account — an account
   /// that set itself up on another phone still lands in the right app here
   /// rather than being asked to choose again.
-  Future<void> signInAccount(String uid, {String? roleHint}) async {
+  Future<void> signInAccount(
+    String uid, {
+    String? roleHint,
+    String? displayName,
+    String? email,
+  }) async {
+    // Recorded before the early return below, so a session Firebase restores
+    // after the fact still carries the name into the doctor listing.
+    if (displayName != null && displayName.trim().isNotEmpty) {
+      _accountDisplayName = displayName.trim();
+    }
+    if (email != null && email.trim().isNotEmpty) _accountEmail = email.trim();
+
     if (_accountId == uid) {
       // Already bound. Nothing to migrate, but a role claim that arrives
       // after the fact (Firebase restores its session asynchronously) still
@@ -1846,7 +1868,9 @@ class AppState extends ChangeNotifier {
     // Last, so it wins over the blank-slate reset above: whatever role this
     // account already belongs to is what it comes back as.
     _resolveRoleFor(uid, roleHint);
-    if (_role == AppRole.doctor) await ensureDoctorListing(uid: uid);
+    if (_role == AppRole.doctor) {
+      await ensureDoctorListing(uid: uid, email: _accountEmail, name: _accountDisplayName);
+    }
 
     _profileReady = true;
     _persistSettings();
@@ -1929,6 +1953,8 @@ class AppState extends ChangeNotifier {
   Future<void> signOutAccount() async {
     if (_accountId == null) return;
     _accountId = null;
+    _accountDisplayName = null;
+    _accountEmail = null;
     _accountRoles.clear();
     _patientUsername = '';
     _role = AppRole.none;
