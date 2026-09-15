@@ -8,6 +8,7 @@ import '../../core/models/auth_user.dart';
 import '../../core/services/app_state.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/widgets/brand.dart';
+import '../../core/widgets/companion.dart';
 import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../auth/auth_role_screen.dart';
@@ -17,7 +18,6 @@ import '../doctor/doctor_shell.dart';
 import '../patient/patient_shell.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
-import 'intake_kit.dart';
 
 class AvatarVideoPlayer extends StatefulWidget {
   const AvatarVideoPlayer({super.key});
@@ -195,20 +195,29 @@ class WelcomeScreen extends StatelessWidget {
         AppRole.none => const AuthRoleScreen(),
       };
 
-  static List<({IconData icon, String title, String detail})> _pillars(AppLocalizations l) =>
-      <({IconData icon, String title, String detail})>[
+  /// Each pillar carries its own hue.
+  ///
+  /// Three identically-tinted cards read as one repeated shape; three tints
+  /// read as three distinct promises, which is what they are — and it costs
+  /// nothing, because the palette already has these.
+  static List<({IconData icon, Color tint, String title, String detail})> _pillars(
+          AppLocalizations l) =>
+      <({IconData icon, Color tint, String title, String detail})>[
     (
       icon: Icons.fact_check_outlined,
+      tint: AppColors.primary,
       title: l.intakePillarUnderstandTitle,
       detail: l.intakePillarUnderstandDetail,
     ),
     (
       icon: Icons.timeline_rounded,
+      tint: AppColors.secondary,
       title: l.intakePillarTrackTitle,
       detail: l.intakePillarTrackDetail,
     ),
     (
       icon: Icons.medical_information_outlined,
+      tint: AppColors.terracotta,
       title: l.intakePillarSupportTitle,
       detail: l.intakePillarSupportDetail,
     ),
@@ -217,77 +226,120 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<({IconData icon, Color tint, String title, String detail})> pillars =
+        _pillars(l);
+
+    // Big on a phone, capped so it does not balloon on a tablet.
+    final Size screen = MediaQuery.sizeOf(context);
+    final double heroSize = (screen.width * 0.66).clamp(180.0, 300.0);
+
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: MotifBackground(
-        opacity: 0.04,
+        opacity: 0.05,
+        washColors: <Color>[
+          AppColors.primaryTint.withValues(alpha: 0.85),
+          AppColors.background.withValues(alpha: 0),
+        ],
         child: SafeArea(
           child: Column(
             children: <Widget>[
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(
-                      Insets.gutter, Insets.lg, Insets.gutter, Insets.md),
+                      Insets.gutter, Insets.sm, Insets.gutter, Insets.sm),
                   children: <Widget>[
-                    const BrandLockup(),
-                    const SizedBox(height: Insets.lg),
-                    Text(l.intakeWelcomeHeadline, style: AppText.display),
+                    const FadeInUp(
+                        child: Center(child: BrandLockup(size: 30, center: true))),
                     const SizedBox(height: Insets.sm),
-                    Text(
-                      l.intakeWelcomeSubtitle,
-                      style: AppText.bodyLarge.copyWith(color: AppColors.inkSoft),
-                    ),
-                    const SizedBox(height: Insets.lg),
-                    // Tighter than `MmCard`'s own default padding and
-                    // `SoftIcon`'s default size: three of these plus the
-                    // headline, subtitle and disclaimer above and below
-                    // otherwise ran taller than a typical phone screen, which
-                    // left the disclaimer half hidden behind the button below
-                    // until someone scrolled to find it — not a good first
-                    // impression for the one line this screen most needs
-                    // read.
-                    for (final ({IconData icon, String title, String detail}) p in _pillars(l))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: Insets.xs),
-                        child: MmCard(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: Insets.sm, vertical: Insets.xs),
-                          child: ListRow(
-                            leading: SoftIcon(icon: p.icon, size: 38),
-                            title: p.title,
-                            subtitle: p.detail,
-                            padding: EdgeInsets.zero,
+
+                    // ── The hero ──────────────────────────────────────────
+                    // The app's own companion rather than the generic bot in
+                    // `avatar.json`: this is the character the patient meets on
+                    // every screen after this one, and it is drawn in the
+                    // brand's own green instead of a stock teal.
+                    FadeInUp(
+                      delayMs: 60,
+                      child: Center(
+                        child: SizedBox(
+                          height: heroSize,
+                          child: Companion(
+                            state: CompanionState.gentle,
+                            size: heroSize,
                           ),
                         ),
                       ),
-                    const SizedBox(height: Insets.sm),
-                    const NotADiagnosisNote(
-                      compact: true,
-                      message:
-                          'SmaranSaathi supports monitoring and understanding. It does '
-                          'not detect, diagnose or treat dementia, and it does not '
-                          'replace a professional assessment.',
+                    ),
+                    const SizedBox(height: Insets.md),
+
+                    FadeInUp(
+                      delayMs: 130,
+                      child: Text(
+                        l.intakeWelcomeHeadline,
+                        textAlign: TextAlign.center,
+                        style: AppText.display,
+                      ),
+                    ),
+                    const SizedBox(height: Insets.md),
+
+                    // Three words, not three paragraphs. The detail lines said
+                    // the same thing the intake is about to ask anyway, and
+                    // they were what pushed the disclaimer off the screen.
+                    FadeInUp(
+                      delayMs: 190,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          for (final ({IconData icon, Color tint, String title, String detail}) p
+                              in pillars)
+                            Flexible(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  SoftIcon(icon: p.icon, color: p.tint, size: 46),
+                                  const SizedBox(height: Insets.xs),
+                                  Text(
+                                    p.title,
+                                    textAlign: TextAlign.center,
+                                    style: AppText.label.copyWith(color: AppColors.inkSoft),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: Insets.md),
+
+                    // Kept: this is a medical-safety notice, not decoration.
+                    const FadeInUp(
+                      delayMs: 240,
+                      child: NotADiagnosisNote(compact: true),
                     ),
                   ],
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                    Insets.gutter, 0, Insets.gutter, Insets.lg),
-                child: Column(
-                  children: <Widget>[
-                    BigButton(
-                      label: l.intakeGetStarted,
-                      icon: Icons.arrow_forward_rounded,
-                      onPressed: onGetStarted ?? () => continueFrom(context),
-                    ),
-                    const SizedBox(height: Insets.xs),
-                    TextButton(
-                      onPressed: () => continueFrom(context),
-                      child: Text(l.intakeAlreadyHaveAccount,
-                          style: AppText.body.copyWith(color: AppColors.primary)),
-                    ),
-                  ],
+                    Insets.gutter, Insets.xs, Insets.gutter, Insets.md),
+                child: FadeInUp(
+                  delayMs: 290,
+                  child: Column(
+                    children: <Widget>[
+                      BigButton(
+                        label: l.intakeGetStarted,
+                        icon: Icons.arrow_forward_rounded,
+                        onPressed: onGetStarted ?? () => continueFrom(context),
+                      ),
+                      const SizedBox(height: Insets.xs),
+                      TextButton(
+                        onPressed: () => continueFrom(context),
+                        child: Text(l.intakeAlreadyHaveAccount,
+                            style: AppText.body.copyWith(color: AppColors.primary)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

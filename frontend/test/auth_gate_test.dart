@@ -8,6 +8,7 @@ import 'package:smaran_saathi/app/theme/app_theme.dart';
 import 'package:smaran_saathi/core/models/auth_user.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
 import 'package:smaran_saathi/core/services/auth_service.dart';
+import 'package:smaran_saathi/core/widgets/ui_kit.dart';
 import 'package:smaran_saathi/features/auth/auth_role_screen.dart';
 import 'package:smaran_saathi/features/auth/sign_in_screen.dart';
 import 'package:smaran_saathi/features/intake/welcome_screens.dart';
@@ -42,7 +43,11 @@ class FakeAuthService implements AuthService {
   Future<AuthResult> signIn({required String email, required String password}) => _attempt(email);
 
   @override
-  Future<AuthResult> signUp({required String email, required String password}) =>
+  Future<AuthResult> signUp({
+    required String email,
+    required String password,
+    String? displayName,
+  }) =>
       _attempt(email, isNewAccount: true);
 
   /// Mirrors the real service: create unless the email is already known, in
@@ -53,6 +58,7 @@ class FakeAuthService implements AuthService {
   Future<AuthResult> signInOrCreate({
     required String email,
     required String password,
+    String? displayName,
   }) async {
     final bool existed = !knownEmails.add(email.trim());
     return _attempt(email, isNewAccount: !existed);
@@ -110,6 +116,10 @@ Future<void> beat(WidgetTester tester, [int ms = 600]) async {
   await tester.pump(Duration(milliseconds: ms));
 }
 
+/// The form's submit button. Named through its widget type because the mode
+/// toggle above it carries the same words.
+final Finder submitButton = find.widgetWithText(BigButton, 'Sign in');
+
 void main() {
   testWidgets('unauthenticated: shows the sign-in screen, not role selection', (WidgetTester tester) async {
     final FakeAuthService auth = FakeAuthService();
@@ -131,11 +141,12 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'correcthorse');
-    // The form's own Companion mascot pushes "Continue" below the fold on
-    // this test's small default surface — scroll to it explicitly rather
-    // than assume it is already on-screen.
-    await tester.ensureVisible(find.text('Continue'));
-    await tester.tap(find.text('Continue'));
+    // The form's own Companion mascot pushes the submit button below the fold
+    // on this test's small default surface — scroll to it explicitly rather
+    // than assume it is already on-screen. Matched through `BigButton`
+    // because "Sign in" is also the label of the mode toggle above it.
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
     await beat(tester);
 
     expect(find.text('Role selection reached'), findsOneWidget);
@@ -151,8 +162,8 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'wrongpassword');
-    await tester.ensureVisible(find.text('Continue'));
-    await tester.tap(find.text('Continue'));
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
     await beat(tester);
 
     expect(find.text('Incorrect email or password.'), findsOneWidget);
@@ -166,8 +177,8 @@ void main() {
       home: AuthGate(authService: auth, child: const Text('Role selection reached')),
     ));
 
-    await tester.ensureVisible(find.text('Continue'));
-    await tester.tap(find.text('Continue'));
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
     await beat(tester);
 
     expect(find.text('Enter an email address.'), findsOneWidget);
@@ -243,7 +254,8 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'priya@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'password123');
-    await tester.tap(find.text('Continue').last);
+    await tester.ensureVisible(submitButton);
+    await tester.tap(submitButton);
     // Signing in now loads the account's whole record — profile, questionnaire,
     // baseline, history — before it navigates, so let those reads settle.
     for (int i = 0; i < 6; i++) {
@@ -367,6 +379,7 @@ void main() {
 
       // The email fields are left empty on purpose: Google sign-in must not
       // be blocked by the form's validators.
+      await tester.ensureVisible(find.text('Continue with Google'));
       await tester.tap(find.text('Continue with Google'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
@@ -395,6 +408,7 @@ void main() {
       );
       await tester.pump();
 
+      await tester.ensureVisible(find.text('Continue with Google'));
       await tester.tap(find.text('Continue with Google'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));

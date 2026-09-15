@@ -2157,10 +2157,6 @@ class AppLocalizations {
   String get lifeMemoryCategoryStories => _s('lifeMemoryCategoryStories');
   String get lifeMemoryCategoryFood => _s('lifeMemoryCategoryFood');
   String get lifeMemoryCategoryTraditions => _s('lifeMemoryCategoryTraditions');
-  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
-  String get clinicalStatusStable => _s('clinicalStatusStable');
-  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
-  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
