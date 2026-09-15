@@ -16,7 +16,7 @@ class MockTranslator {
         return l.mockReminderEveningWalk;
       case 'Call Priya':
         return l.mockReminderCallPriya;
-      case 'Memory clinic — Dr. Sharma':
+      case 'Memory clinic: Dr. Sharma':
         return l.mockReminderMemoryClinic;
       case 'Cognitive activity':
         return l.mockReminderCognitiveActivity;
@@ -95,7 +95,7 @@ class MockTranslator {
     if (clinic == 'Guwahati Memory Clinic') {
       return l.clinicGuwahati;
     }
-    if (clinic == 'Jorhat Medical College — Memory Clinic') {
+    if (clinic == 'Jorhat Medical College, Memory Clinic') {
       return l.clinicJorhat;
     }
     return clinic;

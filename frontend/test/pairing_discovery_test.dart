@@ -91,15 +91,38 @@ void main() {
       );
     });
 
-    test('nothing reachable at all is still an ordinary failure', () async {
+    test('nothing reachable at all is reported distinctly from "unsupported"', () async {
       final PairingService service = PairingService(
         baseUrl: _deployed,
         client: _world(reachable: const <String>{}, supportsPairing: const <String>{}),
       );
       await expectLater(
         service.claim(username: 'aruna', patientId: 'p_1', caregiverUid: 'uid-1'),
-        throwsA(isA<StateError>()),
+        throwsA(isA<PairingUnreachableException>()),
       );
+    });
+
+    test('the configured backend is tried before the dev-loopback fallbacks',
+        () async {
+      // The reported bug this guards against: the loopback candidates used
+      // to be tried first, so a working, correctly-configured backend paid
+      // for three doomed attempts (each able to hang for real on a network
+      // that drops rather than refuses) before ever being reached.
+      final List<String> log = <String>[];
+      final PairingService service = PairingService(
+        baseUrl: _deployed,
+        client: _world(
+          reachable: <String>{_deployed},
+          supportsPairing: <String>{_deployed},
+          log: log,
+        ),
+      );
+
+      await service.claim(username: 'aruna', patientId: 'p_1', caregiverUid: 'uid-1');
+
+      expect(log, isNotEmpty);
+      expect(log.first, startsWith(_deployed),
+          reason: 'the configured backend must be the first thing tried');
     });
 
     test('the working host is remembered, not rediscovered every call', () async {

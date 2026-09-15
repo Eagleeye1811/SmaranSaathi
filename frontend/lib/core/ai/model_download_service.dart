@@ -109,7 +109,7 @@ class ModelDownloadService {
         if (digest.toString() != expectedSha256) {
           await partial.delete();
           throw const FormatException(
-              'Downloaded model failed checksum verification — deleted, please retry.');
+              'Downloaded model failed checksum verification. Deleted, please retry.');
         }
       }
 

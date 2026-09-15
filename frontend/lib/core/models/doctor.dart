@@ -4,26 +4,37 @@ import 'package:flutter/material.dart';
 enum InvitationStatus { notSent, sent, pending, connected }
 
 extension InvitationStatusX on InvitationStatus {
+  /// Said plainly, from the caregiver's side of it.
+  ///
+  /// "Invitation sent" and "Pending" described the same situation in two
+  /// different words — the caregiver has written to a doctor and is waiting —
+  /// and nobody could tell which was which, least of all when they were two
+  /// shades of the same orange. Both now say what is actually happening:
+  /// you are waiting to hear back.
   String get label => switch (this) {
-        InvitationStatus.notSent => 'Not sent',
-        InvitationStatus.sent => 'Invitation sent',
-        InvitationStatus.pending => 'Pending',
+        InvitationStatus.notSent => 'Not invited',
+        InvitationStatus.sent || InvitationStatus.pending => 'Waiting for reply',
         InvitationStatus.connected => 'Connected',
       };
 
   Color get color => switch (this) {
-        InvitationStatus.notSent => const Color(0xFF8C8377),
-        InvitationStatus.sent => const Color(0xFFE0913A),
-        InvitationStatus.pending => const Color(0xFFD9962B),
-        InvitationStatus.connected => const Color(0xFF3E9268),
+        // Deliberately far apart: grey for nothing done, a strong amber for
+        // waiting, green for connected. The old amber pair differed by 7 in
+        // one channel, which on a tinted pill is no difference at all.
+        InvitationStatus.notSent => const Color(0xFF6E675E),
+        InvitationStatus.sent || InvitationStatus.pending => const Color(0xFFB4690E),
+        InvitationStatus.connected => const Color(0xFF2F7350),
       };
 
   IconData get icon => switch (this) {
         InvitationStatus.notSent => Icons.person_add_outlined,
-        InvitationStatus.sent => Icons.send_outlined,
-        InvitationStatus.pending => Icons.hourglass_empty_rounded,
+        InvitationStatus.sent || InvitationStatus.pending => Icons.hourglass_bottom_rounded,
         InvitationStatus.connected => Icons.verified_rounded,
       };
+
+  /// True while the caregiver is waiting on the doctor.
+  bool get isWaiting =>
+      this == InvitationStatus.sent || this == InvitationStatus.pending;
 }
 
 /// A doctor connected to the patient's care profile.
@@ -52,6 +63,60 @@ class DoctorProfile {
   final String registrationNumber;
 
   String get displayName => 'Dr. $name';
+
+  /// Round-trips through `AppState`'s settings so a clinician who signs up
+  /// on this device is still in the directory after a restart.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'name': name,
+        'specialization': specialization,
+        'hospital': hospital,
+        'email': email,
+        'phone': phone,
+        'avatarInitials': avatarInitials,
+        'status': status.name,
+        'registrationNumber': registrationNumber,
+      };
+
+  static DoctorProfile? fromJson(Map<String, dynamic> json) {
+    final Object? id = json['id'];
+    final Object? name = json['name'];
+    if (id is! String || name is! String || id.isEmpty) return null;
+    return DoctorProfile(
+      id: id,
+      name: name,
+      specialization: (json['specialization'] as String?) ?? '',
+      hospital: (json['hospital'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      phone: (json['phone'] as String?) ?? '',
+      avatarInitials: (json['avatarInitials'] as String?) ?? '',
+      status: InvitationStatus.values.firstWhere(
+        (InvitationStatus s) => s.name == json['status'],
+        orElse: () => InvitationStatus.notSent,
+      ),
+      registrationNumber: (json['registrationNumber'] as String?) ?? '',
+    );
+  }
+
+  DoctorProfile copyWith({
+    InvitationStatus? status,
+    String? name,
+    String? specialization,
+    String? hospital,
+    String? phone,
+    String? registrationNumber,
+  }) =>
+      DoctorProfile(
+        id: id,
+        name: name ?? this.name,
+        specialization: specialization ?? this.specialization,
+        hospital: hospital ?? this.hospital,
+        email: email,
+        phone: phone ?? this.phone,
+        avatarInitials: avatarInitials,
+        status: status ?? this.status,
+        registrationNumber: registrationNumber ?? this.registrationNumber,
+      );
 }
 
 /// Status of a booked appointment.
@@ -86,7 +151,6 @@ class Appointment {
     required this.status,
     this.isVirtual = false,
     this.joinLink = '',
-    this.summary,
   });
 
   final String id;
@@ -98,27 +162,98 @@ class Appointment {
   final AppointmentStatus status;
   final bool isVirtual;
   final String joinLink;
-  final ConsultationSummary? summary;
 }
 
-/// Notes and care plan from the doctor after a completed consultation.
+// ── Doctor-side appointment (from doctor perspective) ─────────────────────
+
+/// An appointment on the doctor's schedule.
 @immutable
-class ConsultationSummary {
-  const ConsultationSummary({
-    required this.appointmentId,
+class DoctorAppointment {
+  const DoctorAppointment({
+    required this.id,
+    required this.patientId,
+    required this.patientName,
+    required this.patientAge,
     required this.dateLabel,
-    required this.observations,
-    required this.careplan,
-    required this.recommendedActivities,
-    required this.followUpLabel,
+    required this.timeLabel,
+    required this.status,
+    this.isVirtual = false,
     this.doctorNotes = '',
   });
 
-  final String appointmentId;
+  final String id;
+  final String patientId;
+  final String patientName;
+  final int patientAge;
   final String dateLabel;
-  final List<String> observations;
-  final String careplan;
-  final List<String> recommendedActivities;
-  final String followUpLabel;
+  final String timeLabel;
+  final AppointmentStatus status;
+  final bool isVirtual;
   final String doctorNotes;
+}
+
+/// A time slot the doctor has made available for booking.
+@immutable
+class DoctorSlot {
+  const DoctorSlot({
+    required this.id,
+    required this.dayLabel,
+    required this.timeLabel,
+    this.isBooked = false,
+    this.bookedByPatient = '',
+  });
+
+  final String id;
+  final String dayLabel;
+  final String timeLabel;
+  final bool isBooked;
+  final String bookedByPatient;
+}
+
+/// An incoming connection request from a patient/caregiver.
+@immutable
+class ConnectionRequest {
+  const ConnectionRequest({
+    required this.id,
+    required this.patientName,
+    required this.patientAge,
+    required this.district,
+    required this.requestedByLabel,
+    required this.timeAgo,
+    this.doctorId = '',
+  });
+
+  final String id;
+  final String patientName;
+  final int patientAge;
+  final String district;
+  final String requestedByLabel;
+  final String timeAgo;
+
+  /// Which doctor was invited. Empty for the sample requests that come with
+  /// the demo caseload; set for one a caregiver actually sent, so accepting
+  /// it connects the right person rather than a guess.
+  final String doctorId;
+}
+
+/// Doctor-authored care plan for a patient.
+@immutable
+class CarePlanEntry {
+  const CarePlanEntry({
+    required this.patientId,
+    required this.updatedLabel,
+    required this.recommendations,
+    required this.activities,
+    required this.instructions,
+    required this.followUpLabel,
+    this.sharedWithCaregiver = false,
+  });
+
+  final String patientId;
+  final String updatedLabel;
+  final List<String> recommendations;
+  final List<String> activities;
+  final String instructions;
+  final String followUpLabel;
+  final bool sharedWithCaregiver;
 }

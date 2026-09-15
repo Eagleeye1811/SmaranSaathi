@@ -89,3 +89,20 @@ def test_an_unknown_username_cannot_be_requested(client, auth):
 
 def test_pairing_needs_a_device_token(client):
     assert client.get("/api/v1/pairing/requests?caregiverUid=uid-real").status_code == 401
+
+
+def test_a_caregiver_can_recover_their_claim_after_forgetting_it(client, auth):
+    # This is what a device signing back in relies on: its own local record
+    # of "we already claimed a username" is not durable (see
+    # `AppState.signOutAccount`), so it has to be able to ask the backend
+    # instead of silently assuming nothing was ever set up.
+    _claim(client, auth, username="chitra", patient="p_5", uid="uid-returning")
+
+    mine = client.get("/api/v1/pairing/claims?caregiverUid=uid-returning", headers=auth)
+    assert mine.status_code == 200
+    usernames = [c["username"] for c in mine.json()]
+    assert usernames == ["chitra"]
+
+    nobody = client.get("/api/v1/pairing/claims?caregiverUid=uid-nobody", headers=auth)
+    assert nobody.status_code == 200
+    assert nobody.json() == []

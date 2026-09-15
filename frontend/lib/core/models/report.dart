@@ -137,7 +137,7 @@ class ClinicalReport {
                   '${d.label}: '
                       '${prominent.where((SymptomItem i) => i.domain == d).map((SymptomItem i) => i.text.toLowerCase()).join(', ')}',
             ],
-      note: 'Reported severity by group — '
+      note: 'Reported severity by group: '
           '${SymptomDomain.values.map((SymptomDomain d) => '${d.label} ${intake.symptoms.severity(d).round()}%').join(' · ')}',
     ));
 
@@ -325,7 +325,7 @@ class ClinicalReport {
       ..writeln('OBSERVED PATTERNS')
       ..writeln('-' * 46);
     for (final ObservedPattern p in patterns) {
-      b.writeln('• ${p.label}: ${p.level.label.toUpperCase()} — ${p.rationale}');
+      b.writeln('• ${p.label}: ${p.level.label.toUpperCase()}, ${p.rationale}');
     }
     b.writeln();
 

@@ -48,7 +48,7 @@ class CaregiverProfileScreen extends StatelessWidget {
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
             title: Text('Log out?'),
-            content: Text('Nothing is deleted — this record stays on the phone under your '
+            content: Text('Nothing is deleted. This record stays on the phone under your '
                 'account and comes back the next time you sign in.'),
             actions: <Widget>[
               TextButton(
@@ -88,11 +88,11 @@ class CaregiverProfileScreen extends StatelessWidget {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.primaryTint.withValues(alpha: 0.75),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[

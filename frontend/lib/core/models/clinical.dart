@@ -14,6 +14,22 @@ class CognitiveProfile {
 
   int score(CognitiveDomain d) => scores[d] ?? 0;
 
+  static CognitiveProfile fromJson(Map<String, dynamic> j) {
+    final Map<CognitiveDomain, int> scores = <CognitiveDomain, int>{};
+    final Object? rawScores = j['scores'];
+    if (rawScores is Map<String, dynamic>) {
+      for (final CognitiveDomain d in CognitiveDomain.values) {
+        final Object? v = rawScores[d.name];
+        if (v is int) scores[d] = v;
+      }
+    }
+    return CognitiveProfile(
+      scores: scores,
+      overall: j['overall'] as int? ?? 0,
+      updated: j['updated'] as String? ?? '',
+    );
+  }
+
   CognitiveProfile withDelta(Map<CognitiveDomain, int> deltas) {
     final Map<CognitiveDomain, int> next = Map<CognitiveDomain, int>.from(scores);
     deltas.forEach((CognitiveDomain k, int v) {
@@ -86,6 +102,36 @@ class ClinicPatient {
   final List<double> thirtyDay;
   final int adherence;
   final int engagement;
+
+  static ClinicPatient fromJson(Map<String, dynamic> j) => ClinicPatient(
+        id: j['id'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        age: j['age'] as int? ?? 0,
+        district: j['district'] as String? ?? '',
+        score: j['score'] as int? ?? 0,
+        trend: switch (j['trend'] as String?) {
+          'up' => TrendDirection.up,
+          'down' => TrendDirection.down,
+          _ => TrendDirection.flat,
+        },
+        status: switch (j['status'] as String?) {
+          'needsAttention' => ClinicalStatus.needsAttention,
+          'followUp' => ClinicalStatus.followUp,
+          _ => ClinicalStatus.stable,
+        },
+        sceneId: j['sceneId'] as String? ?? '',
+        language: j['language'] as String? ?? '',
+        lastSession: j['lastSession'] as String? ?? '',
+        profile: j['profile'] is Map<String, dynamic>
+            ? CognitiveProfile.fromJson(j['profile'] as Map<String, dynamic>)
+            : const CognitiveProfile(scores: <CognitiveDomain, int>{}, overall: 0, updated: ''),
+        thirtyDay: <double>[
+          for (final Object? v in (j['thirtyDay'] as List<dynamic>? ?? const <dynamic>[]))
+            (v as num).toDouble(),
+        ],
+        adherence: j['adherence'] as int? ?? 0,
+        engagement: j['engagement'] as int? ?? 0,
+      );
 
   ClinicPatient copyWith({int? score, CognitiveProfile? profile, List<double>? thirtyDay}) {
     return ClinicPatient(

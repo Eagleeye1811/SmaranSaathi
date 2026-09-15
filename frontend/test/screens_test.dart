@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/models/clinical.dart';
 import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/services/doctor_connection_service.dart';
 import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/doctor/chat/doctor_chat_conversation_screen.dart';
+import 'package:smaran_saathi/features/caregiver/doctor/doctor_care_screen.dart';
+import 'package:smaran_saathi/features/caregiver/patient_view_screen.dart';
 import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
+import 'package:smaran_saathi/features/doctor/profile/doctor_profile_screen.dart';
 import 'package:smaran_saathi/features/doctor/patients/patient_detail_screen.dart';
 import 'package:smaran_saathi/features/patient/games/familiar_place/familiar_place_game.dart';
 import 'package:smaran_saathi/features/patient/games/melody/melody_game.dart';
@@ -17,6 +23,7 @@ import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_gam
 import 'package:smaran_saathi/features/patient/games/mood_canvas/mood_canvas_painter.dart';
 import 'package:smaran_saathi/features/patient/memories/memory_wallet_screen.dart';
 import 'package:smaran_saathi/features/patient/health/health_dashboard_screen.dart';
+import 'package:smaran_saathi/features/patient/assistant/assistant_screen.dart';
 import 'package:smaran_saathi/features/patient/patient_shell.dart';
 import 'package:smaran_saathi/core/widgets/ui_kit.dart';
 import 'package:smaran_saathi/l10n/locale_controller.dart';
@@ -59,10 +66,62 @@ Widget harness(Widget child, {AppState? state}) {
   );
 }
 
+/// Stands in for a real backend caseload in layout tests that need a patient
+/// on screen — real `DoctorProfile`/`ClinicPatient` data only ever exists
+/// via the network now, and these are pure layout checks with no interest
+/// in the connection handshake itself (see `doctor_directory_test.dart` for
+/// that).
+class _FakeCaseloadService extends DoctorConnectionService {
+  _FakeCaseloadService()
+      : super(baseUrl: 'https://fake', idToken: ({bool forceRefresh = false}) async => 'token');
+
+  @override
+  Future<List<ClinicPatient>> caseload() async => <ClinicPatient>[
+        ClinicPatient(
+          id: 'p_aama',
+          name: 'Aama Devi',
+          age: 72,
+          district: 'Jorhat, Assam',
+          score: 68,
+          trend: TrendDirection.up,
+          status: ClinicalStatus.stable,
+          sceneId: 'portrait_aama',
+          language: 'Assamese',
+          lastSession: 'Today',
+          profile: const CognitiveProfile(
+            scores: <CognitiveDomain, int>{
+              CognitiveDomain.memory: 70,
+              CognitiveDomain.attention: 65,
+            },
+            overall: 68,
+            updated: 'Updated just now',
+          ),
+          thirtyDay: List<double>.filled(30, 68),
+          adherence: 80,
+          engagement: 75,
+        ),
+      ];
+}
+
 /// Pump without settling — the companion animates forever.
 Future<void> beat(WidgetTester tester, [int ms = 500]) async {
   await tester.pump();
   await tester.pump(Duration(milliseconds: ms));
+}
+
+/// Dismisses the "quick note for the doctor" prompt `CaregiverShell` shows
+/// once per session when nothing has been logged yet this cycle — a fresh
+/// `AppState` always starts in that state, so every caregiver-shell test
+/// meets it. Most of those tests want to interact with the shell itself, not
+/// this prompt, so they dismiss it immediately the way a caregiver tapping
+/// "Not now" would.
+Future<void> dismissCaregiverNotePrompt(WidgetTester tester) async {
+  await tester.pump();
+  final Finder notNow = find.text('Not now');
+  if (notNow.evaluate().isNotEmpty) {
+    await tester.tap(notNow);
+    await tester.pump();
+  }
 }
 
 /// Taps a destination on the caregiver bottom bar.
@@ -129,26 +188,169 @@ void main() {
       ('large phone', kPhoneLarge),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all four tabs · $name', (WidgetTester tester) async {
+      testWidgets('all three tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.patient);
         await tester.pumpWidget(harness(const PatientShell(), state: state));
         await beat(tester);
 
         // Progress is no longer a destination: it lives on the home screen,
-        // under the status it explains.
+        // under the status it explains. Nor is the profile — that moved to
+        // the top right of the header, beside reminders. The Companion page
+        // was also removed from the bar; the assistant opens via push.
         for (final String tab in <String>[
           'Activities',
-          'Companion',
-          'Profile',
+          'Wellness',
           'Home',
         ]) {
           await tester.tap(find.text(tab).last);
           await beat(tester);
           expect(tester.takeException(), isNull, reason: '$tab overflowed on $name');
         }
+
+        // Both header actions are present and open their own screen.
+        for (final IconData icon in <IconData>[
+          Icons.notifications_none_rounded,
+          Icons.person_outline_rounded,
+        ]) {
+          await tester.tap(find.byIcon(icon).first);
+          await beat(tester, 800);
+          expect(tester.takeException(), isNull, reason: '$icon overflowed on $name');
+          await tester.pageBack();
+          await beat(tester);
+        }
       });
     }
+
+    testWidgets('the check-in offers to talk, and the offer pushes the companion',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.patient);
+      await tester.pumpWidget(harness(const PatientShell(), state: state));
+      await beat(tester);
+
+      // Asked once, not twice.
+      expect(find.byKey(const Key('home_mood_picker')), findsOneWidget);
+
+      // Nothing is offered until there is a mood to talk about.
+      expect(find.text('Talk to Mitra'), findsNothing);
+
+      await scrollTo(tester, 'Not good');
+      await tester.tap(find.text('Not good').last);
+      await beat(tester);
+
+      // The offer reads as a person would say it, and it is an offer — the
+      // screen does not move on its own.
+      expect(find.text('Talk to Mitra'), findsOneWidget);
+      expect(find.text('You do not have to carry it on your own.'), findsOneWidget);
+
+      await scrollTo(tester, 'Talk to Mitra');
+      await tester.tap(find.text('Talk to Mitra'));
+      await beat(tester, 900);
+      expect(find.byType(AssistantScreen), findsOneWidget);
+    });
+  });
+
+  group('patient preview', () {
+    testWidgets('the back arrow leaves the preview from inside the patient app',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const PatientViewScreen(), state: state));
+      await beat(tester);
+
+      expect(find.text("You are viewing the patient's app"), findsOneWidget);
+      expect(state.viewingAsPatient, isTrue);
+
+      // The cross/close button was removed deliberately (the banner is meant
+      // to stay up, with no way to dismiss just the banner) — the back arrow
+      // is now the only way out, so it alone has to carry the "always a way
+      // back" guarantee this screen's own class doc comment promises.
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+
+      // Go a screen deeper inside the preview — the patient's app has its
+      // own nested navigator, so this stays inside the preview instead of
+      // touching the caregiver's own stack, and the banner keeps showing.
+      await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
+      await beat(tester, 600);
+      expect(find.text("You are viewing the patient's app"), findsOneWidget);
+
+      // The second arrow is the patient app's own back button, showing
+      // because there is genuinely a page to return to inside that nested
+      // stack — tapping it stays inside the preview.
+      expect(find.byIcon(Icons.arrow_back_rounded), findsNWidgets(2));
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).last);
+      await beat(tester, 600);
+      expect(state.viewingAsPatient, isTrue);
+
+      // Back at the patient's root tab, only the banner's own arrow remains
+      // — and only it ends the preview.
+      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded).first);
+      await beat(tester, 600);
+
+      // Out of the preview entirely, and the caregiver has their own role back.
+      expect(find.text("You are viewing the patient's app"), findsNothing);
+      expect(state.viewingAsPatient, isFalse);
+      expect(state.role, AppRole.caregiver);
+    });
+  });
+
+  group('doctor directory', () {
+    // The invite/accept handshake is now real and backend-persisted (see
+    // `doctor_connection_service_test.dart` for that coverage against a
+    // mocked HTTP client) — no fake pre-connected doctor, no local mutation
+    // to exercise here. What a pure widget test can still usefully check is
+    // that a caregiver with no backend attached (this harness's bare
+    // `AppState()`, same as every other screen test here) renders the
+    // honest "nothing connected yet" state instead of crashing on an empty
+    // directory/caseload, which the old fixed-non-empty mock data never
+    // exercised.
+    testWidgets('with no doctor connected, the screen shows the empty state, not a crash',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.caregiver);
+      await tester.pumpWidget(harness(const DoctorCareScreen(), state: state));
+      await beat(tester, 800);
+
+      expect(state.connectedDoctor, isNull);
+      expect(state.doctorDirectory, isEmpty);
+      expect(find.text('No doctor connected yet'), findsOneWidget);
+
+      await scrollTo(tester, 'Doctors near you');
+      expect(find.text('Doctors near you'), findsOneWidget);
+      // No backend attached, so the directory has nothing real to show —
+      // the "ask them to sign up" copy, not a fabricated entry.
+      expect(find.textContaining("Can't find your doctor?"), findsOneWidget);
+
+      // The caregiver cannot connect a doctor themselves — no button on this
+      // screen does it, because agreeing is the doctor's to give.
+      expect(find.text('Connect now'), findsNothing);
+    });
+  });
+
+  group('doctor account', () {
+    testWidgets('the profile separates switching role from logging out',
+        (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.doctor);
+      await tester.pumpWidget(harness(const DoctorProfileScreen(), state: state));
+      await beat(tester, 800);
+
+      // Two actions, not one. The single button used to sign a clinician out
+      // of their account just to look at another side of the app.
+      await scrollTo(tester, 'Log out');
+      expect(find.text('Log out'), findsOneWidget);
+      expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
+
+      // Log out asks first, and does nothing until it is confirmed.
+      await tester.tap(find.text('Log out'));
+      await beat(tester, 600);
+      expect(find.text('Log out?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await beat(tester, 600);
+      expect(state.role, AppRole.doctor);
+    });
   });
 
   group('memory wallet tabs', () {
@@ -184,12 +386,13 @@ void main() {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.caregiver);
         await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+        await dismissCaregiverNotePrompt(tester);
+      await dismissCaregiverNotePrompt(tester);
         await beat(tester);
 
         // Every destination on the bar, then back to the dashboard.
         for (final String dest in <String>[
           'Family',
-          'Safe Zone',
           'Doctors',
           'Reports',
           'Dashboard',
@@ -215,6 +418,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
       await goToTab(tester, 'Family');
 
@@ -230,6 +434,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
 
       // The patient hero card is gone: the profile has its own tab, and the
@@ -278,6 +483,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
       await goToTab(tester, 'Family');
 
@@ -318,9 +524,10 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
+      await scrollTo(tester, 'Set a safe zone');
+      await tester.tap(find.text('Set a safe zone'));
       await beat(tester);
-
-      await goToTab(tester, 'Safe Zone');
 
       // The shell already draws a header; the page must not add a second one.
       expect(find.byType(AppBar), findsNothing);
@@ -356,6 +563,7 @@ void main() {
       tester.setSurface(kPhone);
       final AppState state = AppState()..setRole(AppRole.caregiver);
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester);
 
       await tester.tap(find.byIcon(Icons.person_outline_rounded).first);
@@ -388,7 +596,7 @@ void main() {
       ('phone', kPhone),
       ('tablet', kTablet),
     ]) {
-      testWidgets('all five tabs · $name', (WidgetTester tester) async {
+      testWidgets('all tabs · $name', (WidgetTester tester) async {
         tester.setSurface(size);
         final AppState state = AppState()..setRole(AppRole.doctor);
         await tester.pumpWidget(harness(const DoctorShell(), state: state));
@@ -396,9 +604,8 @@ void main() {
 
         for (final String tab in <String>[
           'Patients',
-          'Analytics',
-          'Alerts',
-          'Profile',
+          'Chats',
+          'Appointments',
           'Overview',
         ]) {
           await tester.tap(find.text(tab).last);
@@ -410,11 +617,20 @@ void main() {
 
     testWidgets('patient record renders', (WidgetTester tester) async {
       tester.setSurface(kPhone);
+      // The caseload is real now (see the doctor-connection rework) — starts
+      // empty until `AppState.loadCaseload` resolves, unlike the old fixed
+      // `MockData.caseload()` this screen used to read straight off. A
+      // small fake service, pre-loaded before the first pump, stands in for
+      // the backend the same way `doctor_directory_test.dart` does.
+      final AppState state = AppState();
+      state.attachDoctorConnections(_FakeCaseloadService());
+      await state.loadCaseload();
       await tester.pumpWidget(
-        harness(const PatientDetailScreen(patientId: 'p_aama')),
+        harness(const PatientDetailScreen(patientId: 'p_aama'), state: state),
       );
       await beat(tester, 1200);
       expect(find.text('Patient record'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Cognitive profile'), 300);
       expect(find.text('Cognitive profile'), findsOneWidget);
 
       // Scroll the whole record to force every card through layout.
@@ -422,6 +638,24 @@ void main() {
       await beat(tester, 1200);
       await tester.drag(find.byType(ListView).first, const Offset(0, -2500));
       await beat(tester, 1200);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('doctor chat screen renders and sends message', (WidgetTester tester) async {
+      tester.setSurface(kPhone);
+      final AppState state = AppState()..setRole(AppRole.doctor);
+      await tester.pumpWidget(
+        harness(const DoctorChatConversationScreen(patientId: 'p_aama'), state: state),
+      );
+      await beat(tester, 1200);
+      expect(find.text('Aama Devi'), findsOneWidget);
+      expect(find.textContaining('Messages are end-to-end encrypted'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Hello from Doctor');
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.send_rounded));
+      await beat(tester, 1200);
+      expect(find.text('Hello from Doctor'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });
@@ -432,7 +666,10 @@ void main() {
       tester.setSurface(kPhone);
       await tester.pumpWidget(harness(const ProcedureGame()));
       await beat(tester);
-      expect(find.text('Making tea'), findsOneWidget);
+      // A new account starts at level 1, so "Making tea" now appears twice:
+      // once as the level-1 chip's own label, and again as the selected
+      // procedure's heading, since level 1 is what's actually selected.
+      expect(find.text('Making tea'), findsWidgets);
 
       await tester.tap(find.text('Show me the steps'));
       await beat(tester);
@@ -584,10 +821,11 @@ void main() {
       await beat(tester);
       expect(tester.takeException(), isNull);
 
-      for (final String tab in <String>['Activities', 'Companion', 'Profile']) {
+      for (final String tab in <String>['Activities', 'Wellness']) {
         await tester.tap(find.text(tab).last);
         await beat(tester);
-        expect(tester.takeException(), isNull, reason: '$tab broke at extra-large text');
+        final dynamic err = tester.takeException();
+        expect(err, isNull, reason: '$tab broke at extra-large text');
       }
     });
   });
@@ -621,6 +859,7 @@ void main() {
       expect(state.journeyDone.contains('checkin'), isTrue);
 
       await tester.pumpWidget(harness(const CaregiverShell(), state: state));
+      await dismissCaregiverNotePrompt(tester);
       await beat(tester, 1200);
       expect(find.textContaining('Good'), findsWidgets);
       expect(tester.takeException(), isNull);

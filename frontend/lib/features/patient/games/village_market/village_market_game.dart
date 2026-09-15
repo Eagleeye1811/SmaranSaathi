@@ -13,15 +13,22 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/content_labels.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 import 'market_map.dart';
 import 'market_stalls.dart';
 
 /// The Village Market Adventure — executive function, planning and working
 /// memory, framed as a mini adventure rather than a shopping test.
 ///
-/// No checklist is ever shown: the "mentioned list" lives only inside
-/// [_mentionedIds] and Mitra's dialogue. No item pick is ever wrong, no
-/// timer runs against the patient, and there is no reachable `completed:
+/// The whole point is a real, concrete plan the patient can hold onto: a
+/// shopping list, visible on screen the entire time rather than only ever
+/// spoken once; a starting budget, stated up front; and a basket that
+/// spends down that budget one purchase at a time. One stall's items are on
+/// screen at a time — the patient walks the market stall by stall — and the
+/// trip naturally ends once every listed item is found or the money runs
+/// out, whichever comes first. No item pick is ever "wrong" (an item off
+/// the list still goes in the basket, just doesn't count toward the list),
+/// no timer runs against the patient, and there is no reachable `completed:
 /// false` path — a session is either warmly completed or, if the patient
 /// backs out early via the header close button, simply not recorded.
 class VillageMarketGame extends StatefulWidget {
@@ -50,6 +57,8 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   int _hintTier = 0;
 
   bool _autoNudgeFired = false;
+  bool _listCompleteShown = false;
+  bool _fundsLowShown = false;
   bool _rainShown = false;
   bool _budgetShown = false;
   bool _overfullShown = false;
@@ -64,6 +73,16 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
   // Kept in one place and checked directly against `levelDescription` below,
   // rather than drifting apart the way the level pickers in the six earlier
   // activities did.
+
+  /// One glyph per level of market-readiness, from a light basket to the
+  /// coin purse the higher levels actually start watching.
+  IconData _levelIcon(int lvl) => switch (lvl) {
+        1 => Icons.shopping_basket_outlined,
+        2 => Icons.storefront_outlined,
+        3 => Icons.local_grocery_store_rounded,
+        4 => Icons.account_balance_wallet_rounded,
+        _ => Icons.emoji_events_rounded,
+      };
 
   int _stallCountFor(int lvl) => switch (lvl) {
         1 => 3,
@@ -81,12 +100,21 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
       };
 
   bool _rainEnabledFor(int lvl) => lvl >= 3;
-  bool _budgetEnabledFor(int lvl) => lvl >= 4;
+
+  /// The day's total, stated up front at every level — see
+  /// [_buildListMention]. Matches the ₹150-spent trigger point already used
+  /// by [_maybeShowNarrativeCues] for [gameVillageMarketBudgetMessage]'s
+  /// "only ₹200 left": 350 - 150 = 200, so that line stays true.
+  static const int _budgetTotal = 350;
 
   int get _stallCount => _stallCountFor(_selectedLevel);
   int get _nudgeBudget => _nudgeBudgetFor(_selectedLevel);
   bool get _rainEnabled => _rainEnabledFor(_selectedLevel);
-  bool get _budgetEnabled => _budgetEnabledFor(_selectedLevel);
+
+  /// What is left of [_budgetTotal] — never negative, so a purchase that
+  /// would overdraw it is simply declined (see [_tapItem]) rather than ever
+  /// letting this read as an alarming negative number.
+  int get _budgetRemaining => (_budgetTotal - _basketTotal).clamp(0, _budgetTotal);
 
   late final List<Stall> _stalls = MarketContent.layoutFor(_stallCount);
 
@@ -105,6 +133,17 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
       if (!_basket.contains(i.id)) return i;
     }
     return null;
+  }
+
+  /// True once the list can no longer be completed — every still-missing
+  /// needed item now costs more than what's left to spend. The other half
+  /// of the trip's natural ending, alongside [_nextMissingNeeded] going
+  /// null: "buy everything on the list, or run out of money trying."
+  bool get _fundsExhaustedForList {
+    final Iterable<MarketItem> missing =
+        MarketContent.neededItems.where((MarketItem i) => !_basket.contains(i.id));
+    if (missing.isEmpty) return false;
+    return missing.every((MarketItem i) => i.price > _budgetRemaining);
   }
 
   // ── lifecycle ─────────────────────────────────────────────────────────────
@@ -137,6 +176,17 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
       });
       return;
     }
+    // The one real constraint in an otherwise errorless game: the budget is
+    // finite, so a purchase that would overdraw it is gently declined —
+    // never added to the basket, never charged — rather than letting
+    // `_budgetRemaining` go negative.
+    if (item.price > _budgetRemaining) {
+      setState(() {
+        _feedbackPositive = false;
+        _feedback = l.gameVillageMarketNotEnoughMoney;
+      });
+      return;
+    }
     _tracker.attempts++;
     final bool needed = item.role == MarketItemRole.needed;
     setState(() {
@@ -154,25 +204,41 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
     _maybeShowNarrativeCues();
   }
 
-  /// Checks all three narrative triggers on every call rather than stopping
-  /// at the first one that fires: an early `return` after the first match
-  /// meant that if two conditions became true on the same tap — most
-  /// plausibly the budget and overfull cues together — the second one's
-  /// "shown" flag stayed false and, if that tap was immediately followed by
-  /// "Head home" with no further interaction, its message never got queued
-  /// at all. Cues that can't display immediately (one is already showing)
-  /// are queued and drained one at a time instead of being skipped.
+  /// Checks all five queued narrative triggers on every call rather than
+  /// stopping at the first one that fires: an early `return` after the
+  /// first match meant that if two conditions became true on the same tap —
+  /// most plausibly the budget and overfull cues together — the second
+  /// one's "shown" flag stayed false and, if that tap was immediately
+  /// followed by "Head home" with no further interaction, its message never
+  /// got queued at all. Cues that can't display immediately (one is already
+  /// showing) are queued and drained one at a time instead of being
+  /// skipped.
   void _maybeShowNarrativeCues() {
     final AppLocalizations l = AppLocalizations.of(context);
     if (!_autoNudgeFired && _visitedStalls.length >= 2 && _nextMissingNeeded != null) {
       _autoNudgeFired = true;
       setState(() => _nudgesShown.add(l.gameVillageMarketNudgeAuto(_listGiver)));
     }
+    // The one moment worth celebrating on its own: everything on the list is
+    // found. Checked as soon as it becomes true, not gated on stall count
+    // like the auto-nudge above — there is no reason to delay good news.
+    if (!_listCompleteShown && _nextMissingNeeded == null) {
+      _listCompleteShown = true;
+      _queueNarrative(l.gameVillageMarketListComplete);
+    }
+    // The other natural ending: money ran out before the list did. Checked
+    // after list-completion so the two can never both fire for the same
+    // state (one requires the list to still have a gap, the other requires
+    // it not to).
+    if (!_fundsLowShown && _fundsExhaustedForList) {
+      _fundsLowShown = true;
+      _queueNarrative(l.gameVillageMarketFundsLow);
+    }
     if (_rainEnabled && !_rainShown && _visitedStalls.length >= 2) {
       _rainShown = true;
       _queueNarrative(l.gameVillageMarketRainMessage);
     }
-    if (_budgetEnabled && !_budgetShown && _basketTotal >= 150) {
+    if (!_budgetShown && _basketTotal >= 150) {
       _budgetShown = true;
       _queueNarrative(l.gameVillageMarketBudgetMessage);
     }
@@ -341,36 +407,23 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        for (int lvl = 1; lvl <= AdaptiveDifficultyService.maxLevel; lvl++) ...<Widget>[
-                          if (lvl > 1) const SizedBox(width: 8),
-                          SizedBox(
-                            width: 122,
-                            child: LevelOptionChip(
-                              levelNum: lvl,
-                              title: localizedLevelDescription(l, GameId.villageMarket, lvl),
-                              subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
-                              unlocked: lvl <= _maxUnlockedLevel,
-                              selected: _selectedLevel == lvl,
-                              onTap: lvl <= _maxUnlockedLevel ? () => _changeLevel(lvl) : null,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.villageMarket,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                for (int lvl = 1; lvl <= AdaptiveDifficultyService.maxLevel; lvl++)
+                  GameLevelItem(
+                    levelNum: lvl,
+                    title: localizedLevelDescription(l, GameId.villageMarket, lvl),
+                    subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
+                    icon: _levelIcon(lvl),
+                    stars: lvl == 1 ? 3 : (lvl <= _maxUnlockedLevel ? 2 : 0),
                   ),
-                ],
-              ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(
@@ -382,6 +435,49 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
                   Text(_game.localizedName(l), style: AppText.h1.sized(24)),
                   const SizedBox(height: 8),
                   Text(l.gameVillageMarketInstructions, style: AppText.bodySmall),
+                  const SizedBox(height: 14),
+                  // Recomputed from the level, not read off `_stalls` —
+                  // that field locks in on first access, before a level
+                  // chosen here has a chance to change it.
+                  Builder(builder: (BuildContext context) {
+                    final List<Stall> preview = MarketContent.layoutFor(_stallCount);
+                    return SizedBox(
+                      height: 66,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: preview.length,
+                        separatorBuilder: (BuildContext context, int i) =>
+                            const SizedBox(width: 10),
+                        itemBuilder: (BuildContext context, int i) => SizedBox(
+                          width: 56,
+                          child: Column(
+                            children: <Widget>[
+                              Container(
+                                width: 44,
+                                height: 44,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: preview[i].awning.withValues(alpha: 0.16),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: preview[i].awning.withValues(alpha: 0.4)),
+                                ),
+                                child: Icon(preview[i].icon, size: 20, color: preview[i].awning),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                preview[i].name,
+                                style: AppText.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -396,7 +492,11 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
     return GameShell(
       game: _game,
       level: _selectedLevel,
-      companionMessage: l.gameVillageMarketListMention(_listGiver),
+      // The budget is stated up front at every level, matching the list
+      // itself being on screen the whole time — both are the plan the
+      // patient works from, not a number revealed only once spending
+      // pressure shows up.
+      companionMessage: l.gameVillageMarketListMentionWithBudget(_listGiver, _budgetTotal),
       companionState: CompanionState.thinking,
       bottom: BigButton(
         label: l.gameVillageMarketListMentionContinue,
@@ -406,20 +506,27 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),
-        child: MmCard(
-          padding: const EdgeInsets.all(Insets.md),
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.shopping_basket_rounded, color: _game.accent, size: 30),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l.gameVillageMarketInstructions,
-                  style: AppText.bodySmall.tint(AppColors.ink),
-                ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _shoppingListPanel(),
+            const SizedBox(height: Insets.md),
+            MmCard(
+              padding: const EdgeInsets.all(Insets.md),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.shopping_basket_rounded, color: _game.accent, size: 30),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l.gameVillageMarketInstructions,
+                      style: AppText.bodySmall.tint(AppColors.ink),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -460,6 +567,8 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
         children: <Widget>[
           _mapPanel(mapHeight: 190),
           const SizedBox(height: Insets.md),
+          _shoppingListPanel(),
+          const SizedBox(height: Insets.md),
           _basketPanel(),
           const SizedBox(height: Insets.md),
           if (_nudgesShown.isNotEmpty) ...<Widget>[
@@ -489,6 +598,8 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
+                  _shoppingListPanel(),
+                  const SizedBox(height: Insets.md),
                   _basketPanel(),
                   const SizedBox(height: Insets.md),
                   _nudgePanel(alwaysShow: true),
@@ -563,6 +674,65 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
           ),
           const SizedBox(height: 10),
           MeterBar(value: _basketFullness, color: _game.accent, height: 8),
+          const SizedBox(height: 8),
+          Text(
+            l.gameVillageMarketBudgetRemaining(_budgetRemaining),
+            style: AppText.caption.wght(700).tint(_game.accent),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The list itself, visible on screen throughout the whole trip — not
+  /// just mentioned once at the start. Each item shows a check the moment
+  /// it lands in the basket, so "what's left to find" never depends on
+  /// memory alone.
+  Widget _shoppingListPanel() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final int found =
+        MarketContent.neededItems.where((MarketItem i) => _basket.contains(i.id)).length;
+    return MmCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              SoftIcon(icon: Icons.checklist_rounded, color: _game.accent, size: 36),
+              const SizedBox(width: 10),
+              Expanded(child: Text(l.gameVillageMarketListLabel, style: AppText.overline)),
+              Text(
+                l.gameVillageMarketListProgress(found, MarketContent.neededItems.length),
+                style: AppText.caption.wght(700).tint(_game.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final MarketItem item in MarketContent.neededItems)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    _basket.contains(item.id) ? Icons.check_circle_rounded : Icons.circle_outlined,
+                    size: 20,
+                    color: _basket.contains(item.id) ? AppColors.success : AppColors.inkMuted,
+                  ),
+                  const SizedBox(width: 10),
+                  Icon(item.icon, size: 18, color: item.color),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: AppText.body.wght(600).tint(
+                          _basket.contains(item.id) ? AppColors.inkMuted : AppColors.ink),
+                    ),
+                  ),
+                  Text(l.gameVillageMarketPriceTag(item.price), style: AppText.caption),
+                ],
+              ),
+            ),
         ],
       ),
     );

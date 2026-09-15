@@ -1,4 +1,4 @@
-﻿import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter/material.dart';
 import 'package:smaran_saathi/app/app.dart';
@@ -75,7 +75,7 @@ void main() {
     // Nothing answered yet, so the caregiver lands on consent, not on a
     // dashboard with nothing behind it.
     expect(find.text('Before we begin'), findsOneWidget);
-    expect(find.text('Step 1 of 12'), findsOneWidget);
+    expect(find.text('Step 1 of 14'), findsOneWidget);
   });
 
   testWidgets('selecting Patient asks for their username, not a password',
@@ -86,12 +86,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    // The patient card is the one role that does not go through the
-    // authenticate button: there is no account for them to sign into, so it
-    // opens the handshake their caregiver approves instead.
-    await tester.tap(find.text('Patient'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 700));
+    // Patient goes through the same select-then-continue flow as the other
+    // two roles now — there is no account for them to sign into, so
+    // continuing opens the handshake their caregiver approves instead.
+    await chooseRole(tester, 'Patient');
 
     expect(find.byType(PatientSignInScreen), findsOneWidget);
     expect(find.text('Username'), findsOneWidget);
@@ -123,12 +121,13 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('How are you feeling today?'), findsOneWidget);
-    // The four patient destinations are always labelled, never icon-only.
+    // The three patient destinations are always labelled, never icon-only.
+    // The profile is not among them any more — it sits top right with
+    // reminders. The companion/assistant opens via push from the dashboard.
     for (final String label in <String>[
       'Home',
       'Activities',
-      'Companion',
-      'Profile',
+      'Wellness',
     ]) {
       expect(find.text(label), findsWidgets, reason: 'missing $label tab');
     }

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_text.dart';
@@ -14,6 +14,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 /// A choice the patient can make in a story or scenario, with the simulated
 /// semantic evaluation the language model would produce for it.
@@ -152,7 +153,7 @@ class _StoryGameState extends State<StoryGame> {
         prompt: 'You have walked to the market, but when you reach the stall you '
             'realise you have forgotten your purse at home.',
         question: 'What would you do?',
-        subtitle: 'There is no wrong answer — tell me what feels right.',
+        subtitle: 'There is no wrong answer, tell me what feels right.',
         choices: <StoryChoice>[
           StoryChoice(
             text: 'Go home and fetch the purse.',
@@ -173,7 +174,7 @@ class _StoryGameState extends State<StoryGame> {
               (label: 'Depends on trust', ok: false),
             ],
             reply:
-                'That works too — you have bought rice from him for many years.',
+                'That works too, you have bought rice from him for many years.',
           ),
           StoryChoice(
             text: 'Take the vegetables anyway.',
@@ -348,81 +349,50 @@ class _StoryGameState extends State<StoryGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 1,
-                            title: l.gameStoryLevelSimple,
-                            subtitle: l.gameStorySubtitleStoryRecall,
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 2,
-                            title: l.gameStoryLevelGuided,
-                            subtitle: l.gameStorySubtitleStoryRecall,
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 3,
-                            title: l.gameStoryLevelAdvanced,
-                            subtitle: l.gameStorySubtitleOpenStory,
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 4,
-                            title: l.gameStoryLevelOpen,
-                            subtitle: l.gameStorySubtitleFreeMemory,
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 5,
-                            title: l.gameStoryLevelDeepMemory,
-                            subtitle: l.gameStorySubtitleFullRecall,
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.story,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameStoryLevelSimple,
+                  subtitle: l.gameStorySubtitleStoryRecall,
+                  icon: Icons.menu_book_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameStoryLevelGuided,
+                  subtitle: l.gameStorySubtitleStoryRecall,
+                  icon: Icons.route_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameStoryLevelAdvanced,
+                  subtitle: l.gameStorySubtitleOpenStory,
+                  icon: Icons.psychology_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameStoryLevelOpen,
+                  subtitle: l.gameStorySubtitleFreeMemory,
+                  icon: Icons.chat_bubble_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameStoryLevelDeepMemory,
+                  subtitle: l.gameStorySubtitleFullRecall,
+                  icon: Icons.favorite_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(
@@ -436,6 +406,30 @@ class _StoryGameState extends State<StoryGame> {
                   Text(
                     l.gameStoryInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // What kind of scene is coming, before the first one
+                  // arrives — a market moment, an everyday decision, a
+                  // memory of their own — so the round ahead is never a
+                  // total surprise.
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      for (final String mode in _rounds.map((StoryRound r) => r.mode).toSet())
+                        PillTag(
+                          label: mode,
+                          color: _game.accent,
+                          icon: Icons.theater_comedy_rounded,
+                          dense: true,
+                        ),
+                      PillTag(
+                        label: 'Your own memories',
+                        color: AppColors.terracotta,
+                        icon: Icons.favorite_rounded,
+                        dense: true,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -658,14 +652,6 @@ class _StoryGameState extends State<StoryGame> {
               const SizedBox(height: Insets.lg),
               const _AnalysingStrip(),
             ],
-            if (_storyEvaluated) ...<Widget>[
-              _StoryScoreCard(
-                coherence: (58 + _fragments.length * 9).clamp(45, 96),
-                details: (52 + _fragments.length * 11).clamp(45, 97),
-                association: (50 + _fragments.length * 10).clamp(40, 95),
-                accent: _game.accent,
-              ),
-            ],
             const SizedBox(height: 20),
           ],
         ),
@@ -848,79 +834,3 @@ class _EvaluationPanel extends StatelessWidget {
   }
 }
 
-class _StoryScoreCard extends StatelessWidget {
-  const _StoryScoreCard({
-    required this.coherence,
-    required this.details,
-    required this.association,
-    required this.accent,
-  });
-
-  final int coherence;
-  final int details;
-  final int association;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return MmCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(Icons.auto_awesome_rounded, size: 17, color: accent),
-              const SizedBox(width: 7),
-              Text(l.gameStoryHowMitraReadYourStory, style: AppText.overline.tint(accent)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _ScoreRow(label: l.gameStoryCoherence, value: coherence, color: accent),
-          const SizedBox(height: 12),
-          _ScoreRow(label: l.gameStoryRelevantDetails, value: details, color: accent),
-          const SizedBox(height: 12),
-          _ScoreRow(label: l.gameStoryMemoryAssociation, value: association, color: accent),
-          const SizedBox(height: Insets.md),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              borderRadius: Corners.r(Corners.sm),
-            ),
-            child: Text(
-              l.gameStorySimulatedCaption,
-              style: AppText.caption,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreRow extends StatelessWidget {
-  const _ScoreRow({required this.label, required this.value, required this.color});
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 140,
-          child: Text(label, style: AppText.body.wght(600).tint(AppColors.inkSoft)),
-        ),
-        Expanded(child: MeterBar(value: value / 100, color: color, height: 9)),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 44,
-          child: Text('$value%',
-              textAlign: TextAlign.right, style: AppText.body.wght(800).tint(color)),
-        ),
-      ],
-    );
-  }
-}

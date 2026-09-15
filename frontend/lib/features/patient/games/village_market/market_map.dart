@@ -146,9 +146,11 @@ class _StallBox extends StatelessWidget {
 }
 
 /// A tappable item at a stall — visually close to Familiar Place's
-/// `ObjectTile`, plus a flavour price tag. Picking any item is never
-/// "wrong": [inBasket] items show a checkmark, everything else stays fully
-/// interactive — there is no dismissed/disabled state.
+/// `ObjectTile`, plus a real price tag deducted from the patient's budget on
+/// purchase. Picking any item is never "wrong": [inBasket] items show a
+/// checkmark, everything else stays fully interactive — there is no
+/// dismissed/disabled state (a purchase the budget can't cover is simply
+/// declined with a gentle message, not shown as a disabled tile).
 class MarketItemTile extends StatelessWidget {
   const MarketItemTile({
     super.key,

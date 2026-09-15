@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmaranSaathi Telehealth — WebRTC Test Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --teal: #00d2b4;
+      --teal-dark: #008f7a;
+      --text: #f0f6fc;
+      --text-muted: #8b949e;
+      --red: #f85149;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .badge {
+      background: rgba(0, 210, 180, 0.15);
+      color: var(--teal);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 16px;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .video-container {
+      position: relative;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+    }
+
+    video#remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .local-pip {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 180px;
+      height: 135px;
+      background: #21262d;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid var(--teal);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    video#localVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .controls-bar {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      background: rgba(22, 27, 34, 0.85);
+      backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      border-radius: 40px;
+      border: 1px solid var(--border);
+    }
+
+    .btn {
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #30363d;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #000;
+      border: none;
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      background: var(--teal-dark);
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: white;
+      border: none;
+    }
+
+    .side-panel {
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-bubble {
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      max-width: 85%;
+      line-height: 1.4;
+    }
+
+    .chat-bubble.mine {
+      align-self: flex-end;
+      background: var(--teal-dark);
+      color: #fff;
+    }
+
+    .chat-bubble.other {
+      align-self: flex-start;
+      background: #21262d;
+      color: var(--text);
+    }
+
+    .chat-input-bar {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input-bar input {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .log-box {
+      font-family: monospace;
+      font-size: 11px;
+      color: #8b949e;
+      max-height: 120px;
+      overflow-y: auto;
+      padding: 8px;
+      background: #0d1117;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div>
+      <h1 style="font-size: 18px; font-weight: 800;">SmaranSaathi Telehealth Console</h1>
+      <p style="font-size: 12px; color: var(--text-muted);">Doctor ↔ Patient WebRTC Live Consultation Tester</p>
+    </div>
+    <div class="badge">
+      <div class="dot"></div>
+      <span id="statusText">Ready</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="video-container">
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="local-pip">
+        <video id="localVideo" autoplay playsinline muted></video>
+      </div>
+
+      <div class="controls-bar">
+        <input type="text" id="roomInput" value="room_doc_001_pat_001"
+          style="background:#0d1117; color:#fff; border:1px solid var(--border); padding:6px 12px; border-radius:20px; font-size:12px; width:170px;">
+        <button id="joinBtn" class="btn btn-primary" onclick="startCall()">Join Room</button>
+        <button id="muteBtn" class="btn" onclick="toggleMute()">🎤 Mute</button>
+        <button id="hangupBtn" class="btn btn-danger" onclick="hangUp()" disabled>End Call</button>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="panel-header">💬 In-Call Live Chat</div>
+      <div id="chatMessages" class="chat-messages">
+        <div class="chat-bubble other">System: Connect to a room to start talking with mobile app or emulator.</div>
+      </div>
+      <div class="chat-input-bar">
+        <input id="chatInput" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button class="btn btn-primary" onclick="sendChat()">Send</button>
+      </div>
+      <div class="log-box" id="logBox">Signaling logs will appear here...</div>
+    </div>
+  </main>
+
+  <script>
+    let localStream, peerConnection, ws, dataChannel;
+    let isMuted = false;
+    const servers = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+      ]
+    };
+
+    function log(msg) {
+      const box = document.getElementById("logBox");
+      const time = new Date().toLocaleTimeString();
+      box.innerHTML += `<div>[${time}] ${msg}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function startCall() {
+      const room = document.getElementById("roomInput").value.trim();
+      if (!room) return;
+
+      document.getElementById("statusText").innerText = "Connecting...";
+      log(`Opening local camera and mic...`);
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById("localVideo").srcObject = localStream;
+      } catch (e) {
+        log(`Camera access failed: ${e.message}. Using audio only.`);
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        } catch (e2) {
+          log(`Media error: ${e2.message}`);
+        }
+      }
+
+      // Connect WebSocket
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/api/v1/telehealth/ws/signaling/${room}`;
+      log(`Connecting to WebSocket: ${wsUrl}`);
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        log(`Signaling WebSocket connected.`);
+        document.getElementById("statusText").innerText = `In Room: ${room}`;
+        document.getElementById("joinBtn").disabled = true;
+        document.getElementById("hangupBtn").disabled = false;
+        createPeerConnection(true);
+      };
+
+      ws.onmessage = async (event) => {
+        const data = JSON.parse(event.data);
+        log(`Received signal: ${data.type}`);
+
+        if (data.type === "peer-joined") {
+          log("Another peer joined! Creating WebRTC Offer...");
+          createPeerConnection(true);
+        } else if (data.type === "offer") {
+          if (!peerConnection) createPeerConnection(false);
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: "answer", answer: answer }));
+          log("Sent WebRTC Answer.");
+        } else if (data.type === "answer") {
+          await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+          log("Connected remote WebRTC description.");
+        } else if (data.type === "candidate") {
+          if (peerConnection) {
+            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+          }
+        } else if (data.type === "chat") {
+          appendMessage(data.sender || "Mobile App", data.content, "other");
+        }
+      };
+    }
+
+    function createPeerConnection(isInitiator) {
+      if (peerConnection) return;
+      log("Creating RTCPeerConnection with Google STUN...");
+      peerConnection = new RTCPeerConnection(servers);
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      }
+
+      peerConnection.ontrack = (event) => {
+        log("Received remote audio/video track!");
+        document.getElementById("remoteVideo").srcObject = event.streams[0];
+      };
+
+      peerConnection.onicecandidate = (event) => {
+        if (event.candidate && ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "candidate", candidate: event.candidate }));
+        }
+      };
+
+      if (isInitiator) {
+        dataChannel = peerConnection.createDataChannel("chat");
+        setupDataChannel();
+        peerConnection.createOffer().then(offer => {
+          peerConnection.setLocalDescription(offer);
+          ws.send(JSON.stringify({ type: "offer", offer: offer }));
+          log("Sent WebRTC Offer to room.");
+        });
+      } else {
+        peerConnection.ondatachannel = (event) => {
+          dataChannel = event.channel;
+          setupDataChannel();
+        };
+      }
+    }
+
+    function setupDataChannel() {
+      dataChannel.onmessage = (event) => {
+        appendMessage("Peer", event.data, "other");
+      };
+    }
+
+    function sendChat() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage("Doctor (You)", text, "mine");
+      input.value = "";
+
+      // Send via DataChannel or WebSocket
+      if (dataChannel && dataChannel.readyState === "open") {
+        dataChannel.send(text);
+      } else if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "chat", sender: "Doctor (Web)", content: text }));
+      }
+    }
+
+    function appendMessage(sender, text, cls) {
+      const div = document.createElement("div");
+      div.className = `chat-bubble ${cls}`;
+      div.innerText = `${sender}: ${text}`;
+      const c = document.getElementById("chatMessages");
+      c.appendChild(div);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    function toggleMute() {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+      document.getElementById("muteBtn").innerText = isMuted ? "🔇 Unmute" : "🎤 Mute";
+    }
+
+    function hangUp() {
+      if (peerConnection) peerConnection.close();
+      if (ws) ws.close();
+      if (localStream) localStream.getTracks().forEach(t => t.stop());
+      location.reload();
+    }
+  </script>
+</body>
+
+</html>

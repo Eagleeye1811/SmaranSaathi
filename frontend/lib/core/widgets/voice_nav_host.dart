@@ -35,7 +35,13 @@ class VoiceNavHost extends StatefulWidget {
     this.recognizer,
     this.synthesizer,
     this.bottomInset = 10,
+    this.showFloatingMic = true,
   });
+
+  /// Whether to render the floating resting mic button inside this host.
+  /// Set to false when a host is paired with a bottom navigation bar that
+  /// embeds its own center bulged mic button.
+  final bool showFloatingMic;
 
   /// What this shell can reach. Anything outside the set is answered aloud
   /// with "I cannot open that from here" rather than ignored.
@@ -57,7 +63,7 @@ class VoiceNavHost extends StatefulWidget {
   final double bottomInset;
 
   /// Diameter of the resting microphone button.
-  static const double micDiameter = 62;
+  static const double micDiameter = 66;
 
   /// How much of the bottom of the body the microphone reserves.
   ///
@@ -69,12 +75,39 @@ class VoiceNavHost extends StatefulWidget {
   static const double micLaneHeight = micDiameter + 10 + 8;
 
   @override
-  State<VoiceNavHost> createState() => _VoiceNavHostState();
+  State<VoiceNavHost> createState() => VoiceNavHostState();
 }
 
-class _VoiceNavHostState extends State<VoiceNavHost> {
+/// Allows descendant navigation bars to trigger voice panel listening.
+class VoiceNavScope extends InheritedWidget {
+  const VoiceNavScope({
+    super.key,
+    required this.state,
+    required super.child,
+  });
+
+  final VoiceNavHostState state;
+
+  static VoiceNavHostState? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<VoiceNavScope>()?.state;
+  }
+
+  @override
+  bool updateShouldNotify(VoiceNavScope oldWidget) => state != oldWidget.state;
+}
+
+class VoiceNavHostState extends State<VoiceNavHost> {
   VoiceNavigationController? _controller;
   bool _open = false;
+
+  /// Starts voice listening and opens the voice panel.
+  Future<void> openPanel() => _openPanel();
+
+  /// Closes the voice panel.
+  Future<void> closePanel() => _closePanel();
+
+  /// Whether the voice panel overlay is currently visible.
+  bool get isOpen => _open;
 
   VoiceNavigationController _ensureController() {
     final VoiceNavigationController? existing = _controller;
@@ -125,9 +158,9 @@ class _VoiceNavHostState extends State<VoiceNavHost> {
   }
 
   @override
-  void didUpdateWidget(VoiceNavHost old) {
-    super.didUpdateWidget(old);
-    if (!setEquals(old.destinations, widget.destinations)) {
+  void didUpdateWidget(VoiceNavHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!setEquals(oldWidget.destinations, widget.destinations)) {
       _controller?.setDestinations(widget.destinations);
     }
   }
@@ -157,41 +190,58 @@ class _VoiceNavHostState extends State<VoiceNavHost> {
   @override
   Widget build(BuildContext context) {
     final VoiceNavigationController? controller = _controller;
-    return Stack(
-      children: <Widget>[
-        Positioned.fill(child: widget.child),
-        if (_open && controller != null)
-          Positioned.fill(
-            child: _VoicePanel(
-              controller: controller,
-              accent: widget.accent,
-              onClose: _closePanel,
+    return VoiceNavScope(
+      state: this,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(child: widget.child),
+          if (_open && controller != null)
+            Positioned.fill(
+              child: _VoicePanel(
+                controller: controller,
+                accent: widget.accent,
+                onClose: _closePanel,
+              ),
             ),
-          ),
-        // Centred and low, so it reads as part of the bottom bar rather than
-        // as a fifth thing floating over the content — and so it stays clear
-        // of the bottom-right corner, which the Today and dashboard screens
-        // already use for their own buttons.
-        if (!_open)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: widget.bottomInset,
-            child: Center(
-              child: _VoiceMicButton(accent: widget.accent, onTap: _openPanel),
+          // Centred and low, so it reads as part of the bottom bar rather than
+          // as a fifth thing floating over the content — and so it stays clear
+          // of the bottom-right corner, which the Today and dashboard screens
+          // already use for their own buttons.
+          if (!_open && widget.showFloatingMic)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: widget.bottomInset,
+              child: Center(
+                child: VoiceMicButton(accent: widget.accent, onTap: _openPanel),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 /// The resting microphone button.
-class _VoiceMicButton extends StatelessWidget {
-  const _VoiceMicButton({required this.accent, required this.onTap});
+class VoiceMicButton extends StatelessWidget {
+  const VoiceMicButton({
+    super.key,
+    required this.accent,
+    required this.onTap,
+    this.diameter = VoiceNavHost.micDiameter,
+    this.iconSize = 32,
+    this.elevation = 6,
+    this.borderWidth = 0,
+    this.borderColor = Colors.white,
+  });
 
   final Color accent;
   final VoidCallback onTap;
+  final double diameter;
+  final double iconSize;
+  final double elevation;
+  final double borderWidth;
+  final Color borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -203,18 +253,22 @@ class _VoiceMicButton extends StatelessWidget {
         message: l.voiceNavButton,
         child: Material(
           color: accent,
-          shape: const CircleBorder(),
-          elevation: 4,
+          shape: CircleBorder(
+            side: borderWidth > 0
+                ? BorderSide(color: borderColor, width: borderWidth)
+                : BorderSide.none,
+          ),
+          elevation: elevation,
           shadowColor: accent.withValues(alpha: 0.45),
           child: InkWell(
             customBorder: const CircleBorder(),
             onTap: onTap,
-            // 62 px: comfortably above the 48 px minimum, because a hand that
+            // comfortably above the 48 px minimum, because a hand that
             // has lost fine control is the design case here.
-            child: const SizedBox(
-              width: VoiceNavHost.micDiameter,
-              height: VoiceNavHost.micDiameter,
-              child: Icon(Icons.mic_rounded, color: Colors.white, size: 30),
+            child: SizedBox(
+              width: diameter,
+              height: diameter,
+              child: Icon(Icons.mic_rounded, color: Colors.white, size: iconSize),
             ),
           ),
         ),

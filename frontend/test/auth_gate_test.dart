@@ -42,7 +42,21 @@ class FakeAuthService implements AuthService {
   Future<AuthResult> signIn({required String email, required String password}) => _attempt(email);
 
   @override
-  Future<AuthResult> signUp({required String email, required String password}) => _attempt(email);
+  Future<AuthResult> signUp({required String email, required String password}) =>
+      _attempt(email, isNewAccount: true);
+
+  /// Mirrors the real service: create unless the email is already known, in
+  /// which case sign in to it.
+  final Set<String> knownEmails = <String>{};
+
+  @override
+  Future<AuthResult> signInOrCreate({
+    required String email,
+    required String password,
+  }) async {
+    final bool existed = !knownEmails.add(email.trim());
+    return _attempt(email, isNewAccount: !existed);
+  }
 
   /// Set to make the next Google attempt behave like a dismissed picker.
   bool googleCancelled = false;
@@ -56,7 +70,7 @@ class FakeAuthService implements AuthService {
     return _attempt('google-user@example.com');
   }
 
-  Future<AuthResult> _attempt(String email) async {
+  Future<AuthResult> _attempt(String email, {bool isNewAccount = false}) async {
     if (nextError != null) {
       final String message = nextError!;
       nextError = null;
@@ -65,7 +79,7 @@ class FakeAuthService implements AuthService {
     final AuthUser user = AuthUser(uid: uid, email: email);
     _current = user;
     _controller.add(user);
-    return AuthResult.success(user);
+    return AuthResult.success(user, isNewAccount: isNewAccount);
   }
 
   @override
@@ -84,6 +98,16 @@ class FakeAuthService implements AuthService {
 
   @override
   Future<Map<String, dynamic>?> fetchMe() async => _current == null ? null : me;
+}
+
+/// Pump without settling. `SignInScreen` now carries a `Companion`, whose
+/// breathe/blink animations repeat forever (see `companion.dart`) — so
+/// `pumpAndSettle` never returns once that screen is on screen, exactly the
+/// reason `screens_test.dart` keeps its own `beat()` instead of using
+/// `pumpAndSettle` anywhere a `Companion` might be mounted.
+Future<void> beat(WidgetTester tester, [int ms = 600]) async {
+  await tester.pump();
+  await tester.pump(Duration(milliseconds: ms));
 }
 
 void main() {
@@ -107,8 +131,12 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'correcthorse');
-    await tester.tap(find.text('Sign in'));
-    await tester.pumpAndSettle();
+    // The form's own Companion mascot pushes "Continue" below the fold on
+    // this test's small default surface — scroll to it explicitly rather
+    // than assume it is already on-screen.
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
 
     expect(find.text('Role selection reached'), findsOneWidget);
     expect(find.text('Care team sign-in'), findsNothing);
@@ -123,8 +151,9 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'caregiver@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'wrongpassword');
-    await tester.tap(find.text('Sign in'));
-    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
 
     expect(find.text('Incorrect email or password.'), findsOneWidget);
     expect(find.text('Role selection reached'), findsNothing);
@@ -137,8 +166,9 @@ void main() {
       home: AuthGate(authService: auth, child: const Text('Role selection reached')),
     ));
 
-    await tester.tap(find.text('Sign in'));
-    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await beat(tester);
 
     expect(find.text('Enter an email address.'), findsOneWidget);
     expect(find.text('Role selection reached'), findsNothing);
@@ -154,7 +184,7 @@ void main() {
     expect(find.text('Role selection reached'), findsOneWidget);
 
     await auth.signOut();
-    await tester.pumpAndSettle();
+    await beat(tester);
 
     expect(find.text('Care team sign-in'), findsOneWidget);
   });
@@ -213,7 +243,7 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).first, 'priya@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'password123');
-    await tester.tap(find.text('Sign in').last);
+    await tester.tap(find.text('Continue').last);
     // Signing in now loads the account's whole record — profile, questionnaire,
     // baseline, history — before it navigates, so let those reads settle.
     for (int i = 0; i < 6; i++) {
@@ -227,11 +257,9 @@ void main() {
     expect(find.byType(SignInScreen), findsNothing);
     expect(state.role, AppRole.caregiver);
 
-    // Into their app, not into the questionnaire. Proving who you are should
-    // not be immediately followed by fifteen screens of questions — the
-    // dashboard offers the onboarding instead, and keeps offering it.
-    expect(find.text('Before we begin'), findsNothing);
-    expect(find.text('Finish setting up'), findsOneWidget);
+    // A brand-new account has answered nothing, so it lands on the
+    // onboarding and the profile is built at the end of it.
+    expect(find.text('Before we begin'), findsOneWidget);
   });
 
   testWidgets('an already signed-in user skips the sign-in screen',
@@ -329,7 +357,7 @@ void main() {
             child: MaterialApp(
               home: SignInScreen(
                 authService: auth,
-                onSignedIn: (AuthUser user) => signedIn = user,
+                onSignedIn: (AuthResult result) async => signedIn = result.user,
               ),
             ),
           ),
@@ -361,7 +389,7 @@ void main() {
         MaterialApp(
           home: SignInScreen(
             authService: auth,
-            onSignedIn: (AuthUser _) => routed = true,
+            onSignedIn: (AuthResult _) async => routed = true,
           ),
         ),
       );

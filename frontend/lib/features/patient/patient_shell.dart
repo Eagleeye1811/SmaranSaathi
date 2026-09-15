@@ -7,7 +7,9 @@ import '../../core/voice/voice_nav_intent.dart';
 import '../../core/widgets/app_nav_bar.dart';
 import '../../core/widgets/voice_nav_host.dart';
 import '../../l10n/app_localizations.dart';
-import 'assistant/assistant_screen.dart';
+// assistant_screen is still referenced by HealthDashboardScreen internally
+// but is no longer used as the companion destination in the shell.
+import 'asha/asha_screen.dart';
 import 'games/game_hub_screen.dart';
 import 'health/care_plan_screen.dart';
 import 'health/cognitive_profile_screen.dart';
@@ -29,6 +31,24 @@ class PatientShell extends StatefulWidget {
 
 class _PatientShellState extends State<PatientShell> {
   int _index = 0;
+
+  /// One entry per child of the `IndexedStack` below, **in the same order**.
+  ///
+  /// Four destinations: Home, Activities, Wellness, Asha.
+  /// Asha is a persistent nav tab rather than a pushed screen so the patient
+  /// can reach their companion from anywhere with one large tap target.
+  static const int _destinationCount = 4;
+
+  /// Localised, so the bar reads in whatever language the app is set to.
+  /// 'Asha' is a proper name and is not translated.
+  static List<NavDestination> _destinationsFor(AppLocalizations l) => <NavDestination>[
+        NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
+        NavDestination(
+            l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
+        NavDestination(l.patientNavWellness, Icons.spa_outlined, Icons.spa_rounded),
+        const NavDestination(
+            'Asha', Icons.record_voice_over_outlined, Icons.record_voice_over_rounded),
+      ];
 
   void _go(int i) => setState(() => _index = i);
 
@@ -56,9 +76,10 @@ class _PatientShellState extends State<PatientShell> {
       case VoiceDestination.activities:
         _go(1);
       case VoiceDestination.companion:
+        // Switch to the Asha tab (index 3) — same as tapping it in the bar.
         _go(3);
       case VoiceDestination.profile:
-        _go(4);
+        Nav.open(context, const PatientProfileScreen());
       case VoiceDestination.memories:
         Nav.push(context, const MemoryWalletScreen());
       case VoiceDestination.carePlan:
@@ -77,46 +98,44 @@ class _PatientShellState extends State<PatientShell> {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<NavDestination> destinations = <NavDestination>[
-      NavDestination(l.patientNavHome, Icons.home_outlined, Icons.home_rounded),
-      NavDestination(l.patientNavToday, Icons.notifications_outlined, Icons.notifications_rounded),
-      NavDestination(l.patientNavActivities, Icons.extension_outlined, Icons.extension_rounded),
-      NavDestination(l.patientNavCompanion, Icons.forum_outlined, Icons.forum_rounded),
-      NavDestination(l.patientNavProfile, Icons.person_outline_rounded, Icons.person_rounded),
-    ];
-    return Scaffold(
-      backgroundColor: state.highContrast ? Colors.white : AppColors.background,
-      body: ReturnHomeBanner(
-        child: VoiceNavHost(
-          destinations: _voiceDestinations,
-          onNavigate: _onVoiceNavigate,
-          accent: AppColors.plum,
+    final List<NavDestination> destinations = _destinationsFor(l);
+    return VoiceNavHost(
+      destinations: _voiceDestinations,
+      onNavigate: _onVoiceNavigate,
+      accent: AppColors.primary,
+      showFloatingMic: false,
+      child: Scaffold(
+        backgroundColor: state.highContrast ? Colors.white : AppColors.background,
+        body: ReturnHomeBanner(
           child: IndexedStack(
             index: _index,
             children: <Widget>[
               HealthDashboardScreen(onOpenTab: (int tabIndex) {
+                // Dashboard tab indices (from action cards):
+                //   0 → Home, 1 → Today (pushed), 2 → Activities,
+                //   3 → Wellness, 4 → Asha.
+                // Everything above 1 shifts down by one to skip the
+                // non-tab Reminders/Today screen (shell indices 0..3).
                 if (tabIndex == 1) {
                   Nav.open(context, const TodayScreen());
-                } else if (tabIndex > 1) {
-                  _go(tabIndex - 1);
                 } else {
-                  _go(tabIndex);
+                  final int target = tabIndex > 1 ? tabIndex - 1 : tabIndex;
+                  _go(target.clamp(0, _destinationCount - 1));
                 }
               }),
               const GameHubScreen(),
               const WellnessCornerScreen(),
-              const AssistantScreen(embedded: true),
-              const PatientProfileScreen(),
+              AshaScreen(embedded: true, active: _index == 3),
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: AppNavBar(
-        destinations: destinations,
-        index: _index,
-        onChanged: _go,
-        large: true,
-        accent: AppColors.primary,
+        bottomNavigationBar: AppNavBar(
+          destinations: destinations,
+          index: _index,
+          onChanged: _go,
+          large: true,
+          accent: AppColors.primary,
+        ),
       ),
     );
   }

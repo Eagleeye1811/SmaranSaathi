@@ -3,9 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../app/theme/app_colors.dart';
+import '../../core/models/chat_message.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
+import '../../core/models/doctor.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/patient.dart';
 
 /// Every piece of demo content in the prototype lives here.
@@ -291,7 +294,7 @@ class MockData {
 
   static const String caregiverName = 'Priya';
   static const String doctorName = 'Dr. Neha Sharma';
-  static const String clinicName = 'Jorhat Medical College — Memory Clinic';
+  static const String clinicName = 'Jorhat Medical College, Memory Clinic';
 
   // ── Activities ─────────────────────────────────────────────────────────
 
@@ -301,7 +304,7 @@ class MockData {
       name: 'Procedure Reconstruction',
       tagline: 'Remember the steps of something familiar.',
       description:
-          'Put the steps of an everyday task back in the right order — making tea, cooking pitha, dressing the loom.',
+          'Put the steps of an everyday task back in the right order, making tea, cooking pitha, dressing the loom.',
       domain: CognitiveDomain.procedural,
       sceneId: 'pitha',
       accent: AppColors.terracotta,
@@ -369,8 +372,8 @@ class MockData {
       name: 'The Village Market Adventure',
       tagline: 'See what we can find at the market today.',
       description:
-          'Wander the market stalls with a basket, and see what catches your eye — '
-          'there are a few things for dinner worth remembering.',
+          'Wander the market stalls with a basket, and see what catches your eye. '
+          'There are a few things for dinner worth remembering.',
       domain: CognitiveDomain.procedural,
       sceneId: 'market',
       accent: AppColors.olive,
@@ -382,7 +385,7 @@ class MockData {
       name: 'Mood Canvas',
       tagline: 'Draw whatever you like.',
       description:
-          'A blank space to draw anything at all — no prompt, no right answer. '
+          'A blank space to draw anything at all, no prompt, no right answer. '
           'Your doctor may look at it later.',
       domain: null,
       hasLevels: false,
@@ -456,6 +459,7 @@ class MockData {
       dayOffset: day,
       level: level,
       timeLabel: time,
+      playedAt: DateTime.now().subtract(Duration(days: day)),
       performance: GamePerformance(
         accuracy: acc,
         focus: focus,
@@ -527,7 +531,7 @@ class MockData {
           id: 'r7',
           time: 'Thursday, 11:00 AM',
           minutesFromMidnight: 660,
-          title: 'Memory clinic — Dr. Sharma',
+          title: 'Memory clinic: Dr. Sharma',
           kind: ReminderKind.appointment,
           detail: 'Bhaskar will drive',
         ),
@@ -783,7 +787,7 @@ class MockData {
         const DoctorAlert(
           id: 'al2',
           patientName: 'Wanhun Kharkongor',
-          title: 'Reduced engagement — 3 sessions missed',
+          title: 'Reduced engagement: 3 sessions missed',
           detail:
               'No completed activity since Tuesday. Reminder adherence dropped to 70%. Caregiver contact suggested.',
           severity: AlertSeverity.watch,
@@ -896,7 +900,7 @@ class MockData {
               label: 'Show me',
               emoji: '👀',
               positive: false,
-              response: 'Here it is — the gamosa border you wove for fifty years.'),
+              response: 'Here it is, the gamosa border you wove for fifty years.'),
         ],
       ),
       DailyQuestion(
@@ -916,10 +920,495 @@ class MockData {
     ];
   }
 
+  // ── Doctor appointments ────────────────────────────────────────────────
+
+  static List<DoctorAppointment> doctorAppointments() => <DoctorAppointment>[
+        const DoctorAppointment(
+          id: 'da1',
+          patientId: 'p_rajan',
+          patientName: 'Rajan Mehta',
+          patientAge: 68,
+          dateLabel: 'Today',
+          timeLabel: '10:00 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: true,
+        ),
+        const DoctorAppointment(
+          id: 'da2',
+          patientId: 'p_aama',
+          patientName: 'Aama Devi',
+          patientAge: 72,
+          dateLabel: 'Today',
+          timeLabel: '11:30 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: false,
+        ),
+        const DoctorAppointment(
+          id: 'da3',
+          patientId: 'p_kamala',
+          patientName: 'Kamala Bora',
+          patientAge: 69,
+          dateLabel: 'Tomorrow',
+          timeLabel: '9:00 AM',
+          status: AppointmentStatus.upcoming,
+          isVirtual: true,
+        ),
+        const DoctorAppointment(
+          id: 'da4',
+          patientId: 'p_ramesh',
+          patientName: 'Ramesh Deka',
+          patientAge: 74,
+          dateLabel: 'Sep 10',
+          timeLabel: '3:00 PM',
+          status: AppointmentStatus.completed,
+          isVirtual: false,
+          doctorNotes:
+              'Patient showed improvement in recall. Medication plan reviewed and adjusted. Recommended increasing cognitive game frequency to twice daily. Follow-up scheduled in 4 weeks.',
+        ),
+        const DoctorAppointment(
+          id: 'da5',
+          patientId: 'p_wanhun',
+          patientName: 'Wanhun Kharkongor',
+          patientAge: 71,
+          dateLabel: 'Sep 8',
+          timeLabel: '11:00 AM',
+          status: AppointmentStatus.completed,
+          isVirtual: true,
+          doctorNotes:
+              'Engagement dropped significantly over the past week. Caregiver noted restlessness at night. Consider a sleep assessment. Adjusted activity schedule to mornings only.',
+        ),
+      ];
+
+  // ── Doctor availability slots ──────────────────────────────────────────
+
+  static List<DoctorSlot> doctorSlots() => <DoctorSlot>[
+        const DoctorSlot(id: 'sl1', dayLabel: 'Monday', timeLabel: '9:00 – 10:00 AM'),
+        const DoctorSlot(id: 'sl2', dayLabel: 'Monday', timeLabel: '11:00 AM – 12:00 PM', isBooked: true, bookedByPatient: 'Rajan Mehta'),
+        const DoctorSlot(id: 'sl3', dayLabel: 'Tuesday', timeLabel: '10:00 – 11:00 AM'),
+        const DoctorSlot(id: 'sl4', dayLabel: 'Wednesday', timeLabel: '2:00 – 3:00 PM'),
+        const DoctorSlot(id: 'sl5', dayLabel: 'Thursday', timeLabel: '9:00 – 10:00 AM', isBooked: true, bookedByPatient: 'Aama Devi'),
+        const DoctorSlot(id: 'sl6', dayLabel: 'Thursday', timeLabel: '3:00 – 4:00 PM'),
+        const DoctorSlot(id: 'sl7', dayLabel: 'Friday', timeLabel: '10:00 – 11:00 AM'),
+      ];
+
+  // ── Medical reports ────────────────────────────────────────────────────
+
+  static List<MedicalReport> patientMedicalReports() => <MedicalReport>[
+        const MedicalReport(
+          id: 'mr1',
+          kind: ReportKind.mri,
+          dateLabel: '5 September 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.summarised,
+          fileName: 'brain_mri_sep2026.pdf',
+          aiSummary:
+              'The MRI shows mild cerebral atrophy consistent with the patient\'s age and clinical presentation. No acute infarcts or haemorrhage identified. White matter changes are minimal. The hippocampal volume appears mildly reduced bilaterally, which may correlate with the observed memory difficulties.\n\n⚠️ This plain-language summary is generated by AI for reference only. It does not replace professional radiological interpretation. Always refer to the original report.',
+        ),
+        const MedicalReport(
+          id: 'mr2',
+          kind: ReportKind.bloodTest,
+          dateLabel: '28 August 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.summarised,
+          fileName: 'blood_panel_aug2026.pdf',
+          aiSummary:
+              'Routine blood panel results show haemoglobin within normal range. Vitamin B12 is low-normal (210 pg/mL; reference 200–900). Thyroid function tests (TSH, T3, T4) are within normal limits. HbA1c is 6.1%, indicating pre-diabetic range, dietary guidance recommended.\n\n⚠️ AI summary for doctor reference only. Not a diagnosis. Please review original lab report.',
+        ),
+        const MedicalReport(
+          id: 'mr3',
+          kind: ReportKind.eeg,
+          dateLabel: '14 July 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.awaitingDoctor,
+          fileName: 'eeg_jul2026.pdf',
+        ),
+        const MedicalReport(
+          id: 'mr4',
+          kind: ReportKind.other,
+          dateLabel: '2 June 2026',
+          doctorName: 'Dr. R. Sharma',
+          status: ReportStatus.uploaded,
+          fileName: 'prescription_jun2026.pdf',
+        ),
+      ];
+
+  // ── Care plan ──────────────────────────────────────────────────────────
+
+  static CarePlanEntry careplan() => const CarePlanEntry(
+        patientId: 'p_aama',
+        updatedLabel: '10 September 2026',
+        recommendations: <String>[
+          'Encourage a 15-minute morning walk daily.',
+          'Reduce evening screen time to under 30 minutes.',
+          'Ensure 7–8 hours of uninterrupted sleep.',
+          'Maintain regular meal timings to support circadian rhythm.',
+          'Encourage social interaction: phone call with Priya every evening.',
+        ],
+        activities: <String>[
+          'Crossword or word puzzle daily (memory stimulation).',
+          'SmaranSaathi cognitive games twice daily, morning and afternoon.',
+          'Guided breathing or yoga session thrice a week.',
+          'Mood canvas drawing once a day as emotional expression.',
+        ],
+        instructions:
+            'Continue current medication schedule. Do not adjust dosage without next consultation. Caregiver (Priya) to monitor sleep quality and report any significant changes in mood or behaviour.',
+        followUpLabel: '10 October 2026',
+        sharedWithCaregiver: true,
+      );
+
   static const List<JourneyStep> journey = <JourneyStep>[
     JourneyStep(id: 'checkin', label: 'Morning check-in', icon: Icons.wb_sunny_rounded),
     JourneyStep(id: 'memory', label: 'Memory activity', icon: Icons.favorite_rounded),
     JourneyStep(id: 'game', label: 'Cognitive game', icon: Icons.extension_rounded),
     JourneyStep(id: 'reflection', label: 'Evening reflection', icon: Icons.nightlight_round),
   ];
+
+  // ── Doctor Conversations (WhatsApp-style clinical chat) ─────────────────
+
+  static List<DoctorConversation> doctorConversations() {
+    final DateTime now = DateTime.now();
+    return <DoctorConversation>[
+      DoctorConversation(
+        patientId: 'p_aama',
+        patientName: 'Aama Devi',
+        caregiverName: 'Ananya Devi (Daughter)',
+        patientAge: 72,
+        district: 'Jorhat, Assam',
+        sceneId: 'portrait_aama',
+        isOnline: true,
+        lastSeen: 'Online',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_aama_1',
+            conversationId: 'p_aama',
+            text: 'Good morning Dr. Baruah. Aama completed her morning memory cards with 94% score today.',
+            timestamp: now.subtract(const Duration(hours: 3, minutes: 20)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_aama_2',
+            conversationId: 'p_aama',
+            text: 'That is wonderful progress Ananya. Please keep continuing the evening walk routine as well.',
+            timestamp: now.subtract(const Duration(hours: 3, minutes: 10)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_aama_3',
+            conversationId: 'p_aama',
+            text: 'Sure Doctor. Also she asked about the herbal tea formulation you recommended.',
+            timestamp: now.subtract(const Duration(minutes: 45)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_aama_4',
+            conversationId: 'p_aama',
+            text: 'Yes, 1 cup post-lunch is fine. Let me know if any sleep pattern changes occur.',
+            timestamp: now.subtract(const Duration(minutes: 38)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_aama_5',
+            conversationId: 'p_aama',
+            text: 'Thank you doctor, will definitely update you tomorrow morning! 🙏',
+            timestamp: now.subtract(const Duration(minutes: 25)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_ramesh',
+        patientName: 'Ramesh Deka',
+        caregiverName: 'Bikash Deka (Son)',
+        patientAge: 77,
+        district: 'Kamrup, Assam',
+        sceneId: 'portrait_bhaskar',
+        isOnline: false,
+        lastSeen: 'last seen today at 4:15 PM',
+        unreadCount: 1,
+        isAttention: true,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_ramesh_1',
+            conversationId: 'p_ramesh',
+            text: "Hello Bikash, I noticed Ramesh's spatial recall score dropped slightly over the last 3 days.",
+            timestamp: now.subtract(const Duration(hours: 6)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_ramesh_2',
+            conversationId: 'p_ramesh',
+            text: 'Yes Doctor, he had mild fever two nights ago. We gave paracetamol as advised.',
+            timestamp: now.subtract(const Duration(hours: 5, minutes: 30)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_ramesh_3',
+            conversationId: 'p_ramesh',
+            text: 'Understood. Please keep him well-hydrated. I have requested a follow-up CBC & metabolic report.',
+            timestamp: now.subtract(const Duration(hours: 4)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+            attachmentType: 'report_request',
+            attachmentTitle: 'Laboratory Investigation Request',
+            attachmentSubtitle: 'Complete Blood Count (CBC) & Serum Electrolytes',
+          ),
+          ChatMessage(
+            id: 'm_ramesh_4',
+            conversationId: 'p_ramesh',
+            text: 'Scheduling the lab technician visit today. Should we hold the evening game session until fever subsides?',
+            timestamp: now.subtract(const Duration(hours: 1, minutes: 15)),
+            isFromDoctor: false,
+            status: MessageStatus.delivered,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_kamala',
+        patientName: 'Kamala Bora',
+        caregiverName: 'Hemanta Bora (Husband)',
+        patientAge: 69,
+        district: 'Sivasagar, Assam',
+        sceneId: 'portrait_neighbour',
+        isOnline: false,
+        lastSeen: 'last seen yesterday at 8:40 PM',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_kamala_1',
+            conversationId: 'p_kamala',
+            text: 'Dr. Baruah, could you please share the updated cognitive stimulation schedule for Kamala?',
+            timestamp: now.subtract(const Duration(days: 1, hours: 4)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_kamala_2',
+            conversationId: 'p_kamala',
+            text: 'Here is the customized care plan including procedural puzzle tasks.',
+            timestamp: now.subtract(const Duration(days: 1, hours: 3)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+            attachmentType: 'care_plan',
+            attachmentTitle: 'Active Clinical Care Plan',
+            attachmentSubtitle: 'Updated with dual-task procedural exercises',
+          ),
+          ChatMessage(
+            id: 'm_kamala_3',
+            conversationId: 'p_kamala',
+            text: 'Received! We started the sorting activities this morning and she enjoyed them.',
+            timestamp: now.subtract(const Duration(days: 1, hours: 2)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_bimala',
+        patientName: 'Bimala Sonowal',
+        caregiverName: 'Priya Sonowal (Daughter)',
+        patientAge: 74,
+        district: 'Dibrugarh, Assam',
+        sceneId: 'portrait_priya',
+        isOnline: true,
+        lastSeen: 'Online',
+        unreadCount: 1,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_bimala_1',
+            conversationId: 'p_bimala',
+            text: 'Namaste Doctor, mother is feeling much more cheerful after the music sessions.',
+            timestamp: now.subtract(const Duration(hours: 5)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_bimala_2',
+            conversationId: 'p_bimala',
+            text: 'Excellent news! Music therapy stimulates auditory pathways and improves mood stability.',
+            timestamp: now.subtract(const Duration(hours: 4)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_bimala_3',
+            conversationId: 'p_bimala',
+            text: 'Yes, she sang an old Borgeet yesterday evening. Can we increase the music sessions to twice a day?',
+            timestamp: now.subtract(const Duration(minutes: 50)),
+            isFromDoctor: false,
+            status: MessageStatus.delivered,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_thangjam',
+        patientName: 'Thangjam Ibobi',
+        caregiverName: 'Tomba Ibobi (Son)',
+        patientAge: 81,
+        district: 'Imphal, Manipur',
+        sceneId: 'portrait_doctor',
+        isOnline: false,
+        lastSeen: 'last seen yesterday at 3:12 PM',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_thangjam_1',
+            conversationId: 'p_thangjam',
+            text: "Hello Tomba, reminding you about Ibobi's scheduled tele-consultation this Friday at 3:00 PM.",
+            timestamp: now.subtract(const Duration(days: 2, hours: 5)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_thangjam_2',
+            conversationId: 'p_thangjam',
+            text: 'Yes Doctor Baruah, we will be ready on time with his latest blood pressure log.',
+            timestamp: now.subtract(const Duration(days: 2, hours: 4)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_pranab',
+        patientName: 'Pranab Baruah',
+        caregiverName: 'Rituraj Baruah (Son)',
+        patientAge: 67,
+        district: 'Tezpur, Assam',
+        sceneId: 'portrait_aarav',
+        isOnline: false,
+        lastSeen: 'last seen today at 11:30 AM',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_pranab_1',
+            conversationId: 'p_pranab',
+            text: 'Good afternoon Doctor, Pranab completed his 7-day adherence streak today!',
+            timestamp: now.subtract(const Duration(hours: 8)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_pranab_2',
+            conversationId: 'p_pranab',
+            text: 'Outstanding! Consistency in cognitive routines strengthens neural reserve significantly.',
+            timestamp: now.subtract(const Duration(hours: 7)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_renuka',
+        patientName: 'Renuka Hazarika',
+        caregiverName: 'Mridul Hazarika (Husband)',
+        patientAge: 75,
+        district: 'Nagaon, Assam',
+        sceneId: 'portrait_aama',
+        isOnline: false,
+        lastSeen: 'last seen 3 days ago',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_renuka_1',
+            conversationId: 'p_renuka',
+            text: "Hello Mridul, checking in on Renuka's sleep cycle after the routine adjustment.",
+            timestamp: now.subtract(const Duration(days: 3)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_renuka_2',
+            conversationId: 'p_renuka',
+            text: 'Sleeping much better doctor! Waking up refreshed at 6:30 AM without night confusion.',
+            timestamp: now.subtract(const Duration(days: 3, minutes: -45)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_maniram',
+        patientName: 'Maniram Phukan',
+        caregiverName: 'Dipak Phukan (Son)',
+        patientAge: 83,
+        district: 'Golaghat, Assam',
+        sceneId: 'portrait_bhaskar',
+        isOnline: true,
+        lastSeen: 'Online',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_maniram_1',
+            conversationId: 'p_maniram',
+            text: "Namaste Doctor, we have connected Maniram's profile to your clinic portal.",
+            timestamp: now.subtract(const Duration(days: 4)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_maniram_2',
+            conversationId: 'p_maniram',
+            text: "Welcome Dipak. You can message me here directly with any questions regarding Maniram's care plan.",
+            timestamp: now.subtract(const Duration(days: 4, minutes: -30)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+        ],
+      ),
+      DoctorConversation(
+        patientId: 'p_atsu',
+        patientName: 'Atsuho Zhimomi',
+        caregiverName: 'Kikheto Zhimomi (Son)',
+        patientAge: 73,
+        district: 'Dimapur, Nagaland',
+        sceneId: 'portrait_priya',
+        isOnline: true,
+        lastSeen: 'Online',
+        unreadCount: 0,
+        messages: <ChatMessage>[
+          ChatMessage(
+            id: 'm_atsu_1',
+            conversationId: 'p_atsu',
+            text: 'Good morning Dr. Sharma. Atsuho completed his morning reasoning activity today.',
+            timestamp: now.subtract(const Duration(hours: 4, minutes: 15)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_2',
+            conversationId: 'p_atsu',
+            text: 'Hello Kikheto. His cognitive stability score looks consistent at 66%. How is his orientation in the evenings?',
+            timestamp: now.subtract(const Duration(hours: 3, minutes: 50)),
+            isFromDoctor: true,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_3',
+            conversationId: 'p_atsu',
+            text: 'He was calm yesterday evening after we played the melody activity together. Sleeping soundly through the night.',
+            timestamp: now.subtract(const Duration(hours: 2, minutes: 10)),
+            isFromDoctor: false,
+            status: MessageStatus.read,
+          ),
+          ChatMessage(
+            id: 'm_atsu_4',
+            conversationId: 'p_atsu',
+            text: 'Excellent. Let us schedule our regular video check-in this Thursday at 4 PM to review progress.',
+            timestamp: now.subtract(const Duration(minutes: 40)),
+            isFromDoctor: true,
+            status: MessageStatus.delivered,
+          ),
+        ],
+      ),
+    ];
+  }
 }
+

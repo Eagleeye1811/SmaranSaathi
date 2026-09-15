@@ -724,6 +724,8 @@ enum IntakeStep {
   dailySafety,
   strengths,
   goals,
+  doctor,
+  patientUsername,
   summary,
   done,
 }
@@ -749,12 +751,19 @@ extension IntakeStepX on IntakeStep {
         IntakeStep.dailySafety => 'Safety',
         IntakeStep.strengths => 'What they enjoy',
         IntakeStep.goals => 'How we can help',
+        IntakeStep.doctor => 'A doctor, if you have one',
+        IntakeStep.patientUsername => 'How they will sign in',
         IntakeStep.summary => 'All done',
         IntakeStep.done => 'Complete',
       };
 
   IntakePart get part => switch (this) {
-        IntakeStep.consent || IntakeStep.summary || IntakeStep.done => IntakePart.setup,
+        IntakeStep.consent ||
+        IntakeStep.doctor ||
+        IntakeStep.patientUsername ||
+        IntakeStep.summary ||
+        IntakeStep.done =>
+          IntakePart.setup,
         IntakeStep.person ||
         IntakeStep.health ||
         IntakeStep.everyday ||
@@ -886,6 +895,8 @@ class IntakeRecord {
     IntakeStep.dailySafety,
     IntakeStep.strengths,
     IntakeStep.goals,
+    IntakeStep.doctor,
+    IntakeStep.patientUsername,
     IntakeStep.summary,
   ];
 
@@ -905,6 +916,9 @@ class IntakeRecord {
     if (!o.safetyDone) return IntakeStep.dailySafety;
     if (!o.strengthsDone) return IntakeStep.strengths;
     if (!o.goalsDone) return IntakeStep.goals;
+    // Never resumed onto: connecting a doctor is an offer, not an answer the
+    // questionnaire is waiting for. Somebody who closed the app on it comes
+    // back to the summary, and the Doctors tab is there whenever they want it.
     return IntakeStep.summary;
   }
 

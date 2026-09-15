@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/doctor/doctor_shell.dart';
-import 'package:memory_mitra/features/patient/patient_entry.dart';
-import 'package:memory_mitra/features/patient/settings/language_picker_button.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-import 'package:memory_mitra/l10n/locale_controller.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/features/caregiver/profile/caregiver_profile_screen.dart';
+import 'package:smaran_saathi/features/doctor/profile/doctor_profile_screen.dart';
+import 'package:smaran_saathi/features/patient/profile/patient_profile_screen.dart';
+import 'package:smaran_saathi/features/patient/settings/language_picker_button.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
+import 'package:smaran_saathi/l10n/locale_controller.dart';
 
 void main() {
   group('Role next-page language selector verification', () {
@@ -42,7 +42,61 @@ void main() {
           ),
         );
 
-    testWidgets('Patient role next page has language selector and updates UI in place',
+    /// Finds the language control however this role renders it, picks the
+    /// named language, and leaves the frame settled.
+    Future<void> pick(WidgetTester tester, String name) async {
+      // The page's own list, not the first scrollable in the tree — these
+      // profiles carry horizontal strips (chips, day pickers) that match
+      // `Scrollable` first and scroll the wrong way.
+      final Finder scroll = find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      );
+
+      // The compact control keeps its options behind a sheet, so it has to be
+      // found and opened first. `scrollUntilVisible` rather than a hand-rolled
+      // drag loop: on a long profile the button is not merely off-screen, it
+      // has not been built yet.
+      if (find.text(name).evaluate().isEmpty && scroll.evaluate().isNotEmpty) {
+        try {
+          await tester.scrollUntilVisible(
+            find.byType(LanguagePickerButton),
+            220,
+            scrollable: scroll.first,
+            maxScrolls: 40,
+          );
+        } catch (_) {
+          // No compact control on this profile — it uses the inline card,
+          // whose options are already on the page.
+        }
+      }
+      for (int i = 0; i < 20 && find.text(name).evaluate().isEmpty; i++) {
+        if (find.byType(LanguagePickerButton).evaluate().isNotEmpty) {
+          // `scrollUntilVisible` stops the moment the button is barely in
+          // frame, where a tap lands on the list's clip rather than on it.
+          await tester.ensureVisible(find.byType(LanguagePickerButton).first);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 200));
+          await tester.tap(find.byType(LanguagePickerButton).first);
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 600));
+          break;
+        }
+        if (scroll.evaluate().isEmpty) break;
+        await tester.drag(scroll.first, const Offset(0, -320));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      expect(find.text(name), findsWidgets, reason: 'no language control on this profile');
+      await tester.ensureVisible(find.text(name).first);
+      await tester.pump();
+      await tester.tap(find.text(name).first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+
+    testWidgets('Patient role profile has the language selector and updates UI in place',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(393, 852) * 3;
       tester.view.devicePixelRatio = 3;
@@ -50,32 +104,17 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       state.setRole(AppRole.patient);
-      await tester.pumpWidget(harness(const PatientEntry()));
+      await tester.pumpWidget(harness(const PatientProfileScreen()));
       await tester.pump(const Duration(milliseconds: 700));
 
-      // LanguagePickerButton is present on the existing next page.
-      expect(find.byType(LanguagePickerButton), findsWidgets);
-      expect(find.text('English'), findsWidgets);
+      await pick(tester, 'हिंदी');
 
-      // Tap the language selector button.
-      await tester.tap(find.byType(LanguagePickerButton).first);
-      await tester.pumpAndSettle();
-
-      // Modal bottom sheet opens with the three supported languages and shows active selection.
-      expect(find.text('हिंदी'), findsOneWidget);
-      expect(find.text('অসমীয়া'), findsOneWidget);
-
-      // Select Hindi.
-      await tester.tap(find.text('हिंदी'));
-      await tester.pumpAndSettle();
-
-      // UI updates immediately in place and selection persists.
       expect(locale.locale.languageCode, 'hi');
       expect(state.localeCode, 'hi');
       expect(find.text('हिंदी'), findsWidgets);
     });
 
-    testWidgets('Caregiver role next page has language selector and updates UI in place',
+    testWidgets('Caregiver role profile has the language selector and updates UI in place',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(393, 852) * 3;
       tester.view.devicePixelRatio = 3;
@@ -83,25 +122,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       state.setRole(AppRole.caregiver);
-      await tester.pumpWidget(harness(const CaregiverShell()));
+      await tester.pumpWidget(harness(const CaregiverProfileScreen()));
       await tester.pump(const Duration(milliseconds: 700));
 
-      // LanguagePickerButton is present on Caregiver next page.
-      expect(find.byType(LanguagePickerButton), findsOneWidget);
-      expect(find.text('English'), findsWidgets);
-
-      // Tap the language selector button.
-      await tester.tap(find.byType(LanguagePickerButton));
-      await tester.pumpAndSettle();
-
-      // Modal bottom sheet shows the 3 languages.
-      expect(find.text('English'), findsWidgets);
-      expect(find.text('हिंदी'), findsOneWidget);
-      expect(find.text('অসমীয়া'), findsOneWidget);
-
-      // Select Assamese.
-      await tester.tap(find.text('অসমীয়া'));
-      await tester.pumpAndSettle();
+      await pick(tester, 'অসমীয়া');
 
       // UI updates immediately in place without navigating away.
       expect(locale.locale.languageCode, 'as');
@@ -109,7 +133,7 @@ void main() {
       expect(find.text('অসমীয়া'), findsWidgets);
     });
 
-    testWidgets('Doctor role next page has language selector and updates UI in place',
+    testWidgets('Doctor role profile has the language selector and updates UI in place',
         (WidgetTester tester) async {
       tester.view.physicalSize = const Size(393, 852) * 3;
       tester.view.devicePixelRatio = 3;
@@ -117,24 +141,10 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       state.setRole(AppRole.doctor);
-      await tester.pumpWidget(harness(const DoctorShell()));
+      await tester.pumpWidget(harness(const DoctorProfileScreen()));
       await tester.pump(const Duration(milliseconds: 700));
 
-      // LanguagePickerButton is present on Doctor next page.
-      expect(find.byType(LanguagePickerButton), findsOneWidget);
-      expect(find.text('English'), findsWidgets);
-
-      // Tap the language selector button.
-      await tester.tap(find.byType(LanguagePickerButton));
-      await tester.pumpAndSettle();
-
-      // Modal sheet opens with Hindi and Assamese.
-      expect(find.text('हिंदी'), findsOneWidget);
-      expect(find.text('অসমীয়া'), findsOneWidget);
-
-      // Select Hindi.
-      await tester.tap(find.text('हिंदी'));
-      await tester.pumpAndSettle();
+      await pick(tester, 'हिंदी');
 
       // UI updates in place and persists.
       expect(locale.locale.languageCode, 'hi');

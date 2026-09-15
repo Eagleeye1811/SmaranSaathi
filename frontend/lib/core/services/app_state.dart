@@ -10,10 +10,14 @@ import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
 import '../models/assessment.dart';
-import '../models/onboarding.dart';
+import '../models/caregiver_note.dart';
+import '../models/chat_message.dart';
 import '../models/clinical.dart';
+import '../models/onboarding.dart';
 import '../models/daily.dart';
+import '../models/doctor.dart';
 import '../models/game.dart';
+import '../models/medical_report.dart';
 import '../models/memory_fragment.dart';
 import '../models/monitoring.dart';
 import '../models/mood_drawing.dart';
@@ -21,14 +25,17 @@ import '../models/patient.dart';
 import '../models/report.dart';
 import '../models/safety.dart';
 import '../models/settings.dart';
+import '../models/weekly_report.dart';
 import '../models/wellness.dart';
 import 'adaptive_difficulty_service.dart';
 import 'cognitive_monitoring_service.dart';
 import 'connectivity_service.dart';
+import 'doctor_connection_service.dart';
 import 'notification_service.dart';
 import 'pairing_service.dart';
 import 'personalization_service.dart';
 import 'sync_manager.dart';
+import 'weekly_report_service.dart';
 
 export '../models/settings.dart' show AppSettings, TextSizePreference, TextSizePreferenceX;
 export '../models/wellness.dart' show WellnessSession, WellnessType, WellnessTypeX;
@@ -58,6 +65,7 @@ class AppState extends ChangeNotifier {
     AssessmentRepository? assessment,
     MemoryFragmentRepository? memories,
     MoodDrawingRepository? moodDrawings,
+    CaregiverNoteRepository? caregiverNotes,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -72,6 +80,7 @@ class AppState extends ChangeNotifier {
         _assessment = assessment ?? MockAssessmentRepository(),
         _memories = memories ?? MockMemoryFragmentRepository(),
         _moodDrawingRepo = moodDrawings ?? MockMoodDrawingRepository(),
+        _caregiverNoteRepo = caregiverNotes ?? MockCaregiverNoteRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()),
@@ -91,6 +100,7 @@ class AppState extends ChangeNotifier {
   final AssessmentRepository _assessment;
   final MemoryFragmentRepository _memories;
   final MoodDrawingRepository _moodDrawingRepo;
+  final CaregiverNoteRepository _caregiverNoteRepo;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   /// Kept alongside the sync manager because restoring is a *pull*, which the
@@ -155,6 +165,17 @@ class AppState extends ChangeNotifier {
   final PairingService? _pairing;
   PairingService? get pairing => _pairing;
 
+  /// Attached after construction, not injected in the constructor — unlike
+  /// [_pairing], this needs a Firebase ID token, which only exists once
+  /// [AuthService] has been built, and `bootstrapAppState`/`bootstrapAuth`
+  /// in `app/bootstrap.dart` run as two separate calls (`main.dart` builds
+  /// `AppState` first). `main.dart` wires this in once both exist, before
+  /// the first frame.
+  DoctorConnectionService? _doctorConnections;
+  void attachDoctorConnections(DoctorConnectionService service) {
+    _doctorConnections = service;
+  }
+
   /// True while a signed-in caregiver is *looking at* the patient's app
   /// rather than being the patient.
   ///
@@ -200,6 +221,27 @@ class AppState extends ChangeNotifier {
     _write(() async => _persistSettings());
   }
 
+  /// The pairing request this device is currently waiting on, if any.
+  ///
+  /// Held here — not just as local widget state on [PatientSignInScreen] —
+  /// because leaving that screen (the back button, an accidental navigation,
+  /// the app being closed) used to throw the whole handshake away: the widget
+  /// forgot the request id it was polling, so coming back showed the empty
+  /// "enter a username" form again. Asking again created a *second* pending
+  /// request, and any approval the caregiver had already given the first one
+  /// landed nowhere — the screen waiting on it was gone. Persisting the id
+  /// here means the sign-in screen can always resume the request it already
+  /// made (or notice it was approved while the screen was away) instead of
+  /// starting over.
+  String? _pendingPairingRequestId;
+  String? get pendingPairingRequestId => _pendingPairingRequestId;
+
+  void setPendingPairingRequestId(String? value) {
+    _pendingPairingRequestId = value;
+    notifyListeners();
+    _write(() async => _persistSettings());
+  }
+
   Patient _patient = MockData.emptyPatient;
   Patient get patient => _patient;
 
@@ -232,7 +274,20 @@ class AppState extends ChangeNotifier {
   bool get hydrated => _hydrated;
 
   void setRole(AppRole r) {
+    // "Switch role" sends someone back to the role picker without a full
+    // sign-out — if a caregiver's patient-app preview was ever left stuck
+    // active (see `beginPatientPreview`), this is the other place that
+    // preview state needs clearing, or the next role picked inherits it.
+    if (r == AppRole.none) {
+      _viewingAsPatient = false;
+      _previewReturnRole = AppRole.none;
+    }
     _role = r;
+    // Picking "doctor" is the moment a clinician becomes findable.
+    final String? signedIn = _accountId;
+    if (r == AppRole.doctor && signedIn != null) {
+      unawaited(ensureDoctorListing(uid: signedIn));
+    }
     // The role belongs to the person, so remember it against their account
     // and not just against the phone. This is the flag that lets a returning
     // sign-in go straight into the right app instead of asking again.
@@ -307,6 +362,7 @@ class AppState extends ChangeNotifier {
     _voicePrompts = settings.voicePrompts;
     _localeCode = settings.localeCode;
     _patientUsername = settings.patientUsername ?? '';
+    _pendingPairingRequestId = settings.pendingPairingRequestId;
     _connectivity.forcedOffline = settings.offlineOverride;
     _safeZone = SafeZone.decode(settings.safeZoneJson);
 
@@ -364,12 +420,17 @@ class AppState extends ChangeNotifier {
   /// previous person's day to whoever signed in next.
   Future<void> _loadPatientScopedData() async {
     final Map<GameId, int> levels = await _games.levels(_patient.id);
-    _levels
-      ..clear()
-      ..addAll(MockData.startingLevels);
+    _levels.clear();
+    // Only a demo build starts an activity partway through, matching the
+    // sample fortnight of history below. A real account starts every
+    // activity at level 1 — `levelOf` already falls back to 1 for a game
+    // with nothing recorded, so there is nothing to write here.
     if (levels.isEmpty) {
-      for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
-        await _games.saveLevel(_patient.id, e.key, e.value);
+      if (_seedDemo) {
+        _levels.addAll(MockData.startingLevels);
+        for (final MapEntry<GameId, int> e in MockData.startingLevels.entries) {
+          await _games.saveLevel(_patient.id, e.key, e.value);
+        }
       }
     } else {
       _levels.addAll(levels);
@@ -389,6 +450,23 @@ class AppState extends ChangeNotifier {
       }
     } else {
       _sessions.addAll(history);
+    }
+
+    _concernUpdates
+      ..clear()
+      ..addAll(await _caregiverNoteRepo.concernUpdates(_patient.id));
+    _notes
+      ..clear()
+      ..addAll(await _caregiverNoteRepo.notes(_patient.id));
+
+    final DateTime? storedCycleStart = await _caregiverNoteRepo.loadCycleStart(_patient.id);
+    if (storedCycleStart != null) {
+      _cycleStart = storedCycleStart;
+    } else {
+      // First time this patient has ever been loaded: fix the cycle's start
+      // now, once, so it survives every restart from here on rather than
+      // silently re-picking `DateTime.now()` on each cold launch.
+      await _caregiverNoteRepo.saveCycleStart(_patient.id, _cycleStart);
     }
 
     // Computed from the sessions just loaded rather than read back, so the
@@ -439,7 +517,11 @@ class AppState extends ChangeNotifier {
   }
 
   // ── Games ──────────────────────────────────────────────────────────────
-  final Map<GameId, int> _levels = Map<GameId, int>.from(MockData.startingLevels);
+  //
+  // Empty until `_loadPatientScopedData` hydrates it: `levelOf` falls back
+  // to 1 for anything not in this map, which is the correct starting point
+  // for a real account rather than the demo's partway-through levels.
+  final Map<GameId, int> _levels = <GameId, int>{};
   Map<GameId, int> get levels => Map<GameId, int>.unmodifiable(_levels);
   int levelOf(GameId id) => _levels[id] ?? 1;
 
@@ -518,6 +600,7 @@ class AppState extends ChangeNotifier {
       level: level,
       performance: p,
       timeLabel: _clockLabel(),
+      playedAt: DateTime.now(),
     );
     _sessions.insert(0, session);
 
@@ -526,6 +609,16 @@ class AppState extends ChangeNotifier {
     _lastDecision = decision;
     _lastPlayed = id;
     _journeyDone.add('game');
+
+    // An activity played anywhere counts towards the baseline.
+    //
+    // It used to count only inside `BaselineSessionScreen`, which was the
+    // single way in. Now that the home screen sends people to the activities
+    // list to choose for themselves, a run assembled from their own choices
+    // has to build the same profile as one the app marched them through —
+    // otherwise the baseline could never finish and the invitation to start
+    // it would never go away.
+    if (!baselineReady) markBaselineActivity(id);
 
     // Recomputed from every session on record rather than nudged by a delta.
     // A nudged score drifts away from the sessions it claims to summarise —
@@ -562,11 +655,156 @@ class AppState extends ChangeNotifier {
         'correct': p.correct,
         'responseMillis': p.responseMillis,
         'timeLabel': session.timeLabel,
+        'playedAt': session.playedAt.toIso8601String(),
       });
     });
 
     notifyListeners();
+    unawaited(_syncWeeklyReport());
     return decision;
+  }
+
+  // ── Caregiver weekly notes & the doctor-only weekly report ────────────────
+  //
+  // Neither the patient nor the caregiver ever sees the report this builds —
+  // only the ability to add to it (a concern check-in, a freeform note).
+  // Every write here re-derives the whole report and best-effort upserts it
+  // to the backend, so the doctor's copy is never more than one write stale;
+  // there is no "send" button and no scheduler. See `WeeklyReportBuilder`.
+  final WeeklyReportService _weeklyReports = WeeklyReportService();
+  final List<CaregiverConcernUpdate> _concernUpdates = <CaregiverConcernUpdate>[];
+  final List<CaregiverNoteEntry> _notes = <CaregiverNoteEntry>[];
+  DateTime _cycleStart = DateTime.now();
+
+  List<CaregiverConcernUpdate> get concernUpdatesThisCycle =>
+      List<CaregiverConcernUpdate>.unmodifiable(_concernUpdates);
+  List<CaregiverNoteEntry> get notesThisCycle => List<CaregiverNoteEntry>.unmodifiable(_notes);
+
+  /// The 7 scored games — Mood Canvas is deliberately excluded, same as
+  /// everywhere else that counts "activities" (see `GameDomains.of`).
+  int get _totalScoredGames =>
+      GameId.values.where((GameId g) => GameDomains.of(g) != null).length;
+
+  /// Which of the 7 scored games have been played at least once since
+  /// `_cycleStart` — the cycle is a *set of 7 unique activities*, not a fixed
+  /// number of days, so replaying the same game repeatedly never closes it.
+  Set<GameId> get _scoredGamesPlayedThisCycle => _sessions
+      .where((GameSession s) =>
+          !s.playedAt.isBefore(_cycleStart) && GameDomains.of(s.gameId) != null)
+      .map((GameSession s) => s.gameId)
+      .toSet();
+
+  /// 0–7. How many of the 7 activities have been played at least once this
+  /// cycle — the caregiver's status strip shows this instead of a day count.
+  int get cycleActivitiesCompleted =>
+      _scoredGamesPlayedThisCycle.length.clamp(0, _totalScoredGames);
+
+  /// DEBUG/DEMO ONLY. Fills in every scored activity except one with a
+  /// plausible finished session, through the exact same `finishGame` path a
+  /// real play-through uses — so a demo can show one real activity
+  /// completing the round and triggering the weekly report live, instead of
+  /// sitting through all 7. Returns which activity is left to play for real.
+  ///
+  /// Never called from production code; only ever wired behind a
+  /// `kDebugMode` check in the UI (see `reports_screen.dart`).
+  GameId simulateRestOfRoundForDemo() {
+    final List<GameId> scored =
+        GameId.values.where((GameId g) => GameDomains.of(g) != null).toList();
+    final GameId leftToPlay = scored.last;
+    final math.Random random = math.Random();
+
+    for (final GameId id in scored) {
+      if (id == leftToPlay) continue;
+      if (_scoredGamesPlayedThisCycle.contains(id)) continue;
+      final double accuracy = 60 + random.nextDouble() * 35;
+      finishGame(
+        id,
+        GamePerformance(
+          accuracy: accuracy,
+          focus: (accuracy - 5 + random.nextDouble() * 10).clamp(30, 99),
+          memory: (accuracy - 5 + random.nextDouble() * 10).clamp(30, 99),
+          hintsUsed: random.nextInt(3),
+          mistakes: random.nextInt(3),
+          seconds: 90 + random.nextInt(120),
+          completed: true,
+          attempts: 8,
+          correct: ((accuracy / 100) * 8).round(),
+          responseMillis: 1000 + random.nextInt(1500),
+        ),
+      );
+    }
+    return leftToPlay;
+  }
+
+  void logConcernUpdate(DailyDifficulty difficulty, ConcernTrend trend, {String comment = ''}) {
+    final CaregiverConcernUpdate update = CaregiverConcernUpdate(
+      id: 'concern_${DateTime.now().microsecondsSinceEpoch}',
+      difficulty: difficulty,
+      trend: trend,
+      comment: comment,
+      at: DateTime.now(),
+    );
+    _concernUpdates.add(update);
+    notifyListeners();
+    _write(() => _caregiverNoteRepo.addConcernUpdate(_patient.id, update));
+    unawaited(_syncWeeklyReport());
+  }
+
+  void addCaregiverNote(String text) {
+    if (text.trim().isEmpty) return;
+    final CaregiverNoteEntry note = CaregiverNoteEntry(
+      id: 'note_${DateTime.now().microsecondsSinceEpoch}',
+      text: text.trim(),
+      at: DateTime.now(),
+    );
+    _notes.add(note);
+    notifyListeners();
+    _write(() => _caregiverNoteRepo.addNote(_patient.id, note));
+    unawaited(_syncWeeklyReport());
+  }
+
+  /// The report the doctor was actually sent at the end of the most recently
+  /// *completed* cycle — kept around purely so the caregiver's own screen
+  /// can show a stable "this week's report was sent" confirmation, since the
+  /// live "X of 7" counter itself resets to 0 the moment a new cycle opens.
+  WeeklyClinicalReport? _lastCompletedReport;
+  WeeklyClinicalReport? get lastCompletedReport => _lastCompletedReport;
+
+  /// A cycle is a set of 7 *unique* activities, not a fixed number of days:
+  /// it closes exactly when every one of the 7 scored games has been played
+  /// at least once since `_cycleStart`, however long — or short — that takes.
+  /// Playing the same game repeatedly never closes it on its own.
+  ///
+  /// Only ever contacts the backend once the cycle is actually complete —
+  /// an in-progress round is never posted at all. The first version of this
+  /// synced on every single change, which meant a genuinely-completed
+  /// week's report could be overwritten and lost the moment the very next
+  /// activity (in the new cycle) synced, before a doctor ever saw it. The
+  /// backend now also refuses anything short of a full cycle, so this is
+  /// belt-and-suspenders, not the only thing preventing that.
+  Future<void> _syncWeeklyReport() async {
+    final int activitiesCompleted = _scoredGamesPlayedThisCycle.length;
+    if (activitiesCompleted < _totalScoredGames) return;
+
+    final WeeklyClinicalReport report = WeeklyReportBuilder.build(
+      patient: _patient,
+      doctorId: connectedDoctor?.id,
+      sessions: _sessions,
+      concernUpdates: _concernUpdates,
+      notes: _notes,
+      onboarding: _intake.onboarding,
+      cycleStart: _cycleStart,
+      activitiesCompleted: activitiesCompleted,
+    );
+    await _weeklyReports.upsertReport(report);
+    _lastCompletedReport = report;
+
+    _cycleStart = DateTime.now();
+    _concernUpdates.clear();
+    _notes.clear();
+    notifyListeners();
+    await _write(() => _caregiverNoteRepo.clearCycle(_patient.id));
+    await _write(() => _caregiverNoteRepo.saveCycleStart(_patient.id, _cycleStart));
   }
 
   // ── Wellness Sessions & Recommendation ────────────────────────────────────
@@ -1076,8 +1314,14 @@ class AppState extends ChangeNotifier {
         syncPayload: <String, dynamic>{'step': 'caregiver', ...observation.toJson()},
       );
 
-  /// Records one activity of the baseline run. Called on the result screen, so
-  /// an interrupted baseline resumes rather than restarting.
+  /// Records one activity of the baseline run — from the guided session or
+  /// from the activities list, whichever the person used. Safe to call twice:
+  /// an activity already recorded is ignored, so an interrupted baseline
+  /// resumes rather than restarting.
+  ///
+  /// Freezes the baseline itself once the last one is in, so the profile
+  /// appears the moment the run is finished rather than waiting for a screen
+  /// that may never be opened again.
   void markBaselineActivity(GameId id, {DateTime? now}) {
     if (_intake.baselineActivities.contains(id.name)) return;
     final Set<String> activities = <String>{..._intake.baselineActivities, id.name};
@@ -1091,6 +1335,17 @@ class AppState extends ChangeNotifier {
           ? <String>{..._intake.baselineSessionDates, _dayKey(now ?? DateTime.now())}
           : null,
     ));
+
+    if (baselineRunComplete && !baselineReady) {
+      // Swallowed on purpose. This capture is a convenience the app does on
+      // the person's behalf, not an action they asked for, so a storage
+      // failure here must not surface as an error on top of the activity they
+      // just finished — the explicit capture on the baseline screen reports
+      // its own failures and offers the retry.
+      unawaited(captureBaseline(now: now).catchError((Object error) {
+        debugPrint('AppState: could not freeze the baseline automatically ($error)');
+      }));
+    }
   }
 
   /// Closes the questionnaire without freezing a baseline.
@@ -1408,11 +1663,78 @@ class AppState extends ChangeNotifier {
       if (storedPatient == null) {
         await restoreFromServer(patientId: _patientIdFor(uid));
       }
+
+      // The claimed username's durable copy lives on the backend, not this
+      // device: `signOutAccount` clears the local `_patientUsername` cache
+      // on the way out, and nothing else ever repopulates it. Without this,
+      // a caregiver who signs out and back in — or reinstalls — still has
+      // their claim on the server, but the app no longer knows to poll for
+      // incoming pairing requests against it, so the approve/decline popup
+      // silently never appears again. Best-effort: offline at sign-in just
+      // means the next "open patient app" re-syncs it, same as before.
+      if (_pairing != null) {
+        try {
+          final List<PairingClaim> claims = await _pairing.claimsFor(uid);
+          if (claims.isNotEmpty) {
+            final PairingClaim mine = claims.firstWhere(
+              (PairingClaim c) => c.patientId == _patient.id,
+              orElse: () => claims.first,
+            );
+            _patientUsername = mine.username;
+          }
+        } catch (_) {
+          // Unreachable backend at sign-in time — not fatal to signing in.
+        }
+      }
     }
 
     // Last, so it wins over the blank-slate reset above: whatever role this
     // account already belongs to is what it comes back as.
     _resolveRoleFor(uid, roleHint);
+    if (_role == AppRole.doctor) await ensureDoctorListing(uid: uid);
+
+    _profileReady = true;
+    _persistSettings();
+    notifyListeners();
+  }
+
+  /// Binds this device to the patient a pairing request was just approved
+  /// for. Used only by [PatientSignInScreen] — never call [signInAccount]
+  /// for this.
+  ///
+  /// [signInAccount] exists for a Firebase *account* (`uid`): everywhere it
+  /// derives a patient id, it does so as `'acct_$uid'` (`_patientIdFor`). A
+  /// paired patient device has no account — the id it is handed back on
+  /// approval (`PairingRequest.patientId`, sourced from the caregiver's own
+  /// `state.patient.id`) is already that final, `'acct_'`-prefixed patient
+  /// id. Passing it through `signInAccount` ran it through `_patientIdFor` a
+  /// *second* time, doubling the prefix into an id nothing had ever saved
+  /// anything under — the intake and account-keyed data loaded correctly
+  /// (they read the given id as-is), but the patient record and every
+  /// session/level/cycle lookup, all keyed by `_patient.id`, silently landed
+  /// on an empty phantom profile. That is what an approved pairing showing
+  /// "0 of 7 activities" — on a device the caregiver had already played 6 of
+  /// them on — actually was.
+  Future<void> signInAsPairedPatient(String patientId) async {
+    if (_accountId == null && _patient.id == patientId) return;
+
+    _accountId = null;
+    final Patient? storedPatient = await _patients.byId(patientId);
+    _patient = storedPatient ?? MockData.emptyPatient.copyWith(id: patientId);
+    if (storedPatient == null) {
+      final Patient fresh = _patient;
+      await _write(() async => _patients.save(fresh));
+    }
+
+    await _loadPatientScopedData();
+    _intake = await _assessment.intake(_assessmentScope) ?? IntakeRecord.empty;
+    _baseline = await _assessment.baseline(_assessmentScope);
+    _memoryFragments = await _memories.all(_assessmentScope);
+
+    // This device has not necessarily seen this patient before — pull down
+    // whatever the caregiver has already entered, the same way a brand-new
+    // account does in `signInAccount`.
+    await restoreFromServer(patientId: patientId);
 
     _profileReady = true;
     _persistSettings();
@@ -1437,22 +1759,32 @@ class AppState extends ChangeNotifier {
   /// Nothing is deleted: the account's answers, baseline and history stay on
   /// disk under its own id and come back at the next sign-in. What this does
   /// is stop showing them, which on a shared phone is the whole point.
+  /// Returns the app to the state a fresh install is in.
+  ///
+  /// Every flag that could route somebody past the greeting goes: the account
+  /// id, the role, the whole remembered-role map, the patient's claimed
+  /// username. What stays is the device's own preferences — text size,
+  /// contrast, language — which belong to the phone rather than to whoever
+  /// was signed in.
+  ///
+  /// Nothing is *deleted*: the account's answers, baseline and history stay on
+  /// disk under its own uid and come back at the next sign-in. What this does
+  /// is stop showing them, and stop the app claiming to know who is holding
+  /// it, which on a shared phone is the whole point.
   Future<void> signOutAccount() async {
-    final String? leaving = _accountId;
-    if (leaving == null) return;
+    if (_accountId == null) return;
     _accountId = null;
-    // The role goes with the account, and an explicit sign-out forgets it
-    // rather than holding it for next time.
-    //
-    // Restoring it on the next sign-in is right for a *restart* — nobody
-    // should answer the same question twice a day — but wrong after someone
-    // deliberately logged out: the next sign-in is the moment to ask who is
-    // holding the phone, and a remembered flag silently skipped both the role
-    // picker and the sign-in screen behind it. Signing in from a launch that
-    // was never signed out still restores, because `lastRole` and the map
-    // both survive a restart.
-    _accountRoles.remove(leaving);
+    _accountRoles.clear();
+    _patientUsername = '';
     _role = AppRole.none;
+    // Neither of these is otherwise touched by signing out — a caregiver's
+    // preview-of-the-patient's-app session left mid-preview (see
+    // `beginPatientPreview`/`endPatientPreview`) would otherwise survive a
+    // full sign-out and corrupt whichever account signs in next, showing
+    // the "viewing as patient" banner and its role-picker restrictions to a
+    // genuine, freshly-signed-in patient.
+    _viewingAsPatient = false;
+    _previewReturnRole = AppRole.none;
     _patient = MockData.emptyPatient;
     _profileReady = false;
     _baseline = null;
@@ -1691,6 +2023,7 @@ class AppState extends ChangeNotifier {
       safeZoneJson: _safeZone?.encode(),
       localeCode: _localeCode,
       patientUsername: _patientUsername.isEmpty ? null : _patientUsername,
+      pendingPairingRequestId: _pendingPairingRequestId,
       accountRolesJson: _accountRoles.isEmpty ? null : jsonEncode(_accountRoles),
     );
     _write(() => _settingsRepo.save(snapshot));
@@ -1792,27 +2125,439 @@ class AppState extends ChangeNotifier {
     return MockData.series(base);
   }
 
-  /// The clinician caseload, with the demo patient kept in step with the app.
-  List<ClinicPatient> get caseload {
-    final List<ClinicPatient> list = MockData.caseload();
-    final int i = list.indexWhere((ClinicPatient c) => c.id == _patient.id);
-    if (i >= 0) {
-      final List<double> trend = List<double>.from(list[i].thirtyDay);
-      trend[trend.length - 1] = _profile.overall.toDouble();
-      list[i] = list[i].copyWith(
-        score: _profile.overall,
-        profile: _profile,
-        thirtyDay: trend,
-      );
+  /// The clinician caseload — real connected patients, with scores computed
+  /// backend-side from their actual synced game sessions (see
+  /// `clinical_aggregation_service.py`), not a fabricated demo list.
+  /// Starts empty until [loadCaseload] is called (e.g. from the doctor's
+  /// Patients screen's `initState`, the same load-then-cache shape
+  /// `loadDoctorDirectory`/`refreshConnectedDoctor` below use).
+  List<ClinicPatient> _caseload = <ClinicPatient>[];
+  List<ClinicPatient> get caseload => List<ClinicPatient>.unmodifiable(_caseload);
+
+  Future<void> loadCaseload() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _caseload = await service.caseload();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort: keep whatever was already cached rather than blank the
+      // screen on a transient network failure.
     }
-    return list;
   }
 
   List<DoctorAlert> get alerts => MockData.alerts();
 
+  late final List<DoctorAppointment> _doctorAppointments =
+      List<DoctorAppointment>.from(MockData.doctorAppointments());
+
+  /// Doctor-facing appointments list.
+  List<DoctorAppointment> get doctorAppointments =>
+      List<DoctorAppointment>.unmodifiable(_doctorAppointments);
+
+  /// Doctor-authored care plan for the demo patient.
+  CarePlanEntry get activeCarePlan => MockData.careplan();
+
+  /// Medical reports for the demo patient (visible to the connected doctor).
+  List<MedicalReport> get patientMedicalReports => MockData.patientMedicalReports();
+
+  /// Pending connection requests for the signed-in doctor to accept or
+  /// decline — real, from the backend, not a shared in-memory list two
+  /// roles on the same device used to read out of each other's way.
+  List<ConnectionRequest> _pendingDoctorRequests = <ConnectionRequest>[];
+  List<ConnectionRequest> get pendingDoctorRequests =>
+      List<ConnectionRequest>.unmodifiable(_pendingDoctorRequests);
+
+  Future<void> loadPendingDoctorRequests() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _pendingDoctorRequests = await service.pendingRequests();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  /// The doctor accepts: the backend writes a durable link, and the
+  /// caregiver's next `refreshConnectedDoctor` sees it.
+  Future<void> acceptConnectionRequest(String requestId) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.respond(requestId: requestId, approve: true);
+    } catch (_) {
+      // Best-effort.
+    }
+    await loadPendingDoctorRequests();
+  }
+
+  /// The doctor declines: the invitation is withdrawn and the caregiver is
+  /// free to invite somebody else.
+  Future<void> declineConnectionRequest(String requestId) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.respond(requestId: requestId, approve: false);
+    } catch (_) {
+      // Best-effort.
+    }
+    await loadPendingDoctorRequests();
+  }
+
+  // ── The doctor directory ───────────────────────────────────────────────
+  //
+  // Real, backend-persisted accounts only — no fictional sample clinics
+  // mixed in anymore. `DoctorProfile.id` is the doctor's own Firebase uid,
+  // matching what the backend's connection endpoints expect as `doctorUid`.
+
+  List<DoctorProfile> _doctorDirectory = <DoctorProfile>[];
+  List<DoctorProfile> get doctorDirectory => List<DoctorProfile>.unmodifiable(_doctorDirectory);
+
+  Future<void> loadDoctorDirectory() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _doctorDirectory = await service.directory();
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  /// The signed-in clinician's own listing, if this account is a doctor.
+  /// Set optimistically by [ensureDoctorListing] the moment a doctor signs
+  /// in, then reconciled with the backend's copy once that call returns.
+  DoctorProfile? _myDoctorProfile;
+  DoctorProfile? get myDoctorProfile => _myDoctorProfile;
+
+  /// Registers (or re-registers) the signed-in doctor's own listing, so
+  /// signing up is enough to be durably findable in every caregiver's
+  /// directory — not just cached on the one device they happened to sign
+  /// into, which is what a local-only listing used to mean in practice.
+  Future<void> ensureDoctorListing({required String uid, String? email, String? name}) async {
+    final String display = (name != null && name.trim().isNotEmpty)
+        ? name.trim()
+        : _nameFromEmail(email) ?? 'New doctor';
+    // Optimistic local placeholder so the doctor's own screens have
+    // something to show immediately, before the network round trip lands.
+    _myDoctorProfile ??= DoctorProfile(
+      id: uid,
+      name: display,
+      specialization: '',
+      hospital: '',
+      email: email ?? '',
+      avatarInitials: display.isEmpty ? '?' : display[0].toUpperCase(),
+    );
+    notifyListeners();
+
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      _myDoctorProfile = await service.upsertProfile(
+        name: display,
+        avatarInitials: display.isEmpty ? '?' : display[0].toUpperCase(),
+      );
+      notifyListeners();
+    } catch (_) {
+      // Best-effort — keeps the optimistic local placeholder either way.
+    }
+  }
+
+  /// Edits the signed-in doctor's own listing.
+  Future<void> updateMyDoctorProfile({
+    String? name,
+    String? specialization,
+    String? hospital,
+    String? phone,
+    String? registrationNumber,
+  }) async {
+    final DoctorProfile? mine = _myDoctorProfile;
+    final DoctorConnectionService? service = _doctorConnections;
+    if (mine == null || service == null) return;
+    try {
+      _myDoctorProfile = await service.upsertProfile(
+        name: name ?? mine.name,
+        specialization: specialization ?? mine.specialization,
+        hospital: hospital ?? mine.hospital,
+        phone: phone ?? mine.phone,
+        registrationNumber: registrationNumber ?? mine.registrationNumber,
+        avatarInitials: mine.avatarInitials,
+      );
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  /// "neha.sharma@clinic.in" → "Neha Sharma", so a fresh listing is not a
+  /// row of punctuation while the doctor gets round to filling it in.
+  static String? _nameFromEmail(String? email) {
+    if (email == null || !email.contains('@')) return null;
+    final String local = email.split('@').first.replaceAll(RegExp(r'[._-]+'), ' ').trim();
+    if (local.isEmpty) return null;
+    return local
+        .split(RegExp(r'\s+'))
+        .map((String w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+  }
+
+  /// The doctor actually looking after this patient, if any — the durable
+  /// backend link, not a locally-mutated status flag.
+  DoctorProfile? _connectedDoctor;
+  DoctorProfile? get connectedDoctor => _connectedDoctor;
+
+  Future<void> refreshConnectedDoctor() async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      final String? doctorUid = await service.forPatient(_patient.id);
+      if (doctorUid == null) {
+        _connectedDoctor = null;
+        notifyListeners();
+        return;
+      }
+      DoctorProfile? match = _findInDirectory(doctorUid);
+      if (match == null) {
+        // This device may not have loaded the directory yet.
+        await loadDoctorDirectory();
+        match = _findInDirectory(doctorUid);
+      }
+      _connectedDoctor = match ??
+          DoctorProfile(id: doctorUid, name: 'Your doctor', specialization: '', hospital: '', email: '');
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  DoctorProfile? _findInDirectory(String uid) {
+    for (final DoctorProfile d in _doctorDirectory) {
+      if (d.id == uid) return d;
+    }
+    return null;
+  }
+
+  /// Invitations this device has sent out in this session, so the directory
+  /// can show "waiting for reply" immediately — the backend has no separate
+  /// "my sent invites" listing (only "pending for this doctor"), so this is
+  /// the caregiver-side echo of its own `invite` calls, reconciled against
+  /// [connectedDoctor] once one is actually accepted.
+  final Set<String> _pendingInviteDoctorUids = <String>{};
+
+  /// What the caregiver's directory card should show for [doctor] right now.
+  InvitationStatus statusOf(DoctorProfile doctor) {
+    if (_connectedDoctor?.id == doctor.id) return InvitationStatus.connected;
+    if (_pendingInviteDoctorUids.contains(doctor.id)) return InvitationStatus.sent;
+    return InvitationStatus.notSent;
+  }
+
+  /// Sends an invitation, and puts it in front of the doctor.
+  ///
+  /// The caregiver's side ends here: they have written, and that is all they
+  /// can do. Whether it is accepted is the doctor's to decide, on the doctor's
+  /// own screen — a caregiver who could connect a clinician to a patient
+  /// record by themselves would not be inviting anyone, they would be
+  /// granting themselves access to a professional's caseload.
+  Future<void> inviteDoctor(String doctorUid) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    await service.invite(
+      doctorUid: doctorUid,
+      patientId: _patient.id,
+      patientName: _patient.name.isEmpty ? 'Your patient' : _patient.name,
+      patientAge: _patient.age,
+      district: _patient.location,
+    );
+    _pendingInviteDoctorUids.add(doctorUid);
+    notifyListeners();
+  }
+
+  Future<void> disconnectDoctor(String doctorUid) async {
+    final DoctorConnectionService? service = _doctorConnections;
+    if (service == null) return;
+    try {
+      await service.disconnect(_patient.id);
+      _pendingInviteDoctorUids.remove(doctorUid);
+      _connectedDoctor = null;
+      notifyListeners();
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  late final List<DoctorSlot> _doctorSlots =
+      List<DoctorSlot>.from(MockData.doctorSlots());
+
+  /// Doctor availability slots.
+  List<DoctorSlot> get doctorSlots => List<DoctorSlot>.unmodifiable(_doctorSlots);
+
+  final Set<String> _doctorActiveDays = <String>{
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+  };
+
+  /// Active consultation days selected by the doctor.
+  Set<String> get doctorActiveDays => Set<String>.unmodifiable(_doctorActiveDays);
+
+  void toggleDoctorDay(String day) {
+    if (_doctorActiveDays.contains(day)) {
+      if (_doctorActiveDays.length > 1) {
+        _doctorActiveDays.remove(day);
+      }
+    } else {
+      _doctorActiveDays.add(day);
+    }
+    notifyListeners();
+  }
+
+  void addDoctorSlot(DoctorSlot slot) {
+    _doctorSlots.add(slot);
+    notifyListeners();
+  }
+
+  void removeDoctorSlot(String slotId) {
+    _doctorSlots.removeWhere((DoctorSlot s) => s.id == slotId);
+    notifyListeners();
+  }
+
+  void bookAppointmentFromSlot({
+    required DoctorSlot slot,
+    required String patientName,
+    required String patientId,
+    bool isVirtual = true,
+  }) {
+    final int idx = _doctorSlots.indexWhere((DoctorSlot s) => s.id == slot.id);
+    if (idx != -1) {
+      _doctorSlots[idx] = DoctorSlot(
+        id: slot.id,
+        dayLabel: slot.dayLabel,
+        timeLabel: slot.timeLabel,
+        isBooked: true,
+        bookedByPatient: patientName,
+      );
+    }
+    final DoctorAppointment newAppt = DoctorAppointment(
+      id: 'apt_${DateTime.now().millisecondsSinceEpoch}',
+      patientId: patientId,
+      patientName: patientName,
+      patientAge: 72,
+      dateLabel: slot.dayLabel,
+      timeLabel: slot.timeLabel,
+      status: AppointmentStatus.upcoming,
+      isVirtual: isVirtual,
+    );
+    _doctorAppointments.insert(0, newAppt);
+    notifyListeners();
+  }
+
+  late final List<DoctorConversation> _doctorConversations =
+      List<DoctorConversation>.from(MockData.doctorConversations());
+
+  /// Doctor conversations with connected patients and caregivers.
+  List<DoctorConversation> get doctorConversations =>
+      List<DoctorConversation>.unmodifiable(_doctorConversations);
+
+  /// Total unread messages across all doctor conversations.
+  int get totalDoctorUnreadChats =>
+      _doctorConversations.fold<int>(0, (int sum, DoctorConversation c) => sum + c.unreadCount);
+
+  /// Get specific conversation by patient id, or create an initial one if patient exists in caseload.
+  DoctorConversation getOrCreateDoctorConversation(String patientId) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1) {
+      return _doctorConversations[idx];
+    }
+    final ClinicPatient? patient = caseload.cast<ClinicPatient?>().firstWhere(
+      (ClinicPatient? p) => p?.id == patientId,
+      orElse: () => null,
+    );
+    final DoctorConversation newConv = DoctorConversation(
+      patientId: patientId,
+      patientName: patient?.name ?? 'Connected Patient',
+      caregiverName: 'Primary Caregiver',
+      patientAge: patient?.age ?? 70,
+      district: patient?.district ?? 'Assam',
+      sceneId: patient?.sceneId ?? 'portrait_aama',
+      messages: const <ChatMessage>[],
+      unreadCount: 0,
+      isOnline: true,
+      lastSeen: 'Online',
+    );
+    _doctorConversations.add(newConv);
+    notifyListeners();
+    return newConv;
+  }
+
+  /// Mark conversation as read.
+  void markDoctorConversationRead(String patientId) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1 && _doctorConversations[idx].unreadCount > 0) {
+      final List<ChatMessage> updated = _doctorConversations[idx].messages.map((ChatMessage m) {
+        if (!m.isFromDoctor && m.status != MessageStatus.read) {
+          return m.copyWith(status: MessageStatus.read);
+        }
+        return m;
+      }).toList();
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(
+        unreadCount: 0,
+        messages: updated,
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Send a message from the doctor to a patient/caregiver.
+  void sendDoctorChatMessage({
+    required String patientId,
+    required String text,
+    String? attachmentType,
+    String? attachmentTitle,
+    String? attachmentSubtitle,
+  }) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    final ChatMessage newMsg = ChatMessage(
+      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      conversationId: patientId,
+      text: text,
+      timestamp: DateTime.now(),
+      isFromDoctor: true,
+      status: MessageStatus.delivered,
+      attachmentType: attachmentType,
+      attachmentTitle: attachmentTitle,
+      attachmentSubtitle: attachmentSubtitle,
+    );
+
+    if (idx != -1) {
+      final List<ChatMessage> list = List<ChatMessage>.from(_doctorConversations[idx].messages)..add(newMsg);
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(messages: list);
+      notifyListeners();
+    } else {
+      final DoctorConversation conv = getOrCreateDoctorConversation(patientId);
+      final List<ChatMessage> list = List<ChatMessage>.from(conv.messages)..add(newMsg);
+      final int newIdx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+      if (newIdx != -1) {
+        _doctorConversations[newIdx] = _doctorConversations[newIdx].copyWith(messages: list);
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Add an incoming caregiver/patient message to the conversation.
+  void addCaregiverChatMessage(String patientId, ChatMessage message) {
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1) {
+      final List<ChatMessage> list = List<ChatMessage>.from(_doctorConversations[idx].messages)..add(message);
+      _doctorConversations[idx] = _doctorConversations[idx].copyWith(messages: list);
+      notifyListeners();
+    }
+  }
+
   Future<List<DailyQuestion>> loadQuestions() => _patients.dailyQuestions(_patient);
   Future<List<GameDefinition>> loadGames() => _games.catalogue();
-  Future<List<ClinicPatient>> loadCaseload() => _analytics.caseload();
 
   @override
   void dispose() {

@@ -7,6 +7,7 @@ import 'app/bootstrap.dart';
 import 'core/services/app_state.dart';
 import 'core/models/auth_user.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/doctor_connection_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,13 @@ Future<void> main() async {
   // to the welcome screen. So wait for the auth stream's first event — with a
   // short timeout, because an offline launch must still open the app, using
   // the session already on disk.
+  // Only buildable once `auth` exists (see `bootstrapDoctorConnections`'s
+  // doc comment for why it is not part of `bootstrapAppState` itself).
+  final DoctorConnectionService? doctorConnections = bootstrapDoctorConnections(auth);
+  if (doctorConnections != null) {
+    state.attachDoctorConnections(doctorConnections);
+  }
+
   final AuthUser? restored = await _restoreSession(auth);
   if (restored != null) {
     // Binding the account before the first frame is what lets the app open
@@ -67,10 +75,20 @@ Future<AuthUser?> _restoreSession(AuthService? auth) async {
   final AuthUser? immediate = auth.currentUser;
   if (immediate != null) return immediate;
   try {
-    return await auth.authStateChanges.first
-        .timeout(const Duration(seconds: 3), onTimeout: () => auth.currentUser);
+    // `firstWhere`, not `first`. On a cold start `authStateChanges` emits
+    // `null` straight away and only then the user it has restored from disk —
+    // so taking the first event meant taking the null, every single launch,
+    // and concluding nobody was signed in. The account was never rebound, and
+    // a person who had never logged out was shown the greeting and the
+    // sign-in screen again.
+    return await auth.authStateChanges
+        .firstWhere((AuthUser? user) => user != null)
+        .timeout(const Duration(seconds: 4), onTimeout: () => auth.currentUser);
   } catch (error) {
-    debugPrint('main: could not restore the previous session ($error)');
+    // Nobody is signed in, or the service never answered. Either way the app
+    // opens on whatever the local session says — it is offline-first, and a
+    // launch must not wait on a network round trip.
+    debugPrint('main: no previous session to restore ($error)');
     return auth.currentUser;
   }
 }

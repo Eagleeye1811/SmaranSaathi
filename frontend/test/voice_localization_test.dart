@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:memory_mitra/app/theme/app_theme.dart';
-import 'package:memory_mitra/core/ai/on_device_ai_service.dart';
-import 'package:memory_mitra/core/services/app_state.dart';
-import 'package:memory_mitra/core/voice/speech_engines.dart';
-import 'package:memory_mitra/core/voice/voice_assistant_controller.dart';
-import 'package:memory_mitra/core/voice/voice_bootstrap.dart';
-import 'package:memory_mitra/core/voice/voice_intake_controller.dart';
-import 'package:memory_mitra/core/voice/voice_language.dart';
-import 'package:memory_mitra/core/voice/voice_models.dart';
-import 'package:memory_mitra/core/voice/voice_nav_intent.dart';
-import 'package:memory_mitra/core/voice/voice_navigation_controller.dart';
-import 'package:memory_mitra/core/widgets/voice_nav_host.dart';
-import 'package:memory_mitra/features/caregiver/caregiver_shell.dart';
-import 'package:memory_mitra/features/doctor/doctor_shell.dart';
-import 'package:memory_mitra/features/patient/patient_shell.dart';
-import 'package:memory_mitra/features/patient/voice/voice_assistant_sheet.dart';
-import 'package:memory_mitra/l10n/app_localizations.dart';
-import 'package:memory_mitra/l10n/content_labels.dart';
-import 'package:memory_mitra/l10n/locale_controller.dart';
+import 'package:smaran_saathi/app/theme/app_theme.dart';
+import 'package:smaran_saathi/core/ai/on_device_ai_service.dart';
+import 'package:smaran_saathi/core/services/app_state.dart';
+import 'package:smaran_saathi/core/voice/speech_engines.dart';
+import 'package:smaran_saathi/core/voice/voice_assistant_controller.dart';
+import 'package:smaran_saathi/core/voice/voice_bootstrap.dart';
+import 'package:smaran_saathi/core/voice/voice_intake_controller.dart';
+import 'package:smaran_saathi/core/voice/voice_language.dart';
+import 'package:smaran_saathi/core/voice/voice_models.dart';
+import 'package:smaran_saathi/core/voice/voice_nav_intent.dart';
+import 'package:smaran_saathi/core/voice/voice_navigation_controller.dart';
+import 'package:smaran_saathi/core/widgets/voice_nav_host.dart';
+import 'package:smaran_saathi/features/caregiver/caregiver_shell.dart';
+import 'package:smaran_saathi/features/doctor/doctor_shell.dart';
+import 'package:smaran_saathi/features/patient/patient_shell.dart';
+import 'package:smaran_saathi/features/patient/voice/voice_assistant_sheet.dart';
+import 'package:smaran_saathi/l10n/app_localizations.dart';
+import 'package:smaran_saathi/l10n/content_labels.dart';
+import 'package:smaran_saathi/l10n/locale_controller.dart';
 
 void main() {
   late AppState state;

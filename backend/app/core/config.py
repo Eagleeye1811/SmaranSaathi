@@ -1,4 +1,4 @@
-﻿"""Environment-driven configuration.
+"""Environment-driven configuration.
 
 Every value here has a safe local-dev default so the app boots with zero
 setup. `firebase_project_id` and `google_application_credentials` resolve to
@@ -56,6 +56,19 @@ class Settings(BaseSettings):
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
     twilio_from_number: Optional[str] = None
+
+    # ── AI Services (Gemini AI Clinical Scribe) ───────────────────────────
+    gemini_api_key: Optional[str] = None
+
+    # ── Asha conversational avatar (D-ID embed) ───────────────────────────
+    # Not secrets: a D-ID *client* key is read-only and domain-locked — it only
+    # authenticates from an origin in its `allowed_domains` list, so publishing
+    # it in the page it serves is the intended use. They live here rather than
+    # in the template so a deployment can point at its own agent, and so the
+    # key can be rotated (e.g. after adding a domain) without a code change.
+    asha_did_client_key: str = "ck_0W8bbtkFlj3aeiJ3iQJDi"
+    asha_did_agent_id: str = "v2_agt_eJTwq3XQ"
+
     # Set to False in .env to disable all outgoing SMS without removing creds.
     sms_enabled: bool = True
 

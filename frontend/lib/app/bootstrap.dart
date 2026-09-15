@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../core/services/app_state.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/connectivity_service.dart';
+import '../core/services/doctor_connection_service.dart';
 import '../core/services/firebase_auth_service.dart';
 import '../core/services/http_sync_transport.dart';
 import '../core/services/pairing_service.dart';
@@ -63,6 +64,7 @@ Future<AppState> bootstrapAppState({String? storagePath}) async {
     assessment: HiveAssessmentRepository(store),
     memories: HiveMemoryFragmentRepository(store),
     moodDrawings: HiveMoodDrawingRepository(store),
+    caregiverNotes: HiveCaregiverNoteRepository(store),
     settings: HiveSettingsRepository(store),
     sync: HiveSyncRepository(store),
     connectivity: _connectivityForPlatform(),
@@ -96,6 +98,24 @@ Future<AuthService?> bootstrapAuth() async {
         'role claim will not be recorded server-side.');
   }
   return FirebaseAuthService(backendBaseUrl: _syncBaseUrl);
+}
+
+/// The caregiver↔doctor connection service — real, backend-persisted, but
+/// authenticated with a Firebase ID token rather than the device token
+/// [PairingService]/[HttpSyncTransport] use (both sides of this handshake
+/// are real accounts, unlike a patient device).
+///
+/// Needs [AuthService] to already exist, unlike [PairingService] above,
+/// which is why this is built separately in `main.dart` once both
+/// [bootstrapAppState] and [bootstrapAuth] have returned, and attached to
+/// [AppState] via `attachDoctorConnections` rather than passed into its
+/// constructor. `null` when there is no account to authenticate as or no
+/// backend configured — the app then behaves exactly as it did with no
+/// doctor directory at all, the same graceful degradation every other
+/// optional dependency here gets.
+DoctorConnectionService? bootstrapDoctorConnections(AuthService? auth) {
+  if (auth == null || _syncBaseUrl.isEmpty) return null;
+  return DoctorConnectionService(baseUrl: _syncBaseUrl, idToken: auth.idToken);
 }
 
 /// Real connectivity everywhere the plugin works. Tests and headless runs pass

@@ -35,7 +35,9 @@ class AppSettings {
     this.safeZoneJson,
     this.localeCode,
     this.patientUsername,
+    this.pendingPairingRequestId,
     this.accountRolesJson,
+    this.registeredDoctorsJson,
   });
 
   final TextSizePreference textSize;
@@ -52,6 +54,11 @@ class AppSettings {
   /// with the settings rather than the profile because it identifies the
   /// account, not the person.
   final String? patientUsername;
+
+  /// The pairing request the patient's device is currently waiting on, if
+  /// any — so leaving and returning to the sign-in screen resumes it instead
+  /// of asking for the username again and starting a second request.
+  final String? pendingPairingRequestId;
 
   /// The caregiver's manual "work offline" switch, distinct from the device
   /// actually having no connection.
@@ -70,6 +77,14 @@ class AppSettings {
   /// and came back. This map is the per-account flag: sign in, and the role
   /// that uid already picked is restored without asking again.
   final String? accountRolesJson;
+
+  /// Doctors who have signed up in this app, as a JSON list.
+  ///
+  /// A clinician who creates an account has to be findable by the families
+  /// who need them — otherwise the directory only ever contains the sample
+  /// clinics and a real sign-up goes nowhere. Persisted because the caregiver
+  /// who searches for them is a different role, often a different launch.
+  final String? registeredDoctorsJson;
 
   /// The Firebase uid whose assessment this device last worked on.
   ///
@@ -98,7 +113,9 @@ class AppSettings {
     bool clearSafeZone = false,
     String? localeCode,
     String? patientUsername,
+    String? pendingPairingRequestId,
     String? accountRolesJson,
+    String? registeredDoctorsJson,
   }) {
     return AppSettings(
       textSize: textSize ?? this.textSize,
@@ -112,7 +129,9 @@ class AppSettings {
           clearSafeZone ? null : (safeZoneJson ?? this.safeZoneJson),
       localeCode: localeCode ?? this.localeCode,
       patientUsername: patientUsername ?? this.patientUsername,
+      pendingPairingRequestId: pendingPairingRequestId ?? this.pendingPairingRequestId,
       accountRolesJson: accountRolesJson ?? this.accountRolesJson,
+      registeredDoctorsJson: registeredDoctorsJson ?? this.registeredDoctorsJson,
     );
   }
 }

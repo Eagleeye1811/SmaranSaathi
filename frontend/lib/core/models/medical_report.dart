@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 /// The kind of medical document uploaded.
-enum ReportKind { mri, eeg, bloodTest, ctScan, other }
+enum ReportKind { mri, eeg, bloodTest, other }
 
 extension ReportKindX on ReportKind {
   String get label => switch (this) {
         ReportKind.mri => 'MRI Report',
         ReportKind.eeg => 'EEG Report',
         ReportKind.bloodTest => 'Blood Test',
-        ReportKind.ctScan => 'CT Scan',
         ReportKind.other => 'Other Report',
       };
 
@@ -16,7 +15,6 @@ extension ReportKindX on ReportKind {
         ReportKind.mri => Icons.biotech_outlined,
         ReportKind.eeg => Icons.ssid_chart_rounded,
         ReportKind.bloodTest => Icons.opacity_rounded,
-        ReportKind.ctScan => Icons.medical_information_outlined,
         ReportKind.other => Icons.description_outlined,
       };
 
@@ -24,7 +22,6 @@ extension ReportKindX on ReportKind {
         ReportKind.mri => const Color(0xFF3F5B86),
         ReportKind.eeg => const Color(0xFF7A5680),
         ReportKind.bloodTest => const Color(0xFFC9694F),
-        ReportKind.ctScan => const Color(0xFF2E7D6B),
         ReportKind.other => const Color(0xFF4A7FA5),
       };
 }

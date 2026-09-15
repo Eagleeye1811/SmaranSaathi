@@ -31,6 +31,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   geolocator: ^13.0.2
+  flutter_webrtc: ^0.12.4
   # On-device LLM inference (llama.cpp binding) for the offline Mitra companion.
   # pub.dev's published fllama is a stale 0.0.1. `main` needs Dart >=3.10 (its
   # 2026-03 rewrite onto native-assets build hooks) which this project's
@@ -47,6 +48,13 @@ dependencies:
   # Verifies the downloaded model file wasn't corrupted/truncated in transit.
   crypto: ^3.0.5
   image_picker: ^1.2.1
+  # Asha conversational avatar: loads the deployed D-ID Vercel page.
+  # permission_handler surfaces a friendly permission prompt before opening
+  # the WebView so the patient isn't surprised by the system dialog.
+  webview_flutter: ">=4.10.0 <4.14.0"
+  webview_flutter_android: ">=4.3.0 <4.12.0"
+  webview_flutter_platform_interface: ">=2.10.0 <2.15.0"
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

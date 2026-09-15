@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Asha - SmaranSaathi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0d1117;
+        }
+        body { position: relative; font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <!-- Served from this backend rather than embedded in the Flutter app so the
+         page has a REAL origin. D-ID client keys are domain-locked: the key only
+         authenticates from an origin listed in its `allowed_domains`, so a page
+         loaded via `loadHtmlString(baseUrl: ...)` — whose origin we invent and
+         can therefore never register — gets 401 from the agent runtime, which a
+         WebView reports only as an opaque CORS failure. -->
+    <script type="module"
+      src="https://agent.d-id.com/v2/index.js"
+      data-mode="fabio"
+      data-client-key="__CLIENT_KEY__"
+      data-agent-id="__AGENT_ID__"
+      data-name="did-agent"
+      data-monitor="true"
+      data-orientation="horizontal"
+      data-position="right"
+      data-open-mode="expanded">
+    </script>
+</body>
+</html>

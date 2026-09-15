@@ -223,31 +223,48 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: <Widget>[
               Expanded(
-                child: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) =>
-                      SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(
-                        Insets.gutter, Insets.xxl, Insets.gutter, Insets.md),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: (constraints.maxHeight - Insets.xxl - Insets.md)
-                            .clamp(0.0, double.infinity),
-                      ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: <Widget>[
-                            const BrandLockup(),
-                            const SizedBox(height: Insets.xl),
-                            Text(l.intakeWelcomeHeadline, style: AppText.display),
-                            const Spacer(),
-                            const SizedBox(height: Insets.md),
-                            const AvatarVideoPlayer(),
-                            const SizedBox(height: Insets.md),
-                            const Spacer(),
-                          ],
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                      Insets.gutter, Insets.lg, Insets.gutter, Insets.md),
+                  children: <Widget>[
+                    const BrandLockup(),
+                    const SizedBox(height: Insets.lg),
+                    Text(l.intakeWelcomeHeadline, style: AppText.display),
+                    const SizedBox(height: Insets.sm),
+                    Text(
+                      l.intakeWelcomeSubtitle,
+                      style: AppText.bodyLarge.copyWith(color: AppColors.inkSoft),
+                    ),
+                    const SizedBox(height: Insets.lg),
+                    // Tighter than `MmCard`'s own default padding and
+                    // `SoftIcon`'s default size: three of these plus the
+                    // headline, subtitle and disclaimer above and below
+                    // otherwise ran taller than a typical phone screen, which
+                    // left the disclaimer half hidden behind the button below
+                    // until someone scrolled to find it — not a good first
+                    // impression for the one line this screen most needs
+                    // read.
+                    for (final ({IconData icon, String title, String detail}) p in _pillars(l))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: Insets.xs),
+                        child: MmCard(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: Insets.sm, vertical: Insets.xs),
+                          child: ListRow(
+                            leading: SoftIcon(icon: p.icon, size: 38),
+                            title: p.title,
+                            subtitle: p.detail,
+                            padding: EdgeInsets.zero,
+                          ),
                         ),
                       ),
+                    const SizedBox(height: Insets.sm),
+                    const NotADiagnosisNote(
+                      compact: true,
+                      message:
+                          'SmaranSaathi supports monitoring and understanding. It does '
+                          'not detect, diagnose or treat dementia, and it does not '
+                          'replace a professional assessment.',
                     ),
                   ),
                 ),

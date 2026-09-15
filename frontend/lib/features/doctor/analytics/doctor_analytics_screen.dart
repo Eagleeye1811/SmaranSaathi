@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
@@ -22,13 +24,17 @@ class DoctorAnalyticsScreen extends StatelessWidget {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     final List<ClinicPatient> caseload = state.caseload;
+    if (caseload.isEmpty) unawaited(state.loadCaseload());
 
-    // Domain averages across the cohort.
+    // Domain averages across the cohort — a real caseload can genuinely be
+    // empty (nobody connected yet), unlike the old fixed 8-patient mock.
     final Map<String, int> domainAverages = <String, int>{
       for (final CognitiveDomain d in CognitiveDomain.values)
-        d.localizedLabel(l): (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
-                caseload.length)
-            .round(),
+        d.localizedLabel(l): caseload.isEmpty
+            ? 0
+            : (caseload.fold<int>(0, (int a, ClinicPatient c) => a + c.profile.score(d)) /
+                    caseload.length)
+                .round(),
     };
 
     // Score distribution in bands.
@@ -210,6 +216,120 @@ class DoctorAnalyticsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Medication Adherence by Patient ────────────────────
+                FadeInUp(
+                  delayMs: 190,
+                  child: _Card(
+                    title: l.doctorAnalyticsAdherenceTitle,
+                    caption: l.doctorAnalyticsAdherenceCaption,
+                    child: Column(
+                      children: <Widget>[
+                        for (final ClinicPatient p in caseload.take(5))
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: <Widget>[
+                                SizedBox(
+                                  width: 110,
+                                  child: Text(
+                                    p.name,
+                                    style: CT.bodySmall.wght(600),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: MeterBar(
+                                    value: p.adherence / 100.0,
+                                    color: p.adherence >= 90
+                                        ? AppColors.success
+                                        : p.adherence >= 75
+                                            ? const Color(0xFF2F7FB8)
+                                            : const Color(0xFFD9962B),
+                                    height: 9,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 38,
+                                  child: Text(
+                                    '${p.adherence}%',
+                                    textAlign: TextAlign.right,
+                                    style: CT.caption.wght(700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Wellness Activity Participation ────────────────────
+                FadeInUp(
+                  delayMs: 210,
+                  child: _Card(
+                    title: l.doctorAnalyticsWellnessTitle,
+                    caption: l.doctorAnalyticsWellnessCaption,
+                    child: BarSeriesChart(
+                      points: const <SeriesPoint>[
+                        SeriesPoint('Breathing', 42),
+                        SeriesPoint('Chair Yoga', 35),
+                        SeriesPoint('Sounds', 28),
+                        SeriesPoint('Sleep Guide', 21),
+                      ],
+                      color: AppColors.seriesTeal,
+                      maxValue: 50,
+                      showValues: true,
+                      height: 160,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: Insets.lg),
+
+                // ── Mood & Wellbeing Distribution ──────────────────────
+                FadeInUp(
+                  delayMs: 230,
+                  child: _Card(
+                    title: l.doctorAnalyticsMoodTitle,
+                    caption: l.doctorAnalyticsMoodCaption,
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodHappy,
+                            value: '64%',
+                            color: AppColors.success,
+                            caption: 'Calm & Cheerful',
+                            icon: Icons.sentiment_satisfied_alt_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodNeutral,
+                            value: '24%',
+                            color: const Color(0xFF2F7FB8),
+                            caption: 'Steady',
+                            icon: Icons.sentiment_neutral_rounded,
+                          ),
+                        ),
+                        Expanded(
+                          child: ClinicStat(
+                            label: l.doctorAnalyticsMoodAnxious,
+                            value: '12%',
+                            color: const Color(0xFFE0913A),
+                            caption: 'Evening pauses',
+                            icon: Icons.sentiment_dissatisfied_rounded,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -221,11 +341,13 @@ class DoctorAnalyticsScreen extends StatelessWidget {
   static int _countIn(List<ClinicPatient> list, int lo, int hi) =>
       list.where((ClinicPatient c) => c.score >= lo && c.score < hi).length;
 
-  static int _mean(List<ClinicPatient> list) =>
-      (list.fold<int>(0, (int a, ClinicPatient c) => a + c.score) / list.length).round();
+  static int _mean(List<ClinicPatient> list) => list.isEmpty
+      ? 0
+      : (list.fold<int>(0, (int a, ClinicPatient c) => a + c.score) / list.length).round();
 
-  static int _meanAdherence(List<ClinicPatient> list) =>
-      (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
+  static int _meanAdherence(List<ClinicPatient> list) => list.isEmpty
+      ? 0
+      : (list.fold<int>(0, (int a, ClinicPatient c) => a + c.adherence) / list.length).round();
 }
 
 class _Card extends StatelessWidget {

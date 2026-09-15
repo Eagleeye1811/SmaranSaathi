@@ -16,6 +16,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 
 
@@ -211,12 +212,17 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
               children: <Widget>[
                 Row(
                   children: <Widget>[
+                    // A live-filling ring instead of a static check icon —
+                    // "found / total" is a genuine fraction, and this app
+                    // already has exactly this ring on the Game Hub for the
+                    // same kind of "N of M done" stat, just unused in-game
+                    // until now.
                     Expanded(
-                      child: _CountChip(
+                      child: _RingCountChip(
                         label: l.gameMemoryCardsPairsFound,
                         value: '$found / $_pairs',
+                        progress: _pairs == 0 ? 0 : found / _pairs,
                         color: AppColors.success,
-                        icon: Icons.check_circle_rounded,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -281,81 +287,50 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 1,
-                            title: l.gameLevelEasy,
-                            subtitle: l.gameMemoryCardsPairsCount(4),
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 2,
-                            title: l.gameLevelMedium,
-                            subtitle: l.gameMemoryCardsPairsCount(6),
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 3,
-                            title: l.gameLevelHard,
-                            subtitle: l.gameMemoryCardsPairsCount(8),
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 4,
-                            title: l.gameLevelExpert,
-                            subtitle: l.gameMemoryCardsPairsCount(10),
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 5,
-                            title: l.gameLevelMastery,
-                            subtitle: l.gameMemoryCardsPairsCount(12),
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.memoryCards,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameLevelEasy,
+                  subtitle: l.gameMemoryCardsPairsCount(4),
+                  icon: Icons.grid_view_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameLevelMedium,
+                  subtitle: l.gameMemoryCardsPairsCount(6),
+                  icon: Icons.grid_3x3_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameLevelHard,
+                  subtitle: l.gameMemoryCardsPairsCount(8),
+                  icon: Icons.view_comfy_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameLevelExpert,
+                  subtitle: l.gameMemoryCardsPairsCount(10),
+                  icon: Icons.apps_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameLevelMastery,
+                  subtitle: l.gameMemoryCardsPairsCount(12),
+                  icon: Icons.workspace_premium_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(
@@ -369,6 +344,23 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
                   Text(
                     l.gameMemoryCardsInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // A handful of faces from today's deck, so the pairs
+                  // being matched are something recognisable from the
+                  // very first glance, not a mystery until the cards flip.
+                  SizedBox(
+                    height: 56,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: deck.length,
+                      separatorBuilder: (BuildContext context, int i) =>
+                          const SizedBox(width: 8),
+                      itemBuilder: (BuildContext context, int i) => ClipRRect(
+                        borderRadius: Corners.r(Corners.sm),
+                        child: SceneImage(sceneId: deck[i].sceneId, size: 56),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -406,6 +398,53 @@ class _CountChip extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Icon(icon, size: 20, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(label, style: AppText.caption),
+                const SizedBox(height: 1),
+                Text(value, style: AppText.body.wght(800)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Same bordered-box shape as [_CountChip], but for a stat that's genuinely
+/// a fraction of a known total — the ring visibly fills as pairs are found,
+/// rather than only the number changing.
+class _RingCountChip extends StatelessWidget {
+  const _RingCountChip({
+    required this.label,
+    required this.value,
+    required this.progress,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+
+  /// 0..1
+  final double progress;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: Corners.r(Corners.md),
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: <Widget>[
+          ProgressRing(value: progress, size: 38, stroke: 4, color: color),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

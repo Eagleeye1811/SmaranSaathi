@@ -6,6 +6,7 @@ import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/daily.dart';
 import '../../../core/models/game.dart';
+import '../../../core/models/positive_feedback.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/charts.dart';
@@ -20,6 +21,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../patient_view_screen.dart';
 import '../pairing_widgets.dart';
+import '../learning/caregiver_learning_screen.dart';
 
 /// The caregiver's home: what needs attention, then how the day has gone.
 ///
@@ -61,11 +63,15 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen> {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.primaryTint.withValues(alpha: 0.8),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
+      // No top inset here: this screen only ever renders inside
+      // `CaregiverShell`, whose own header already clears the status bar.
+      // A second top-safe-area on top of that left a band of blank space
+      // between the header and the greeting below it — status-bar height,
+      // doing nothing — and made the list look like it started well past
+      // where the header actually ends.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
@@ -103,6 +109,20 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen> {
             FadeInUp(
               delayMs: 70,
               child: _TodayGrid(state: state, onOpenTab: onOpenTab),
+            ),
+            const SizedBox(height: Insets.lg),
+
+            // ── Caregiver Education & Counseling Hub ──────────────────────
+            FadeInUp(
+              delayMs: 75,
+              child: const SectionHeader(
+                title: 'Caregiver Learning & Counseling',
+                icon: Icons.school_rounded,
+              ),
+            ),
+            FadeInUp(
+              delayMs: 80,
+              child: const _CaregiverLearningCard(),
             ),
             const SizedBox(height: Insets.lg),
 
@@ -308,6 +328,10 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
+                // This is the caregiver's own dashboard, so the greeting
+                // names the caregiver signed in — not the patient. Confirmed
+                // directly against the running app after an earlier attempt
+                // to "fix" this got it backwards.
                 state.hasCaregiverProfile
                     ? '$greeting, ${state.caregiverName}'
                     : greeting,
@@ -617,7 +641,6 @@ class _SafeZoneSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
     final SafeZone? zone = state.safeZone;
     final SafeZoneEvent? alert = state.activeWanderAlert;
 
@@ -949,27 +972,15 @@ class _ChartCard extends StatelessWidget {
   }
 }
 
-/// Average score per activity, across every session of it.
+/// How each activity is going, in words rather than an averaged score.
 ///
-/// Only scored activities: Mood Canvas has no score to plot, and a zero bar
-/// for it would read as "she did badly at it" rather than "it is not that
-/// sort of activity".
+/// Only scored activities: Mood Canvas isn't that sort of activity. No
+/// numbers here at all — a caregiver reads this the same warm way the
+/// patient reads their own result screen, not as a clinical chart.
 class _ScoreByActivity extends StatelessWidget {
   const _ScoreByActivity({required this.state});
 
   final AppState state;
-
-  static String _shortName(AppLocalizations l, GameId id) => switch (id) {
-        GameId.procedure => l.caregiverChartLabelProcedure,
-        GameId.story => l.caregiverChartLabelStory,
-        GameId.familiarPlace => l.caregiverChartLabelPlace,
-        GameId.melody => l.caregiverChartLabelMelody,
-        GameId.weaves => l.caregiverChartLabelWeaves,
-        GameId.memoryCards => l.caregiverChartLabelCards,
-        GameId.villageMarket => l.caregiverChartLabelMarket,
-        // Never charted — callers filter to `hasLevels` activities.
-        GameId.moodCanvas => l.gameMoodCanvasName,
-      };
 
   static double _averageFor(AppState state, GameId id) {
     final List<GameSession> list = state.sessionsFor(id);
@@ -985,14 +996,38 @@ class _ScoreByActivity extends StatelessWidget {
         MockData.games.where((GameDefinition g) => g.hasLevels).toList(growable: false);
 
     return MmCard(
-      child: BarSeriesChart(
-        points: <SeriesPoint>[
-          for (final GameDefinition g in scored)
-            SeriesPoint(_shortName(l, g.id), _averageFor(state, g.id)),
+      child: Column(
+        children: <Widget>[
+          for (int i = 0; i < scored.length; i++)
+            Padding(
+              padding: EdgeInsets.only(bottom: i == scored.length - 1 ? 0 : 12),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(scored[i].localizedName(l),
+                        style: AppText.body.wght(700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(width: 10),
+                  Builder(builder: (BuildContext context) {
+                    final List<GameSession> list = state.sessionsFor(scored[i].id);
+                    if (list.isEmpty) {
+                      return Text('Not tried yet', style: AppText.caption);
+                    }
+                    final FeedbackTier tier = feedbackTierFor(_averageFor(state, scored[i].id).round());
+                    final String label = switch (tier) {
+                      FeedbackTier.radiant => 'Doing wonderfully',
+                      FeedbackTier.warm => 'Going well',
+                      FeedbackTier.steady => 'Steady progress',
+                      FeedbackTier.gentle => 'Needs a little support',
+                    };
+                    return PillTag(label: label, color: scored[i].accent, dense: true);
+                  }),
+                ],
+              ),
+            ),
         ],
-        color: AppColors.seriesTeal,
-        height: 170,
-        showValues: true,
       ),
     );
   }
@@ -1038,20 +1073,6 @@ class _DifficultyList extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: <Widget>[
-                      Text(l.gamesLevel(state.levelOf(scored[i].id)),
-                          style: AppText.caption.wght(800)),
-                      const SizedBox(height: 5),
-                      DifficultyDots(
-                        level: state.levelOf(scored[i].id),
-                        color: scored[i].accent,
-                        size: 7,
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -1119,33 +1140,21 @@ class _HistoryRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(
-                  l.caregiverSessionMeta(
-                    when,
-                    session.timeLabel,
-                    l.gamesLevel(session.level),
-                    session.performance.hintsUsed == 1
-                        ? l.caregiverHintsUsedOne(session.performance.hintsUsed)
-                        : l.caregiverHintsUsedMany(session.performance.hintsUsed),
-                  ),
-                  style: AppText.caption,
-                ),
-                // Village Market repurposes `focus` as a budget-restraint
-                // figure (see `VillageMarketGame._budgetRestraintScore`) —
-                // surfaced here, the one per-session (not averaged)
-                // clinician-facing view, and nowhere on the patient's own
-                // result screen.
-                if (session.gameId == GameId.villageMarket)
-                  Text(
-                    l.caregiverVillageMarketBudgetNote(session.performance.focus.round()),
-                    style: AppText.caption.tint(AppColors.inkMuted),
-                  ),
+                Text('$when · ${session.timeLabel}', style: AppText.caption),
               ],
             ),
           ),
           const SizedBox(width: 10),
-          Text('${session.performance.overall}%',
-              style: AppText.body.wght(800).tint(g.accent)),
+          PillTag(
+            label: switch (feedbackTierFor(session.performance.overall)) {
+              FeedbackTier.radiant => 'Wonderful',
+              FeedbackTier.warm => 'Went well',
+              FeedbackTier.steady => 'Steady',
+              FeedbackTier.gentle => 'Kept trying',
+            },
+            color: g.accent,
+            dense: true,
+          ),
         ],
       ),
     );
@@ -1215,3 +1224,95 @@ class _OpenPatientAppRow extends StatelessWidget {
     );
   }
 }
+
+class _CaregiverLearningCard extends StatelessWidget {
+  const _CaregiverLearningCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: <Color>[
+            AppColors.primary,
+            Color.lerp(AppColors.primary, AppColors.secondary, 0.4)!,
+          ],
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => Nav.push(context, const CaregiverLearningScreen()),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(Insets.md),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: Insets.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              'Learning & Counseling Hub',
+                              style: AppText.body.wght(700).copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'NEW',
+                              style: AppText.caption.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

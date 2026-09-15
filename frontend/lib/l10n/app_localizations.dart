@@ -388,6 +388,7 @@ class AppLocalizations {
   // ── Doctor — nav ─────────────────────────────────────────────────
   String get doctorTabOverview => _s('doctorTabOverview');
   String get doctorTabPatients => _s('doctorTabPatients');
+  String get doctorTabChats => _s('doctorTabChats');
   String get doctorTabAnalytics => _s('doctorTabAnalytics');
   String get doctorTabAlerts => _s('doctorTabAlerts');
   String get doctorTabProfile => _s('doctorTabProfile');
@@ -537,6 +538,107 @@ class AppLocalizations {
   String get doctorOverviewMonthOctober => _s('doctorOverviewMonthOctober');
   String get doctorOverviewMonthNovember => _s('doctorOverviewMonthNovember');
   String get doctorOverviewMonthDecember => _s('doctorOverviewMonthDecember');
+
+  // ── Doctor — appointments & new features ────────────────────────
+  String get doctorTabAppointments => _s('doctorTabAppointments');
+  String get doctorOverviewTodayAppts => _s('doctorOverviewTodayAppts');
+  String doctorOverviewConnectionRequests(int count) => _f('doctorOverviewConnectionRequests', <String, Object?>{'count': count});
+  String get doctorOverviewRecentActivity => _s('doctorOverviewRecentActivity');
+  String get doctorOverviewNoAppts => _s('doctorOverviewNoAppts');
+  String get doctorApptVirtual => _s('doctorApptVirtual');
+  String get doctorApptInPerson => _s('doctorApptInPerson');
+  String get doctorApptJoin => _s('doctorApptJoin');
+  String get doctorApptUpcoming => _s('doctorApptUpcoming');
+  String get doctorApptPast => _s('doctorApptPast');
+  String get doctorApptTitle => _s('doctorApptTitle');
+  String doctorApptSubtitle(int upcoming) => _f('doctorApptSubtitle', <String, Object?>{'upcoming': upcoming});
+  String get doctorApptEmptyUpcoming => _s('doctorApptEmptyUpcoming');
+  String get doctorApptEmptyUpcomingMsg => _s('doctorApptEmptyUpcomingMsg');
+  String get doctorApptEmptyPast => _s('doctorApptEmptyPast');
+  String get doctorApptSetAvailability => _s('doctorApptSetAvailability');
+  String get doctorApptDetailTitle => _s('doctorApptDetailTitle');
+  String get doctorApptDetailAI => _s('doctorApptDetailAI');
+  String get doctorApptDetailAIView => _s('doctorApptDetailAIView');
+  String get doctorApptDetailJoinVideo => _s('doctorApptDetailJoinVideo');
+  String get doctorApptDetailVideoNote => _s('doctorApptDetailVideoNote');
+  String get doctorApptDetailNotesTitle => _s('doctorApptDetailNotesTitle');
+  String get doctorApptDetailNotesHint => _s('doctorApptDetailNotesHint');
+  String get doctorApptDetailSaveNotes => _s('doctorApptDetailSaveNotes');
+  String get doctorApptDetailNotesSaved => _s('doctorApptDetailNotesSaved');
+  String get doctorApptDetailCareplanTitle => _s('doctorApptDetailCareplanTitle');
+  String get doctorApptDetailOpenCareplan => _s('doctorApptDetailOpenCareplan');
+  String get doctorApptDetailPatientInfo => _s('doctorApptDetailPatientInfo');
+  String get doctorSlotsTitle => _s('doctorSlotsTitle');
+  String get doctorSlotsSubtitle => _s('doctorSlotsSubtitle');
+  String doctorSlotsBooked(String patient) => _f('doctorSlotsBooked', <String, Object?>{'patient': patient});
+  String get doctorSlotsAvailable => _s('doctorSlotsAvailable');
+  String get doctorSlotsAddSlot => _s('doctorSlotsAddSlot');
+  String get doctorSlotsRemove => _s('doctorSlotsRemove');
+  String get doctorAIPreconsultTitle => _s('doctorAIPreconsultTitle');
+  String get doctorAIPreconsultSubtitle => _s('doctorAIPreconsultSubtitle');
+  String get doctorAIPreconsultDisclaimer => _s('doctorAIPreconsultDisclaimer');
+  String get doctorAIPreconsultActivity => _s('doctorAIPreconsultActivity');
+  String get doctorAIPreconsultMood => _s('doctorAIPreconsultMood');
+  String get doctorAIPreconsultMedication => _s('doctorAIPreconsultMedication');
+  String get doctorAIPreconsultCognitive => _s('doctorAIPreconsultCognitive');
+  String get doctorAIPreconsultCaregiver => _s('doctorAIPreconsultCaregiver');
+  String get doctorAIPreconsultStartConsult => _s('doctorAIPreconsultStartConsult');
+  String get doctorReportsTitle => _s('doctorReportsTitle');
+  String doctorReportsSubtitle(int count) => _f('doctorReportsSubtitle', <String, Object?>{'count': count});
+  String get doctorReportsUpload => _s('doctorReportsUpload');
+  String get doctorReportsUploadNote => _s('doctorReportsUploadNote');
+  String get doctorReportsAISummary => _s('doctorReportsAISummary');
+  String get doctorReportsAISummaryTitle => _s('doctorReportsAISummaryTitle');
+  String get doctorReportsAIDisclaimer => _s('doctorReportsAIDisclaimer');
+  String get doctorReportsOriginal => _s('doctorReportsOriginal');
+  String get doctorReportsOriginalNote => _s('doctorReportsOriginalNote');
+  String get doctorReportsStatus => _s('doctorReportsStatus');
+  String get doctorReportsUploadedBy => _s('doctorReportsUploadedBy');
+  String get doctorReportsNoSummary => _s('doctorReportsNoSummary');
+  String get doctorCarePlanTitle => _s('doctorCarePlanTitle');
+  String doctorCarePlanSubtitle(String date) => _f('doctorCarePlanSubtitle', <String, Object?>{'date': date});
+  String get doctorCarePlanRecommendations => _s('doctorCarePlanRecommendations');
+  String get doctorCarePlanActivities => _s('doctorCarePlanActivities');
+  String get doctorCarePlanInstructions => _s('doctorCarePlanInstructions');
+  String get doctorCarePlanFollowUp => _s('doctorCarePlanFollowUp');
+  String get doctorCarePlanEdit => _s('doctorCarePlanEdit');
+  String get doctorCarePlanSave => _s('doctorCarePlanSave');
+  String get doctorCarePlanShare => _s('doctorCarePlanShare');
+  String get doctorCarePlanShared => _s('doctorCarePlanShared');
+  String get doctorCarePlanSharedNote => _s('doctorCarePlanSharedNote');
+  String get doctorDetailCarePlan => _s('doctorDetailCarePlan');
+  String get doctorDetailMedicalReports => _s('doctorDetailMedicalReports');
+  String get doctorDetailAIPreconsult => _s('doctorDetailAIPreconsult');
+  String get doctorDetailCaregiverObs => _s('doctorDetailCaregiverObs');
+  String get doctorDetailMedicationInfo => _s('doctorDetailMedicationInfo');
+  String get doctorDetailMoodTrends => _s('doctorDetailMoodTrends');
+  String get doctorDetailMoodTrendsCaption => _s('doctorDetailMoodTrendsCaption');
+  String get doctorDetailCaregiverNote1 => _s('doctorDetailCaregiverNote1');
+  String get doctorDetailCaregiverNote2 => _s('doctorDetailCaregiverNote2');
+  String get doctorDetailMedAdherence => _s('doctorDetailMedAdherence');
+  String get doctorDetailReminderSchedule => _s('doctorDetailReminderSchedule');
+  String get doctorDetailMorning => _s('doctorDetailMorning');
+  String get doctorDetailEvening => _s('doctorDetailEvening');
+  String get doctorAlertsSectionConnection => _s('doctorAlertsSectionConnection');
+  String get doctorAlertsSectionApptReminders => _s('doctorAlertsSectionApptReminders');
+  String get doctorAlertsSectionNewReports => _s('doctorAlertsSectionNewReports');
+  String get doctorAlertsSectionFollowUp => _s('doctorAlertsSectionFollowUp');
+  String get doctorAlertsAccept => _s('doctorAlertsAccept');
+  String get doctorAlertsDecline => _s('doctorAlertsDecline');
+  String get doctorAlertsAccepted => _s('doctorAlertsAccepted');
+  String get doctorAlertsSchedule => _s('doctorAlertsSchedule');
+  String doctorAlertsApptIn(String time) => _f('doctorAlertsApptIn', <String, Object?>{'time': time});
+  String doctorAlertsNewReport(String patient, String kind) => _f('doctorAlertsNewReport', <String, Object?>{'patient': patient, 'kind': kind});
+  String doctorAlertsFollowUpDue(String patient, String date) => _f('doctorAlertsFollowUpDue', <String, Object?>{'patient': patient, 'date': date});
+  String get doctorAnalyticsAdherenceTitle => _s('doctorAnalyticsAdherenceTitle');
+  String get doctorAnalyticsAdherenceCaption => _s('doctorAnalyticsAdherenceCaption');
+  String get doctorAnalyticsWellnessTitle => _s('doctorAnalyticsWellnessTitle');
+  String get doctorAnalyticsWellnessCaption => _s('doctorAnalyticsWellnessCaption');
+  String get doctorAnalyticsMoodTitle => _s('doctorAnalyticsMoodTitle');
+  String get doctorAnalyticsMoodCaption => _s('doctorAnalyticsMoodCaption');
+  String get doctorAnalyticsMoodHappy => _s('doctorAnalyticsMoodHappy');
+  String get doctorAnalyticsMoodNeutral => _s('doctorAnalyticsMoodNeutral');
+  String get doctorAnalyticsMoodAnxious => _s('doctorAnalyticsMoodAnxious');
 
 
   // ── Caregiver — nav ──────────────────────────────────────────────
@@ -1527,6 +1629,9 @@ class AppLocalizations {
   String get gameVillageMarketInstructions => _s('gameVillageMarketInstructions');
   String gameVillageMarketListMention(String listGiver) =>
       _f('gameVillageMarketListMention', <String, Object?>{'listGiver': listGiver});
+  String gameVillageMarketListMentionWithBudget(String listGiver, int amount) => _f(
+      'gameVillageMarketListMentionWithBudget',
+      <String, Object?>{'listGiver': listGiver, 'amount': amount});
   String get gameVillageMarketListMentionContinue => _s('gameVillageMarketListMentionContinue');
   String get gameVillageMarketYouAreAt => _s('gameVillageMarketYouAreAt');
   String get gameVillageMarketTapAnything => _s('gameVillageMarketTapAnything');
@@ -1545,6 +1650,8 @@ class AppLocalizations {
   String get gameVillageMarketHeadHome => _s('gameVillageMarketHeadHome');
   String get gameVillageMarketTripComplete => _s('gameVillageMarketTripComplete');
   String get gameVillageMarketBasketLabel => _s('gameVillageMarketBasketLabel');
+  String gameVillageMarketBudgetRemaining(int amount) =>
+      _f('gameVillageMarketBudgetRemaining', <String, Object?>{'amount': amount});
   String gameVillageMarketHintsLeft(int n) =>
       _f('gameVillageMarketHintsLeft', <String, Object?>{'n': n});
   String get gameVillageMarketTapLightbulb => _s('gameVillageMarketTapLightbulb');
@@ -1556,6 +1663,12 @@ class AppLocalizations {
       _f('gameVillageMarketStallsOpen', <String, Object?>{'n': n});
   String gameVillageMarketPriceTag(int price) =>
       _f('gameVillageMarketPriceTag', <String, Object?>{'price': price});
+  String get gameVillageMarketListLabel => _s('gameVillageMarketListLabel');
+  String gameVillageMarketListProgress(int found, int total) => _f(
+      'gameVillageMarketListProgress', <String, Object?>{'found': found, 'total': total});
+  String get gameVillageMarketNotEnoughMoney => _s('gameVillageMarketNotEnoughMoney');
+  String get gameVillageMarketListComplete => _s('gameVillageMarketListComplete');
+  String get gameVillageMarketFundsLow => _s('gameVillageMarketFundsLow');
 
   // ── Games — mood canvas ─────────────────────────────────────────
   String get gameMoodCanvasName => _s('gameMoodCanvasName');
@@ -1637,6 +1750,7 @@ class AppLocalizations {
   String get patientNavHome => _s('patientNavHome');
   String get patientNavToday => _s('patientNavToday');
   String get patientNavActivities => _s('patientNavActivities');
+  String get patientNavWellness => _s('patientNavWellness');
   String get patientNavCompanion => _s('patientNavCompanion');
   String get patientNavProfile => _s('patientNavProfile');
 
@@ -1736,6 +1850,7 @@ class AppLocalizations {
   String get pairTaken => _s('pairTaken');
   String get pairUnknown => _s('pairUnknown');
   String get pairOffline => _s('pairOffline');
+  String get pairSlowStart => _s('pairSlowStart');
   String get pairAskAction => _s('pairAskAction');
   String get pairWaitingTitle => _s('pairWaitingTitle');
   String get pairWaitingBody => _s('pairWaitingBody');
@@ -1765,18 +1880,14 @@ class AppLocalizations {
   String get caregiverProfileNotSetUp => _s('caregiverProfileNotSetUp');
   String get authTitle => _s('authTitle');
   String get authSubtitle => _s('authSubtitle');
-  String get authWhoAreYou => _s('authWhoAreYou');
   String get authContinueWithoutAccount => _s('authContinueWithoutAccount');
   String get authDeviceOnlyNote => _s('authDeviceOnlyNote');
   String get authSignOut => _s('authSignOut');
   String authSignedInAs(Object email) => _f('authSignedInAs', <String, Object?>{'email': email});
-  String get authRolePatient => _s('authRolePatient');
   String get authRolePatientWho => _s('authRolePatientWho');
   String get authRolePatientDetail => _s('authRolePatientDetail');
-  String get authRoleCaregiver => _s('authRoleCaregiver');
   String get authRoleCaregiverWho => _s('authRoleCaregiverWho');
   String get authRoleCaregiverDetail => _s('authRoleCaregiverDetail');
-  String get authRoleDoctor => _s('authRoleDoctor');
   String get authRoleDoctorWho => _s('authRoleDoctorWho');
   String get authRoleDoctorDetail => _s('authRoleDoctorDetail');
   String get authCaregiverSetsUp => _s('authCaregiverSetsUp');
@@ -2022,13 +2133,9 @@ class AppLocalizations {
       _f('profileSyncActivities', <String, Object?>{'count': count});
   String get profileChangeNumber => _s('profileChangeNumber');
   String get profileAddNumber => _s('profileAddNumber');
-  String get dashboardStartFirstSession => _s('dashboardStartFirstSession');
   String get dashboardStartTodaysSession => _s('dashboardStartTodaysSession');
 
   // ── Clinical status / reminder kind / life-memory category labels ───────
-  String get clinicalStatusStable => _s('clinicalStatusStable');
-  String get clinicalStatusNeedsAttention => _s('clinicalStatusNeedsAttention');
-  String get clinicalStatusFollowUp => _s('clinicalStatusFollowUp');
   String get reminderKindMedicine => _s('reminderKindMedicine');
   String get reminderKindHydration => _s('reminderKindHydration');
   String get reminderKindCognitive => _s('reminderKindCognitive');

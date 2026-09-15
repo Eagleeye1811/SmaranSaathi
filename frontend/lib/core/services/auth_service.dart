@@ -6,11 +6,18 @@ import '../models/auth_user.dart';
 /// a short, patient/caregiver-readable [error] message — never a raw
 /// exception string.
 class AuthResult {
-  const AuthResult.success(this.user) : error = null;
-  const AuthResult.failure(String this.error) : user = null;
+  const AuthResult.success(this.user, {this.isNewAccount = false}) : error = null;
+  const AuthResult.failure(String this.error)
+      : user = null,
+        isNewAccount = false;
 
   final AuthUser? user;
   final String? error;
+
+  /// True when this call *created* the account rather than signing in to one
+  /// that already existed. The caller routes on it: a brand-new caregiver has
+  /// a profile to build, a returning one does not.
+  final bool isNewAccount;
 
   bool get isSuccess => user != null;
 }
@@ -34,6 +41,21 @@ abstract class AuthService {
   Future<AuthResult> signIn({required String email, required String password});
 
   Future<AuthResult> signUp({required String email, required String password});
+
+  /// One button for "I am new here" and "I have been here before".
+  ///
+  /// Asking somebody to know in advance whether they have an account is
+  /// asking the wrong person: they are setting a phone up for a parent, they
+  /// may have started this weeks ago, and getting it wrong meant an error
+  /// message and a second attempt. So the account is created if it is not
+  /// there and signed in to if it is, in one press.
+  ///
+  /// Create-then-fall-back rather than sign-in-then-fall-back, because
+  /// `email-already-in-use` is unambiguous while a failed sign-in is not:
+  /// with email-enumeration protection on, Firebase reports an unknown email
+  /// and a wrong password identically, so "no such account, let me make one"
+  /// could not be told apart from "you mistyped your password".
+  Future<AuthResult> signInOrCreate({required String email, required String password});
 
   /// Google sign-in.
   ///
@@ -94,6 +116,10 @@ class NoAuthRequiredService implements AuthService {
 
   @override
   Future<AuthResult> signUp({required String email, required String password}) async =>
+      const AuthResult.success(_demoUser);
+
+  @override
+  Future<AuthResult> signInOrCreate({required String email, required String password}) async =>
       const AuthResult.success(_demoUser);
 
   @override

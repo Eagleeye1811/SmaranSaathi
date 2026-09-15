@@ -11,6 +11,7 @@ import '../../core/services/auth_service.dart';
 import '../../core/services/pairing_service.dart';
 import '../../core/widgets/brand.dart';
 import '../../core/widgets/companion.dart';
+import '../../core/widgets/motifs.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../l10n/app_localizations.dart';
 import '../intake/intake_kit.dart';
@@ -42,10 +43,56 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    // Resume a request already in flight rather than showing the empty
+    // "enter a username" form — see `AppState.pendingPairingRequestId` for
+    // why leaving this screen must not throw the handshake away.
+    final String? requestId = _state.pendingPairingRequestId;
+    if (requestId != null) {
+      // Optimistic: assume it is still pending so the "waiting" screen shows
+      // immediately instead of flashing the entry form while the real status
+      // is fetched.
+      _request = PairingRequest(
+        requestId: requestId,
+        username: '',
+        patientId: '',
+        deviceId: '',
+        status: PairingStatus.pending,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) => _resume(requestId));
+    }
+  }
+
+  @override
   void dispose() {
     _poll?.cancel();
     _username.dispose();
     super.dispose();
+  }
+
+  /// Picks a request this device already made back up, in case it was
+  /// approved (or declined, or expired) while nobody was on this screen to
+  /// see it.
+  Future<void> _resume(String requestId) async {
+    final PairingService? pairing = _state.pairing;
+    if (pairing == null || !mounted) return;
+    final PairingRequest? latest = await pairing.statusOf(requestId);
+    if (!mounted) return;
+    if (latest == null) {
+      // The backend no longer knows this id — most likely it expired, or
+      // this is talking to a different backend than the one that made it.
+      // Nothing to resume; let the person start over.
+      _state.setPendingPairingRequestId(null);
+      setState(() => _request = null);
+      return;
+    }
+    if (latest.status == PairingStatus.pending) {
+      setState(() => _request = latest);
+      _startPolling(pairing, requestId);
+      return;
+    }
+    await _settle(latest);
   }
 
   Future<void> _ask() async {
@@ -67,6 +114,11 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
         deviceLabel: _username.text.trim(),
       );
       if (!mounted) return;
+      // Persisted before anything else can go wrong: even if this screen
+      // never sees the approval (closed, backgrounded, navigated away), the
+      // next time it opens it resumes this exact request instead of asking
+      // again and orphaning the one the caregiver is about to approve.
+      _state.setPendingPairingRequestId(request.requestId);
       setState(() {
         _request = request;
         _busy = false;
@@ -109,23 +161,30 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
       if (latest.status == PairingStatus.pending) return;
 
       t.cancel();
-      setState(() => _request = latest);
-
-      if (latest.status == PairingStatus.approved) {
-        // The account this device now belongs to. Everything the app writes
-        // from here is filed under it, on this phone and on the server.
-        await _state.signInAccount(latest.patientId);
-        // And everything the caregiver already entered comes down: without
-        // this the patient's phone opens on a correctly-named but empty
-        // profile, which to the person holding it is indistinguishable from
-        // having lost their record.
-        await _state.restoreFromServer(patientId: latest.patientId);
-        if (!mounted) return;
-        _state.setRole(AppRole.patient);
-        AuthScope.maybeOf(context)?.declareRole(AppRole.patient.name);
-        Nav.rootTo(context, const PatientShell());
-      }
+      await _settle(latest);
     });
+  }
+
+  /// A request has stopped being pending — approved, declined or expired.
+  /// Whatever happens next, this device is done waiting on it.
+  Future<void> _settle(PairingRequest latest) async {
+    _state.setPendingPairingRequestId(null);
+    if (!mounted) return;
+    setState(() => _request = latest);
+
+    if (latest.status == PairingStatus.approved) {
+      // The patient this device now belongs to. Everything the app writes
+      // from here is filed under this id, on this phone and on the server —
+      // and everything the caregiver already entered (and any activities
+      // already played, e.g. via the caregiver's demo fast-forward) comes
+      // down with it. `signInAccount` is for a Firebase account and must not
+      // be used here — see `signInAsPairedPatient`'s doc for why.
+      await _state.signInAsPairedPatient(latest.patientId);
+      if (!mounted) return;
+      _state.setRole(AppRole.patient);
+      AuthScope.maybeOf(context)?.declareRole(AppRole.patient.name);
+      Nav.rootTo(context, const PatientShell());
+    }
   }
 
   @override
@@ -136,67 +195,163 @@ class _PatientSignInScreenState extends State<PatientSignInScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(backgroundColor: AppColors.background, elevation: 0),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.xl),
-          children: <Widget>[
-            const Center(child: BrandLockup(size: 42)),
-            const SizedBox(height: Insets.lg),
-            Center(
-              child: Companion(
-                state: waiting ? CompanionState.thinking : CompanionState.happy,
-                size: 120,
+      body: MotifBackground(
+        opacity: 0.055,
+        washColors: <Color>[
+          AppColors.terracottaTint.withValues(alpha: 0.9),
+          AppColors.background.withValues(alpha: 0),
+        ],
+        child: SafeArea(
+          child: Column(
+            children: <Widget>[
+              // The brand mark lives in this fixed header now, not as the
+              // first item of the scrolling list below — it used to sit at
+              // the top of the ListView, left-aligned, on its own row below
+              // the back arrow instead of sharing it. Besides the
+              // inconsistent look, Android's Material 3 stretch-overscroll
+              // effect visibly distorted that top item during a drag, which
+              // read as the logo "going behind" the header. Moving it here,
+              // outside anything scrollable, fixes both at once.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Insets.sm, 6, Insets.gutter, 8),
+                child: Row(
+                  children: <Widget>[
+                    RoundIconButton(
+                      icon: Icons.arrow_back_rounded,
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                    const Expanded(
+                      child: Center(
+                        child: BrandLockup(size: 38, center: true),
+                      ),
+                    ),
+                    // Balances the leading button's width so the brand mark
+                    // above is centred on the row, not just centred in the
+                    // space left over after the button.
+                    const SizedBox(width: 48),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: Insets.lg),
+              Expanded(
+                child: ListView(
+                  padding:
+                      const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, Insets.xl),
+                  children: <Widget>[
+                    FadeInUp(
+                      child: Center(
+                        child: Companion(
+                          state: waiting ? CompanionState.thinking : CompanionState.happy,
+                          size: 120,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
 
-            if (!waiting) ...<Widget>[
-              Text(l.authPatientEntry, textAlign: TextAlign.center, style: AppText.h1.sized(26)),
-              const SizedBox(height: Insets.sm),
-              Text(
-                l.authPatientEntryBody,
-                textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: AppColors.inkSoft),
-              ),
-              const SizedBox(height: Insets.lg),
-              IntakeField(
-                label: l.pairUsernameLabel,
-                controller: _username,
-                onChanged: () => setState(() => _error = null),
-              ),
-              if (_error != null) ...<Widget>[
-                Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.danger)),
-                const SizedBox(height: Insets.sm),
-              ],
-              BigButton(
-                label: l.pairAskAction,
-                icon: Icons.waving_hand_rounded,
-                onPressed: _busy || _username.text.trim().isEmpty ? null : _ask,
-              ),
-            ] else ...<Widget>[
-              Text(l.pairWaitingTitle, textAlign: TextAlign.center, style: AppText.h1.sized(26)),
-              const SizedBox(height: Insets.sm),
-              Text(
-                l.pairWaitingBody,
-                textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: AppColors.inkSoft),
-              ),
-              const SizedBox(height: Insets.lg),
-              const Center(child: CircularProgressIndicator()),
-            ],
+                    if (!waiting) ...<Widget>[
+                      FadeInUp(
+                        delayMs: 100,
+                        child: Column(
+                          children: <Widget>[
+                            Text(l.authPatientEntry,
+                                textAlign: TextAlign.center, style: AppText.h1.sized(26)),
+                            const SizedBox(height: Insets.sm),
+                            Text(
+                              l.authPatientEntryBody,
+                              textAlign: TextAlign.center,
+                              style: AppText.body.copyWith(color: AppColors.inkSoft),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Insets.lg),
+                      FadeInUp(
+                        delayMs: 140,
+                        child: IntakeField(
+                          label: l.pairUsernameLabel,
+                          controller: _username,
+                          autofocus: true,
+                          onChanged: () => setState(() => _error = null),
+                        ),
+                      ),
+                      if (_error != null) ...<Widget>[
+                        Text(_error!, style: AppText.bodySmall.copyWith(color: AppColors.danger)),
+                        const SizedBox(height: Insets.sm),
+                      ],
+                      FadeInUp(
+                        delayMs: 180,
+                        // Reaching the backend can now take a real few
+                        // seconds if it's asleep (see PairingService's
+                        // longer timeout) — the button says so instead of
+                        // just going quiet and looking stuck, the same
+                        // "Signing you in…" pattern the role picker already
+                        // uses for its own network wait.
+                        child: BigButton(
+                          label: _busy ? l.authSigningIn : l.pairAskAction,
+                          icon: _busy ? null : Icons.waving_hand_rounded,
+                          onPressed: _busy || _username.text.trim().isEmpty ? null : _ask,
+                        ),
+                      ),
+                    ] else ...<Widget>[
+                      FadeInUp(
+                        child: Text(l.pairWaitingTitle,
+                            textAlign: TextAlign.center, style: AppText.h1.sized(26)),
+                      ),
+                      const SizedBox(height: Insets.sm),
+                      FadeInUp(
+                        delayMs: 40,
+                        child: Text(
+                          l.pairWaitingBody,
+                          textAlign: TextAlign.center,
+                          style: AppText.body.copyWith(color: AppColors.inkSoft),
+                        ),
+                      ),
+                      const SizedBox(height: Insets.lg),
+                      // A soft tinted backdrop behind the spinner, the same
+                      // circle-behind-glyph language `SoftIcon` uses
+                      // everywhere else — a bare Material spinner floating in
+                      // open space was the one place this screen still
+                      // looked like a generic Flutter default rather than
+                      // SmaranSaathi's own.
+                      FadeInUp(
+                        delayMs: 80,
+                        child: Center(
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryTint,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 3,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
 
-            if (request?.status == PairingStatus.declined) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              Text(l.pairDeclined,
-                  textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: AppColors.danger)),
+                    if (request?.status == PairingStatus.declined) ...<Widget>[
+                      const SizedBox(height: Insets.md),
+                      Text(l.pairDeclined,
+                          textAlign: TextAlign.center,
+                          style: AppText.body.copyWith(color: AppColors.danger)),
+                    ],
+                    if (request?.status == PairingStatus.expired) ...<Widget>[
+                      const SizedBox(height: Insets.md),
+                      Text(l.pairExpired, textAlign: TextAlign.center, style: AppText.bodySmall),
+                    ],
+                  ],
+                ),
+              ),
             ],
-            if (request?.status == PairingStatus.expired) ...<Widget>[
-              const SizedBox(height: Insets.md),
-              Text(l.pairExpired, textAlign: TextAlign.center, style: AppText.bodySmall),
-            ],
-          ],
+          ),
         ),
       ),
     );

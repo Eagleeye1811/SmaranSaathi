@@ -68,11 +68,11 @@ class WellbeingScreen extends StatelessWidget {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.accentTint.withValues(alpha: 0.6),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[
@@ -222,7 +222,7 @@ class WellbeingScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: Insets.md),
-                          Text('Daily adherence — last 7 days',
+                          Text('Daily adherence: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
@@ -256,7 +256,7 @@ class WellbeingScreen extends StatelessWidget {
                               style: AppText.h3),
                           const SizedBox(height: 4),
                           Text(
-                              'Number of activities completed each day — target is 4.',
+                              'Number of activities completed each day, target is 4.',
                               style: AppText.caption),
                           const SizedBox(height: Insets.md),
                           WeekStrip(
@@ -288,7 +288,7 @@ class WellbeingScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Daily engagement — last 7 days',
+                          Text('Daily engagement: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(

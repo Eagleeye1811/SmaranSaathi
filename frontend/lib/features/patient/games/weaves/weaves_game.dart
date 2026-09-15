@@ -17,6 +17,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 /// A textile whose motifs the patient rebuilds.
 class Textile {
@@ -468,81 +469,50 @@ class _WeavesGameState extends State<WeavesGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 1,
-                            title: l.gameLevelEasy,
-                            subtitle: l.gameWeavesSubtitle1Blank,
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 2,
-                            title: l.gameLevelMedium,
-                            subtitle: l.gameWeavesSubtitleHiddenWeave,
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 3,
-                            title: l.gameLevelHard,
-                            subtitle: l.gameWeavesSubtitle2Blanks,
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 4,
-                            title: l.gameLevelExpert,
-                            subtitle: l.gameWeavesSubtitleFastWeave,
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            levelNum: 5,
-                            title: l.gameLevelMastery,
-                            subtitle: l.gameWeavesSubtitle4x4Grid,
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.weaves,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameLevelEasy,
+                  subtitle: l.gameWeavesSubtitle1Blank,
+                  icon: Icons.grid_view_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameLevelMedium,
+                  subtitle: l.gameWeavesSubtitleHiddenWeave,
+                  icon: Icons.view_module_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameLevelHard,
+                  subtitle: l.gameWeavesSubtitle2Blanks,
+                  icon: Icons.dashboard_customize_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameLevelExpert,
+                  subtitle: l.gameWeavesSubtitleFastWeave,
+                  icon: Icons.auto_awesome_mosaic_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameLevelMastery,
+                  subtitle: l.gameWeavesSubtitle4x4Grid,
+                  icon: Icons.diamond_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(
@@ -556,6 +526,19 @@ class _WeavesGameState extends State<WeavesGame> {
                   Text(
                     l.gameWeavesInstructions,
                     style: AppText.bodySmall,
+                  ),
+                  const SizedBox(height: 14),
+                  // A first look at today's colours, in the same woven
+                  // strip the actual pattern is built from — the palette
+                  // this round is drawn in, before a single tile is shown.
+                  ClipRRect(
+                    borderRadius: Corners.r(Corners.sm),
+                    child: WovenStrip(height: 16, colors: _textile.palette),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${_textile.name} · ${_textile.origin}',
+                    style: AppText.caption.tint(AppColors.inkMuted),
                   ),
                 ],
               ),

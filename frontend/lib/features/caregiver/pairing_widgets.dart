@@ -85,6 +85,17 @@ class _ClaimSheetState extends State<_ClaimSheet> {
           _busy = false;
         });
       }
+    } on PairingUnreachableException {
+      // Every candidate timed out or refused — on a real device this is
+      // almost always the one real backend still waking up from idle, not
+      // an actual connectivity problem, so this gets its own honest message
+      // rather than reusing `pairOffline`'s "you're offline" framing.
+      if (mounted) {
+        setState(() {
+          _error = l.pairSlowStart;
+          _busy = false;
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -143,6 +154,11 @@ class _ClaimSheetState extends State<_ClaimSheet> {
 /// Polls rather than listens, for the same reason the patient's side does —
 /// a plain REST backend, and a wait measured in seconds. It only runs while
 /// the dashboard is on screen, so it costs nothing when the app is closed.
+///
+/// The very first poll runs the moment this widget mounts — which is also
+/// the moment the caregiver opens (or reopens) the app — so a request that
+/// arrived while the app was closed still surfaces as a popup the instant
+/// they come back, with no push infrastructure required.
 class PairingRequestBanner extends StatefulWidget {
   const PairingRequestBanner({super.key});
 
@@ -154,7 +170,9 @@ class _PairingRequestBannerState extends State<PairingRequestBanner> {
   late final AppState _state = AppScope.read(context);
   Timer? _poll;
   List<PairingRequest> _pending = const <PairingRequest>[];
+  final Set<String> _announced = <String>{};
   bool _busy = false;
+  bool _popupOpen = false;
 
   @override
   void initState() {
@@ -175,7 +193,76 @@ class _PairingRequestBannerState extends State<PairingRequestBanner> {
     final PairingService? pairing = _state.pairing;
     if (pairing == null || !_state.hasPatientUsername) return;
     final List<PairingRequest> next = await pairing.pendingFor(_uid);
-    if (mounted) setState(() => _pending = next);
+    if (!mounted) return;
+    setState(() => _pending = next);
+
+    // The banner below always lists every pending request, but a request
+    // nobody has been shown yet also earns a popup — the closest thing to a
+    // notification this app can raise without a push service behind it.
+    for (final PairingRequest r in next) {
+      if (_announced.add(r.requestId)) {
+        _showPopup(r);
+        break; // One at a time: a second popup would just stack on the first.
+      }
+    }
+  }
+
+  Future<void> _showPopup(PairingRequest request) async {
+    if (_popupOpen || !mounted) return;
+    _popupOpen = true;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String name = _state.patient.shortName;
+    final String device = request.deviceLabel.isEmpty ? request.deviceId : request.deviceLabel;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: AppColors.background,
+        shape: RoundedRectangleBorder(borderRadius: Corners.r(Corners.lg)),
+        title: Row(
+          children: <Widget>[
+            const SoftIcon(icon: Icons.phonelink_ring_rounded, color: AppColors.accent),
+            const SizedBox(width: Insets.sm),
+            Expanded(
+              child: Text(l.pairIncomingTitle(device, name), style: AppText.h3),
+            ),
+          ],
+        ),
+        content: Text(l.pairIncomingBody, style: AppText.bodySmall),
+        actionsPadding: const EdgeInsets.fromLTRB(Insets.md, 0, Insets.md, Insets.md),
+        actions: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: SoftButton(
+                  label: l.pairDecline,
+                  icon: Icons.close_rounded,
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _respond(request, false);
+                  },
+                ),
+              ),
+              const SizedBox(width: Insets.sm),
+              Expanded(
+                child: BigButton(
+                  label: l.pairApprove,
+                  icon: Icons.check_rounded,
+                  height: 52,
+                  color: AppColors.accent,
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _respond(request, true);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    _popupOpen = false;
   }
 
   Future<void> _respond(PairingRequest request, bool approve) async {

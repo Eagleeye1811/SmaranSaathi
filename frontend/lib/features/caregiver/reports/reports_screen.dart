@@ -1,13 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/models/caregiver_note.dart';
+import '../../../core/models/doctor.dart';
+import '../../../core/models/game.dart';
 import '../../../core/models/medical_report.dart';
+import '../../../core/models/onboarding.dart';
+import '../../../core/models/weekly_report.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/telehealth/consultation_format.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../data/mock/mock_data.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../intake/onboarding_l10n.dart';
 
 // ── Mock medical reports ──────────────────────────────────────────────────────
 
@@ -55,11 +65,11 @@ class ReportsScreen extends StatelessWidget {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.secondaryTint.withValues(alpha: 0.6),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[
@@ -139,7 +149,7 @@ class ReportsScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          Text('Daily engagement — last 7 days',
+                          Text('Daily engagement: last 7 days',
                               style: AppText.overline),
                           const SizedBox(height: 10),
                           TrendLineChart(
@@ -209,90 +219,310 @@ class ReportsScreen extends StatelessWidget {
 
 // ── Weekly report summary ─────────────────────────────────────────────────────
 
-class _WeeklyReportCard extends StatelessWidget {
+/// Where the caregiver gives ongoing input for the doctor's weekly report —
+/// never the report itself. Neither the caregiver nor the patient can see
+/// evaluation metrics anywhere in this app; this card only ever collects,
+/// never displays, clinical data.
+class _WeeklyReportCard extends StatefulWidget {
   const _WeeklyReportCard({required this.state});
   final AppState state;
 
   @override
+  State<_WeeklyReportCard> createState() => _WeeklyReportCardState();
+}
+
+class _WeeklyReportCardState extends State<_WeeklyReportCard> {
+  final TextEditingController _noteCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submitNote() {
+    if (_noteCtrl.text.trim().isEmpty) return;
+    widget.state.addCaregiverNote(_noteCtrl.text);
+    setState(_noteCtrl.clear);
+  }
+
+  void _openConcernSheet(BuildContext context, DailyDifficulty difficulty) {
+    ConcernTrend trend = ConcernTrend.same;
+    final TextEditingController commentCtrl = TextEditingController();
+    final AppLocalizations l = AppLocalizations.of(context);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext bctx, StateSetter setModalState) {
+            return Container(
+              padding: EdgeInsets.fromLTRB(
+                Insets.lg,
+                Insets.lg,
+                Insets.lg,
+                MediaQuery.of(bctx).viewInsets.bottom + Insets.xl,
+              ),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(dailyDifficultyLabel(l, difficulty), style: AppText.h3),
+                  const SizedBox(height: 4),
+                  Text('How has this been since you last checked in?', style: AppText.bodySmall),
+                  const SizedBox(height: Insets.lg),
+                  Row(
+                    children: <Widget>[
+                      for (final ConcernTrend t in ConcernTrend.values)
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ChoiceChip(
+                              label: Text(switch (t) {
+                                ConcernTrend.better => 'Better',
+                                ConcernTrend.same => 'Same',
+                                ConcernTrend.worse => 'Worse',
+                              }),
+                              selected: trend == t,
+                              onSelected: (bool sel) {
+                                if (sel) setModalState(() => trend = t);
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: Insets.md),
+                  TextField(
+                    controller: commentCtrl,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'Anything you would like to add? (optional)',
+                      filled: true,
+                      fillColor: AppColors.surfaceMuted,
+                      border: OutlineInputBorder(borderRadius: Corners.r(Corners.md)),
+                    ),
+                  ),
+                  const SizedBox(height: Insets.lg),
+                  SoftButton(
+                    label: 'Save',
+                    icon: Icons.check_rounded,
+                    color: AppColors.primary,
+                    filled: true,
+                    onPressed: () {
+                      widget.state
+                          .logConcernUpdate(difficulty, trend, comment: commentCtrl.text.trim());
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final int done = state.gamesCompletedTotal();
-    final int adherence = state.adherencePercent;
+    final AppState state = widget.state;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<DailyDifficulty> concerns = state.intake.onboarding.topDifficulties;
+    final DoctorProfile? doctor = state.connectedDoctor;
+
+    final List<_CycleEntry> entries = <_CycleEntry>[
+      for (final CaregiverConcernUpdate c in state.concernUpdatesThisCycle)
+        _CycleEntry(
+          at: c.at,
+          icon: Icons.trending_flat_rounded,
+          text: '${dailyDifficultyLabel(l, c.difficulty)}: ${switch (c.trend) {
+            ConcernTrend.better => 'better',
+            ConcernTrend.same => 'about the same',
+            ConcernTrend.worse => 'a little worse',
+          }}${c.comment.isEmpty ? '' : ' — ${c.comment}'}',
+        ),
+      for (final CaregiverNoteEntry n in state.notesThisCycle)
+        _CycleEntry(at: n.at, icon: Icons.sticky_note_2_outlined, text: n.text),
+    ]..sort((_CycleEntry a, _CycleEntry b) => b.at.compareTo(a.at));
+
+    final WeeklyClinicalReport? lastReport = state.lastCompletedReport;
 
     return MmCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Week of 6 – 12 September 2026',
-              style: AppText.overline),
-          const SizedBox(height: 12),
-          _SummaryRow(
-              icon: Icons.extension_rounded,
-              color: AppColors.seriesTeal,
-              label: 'Cognitive activities',
-              value: '$done completed this week'),
-          _SummaryRow(
-              icon: Icons.psychology_alt_rounded,
-              color: AppColors.seriesOchre,
-              label: 'Average accuracy',
-              value: '${state.averageAccuracy().round()}%'),
-          _SummaryRow(
-              icon: Icons.sentiment_satisfied_alt_rounded,
-              color: AppColors.success,
-              label: 'Mood',
-              value: 'Calm on 5 of 7 days'),
-          _SummaryRow(
-              icon: Icons.medication_liquid_rounded,
-              color: AppColors.terracotta,
-              label: 'Reminder adherence',
-              value: '$adherence% — ${state.remindersDone}/${state.remindersTotal} acknowledged'),
-          _SummaryRow(
-              icon: Icons.shield_outlined,
-              color: AppColors.primary,
-              label: 'Safety',
-              value: 'No alerts this week',
-              last: true),
+          if (lastReport != null) ...<Widget>[
+            Container(
+              padding: const EdgeInsets.all(Insets.sm),
+              decoration: BoxDecoration(
+                color: AppColors.successTint,
+                borderRadius: Corners.r(Corners.md),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'A full week\'s report (7 of 7 activities) was sent to '
+                      '${doctor?.name ?? 'your doctor'} on '
+                      '${formatConsultationDate(lastReport.generatedAt)}.',
+                      style: AppText.bodySmall.wght(600).tint(AppColors.success),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: Insets.md),
+          ],
+          Row(
+            children: <Widget>[
+              const Icon(Icons.forum_outlined, size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  doctor != null
+                      ? '${state.cycleActivitiesCompleted} of 7 activities completed this round · Notes go to Dr. ${doctor.name}'
+                      : 'Connect a doctor to share these notes with them',
+                  style: AppText.bodySmall.wght(700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.md),
+          if (concerns.isNotEmpty) ...<Widget>[
+            Text('How has this been going?', style: AppText.label),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (final DailyDifficulty d in concerns)
+                  ActionChip(
+                    label: Text(dailyDifficultyLabel(l, d)),
+                    onPressed: () => _openConcernSheet(context, d),
+                  ),
+              ],
+            ),
+            const SizedBox(height: Insets.md),
+          ],
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  controller: _noteCtrl,
+                  onSubmitted: (_) => _submitNote(),
+                  decoration: InputDecoration(
+                    hintText: 'Add a note for your doctor',
+                    filled: true,
+                    fillColor: AppColors.surfaceMuted,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: Corners.r(Corners.md)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.send_rounded, color: AppColors.primary),
+                onPressed: _submitNote,
+              ),
+            ],
+          ),
+          if (entries.isNotEmpty) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            const Divider(color: AppColors.hairline),
+            const SizedBox(height: Insets.sm),
+            Text('This week so far', style: AppText.label),
+            const SizedBox(height: 8),
+            for (final _CycleEntry e in entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Icon(e.icon, size: 16, color: AppColors.inkMuted),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(e.text, style: AppText.bodySmall)),
+                  ],
+                ),
+              ),
+          ],
+          if (kDebugMode) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            const Divider(color: AppColors.hairline),
+            const SizedBox(height: Insets.sm),
+            _DemoRoundButton(state: state),
+          ],
         ],
       ),
     );
   }
 }
 
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.value,
-    this.last = false,
-  });
-  final IconData icon;
-  final Color color;
-  final String label;
-  final String value;
-  final bool last;
+/// Debug-build only — never compiled into a release build (`kDebugMode`).
+/// Fills in the rest of the current round so a demo only has to play one
+/// real activity to trigger the weekly report, instead of sitting through
+/// all 7.
+class _DemoRoundButton extends StatefulWidget {
+  const _DemoRoundButton({required this.state});
+  final AppState state;
+
+  @override
+  State<_DemoRoundButton> createState() => _DemoRoundButtonState();
+}
+
+class _DemoRoundButtonState extends State<_DemoRoundButton> {
+  // Only set once *this* button has actually been tapped, so the "play X to
+  // finish" wording can name the game. Coming back to this screen after the
+  // round already finished elsewhere (played on another device, or simply a
+  // fresh instance of this widget) has no such name to show — `caption`
+  // below falls back to the live count instead of assuming nothing happened.
+  GameId? _justFastForwarded;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: last ? 0 : 10),
-      child: Row(
-        children: <Widget>[
-          SoftIcon(icon: icon, color: color, size: 38),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(label, style: AppText.label),
-                const SizedBox(height: 2),
-                Text(value, style: AppText.bodySmall.wght(600)),
-              ],
-            ),
+    final int done = widget.state.cycleActivitiesCompleted;
+    final GameId? left = _justFastForwarded;
+    final String caption = done >= 7
+        ? 'Round complete — 7 of 7 played'
+        : left != null
+            ? 'Fast-forwarded 6/7 — play "${MockData.game(left).name}" to finish the round'
+            : done > 0
+                ? 'Fast-forwarded $done/7 — play the last activity to finish the round'
+                : 'Fast-forward 6 of 7 activities';
+    return Row(
+      children: <Widget>[
+        const Icon(Icons.science_outlined, size: 15, color: AppColors.inkMuted),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(caption, style: AppText.caption.tint(AppColors.inkMuted)),
+        ),
+        if (done < 7)
+          TextButton(
+            onPressed: () => setState(() {
+              _justFastForwarded = widget.state.simulateRestOfRoundForDemo();
+            }),
+            child: const Text('Fast-forward'),
           ),
-        ],
-      ),
+      ],
     );
   }
+}
+
+class _CycleEntry {
+  const _CycleEntry({required this.at, required this.icon, required this.text});
+  final DateTime at;
+  final IconData icon;
+  final String text;
 }
 
 // ── AI insights card ──────────────────────────────────────────────────────────
@@ -330,7 +560,7 @@ class _AiInsightsCard extends StatelessWidget {
           const Divider(color: AppColors.hairline),
           const SizedBox(height: 10),
           Text(
-            '✦ AI-observed patterns — for context only. '
+            '✦ AI-observed patterns, for context only. '
             'Not a medical diagnosis. Consult your doctor for clinical decisions.',
             style: AppText.caption
                 .tint(AppColors.inkMuted)
@@ -496,7 +726,7 @@ class _ReportCardState extends State<_ReportCard> {
                     Text(r.aiSummary!, style: AppText.bodySmall),
                     const SizedBox(height: 8),
                     Text(
-                      'AI-generated explanation — for understanding only. '
+                      'AI-generated explanation, for understanding only. '
                       'The original report is always available to your doctor.',
                       style: AppText.caption
                           .tint(AppColors.inkMuted)

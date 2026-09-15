@@ -14,7 +14,6 @@ import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
 import '../life_profile/life_profile_screen.dart';
-import '../widgets/caregiver_top_bar.dart';
 import 'memory_profile_editors.dart';
 
 /// The memory profile: everything personalisation is built from, editable in
@@ -45,11 +44,11 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
 
     return MotifBackground(
       opacity: 0.04,
-      washColors: <Color>[
-        AppColors.terracottaTint.withValues(alpha: 0.7),
-        AppColors.background.withValues(alpha: 0),
-      ],
+      showTopWash: false,
+      // No top inset: this screen only ever renders inside `CaregiverShell`,
+      // whose own header already clears the status bar.
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
           children: <Widget>[
@@ -201,7 +200,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         if (p.family.isEmpty)
           EmptyState(
             title: 'Nobody added yet',
-            message: 'Add the people who matter to them — the app uses these '
+            message: 'Add the people who matter to them. The app uses these '
                 'names and faces in the activities.',
             icon: Icons.groups_2_rounded,
           ),
@@ -245,35 +244,12 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
               ),
             ),
           ),
-        if (available.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(l.caregiverSuggestedToAddLabel, style: AppText.overline),
-          const SizedBox(height: 10),
-          for (final FamilyMember f in available)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: MmCard(
-                padding: const EdgeInsets.all(12),
-                color: AppColors.surfaceMuted,
-                onTap: () {
-                  final List<FamilyMember> next = List<FamilyMember>.from(p.family)..add(f);
-                  state.updateDraft(p.copyWith(family: next));
-                  state.commitDraft();
-                },
-                child: Row(
-                  children: <Widget>[
-                    SceneImage(sceneId: f.sceneId, size: 46, circle: true),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text('${f.name} · ${MockTranslator.translateRelation(f.relation, l)}',
-                          style: AppText.body.wght(600)),
-                    ),
-                    const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
-                  ],
-                ),
-              ),
-            ),
-        ],
+        const SizedBox(height: 4),
+        SoftButton(
+          label: 'Add a person',
+          icon: Icons.person_add_alt_rounded,
+          onPressed: () => _saveFamily(p, state),
+        ),
       ],
     );
   }
@@ -320,7 +296,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
         if (p.memories.isEmpty)
           EmptyState(
             title: 'No memories yet',
-            message: 'A question and the answer to it — the activities ask '
+            message: 'A question and the answer to it. The activities ask '
                 'these back in their own words.',
             icon: Icons.auto_stories_rounded,
           ),

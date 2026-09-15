@@ -222,11 +222,11 @@ void main() {
       expect(find.text('Language'), findsOneWidget);
       // Each language is offered in its own script (English, Hindi, Assamese).
       expect(find.text('English'), findsOneWidget);
-      expect(find.text('हिन्दी'), findsOneWidget);
+      expect(find.text('हिंदी'), findsOneWidget);
       expect(find.text('অসমীয়া'), findsOneWidget);
 
       // Switch to Hindi — the same widget tree, relabelled.
-      await tester.tap(find.text('हिन्दी'));
+      await tester.tap(find.text('हिंदी'));
       await tester.pumpAndSettle();
       expect(locale.locale.languageCode, 'hi');
       expect(find.text('भाषा'), findsOneWidget);

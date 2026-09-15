@@ -8,7 +8,6 @@ import '../../../core/widgets/app_nav_bar.dart';
 import '../../../core/widgets/brand.dart';
 import '../../../core/widgets/ui_kit.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../patient/settings/language_picker_button.dart';
 
 /// Header shared by every caregiver screen.
 class CaregiverTopBar extends StatelessWidget {
@@ -63,8 +62,6 @@ class CaregiverTopBar extends StatelessWidget {
               if (goingOnline) state.syncNow();
             },
           ),
-          const SizedBox(width: 4),
-          const LanguagePickerButton(),
           const SizedBox(width: 4),
           RoundIconButton(
             icon: Icons.logout_rounded,

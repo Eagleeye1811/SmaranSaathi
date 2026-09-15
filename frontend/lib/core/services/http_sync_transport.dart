@@ -49,24 +49,44 @@ class HttpSyncTransport implements SyncTransport {
   @override
   Future<Map<String, dynamic>?> restore(String patientId) => restoreBundle(patientId);
 
-  List<String> get _candidateUrls {
-    final List<String> list = <String>[];
-    if (_activeBaseUrl.isNotEmpty) list.add(_activeBaseUrl);
-    if (!list.contains('http://127.0.0.1:8000')) list.add('http://127.0.0.1:8000');
-    if (!list.contains('http://localhost:8000')) list.add('http://localhost:8000');
-    if (!list.contains('http://10.0.2.2:8000')) list.add('http://10.0.2.2:8000');
+  // A backend cold-starting from idle (Render's free tier spins down after
+  // ~15 minutes) can take 30+ seconds to answer its first request — measured
+  // in production at 33s. The three loopback addresses below are never that:
+  // either a developer's own machine, which answers in milliseconds, or an
+  // address nothing is listening on, which fails fast. Giving every
+  // candidate the same short timeout meant the one candidate actually
+  // serving real traffic was being given up on before it ever had a chance
+  // to wake up — every sync operation silently stayed queued, and
+  // `restoreBundle` (see below) silently returned nothing, indistinguishable
+  // from genuinely being offline. See `PairingService._candidates`, which
+  // already solved this the same way.
+  static const Duration _primaryTimeout = Duration(seconds: 20);
+  static const Duration _devTimeout = Duration(seconds: 4);
+
+  List<({String url, Duration timeout})> get _candidates {
+    final List<({String url, Duration timeout})> list = <({String url, Duration timeout})>[];
+    final Set<String> seen = <String>{};
+    void add(String u, Duration timeout) {
+      if (u.isEmpty || !seen.add(u)) return;
+      list.add((url: u, timeout: timeout));
+    }
+
+    add(_activeBaseUrl, _primaryTimeout);
+    add('http://127.0.0.1:8000', _devTimeout);
+    add('http://localhost:8000', _devTimeout);
+    add('http://10.0.2.2:8000', _devTimeout);
     return list;
   }
 
   Future<String> _fetchDeviceToken() async {
     Object? lastException;
-    for (final String url in _candidateUrls) {
+    for (final (:String url, :Duration timeout) in _candidates) {
       try {
         final http.Response response = await _client.post(
           Uri.parse('$url/api/v1/auth/device'),
           headers: const <String, String>{'Content-Type': 'application/json'},
           body: jsonEncode(const <String, dynamic>{}),
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(timeout);
 
         if (response.statusCode == 200) {
           final Map<String, dynamic> body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -95,7 +115,7 @@ class HttpSyncTransport implements SyncTransport {
         'payload': operation.payload,
         'createdAtMillis': operation.createdAtMillis,
       }),
-    ).timeout(const Duration(seconds: 8));
+    ).timeout(_primaryTimeout);
   }
 
   @override
@@ -131,7 +151,7 @@ class HttpSyncTransport implements SyncTransport {
       headers: <String, String>{
         'Authorization': 'Bearer $token',
       },
-    ).timeout(const Duration(seconds: 10));
+    ).timeout(HttpSyncTransport._primaryTimeout);
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -158,7 +178,7 @@ extension HttpSyncRestore on HttpSyncTransport {
             Uri.parse('$activeBaseUrl/api/v1/sync/restore?patientId=$patientId'),
             headers: <String, String>{'Authorization': 'Bearer $token'},
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(HttpSyncTransport._primaryTimeout);
       if (response.statusCode != 200) return null;
       return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (error) {
