@@ -37,13 +37,11 @@ import '../../../app/theme/app_text.dart';
 //   adb reverse tcp:8000 tcp:8000
 //   flutter run --dart-define=ASHA_URL=http://localhost:8000/asha
 // In production the backend is served over https, so the default is already fine.
-const String _kSyncBaseUrl = String.fromEnvironment(
-  'MM_SYNC_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+const String _kDefaultAshaUrl = 'https://asha-smaran-saathi.vercel.app/';
+
 const String _kAshaUrl = String.fromEnvironment(
   'ASHA_URL',
-  defaultValue: '$_kSyncBaseUrl/asha',
+  defaultValue: _kDefaultAshaUrl,
 );
 
 /// JavaScript and CSS injected into the D-ID page to:
@@ -333,30 +331,34 @@ class _AshaScreenState extends State<AshaScreen> {
           if (!mounted) return;
           if (message.message == 'ready') {
             setState(() => _state = _ViewState.ready);
-          } else if (message.message == 'error') {
-            // The agent never came up. Show the retry screen rather than
-            // leaving the patient looking at a black page forever.
-            debugPrint('[Asha] agent bootstrap failed for $_kAshaUrl');
-            setState(() => _state = _ViewState.error);
           }
         },
       )
       ..setNavigationDelegate(
         NavigationDelegate(
+          onPageStarted: (_) {
+            if (mounted && _state != _ViewState.ready) {
+              setState(() => _state = _ViewState.loading);
+            }
+          },
           onPageFinished: (_) async {
-            // Expand and auto-start the D-ID agent full screen.
-            await c.runJavaScript(_kFullscreenAndAutoStartScript);
-
-            // Safety fallback: reveal avatar after 1s so loading is not stuck
-            Future<void>.delayed(const Duration(milliseconds: 1000), () {
-              if (mounted && _state == _ViewState.loading) {
-                setState(() => _state = _ViewState.ready);
-              }
-            });
+            // Reveal Vercel page immediately on page finish
+            if (mounted) {
+              setState(() => _state = _ViewState.ready);
+            }
+            try {
+              await c.runJavaScript(_kFullscreenAndAutoStartScript);
+            } catch (_) {}
           },
           onWebResourceError: (WebResourceError err) {
-            debugPrint('[Asha] WebView error: ${err.description} (isForMainFrame: ${err.isForMainFrame})');
-            if (mounted && _state != _ViewState.ready && (err.isForMainFrame ?? true)) {
+            debugPrint(
+              '[Asha] WebView resource note: ${err.description} (code: ${err.errorCode}, isForMainFrame: ${err.isForMainFrame})',
+            );
+            // Only flip to error state if main frame fails to load completely (e.g. device offline)
+            if (mounted &&
+                _state != _ViewState.ready &&
+                (err.isForMainFrame ?? false) &&
+                (err.errorCode == -2 || err.description.contains('ERR_INTERNET_DISCONNECTED'))) {
               setState(() => _state = _ViewState.error);
             }
           },

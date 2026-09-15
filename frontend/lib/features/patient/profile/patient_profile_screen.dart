@@ -16,6 +16,7 @@ import '../../../l10n/content_labels.dart';
 import '../../auth/auth_role_screen.dart';
 import '../../auth/sign_in_screen.dart';
 import '../../intake/welcome_screens.dart';
+import '../asha/asha_screen.dart';
 import '../settings/language_selector.dart';
 import '../widgets/patient_widgets.dart';
 
@@ -206,6 +207,36 @@ class PatientProfileScreen extends StatelessWidget {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── Asha AI Companion Agent (Deployed on Vercel) ───────────
+                    FadeInUp(
+                      delayMs: 20,
+                      child: SectionHeader(
+                        title: 'Asha AI Companion Agent',
+                        icon: Icons.record_voice_over_rounded,
+                        subtitle: 'Interactive D-ID AI Companion (asha-smaran-saathi.vercel.app)',
+                      ),
+                    ),
+                    FadeInUp(
+                      delayMs: 30,
+                      child: MmCard(
+                        child: ListRow(
+                          leading: const SoftIcon(
+                            icon: Icons.record_voice_over_rounded,
+                            color: AppColors.primary,
+                            size: 48,
+                          ),
+                          title: 'Launch Asha AI Companion',
+                          subtitle: 'Talk directly to your AI companion on Vercel',
+                          trailing: const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.inkMuted,
+                          ),
+                          onTap: () => Nav.open(context, const AshaScreen()),
                         ),
                       ),
                     ),
