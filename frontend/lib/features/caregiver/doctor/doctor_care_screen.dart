@@ -590,7 +590,7 @@ class _AppointmentCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text('Dr. ${appointment.doctorName}',
+                    Text(withDoctorTitle(appointment.doctorName),
                         style: AppText.body.wght(700)),
                     const SizedBox(height: 2),
                     Text(appointment.specialization,
@@ -889,7 +889,8 @@ class _BookAppointmentSectionState extends State<_BookAppointmentSection> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
-                'Dr. ${widget.doctor.name} has no open slots at the moment. Please check back later.',
+                '${widget.doctor.displayName} has no open slots at the moment. '
+                'Please check back later.',
                 style: AppText.bodySmall.tint(AppColors.inkMuted),
               ),
             )

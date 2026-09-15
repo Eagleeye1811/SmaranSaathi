@@ -2313,7 +2313,38 @@ class AppState extends ChangeNotifier {
   /// Patients screen's `initState`, the same load-then-cache shape
   /// `loadDoctorDirectory`/`refreshConnectedDoctor` below use).
   List<ClinicPatient> _caseload = <ClinicPatient>[];
-  List<ClinicPatient> get caseload => List<ClinicPatient>.unmodifiable(_caseload);
+
+  /// The seeded examples every new clinician account starts with.
+  ///
+  /// A doctor who has just signed up has no connected patients, and an empty
+  /// caseload says nothing about what the app does — there is nothing to
+  /// open, nothing to read a trend from, and no reason to come back. These
+  /// fill it. They are flagged [ClinicPatient.isDemo] so the list can mark
+  /// them, because a seeded row and a real person must never be mistaken for
+  /// each other on a screen a clinician makes decisions from.
+  static List<ClinicPatient> get _demoCaseload => <ClinicPatient>[
+        for (final ClinicPatient p in MockData.caseload()) p.copyWith(isDemo: true),
+      ];
+
+  /// Real connected patients first, then the seeded examples.
+  ///
+  /// Both are shown rather than the examples disappearing on the first real
+  /// connection: a doctor with one patient still benefits from having the
+  /// rest of the screen demonstrate what a full caseload looks like, and the
+  /// ordering keeps the real record at the top where it belongs.
+  List<ClinicPatient> get caseload {
+    final Set<String> realIds = _caseload.map((ClinicPatient p) => p.id).toSet();
+    return List<ClinicPatient>.unmodifiable(<ClinicPatient>[
+      ..._caseload,
+      // A demo id never collides with a real `acct_` one, but filtering keeps
+      // that an assertion rather than an assumption.
+      ..._demoCaseload.where((ClinicPatient p) => !realIds.contains(p.id)),
+    ]);
+  }
+
+  /// Just the real ones — for counts that would be a lie if they included
+  /// the seeded examples.
+  List<ClinicPatient> get connectedCaseload => List<ClinicPatient>.unmodifiable(_caseload);
 
   Future<void> loadCaseload() async {
     final DoctorConnectionService? service = _doctorConnections;
@@ -2639,8 +2670,28 @@ class AppState extends ChangeNotifier {
       List<DoctorConversation>.from(MockData.doctorConversations());
 
   /// Doctor conversations with connected patients and caregivers.
-  List<DoctorConversation> get doctorConversations =>
-      List<DoctorConversation>.unmodifiable(_doctorConversations);
+  /// Threads newest-first, the way an inbox reads.
+  ///
+  /// They used to come back in creation order, so a message just sent stayed
+  /// wherever its thread happened to sit — often far down the list — and the
+  /// screen gave no sign anything had happened. Sorting on the last message's
+  /// timestamp puts the thread you just replied to at the top, where the
+  /// activity is.
+  List<DoctorConversation> get doctorConversations {
+    final List<DoctorConversation> sorted =
+        List<DoctorConversation>.from(_doctorConversations);
+    sorted.sort((DoctorConversation a, DoctorConversation b) {
+      final DateTime? at = a.lastMessage?.timestamp;
+      final DateTime? bt = b.lastMessage?.timestamp;
+      // A thread with nothing in it yet has no activity to rank, so it sits
+      // below every thread that does rather than jumping the queue.
+      if (at == null && bt == null) return 0;
+      if (at == null) return 1;
+      if (bt == null) return -1;
+      return bt.compareTo(at);
+    });
+    return List<DoctorConversation>.unmodifiable(sorted);
+  }
 
   /// Total unread messages across all doctor conversations.
   int get totalDoctorUnreadChats =>

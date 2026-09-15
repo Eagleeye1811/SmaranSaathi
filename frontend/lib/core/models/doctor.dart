@@ -39,6 +39,27 @@ extension InvitationStatusX on InvitationStatus {
 
 /// A doctor connected to the patient's care profile.
 @immutable
+/// A doctor's name with exactly one "Dr." on the front.
+///
+/// The title used to be prefixed unconditionally, while the name being
+/// prefixed had usually been written with the title already — the seeded
+/// clinicians all read "Dr. Neha Sharma", and a real doctor typing their own
+/// name on the sign-up form naturally writes "Dr." too. Both produced
+/// "Dr. Dr. Neha Sharma" in the directory. Prefixing only when the title is
+/// absent means neither the data nor the person has to know which half is
+/// responsible for it.
+String withDoctorTitle(String name) {
+  final String trimmed = name.trim();
+  if (trimmed.isEmpty) return '';
+  final String lower = trimmed.toLowerCase();
+  // 'Dr Sharma', 'Dr. Sharma' and 'Doctor Sharma' are already titled;
+  // 'Drishti' is not, which is why each check carries its own separator.
+  for (final String title in <String>['dr.', 'dr ', 'doctor ', 'prof.', 'prof ']) {
+    if (lower.startsWith(title)) return trimmed;
+  }
+  return 'Dr. $trimmed';
+}
+
 class DoctorProfile {
   const DoctorProfile({
     required this.id,
@@ -62,7 +83,7 @@ class DoctorProfile {
   final InvitationStatus status;
   final String registrationNumber;
 
-  String get displayName => 'Dr. $name';
+  String get displayName => withDoctorTitle(name);
 
   /// Round-trips through `AppState`'s settings so a clinician who signs up
   /// on this device is still in the directory after a restart.

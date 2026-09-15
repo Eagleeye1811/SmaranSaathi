@@ -84,6 +84,7 @@ class ClinicPatient {
     required this.thirtyDay,
     required this.adherence,
     required this.engagement,
+    this.isDemo = false,
   });
 
   final String id;
@@ -102,6 +103,15 @@ class ClinicPatient {
   final List<double> thirtyDay;
   final int adherence;
   final int engagement;
+
+  /// A seeded example rather than somebody's real record.
+  ///
+  /// A clinician's first sign-in has no connected patients at all, and an
+  /// empty caseload shows nothing about what the app does. These fill it —
+  /// but a demo row and a real one must never be mistaken for each other on
+  /// a screen that drives clinical decisions, so this flag is what the list
+  /// marks them with. Always false for anything that came from the backend.
+  final bool isDemo;
 
   static ClinicPatient fromJson(Map<String, dynamic> j) => ClinicPatient(
         id: j['id'] as String? ?? '',
@@ -131,9 +141,16 @@ class ClinicPatient {
         ],
         adherence: j['adherence'] as int? ?? 0,
         engagement: j['engagement'] as int? ?? 0,
+        // Never trusted from the wire: a real record is a real record.
+        isDemo: false,
       );
 
-  ClinicPatient copyWith({int? score, CognitiveProfile? profile, List<double>? thirtyDay}) {
+  ClinicPatient copyWith({
+    int? score,
+    CognitiveProfile? profile,
+    List<double>? thirtyDay,
+    bool? isDemo,
+  }) {
     return ClinicPatient(
       id: id,
       name: name,
@@ -149,6 +166,7 @@ class ClinicPatient {
       thirtyDay: thirtyDay ?? this.thirtyDay,
       adherence: adherence,
       engagement: engagement,
+      isDemo: isDemo ?? this.isDemo,
     );
   }
 }
