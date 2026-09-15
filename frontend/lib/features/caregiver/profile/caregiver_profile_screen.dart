@@ -98,7 +98,7 @@ class CaregiverProfileScreen extends StatelessWidget {
           children: <Widget>[
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
+                padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.md, Insets.gutter, 32),
                 children: <Widget>[
                   FadeInUp(child: _CaregiverCard(state: state)),
                   const SizedBox(height: Insets.lg),
@@ -482,76 +482,117 @@ class _CaregiverCard extends StatelessWidget {
   }
 
   Future<void> _edit(BuildContext context) async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final TextEditingController name =
-        TextEditingController(text: state.caregiverName);
-    HelperRole? helper = state.caregiverRelation;
-
-    final bool saved = await showDialog<bool>(
-          context: context,
-          builder: (BuildContext dialogContext) => StatefulBuilder(
-            builder: (BuildContext context, StateSetter setDialogState) {
-              return AlertDialog(
-                title: Text('Your details'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    TextField(
-                      controller: name,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: 'Your name',
-                        border: const OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: Insets.md),
-                    DropdownButtonFormField<HelperRole>(
-                      value: helper,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: 'Your relation to them',
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: <DropdownMenuItem<HelperRole>>[
-                        for (final HelperRole r in HelperRole.values)
-                          DropdownMenuItem<HelperRole>(
-                            value: r,
-                            child: Text(r.reportLabel),
-                          ),
-                      ],
-                      onChanged: (HelperRole? r) => setDialogState(() => helper = r),
-                    ),
-                  ],
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(false),
-                    child: Text(l.actionCancel),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(true),
-                    child: Text('Save'),
-                  ),
-                ],
-              );
-            },
-          ),
-        ) ??
-        false;
-
-    if (saved) {
-      // Through the onboarding record, so the clinician report and the AI
-      // context pick the change up too — they both read the relation from
-      // there rather than from anything this screen owns.
-      state.saveOnboarding(state.intake.onboarding.copyWith(
-        caregiverName: name.text.trim(),
-        helper: helper,
-      ));
+    final _CaregiverDetails? edited = await showDialog<_CaregiverDetails>(
+      context: context,
+      builder: (BuildContext dialogContext) => _CaregiverDetailsDialog(
+        initialName: state.caregiverName,
+        initialRelation: state.caregiverRelation,
+      ),
+    );
+    if (edited == null) {
+      return;
     }
-    name.dispose();
+    // Through the onboarding record, so the clinician report and the AI
+    // context pick the change up too — they both read the relation from
+    // there rather than from anything this screen owns.
+    state.saveOnboarding(state.intake.onboarding.copyWith(
+      caregiverName: edited.name,
+      helper: edited.relation,
+    ));
   }
 }
+
+/// What [_CaregiverDetailsDialog] hands back once the caregiver saves.
+class _CaregiverDetails {
+  const _CaregiverDetails({required this.name, required this.relation});
+
+  final String name;
+  final HelperRole? relation;
+}
+
+/// Owns the name controller for as long as the dialog route lives.
+///
+/// The route is still running its exit transition when [showDialog]'s future
+/// completes, so the caller cannot dispose the controller there: saving
+/// notifies [AppState], every dependant rebuilds, and the still-mounted
+/// TextField below reads a controller that has already been disposed. Tying
+/// the controller to this State instead disposes it once the route is gone.
+class _CaregiverDetailsDialog extends StatefulWidget {
+  const _CaregiverDetailsDialog({
+    required this.initialName,
+    required this.initialRelation,
+  });
+
+  final String initialName;
+  final HelperRole? initialRelation;
+
+  @override
+  State<_CaregiverDetailsDialog> createState() => _CaregiverDetailsDialogState();
+}
+
+class _CaregiverDetailsDialogState extends State<_CaregiverDetailsDialog> {
+  late final TextEditingController _name =
+      TextEditingController(text: widget.initialName);
+  late HelperRole? _relation = widget.initialRelation;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AlertDialog(
+      title: const Text('Your details'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Your name',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: Insets.md),
+          DropdownButtonFormField<HelperRole>(
+            value: _relation,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Your relation to them',
+              border: OutlineInputBorder(),
+            ),
+            items: <DropdownMenuItem<HelperRole>>[
+              for (final HelperRole r in HelperRole.values)
+                DropdownMenuItem<HelperRole>(
+                  value: r,
+                  child: Text(r.reportLabel),
+                ),
+            ],
+            onChanged: (HelperRole? r) => setState(() => _relation = r),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.actionCancel),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(
+            _CaregiverDetails(name: _name.text.trim(), relation: _relation),
+          ),
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 
 class _Toggle extends StatelessWidget {
   const _Toggle({

@@ -48,6 +48,9 @@ class MedicalReport {
     required this.status,
     this.aiSummary,
     this.fileName = '',
+    this.filePath = '',
+    this.sizeBytes = 0,
+    this.uploadedAt,
   });
 
   final String id;
@@ -62,7 +65,58 @@ class MedicalReport {
   final String? aiSummary;
   final String fileName;
 
+  /// Absolute path to this app's *own* copy of the document.
+  ///
+  /// The picked file is copied into app-private storage rather than
+  /// referenced where it sat, because the URI a document picker hands back is
+  /// a temporary grant: it stops resolving once the process dies, so a report
+  /// "uploaded" yesterday would be a dead link today. Empty for the seeded
+  /// rows the doctor module renders, which have no file behind them.
+  final String filePath;
+
+  /// Size of that copy, shown so a caregiver can tell a scan from a photo.
+  final int sizeBytes;
+
+  /// When the caregiver actually attached it. Null for seeded rows, which
+  /// carry only a [dateLabel].
+  final DateTime? uploadedAt;
+
   bool get hasSummary => aiSummary != null && aiSummary!.isNotEmpty;
+
+  /// Whether a real document is attached — the seeded rows have none.
+  bool get hasFile => filePath.isNotEmpty;
+
+  bool get isPdf => fileName.toLowerCase().endsWith('.pdf');
+
+  /// Rounded to whole units: the exact byte count is noise to a caregiver,
+  /// and "1.4 MB" is the whole of what they need to recognise the file.
+  String get sizeLabel {
+    if (sizeBytes <= 0) return '';
+    if (sizeBytes < 1024) return '$sizeBytes B';
+    if (sizeBytes < 1024 * 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(0)} KB';
+    }
+    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  MedicalReport copyWith({
+    ReportKind? kind,
+    ReportStatus? status,
+    String? aiSummary,
+  }) {
+    return MedicalReport(
+      id: id,
+      kind: kind ?? this.kind,
+      dateLabel: dateLabel,
+      doctorName: doctorName,
+      status: status ?? this.status,
+      aiSummary: aiSummary ?? this.aiSummary,
+      fileName: fileName,
+      filePath: filePath,
+      sizeBytes: sizeBytes,
+      uploadedAt: uploadedAt,
+    );
+  }
 }
 
 /// A single day's mood check-in used on the Wellbeing page.

@@ -55,6 +55,11 @@ dependencies:
   webview_flutter_android: ">=4.3.0 <4.12.0"
   webview_flutter_platform_interface: ">=2.10.0 <2.15.0"
   permission_handler: ^11.3.1
+  # Caregiver "Medical Reports": attaching a real MRI/EEG/blood-test document.
+  # image_picker above only reaches the camera roll, and these arrive as PDFs
+  # as often as photos. 11.0.3 is the newest release that still resolves on
+  # this project's Dart 3.8 — 12.x requires Dart ^3.9 and breaks `pub get`.
+  file_picker: ^11.0.3
 
 dev_dependencies:
   flutter_test:

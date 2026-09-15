@@ -53,7 +53,7 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
           children: <Widget>[
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
+                padding: const EdgeInsets.fromLTRB(0, Insets.md, 0, 32),
                 children: <Widget>[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: Insets.gutter),

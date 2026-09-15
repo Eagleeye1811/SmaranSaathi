@@ -6,6 +6,7 @@ import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/mood_drawing.dart';
 import '../../core/models/onboarding.dart';
 import '../../core/models/patient.dart';
@@ -36,6 +37,7 @@ class HiveTypeIds {
   static const int pendingOperation = 11;
   static const int moodDrawing = 12;
   static const int moodCheckInTurn = 13;
+  static const int medicalReport = 14;
 
   static const int memoryAssetKind = 20;
   static const int routineKind = 21;
@@ -49,6 +51,8 @@ class HiveTypeIds {
   static const int caregiverNoteEntry = 29;
   static const int concernTrend = 30;
   static const int dailyDifficulty = 31;
+  static const int reportKind = 32;
+  static const int reportStatus = 33;
 }
 
 /// Reads the `(index, value)` pairs an adapter wrote into a plain map.
@@ -700,5 +704,55 @@ class CaregiverNoteEntryAdapter extends TypeAdapter<CaregiverNoteEntry> {
       ..write(obj.text)
       ..writeByte(2)
       ..write(obj.at.millisecondsSinceEpoch);
+  }
+}
+
+class MedicalReportAdapter extends TypeAdapter<MedicalReport> {
+  @override
+  final int typeId = HiveTypeIds.medicalReport;
+
+  @override
+  MedicalReport read(BinaryReader reader) {
+    final Map<int, dynamic> f = _fields(reader);
+    return MedicalReport(
+      id: f[0] as String? ?? '',
+      kind: f[1] as ReportKind? ?? ReportKind.other,
+      dateLabel: f[2] as String? ?? '',
+      doctorName: f[3] as String? ?? '',
+      status: f[4] as ReportStatus? ?? ReportStatus.uploaded,
+      aiSummary: f[5] as String?,
+      fileName: f[6] as String? ?? '',
+      filePath: f[7] as String? ?? '',
+      sizeBytes: f[8] as int? ?? 0,
+      uploadedAt: f[9] != null
+          ? DateTime.fromMillisecondsSinceEpoch(f[9] as int)
+          : null,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, MedicalReport obj) {
+    writer
+      ..writeByte(10)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.kind)
+      ..writeByte(2)
+      ..write(obj.dateLabel)
+      ..writeByte(3)
+      ..write(obj.doctorName)
+      ..writeByte(4)
+      ..write(obj.status)
+      ..writeByte(5)
+      ..write(obj.aiSummary)
+      ..writeByte(6)
+      ..write(obj.fileName)
+      ..writeByte(7)
+      ..write(obj.filePath)
+      ..writeByte(8)
+      ..write(obj.sizeBytes)
+      ..writeByte(9)
+      ..write(obj.uploadedAt?.millisecondsSinceEpoch);
   }
 }

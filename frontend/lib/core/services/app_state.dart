@@ -9,6 +9,7 @@ import '../../data/local/sync_operation.dart';
 import '../../data/mock/demo_journey.dart';
 import '../../data/mock/mock_data.dart';
 import '../../data/repositories/repositories.dart';
+import '../telehealth/consultation_format.dart';
 import '../models/assessment.dart';
 import '../models/caregiver_note.dart';
 import '../models/chat_message.dart';
@@ -65,6 +66,7 @@ class AppState extends ChangeNotifier {
     MemoryFragmentRepository? memories,
     MoodDrawingRepository? moodDrawings,
     CaregiverNoteRepository? caregiverNotes,
+    MedicalReportRepository? medicalReports,
     SettingsRepository? settings,
     SyncRepository? sync,
     ConnectivityService? connectivity,
@@ -80,6 +82,7 @@ class AppState extends ChangeNotifier {
         _memories = memories ?? MockMemoryFragmentRepository(),
         _moodDrawingRepo = moodDrawings ?? MockMoodDrawingRepository(),
         _caregiverNoteRepo = caregiverNotes ?? MockCaregiverNoteRepository(),
+        _medicalReportRepo = medicalReports ?? MockMedicalReportRepository(),
         _settingsRepo = settings ?? MockSettingsRepository(),
         _connectivity = OverridableConnectivityService(
             connectivity ?? ManualConnectivityService()),
@@ -100,6 +103,7 @@ class AppState extends ChangeNotifier {
   final MemoryFragmentRepository _memories;
   final MoodDrawingRepository _moodDrawingRepo;
   final CaregiverNoteRepository _caregiverNoteRepo;
+  final MedicalReportRepository _medicalReportRepo;
   final SettingsRepository _settingsRepo;
   final OverridableConnectivityService _connectivity;
   /// Kept alongside the sync manager because restoring is a *pull*, which the
@@ -451,6 +455,11 @@ class AppState extends ChangeNotifier {
       ..clear()
       ..addAll(await _caregiverNoteRepo.notes(_patient.id));
 
+    _medicalReports
+      ..clear()
+      ..addAll(await _medicalReportRepo.reports(_patient.id));
+    _sortMedicalReports();
+
     final DateTime? storedCycleStart = await _caregiverNoteRepo.loadCycleStart(_patient.id);
     if (storedCycleStart != null) {
       _cycleStart = storedCycleStart;
@@ -753,6 +762,76 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _write(() => _caregiverNoteRepo.addNote(_patient.id, note));
     unawaited(_syncWeeklyReport());
+  }
+
+  // ── Medical reports ────────────────────────────────────────────────────
+  //
+  // Documents the caregiver attached themselves: a scan, a lab result, a
+  // discharge summary. Real files on disk, not the seeded rows the doctor
+  // module renders — `patientMedicalReports` below is still that demo data.
+
+  final List<MedicalReport> _medicalReports = <MedicalReport>[];
+
+  /// Newest first, because the reason to open this list is almost always the
+  /// thing that just came back from the lab.
+  List<MedicalReport> get medicalReports =>
+      List<MedicalReport>.unmodifiable(_medicalReports);
+
+  void _sortMedicalReports() {
+    _medicalReports.sort((MedicalReport a, MedicalReport b) {
+      final DateTime at = a.uploadedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final DateTime bt = b.uploadedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bt.compareTo(at);
+    });
+  }
+
+  /// Records a document the caregiver just attached.
+  ///
+  /// The caller is responsible for having copied the file into app-private
+  /// storage first and passing that path — this only stores the metadata, so
+  /// a path into a picker's cache would be persisted and then rot.
+  MedicalReport addMedicalReport({
+    required ReportKind kind,
+    required String fileName,
+    required String filePath,
+    required int sizeBytes,
+  }) {
+    final DateTime now = DateTime.now();
+    final MedicalReport report = MedicalReport(
+      id: 'rep_${now.microsecondsSinceEpoch}',
+      kind: kind,
+      dateLabel: formatConsultationDate(now),
+      // Attributed to whoever is actually looking after the reports. With no
+      // doctor connected the caregiver uploaded it for themselves, and
+      // naming a doctor who is not involved would be a small lie on screen.
+      doctorName: connectedDoctor?.name ?? 'Uploaded by caregiver',
+      status: ReportStatus.awaitingDoctor,
+      fileName: fileName,
+      filePath: filePath,
+      sizeBytes: sizeBytes,
+      uploadedAt: now,
+    );
+    _medicalReports.add(report);
+    _sortMedicalReports();
+    notifyListeners();
+    _write(() => _medicalReportRepo.add(_patient.id, report));
+    return report;
+  }
+
+  /// Forgets a document and returns the row that went, so the caller can
+  /// delete this app's copy of the file too.
+  ///
+  /// The file deletion is deliberately *not* done here: it needs `dart:io`,
+  /// and this class stays platform-agnostic so the web build keeps compiling.
+  /// `ReportStore.delete` is the other half, exactly as `PhotoStore` is for
+  /// memory photographs. Returns null when there was no such report.
+  MedicalReport? removeMedicalReport(String reportId) {
+    final int i = _medicalReports.indexWhere((MedicalReport r) => r.id == reportId);
+    if (i < 0) return null;
+    final MedicalReport removed = _medicalReports.removeAt(i);
+    notifyListeners();
+    _write(() => _medicalReportRepo.remove(_patient.id, reportId));
+    return removed;
   }
 
   /// The report the doctor was actually sent at the end of the most recently

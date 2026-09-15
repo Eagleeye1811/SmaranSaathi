@@ -49,6 +49,8 @@ class GameResultScreen extends StatelessWidget {
       performance: performance,
       decision: decision,
       l: l,
+      patient: state.patient,
+      sessions: state.sessions,
     );
     final bool celebrate = feedback.celebrate && !state.reduceMotion;
 
@@ -139,6 +141,21 @@ class GameResultScreen extends StatelessWidget {
                       compact: true,
                     ),
                   ),
+                  // ── The part that is only about them ───────────────────
+                  //
+                  // Sits between the companion's praise and the practical
+                  // note about next time, because that is the order the two
+                  // are read in: who you are first, what changes second.
+                  if (feedback.personalNote != null) ...<Widget>[
+                    const SizedBox(height: Insets.md),
+                    FadeInUp(
+                      delayMs: 185,
+                      child: _PersonalNoteCard(
+                        note: feedback.personalNote!,
+                        accent: accent,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: Insets.md),
 
                   // ── What happens next, in plain language ───────────────
@@ -162,6 +179,39 @@ class GameResultScreen extends StatelessWidget {
             ),
           ),
           if (celebrate) const Positioned.fill(child: ConfettiOverlay()),
+        ],
+      ),
+    );
+  }
+}
+
+/// The personal note: what this person has done with the activity before,
+/// and something their profile knows about their life.
+///
+/// Styled as a quiet aside rather than another headline — it is the warmest
+/// thing on the screen, and shouting it would make it read as flattery.
+class _PersonalNoteCard extends StatelessWidget {
+  const _PersonalNoteCard({required this.note, required this.accent});
+
+  final String note;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return MmCard(
+      color: accent.withValues(alpha: 0.06),
+      border: Border.all(color: accent.withValues(alpha: 0.22)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          SoftIcon(icon: Icons.favorite_rounded, color: accent, size: 42),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              note,
+              style: AppText.body.wght(600),
+            ),
+          ),
         ],
       ),
     );

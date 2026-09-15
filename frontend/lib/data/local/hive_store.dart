@@ -5,6 +5,7 @@ import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/mood_drawing.dart';
 import '../../core/models/onboarding.dart';
 import '../../core/models/patient.dart';
@@ -54,6 +55,11 @@ class HiveStore {
   static const String caregiverConcernsBox = 'mm_caregiver_concerns';
   static const String caregiverNotesBox = 'mm_caregiver_notes';
 
+  /// Medical documents the caregiver attached, keyed by report id. The file
+  /// itself lives on disk under the app's documents directory; this box holds
+  /// only the metadata pointing at it.
+  static const String medicalReportsBox = 'mm_medical_reports';
+
   static bool _adaptersRegistered = false;
   static HiveStore? _instance;
 
@@ -97,6 +103,11 @@ class HiveStore {
           SyncOperationKind.values, SyncOperationKind.unknown))
       ..registerAdapter(EnumAdapter<SyncStatus>(
           HiveTypeIds.syncStatus, SyncStatus.values, SyncStatus.pending))
+      ..registerAdapter(MedicalReportAdapter())
+      ..registerAdapter(EnumAdapter<ReportKind>(
+          HiveTypeIds.reportKind, ReportKind.values, ReportKind.other))
+      ..registerAdapter(EnumAdapter<ReportStatus>(
+          HiveTypeIds.reportStatus, ReportStatus.values, ReportStatus.uploaded))
       ..registerAdapter(CaregiverConcernUpdateAdapter())
       ..registerAdapter(CaregiverNoteEntryAdapter())
       ..registerAdapter(EnumAdapter<ConcernTrend>(
@@ -135,6 +146,7 @@ class HiveStore {
       Hive.openBox<dynamic>(memoriesBox),
       Hive.openBox<CaregiverConcernUpdate>(caregiverConcernsBox),
       Hive.openBox<CaregiverNoteEntry>(caregiverNotesBox),
+      Hive.openBox<MedicalReport>(medicalReportsBox),
     ]);
     store._open = true;
     _instance = store;
@@ -169,6 +181,7 @@ class HiveStore {
   Box<CaregiverConcernUpdate> get caregiverConcerns =>
       Hive.box<CaregiverConcernUpdate>(caregiverConcernsBox);
   Box<CaregiverNoteEntry> get caregiverNotes => Hive.box<CaregiverNoteEntry>(caregiverNotesBox);
+  Box<MedicalReport> get medicalReports => Hive.box<MedicalReport>(medicalReportsBox);
 
   Future<void> close() async {
     _open = false;
@@ -193,6 +206,7 @@ class HiveStore {
       memories.clear(),
       caregiverConcerns.clear(),
       caregiverNotes.clear(),
+      medicalReports.clear(),
     ]);
   }
 }

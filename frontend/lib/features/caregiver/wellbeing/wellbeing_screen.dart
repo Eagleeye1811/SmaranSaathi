@@ -79,7 +79,7 @@ class WellbeingScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    Insets.gutter, 0, Insets.gutter, 32),
+                    Insets.gutter, Insets.md, Insets.gutter, 32),
                 children: <Widget>[
                   // ── Today's mood card ─────────────────────────────────
                   FadeInUp(

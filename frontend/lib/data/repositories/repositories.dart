@@ -3,6 +3,7 @@ import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
 import '../../core/models/mood_drawing.dart';
@@ -135,6 +136,16 @@ abstract class CaregiverNoteRepository {
   /// uses, even though the session itself is safely on disk.
   Future<DateTime?> loadCycleStart(String patientId);
   Future<void> saveCycleStart(String patientId, DateTime start);
+}
+
+/// The caregiver's attached medical documents.
+///
+/// Scoped by patient like every other caregiver-authored store, so one device
+/// shared between two patients never shows one's scans under the other.
+abstract class MedicalReportRepository {
+  Future<List<MedicalReport>> reports(String patientId);
+  Future<MedicalReport> add(String patientId, MedicalReport report);
+  Future<void> remove(String patientId, String reportId);
 }
 
 abstract class SettingsRepository {
@@ -394,6 +405,25 @@ class MockMoodDrawingRepository implements MoodDrawingRepository {
     final int i = _drawings.indexWhere((MoodDrawing d) => d.id == drawingId);
     if (i < 0) return;
     _drawings[i] = _drawings[i].copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso);
+  }
+}
+
+class MockMedicalReportRepository implements MedicalReportRepository {
+  final Map<String, List<MedicalReport>> _byPatient = <String, List<MedicalReport>>{};
+
+  @override
+  Future<List<MedicalReport>> reports(String patientId) async =>
+      List<MedicalReport>.of(_byPatient[patientId] ?? const <MedicalReport>[]);
+
+  @override
+  Future<MedicalReport> add(String patientId, MedicalReport report) async {
+    _byPatient.putIfAbsent(patientId, () => <MedicalReport>[]).add(report);
+    return report;
+  }
+
+  @override
+  Future<void> remove(String patientId, String reportId) async {
+    _byPatient[patientId]?.removeWhere((MedicalReport r) => r.id == reportId);
   }
 }
 

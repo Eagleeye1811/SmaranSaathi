@@ -5,6 +5,7 @@ import '../../core/models/caregiver_note.dart';
 import '../../core/models/clinical.dart';
 import '../../core/models/daily.dart';
 import '../../core/models/game.dart';
+import '../../core/models/medical_report.dart';
 import '../../core/models/memory_fragment.dart';
 import '../../core/models/monitoring.dart';
 import '../../core/models/mood_drawing.dart';
@@ -417,6 +418,34 @@ class HiveMoodDrawingRepository implements MoodDrawingRepository {
       key,
       existing.copyWith(doctorNote: note, notedBy: notedBy, notedAtIso: notedAtIso),
     );
+  }
+}
+
+class HiveMedicalReportRepository implements MedicalReportRepository {
+  HiveMedicalReportRepository(this._store);
+
+  final HiveStore _store;
+
+  static String _scoped(String patientId, String id) => '$patientId|$id';
+  static bool _belongsTo(String patientId, String key) => key.startsWith('$patientId|');
+
+  @override
+  Future<List<MedicalReport>> reports(String patientId) async {
+    return <MedicalReport>[
+      for (final String k in _store.medicalReports.keys.cast<String>())
+        if (_belongsTo(patientId, k)) _store.medicalReports.get(k)!,
+    ];
+  }
+
+  @override
+  Future<MedicalReport> add(String patientId, MedicalReport report) async {
+    await _store.medicalReports.put(_scoped(patientId, report.id), report);
+    return report;
+  }
+
+  @override
+  Future<void> remove(String patientId, String reportId) async {
+    await _store.medicalReports.delete(_scoped(patientId, reportId));
   }
 }
 

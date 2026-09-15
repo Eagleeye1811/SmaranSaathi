@@ -44,7 +44,7 @@ class CaregiverRemindersScreen extends StatelessWidget {
           children: <Widget>[
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(Insets.gutter, 0, Insets.gutter, 32),
+                padding: const EdgeInsets.fromLTRB(Insets.gutter, Insets.md, Insets.gutter, 32),
                 children: <Widget>[
                   if (state.offline)
                     Padding(

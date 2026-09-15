@@ -179,13 +179,15 @@ class _SafeZoneScreenState extends State<SafeZoneScreen> {
             // zone", and a card repeating that in longer words was covering
             // the map to tell the caregiver what the map was for.
             Positioned(
-              top: Insets.sm,
+              top: Insets.md,
               left: Insets.gutter,
               right: Insets.gutter,
               // No top inset: this screen only ever renders inside
               // `CaregiverShell`, whose own header already clears the
-              // status bar — the `Insets.sm` offset above is the only gap
-              // this card needs from it.
+              // status bar — the `Insets.md` offset above is the only gap
+              // this card needs from it, and it matches the top padding the
+              // other caregiver pages open with so the header sits the same
+              // distance from content on every tab.
               child: SafeArea(
                 top: false,
                 bottom: false,

@@ -11,6 +11,7 @@ import '../../../core/models/medical_report.dart';
 import '../../../core/models/onboarding.dart';
 import '../../../core/models/weekly_report.dart';
 import '../../../core/services/app_state.dart';
+import '../../../core/services/report_store.dart';
 import '../../../core/telehealth/consultation_format.dart';
 import '../../../core/widgets/charts.dart';
 import '../../../core/widgets/motifs.dart';
@@ -19,49 +20,15 @@ import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../intake/onboarding_l10n.dart';
 
-// ── Mock medical reports ──────────────────────────────────────────────────────
-
-const List<MedicalReport> _mockReports = <MedicalReport>[
-  MedicalReport(
-    id: 'r_001',
-    kind: ReportKind.mri,
-    dateLabel: '10 August 2026',
-    doctorName: 'Dr. Neha Sharma',
-    status: ReportStatus.summarised,
-    aiSummary:
-        'The MRI shows mild changes consistent with the normal aging process. '
-        'There are small areas of reduced blood flow in the memory-related part '
-        'of the brain (hippocampus), which is common with early memory changes. '
-        'No signs of stroke or tumour. The doctor can discuss what this means '
-        'for day-to-day care.',
-    fileName: 'MRI_Brain_Aug2026.pdf',
-  ),
-  MedicalReport(
-    id: 'r_002',
-    kind: ReportKind.eeg,
-    dateLabel: '15 July 2026',
-    doctorName: 'Dr. Neha Sharma',
-    status: ReportStatus.awaitingDoctor,
-    fileName: 'EEG_Report_Jul2026.pdf',
-  ),
-  MedicalReport(
-    id: 'r_003',
-    kind: ReportKind.bloodTest,
-    dateLabel: '1 June 2026',
-    doctorName: 'Jorhat Medical Lab',
-    status: ReportStatus.uploaded,
-    fileName: 'BloodTest_Jun2026.pdf',
-  ),
-];
-
-/// Reports & Insights page — weekly summary, medical reports with AI explanation,
-/// and AI care insights panel.
+/// Reports & Insights page — weekly summary, medical reports with AI
+/// explanation, and the week's engagement trend.
 class ReportsScreen extends StatelessWidget {
   const ReportsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
+    final List<MedicalReport> reports = state.medicalReports;
 
     return MotifBackground(
       opacity: 0.04,
@@ -76,7 +43,7 @@ class ReportsScreen extends StatelessWidget {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    Insets.gutter, 0, Insets.gutter, 32),
+                    Insets.gutter, Insets.md, Insets.gutter, 32),
                 children: <Widget>[
                   // ── Weekly report card ────────────────────────────────
                   FadeInUp(
@@ -88,22 +55,6 @@ class ReportsScreen extends StatelessWidget {
                   FadeInUp(
                     delayMs: 20,
                     child: _WeeklyReportCard(state: state),
-                  ),
-                  const SizedBox(height: Insets.lg),
-
-                  // ── AI care insights ──────────────────────────────────
-                  FadeInUp(
-                    delayMs: 60,
-                    child: SectionHeader(
-                      title: 'AI Care Insights',
-                      icon: Icons.auto_awesome_rounded,
-                      subtitle:
-                          'Patterns observed over the past 2 weeks',
-                    ),
-                  ),
-                  FadeInUp(
-                    delayMs: 80,
-                    child: _AiInsightsCard(state: state),
                   ),
                   const SizedBox(height: Insets.lg),
 
@@ -119,19 +70,24 @@ class ReportsScreen extends StatelessWidget {
                   ),
                   FadeInUp(
                     delayMs: 140,
-                    child: Column(
-                      children: <Widget>[
-                        for (int i = 0; i < _mockReports.length; i++)
-                          Padding(
-                            padding: EdgeInsets.only(
-                                bottom: i < _mockReports.length - 1
-                                    ? 12
-                                    : 0),
-                            child: _ReportCard(
-                                report: _mockReports[i]),
+                    child: reports.isEmpty
+                        ? _NoReportsCard(
+                            onUpload: () => _showUploadSheet(context))
+                        : Column(
+                            children: <Widget>[
+                              for (int i = 0; i < reports.length; i++)
+                                Padding(
+                                  padding: EdgeInsets.only(
+                                      bottom:
+                                          i < reports.length - 1 ? 12 : 0),
+                                  child: _ReportCard(
+                                    report: reports[i],
+                                    onDelete: () => _confirmDelete(
+                                        context, state, reports[i]),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
                   ),
                   const SizedBox(height: Insets.lg),
 
@@ -172,7 +128,14 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 
+  /// Which kind of document this is, then the system picker.
+  ///
+  /// The kind is asked first and not inferred: a PDF from a lab could be any
+  /// of these, the file name is no guide ("scan_002.pdf"), and it is the one
+  /// thing the caregiver knows for certain at the moment they attach it.
   void _showUploadSheet(BuildContext context) {
+    final AppState state = AppScope.read(context);
+
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppColors.background,
@@ -189,8 +152,8 @@ class ReportsScreen extends StatelessWidget {
               Text('Upload a Report', style: AppText.h3),
               const SizedBox(height: 4),
               Text(
-                'Upload MRI, EEG, blood tests or other medical documents. '
-                'The original is always available to your doctor.',
+                'Attach a PDF or a photo of an MRI, EEG, blood test or other '
+                'medical document. It stays on this device.',
                 style: AppText.bodySmall,
               ),
               const SizedBox(height: Insets.lg),
@@ -205,7 +168,13 @@ class ReportsScreen extends StatelessWidget {
                         Icons.upload_file_rounded,
                         color: AppColors.inkMuted,
                         size: 20),
-                    onTap: () => Navigator.pop(ctx),
+                    onTap: () {
+                      // Closed before the picker opens: the system sheet takes
+                      // over the screen anyway, and leaving this one behind it
+                      // means returning to a stale sheet over the new report.
+                      Navigator.pop(ctx);
+                      _pickAndAttach(context, state, kind);
+                    },
                   ),
                 ),
               const SizedBox(height: 8),
@@ -213,6 +182,109 @@ class ReportsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _pickAndAttach(
+      BuildContext context, AppState state, ReportKind kind) async {
+    final ScaffoldMessengerState? messenger =
+        ScaffoldMessenger.maybeOf(context);
+
+    final PickedReport? picked = await ReportStore.pick();
+    // A dismissed picker is not a failure and says nothing on screen. Only a
+    // pick that genuinely could not be stored is worth a message.
+    if (picked == null) return;
+
+    state.addMedicalReport(
+      kind: kind,
+      fileName: picked.fileName,
+      filePath: picked.filePath,
+      sizeBytes: picked.sizeBytes,
+    );
+
+    messenger?.showSnackBar(
+      SnackBar(content: Text('${kind.label} attached · ${picked.fileName}')),
+    );
+  }
+
+  Future<void> _confirmDelete(
+      BuildContext context, AppState state, MedicalReport report) async {
+    final bool confirmed = await showDialog<bool>(
+          context: context,
+          builder: (BuildContext ctx) => AlertDialog(
+            title: const Text('Remove this report?'),
+            content: Text(
+              '${report.kind.label} from ${report.dateLabel} will be deleted '
+              'from this device. This cannot be undone.',
+              style: AppText.bodySmall,
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Keep'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text('Remove',
+                    style: AppText.body.wght(700).tint(AppColors.danger)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    // The record goes through `AppState`; its file is this layer's to clean
+    // up, because `AppState` stays free of `dart:io`.
+    final MedicalReport? removed = state.removeMedicalReport(report.id);
+    if (removed != null) await ReportStore.delete(removed.filePath);
+  }
+}
+
+/// Shown in place of the list before anything has been attached.
+class _NoReportsCard extends StatelessWidget {
+  const _NoReportsCard({required this.onUpload});
+
+  final VoidCallback onUpload;
+
+  @override
+  Widget build(BuildContext context) {
+    return MmCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const SoftIcon(
+                  icon: Icons.folder_open_rounded,
+                  color: AppColors.inkMuted,
+                  size: 44),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('No reports yet', style: AppText.body.wght(700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Keep scans and lab results in one place, ready for the '
+                      'next appointment.',
+                      style: AppText.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.md),
+          BigButton(
+            label: 'Attach a report',
+            icon: Icons.upload_file_rounded,
+            height: 52,
+            onPressed: onUpload,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -525,123 +597,14 @@ class _CycleEntry {
   final String text;
 }
 
-// ── AI insights card ──────────────────────────────────────────────────────────
-
-class _AiInsightsCard extends StatelessWidget {
-  const _AiInsightsCard({required this.state});
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    return MmCard(
-      color: AppColors.primaryTint.withValues(alpha: 0.5),
-      border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.18)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              const Icon(Icons.auto_awesome_rounded,
-                  size: 18, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('AI Care Insights',
-                    style: AppText.h3.tint(AppColors.primaryDeep)),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.md),
-          for (final _InsightItem item in _insights)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _InsightRow(item: item),
-            ),
-          const Divider(color: AppColors.hairline),
-          const SizedBox(height: 10),
-          Text(
-            '✦ AI-observed patterns, for context only. '
-            'Not a medical diagnosis. Consult your doctor for clinical decisions.',
-            style: AppText.caption
-                .tint(AppColors.inkMuted)
-                .copyWith(fontStyle: FontStyle.italic),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static const List<_InsightItem> _insights = <_InsightItem>[
-    _InsightItem(
-      label: 'Sequencing trend',
-      body:
-          'Over the past 2 weeks, sequencing activities required more hints than in previous weeks. This is an area worth monitoring.',
-      icon: Icons.trending_down_rounded,
-      color: AppColors.warning,
-    ),
-    _InsightItem(
-      label: 'Auditory memory improving',
-      body:
-          'Melody of the Valleys showed a consistent upward trend over 6 consecutive sessions.',
-      icon: Icons.trending_up_rounded,
-      color: AppColors.success,
-    ),
-    _InsightItem(
-      label: 'Stable engagement',
-      body:
-          'Overall engagement has remained between 68–81% for 14 consecutive days, suggesting a consistent routine.',
-      icon: Icons.trending_flat_rounded,
-      color: AppColors.secondary,
-    ),
-  ];
-}
-
-@immutable
-class _InsightItem {
-  const _InsightItem({
-    required this.label,
-    required this.body,
-    required this.icon,
-    required this.color,
-  });
-  final String label;
-  final String body;
-  final IconData icon;
-  final Color color;
-}
-
-class _InsightRow extends StatelessWidget {
-  const _InsightRow({required this.item});
-  final _InsightItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Icon(item.icon, size: 18, color: item.color),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(item.label,
-                  style: AppText.body.wght(700)),
-              const SizedBox(height: 3),
-              Text(item.body, style: AppText.bodySmall),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ── Medical report card ───────────────────────────────────────────────────────
 
 class _ReportCard extends StatefulWidget {
-  const _ReportCard({required this.report});
+  const _ReportCard({required this.report, this.onDelete});
   final MedicalReport report;
+
+  /// Null for a row with no file behind it, which there is nothing to remove.
+  final VoidCallback? onDelete;
 
   @override
   State<_ReportCard> createState() => _ReportCardState();
@@ -649,6 +612,18 @@ class _ReportCard extends StatefulWidget {
 
 class _ReportCardState extends State<_ReportCard> {
   bool _expanded = false;
+
+  /// Resolved once per build rather than inside the row, so the check is not
+  /// repeated as the card animates in.
+  late bool _fileExists = ReportStore.exists(widget.report.filePath);
+
+  @override
+  void didUpdateWidget(_ReportCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.report.filePath != widget.report.filePath) {
+      _fileExists = ReportStore.exists(widget.report.filePath);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -685,8 +660,64 @@ class _ReportCardState extends State<_ReportCard> {
                   dense: true,
                 ),
               ),
+              if (widget.onDelete != null)
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Tooltip(
+                    message: 'Remove',
+                    child: Pressable(
+                      onTap: widget.onDelete!,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.delete_outline_rounded,
+                            size: 19, color: AppColors.inkMuted),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
+          // The attached file itself, when there is one: the name the
+          // caregiver will recognise, its size, and whether the copy is still
+          // on disk. A record can outlive its file — a backup restored onto a
+          // new phone brings this list but not the documents — and saying so
+          // plainly beats a row that silently does nothing.
+          if (r.hasFile) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: Corners.r(Corners.md),
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    r.isPdf
+                        ? Icons.picture_as_pdf_rounded
+                        : Icons.image_outlined,
+                    size: 18,
+                    color: AppColors.inkSoft,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      r.fileName,
+                      style: AppText.bodySmall.wght(600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _fileExists ? r.sizeLabel : 'File missing',
+                    style: AppText.caption.tint(
+                        _fileExists ? AppColors.inkMuted : AppColors.danger),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (r.hasSummary) ...<Widget>[
             const SizedBox(height: Insets.md),
             Pressable(
