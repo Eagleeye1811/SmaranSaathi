@@ -111,7 +111,7 @@ class _PatientUsernameStepState extends State<PatientUsernameStep> {
       stepCount: IntakeRecord.order.length,
       partLabel: here.part.name,
       onBack: widget.onBack,
-      title: 'Give them a way to sign in',
+      title: 'Give Patient a way to sign in',
       subtitle: 'A short username lets them sign in on their own phone, no '
           'password needed. Every new device asks you to approve it first.',
       accent: AppColors.primary,

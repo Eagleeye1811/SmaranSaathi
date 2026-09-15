@@ -624,7 +624,7 @@ void main() {
     await beat(tester, 400);
 
     // 13 · how the patient will sign in, also offered rather than required
-    expect(find.text('Give them a way to sign in'), findsOneWidget);
+    expect(find.text('Give Patient a way to sign in'), findsOneWidget);
     await tester.tap(find.text('Continue without setting this up'));
     await beat(tester, 400);
 

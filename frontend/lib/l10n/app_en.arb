@@ -1978,7 +1978,7 @@
   "authPatientEntry": "I am the patient",
   "authPatientEntryBody": "Sign in with the username your caregiver made for you.",
   "pairUsernameLabel": "Username",
-  "pairChooseTitle": "Give them a username",
+  "pairChooseTitle": "Give Patient a username",
   "pairChooseBody": "This is how they will sign in on their own phone. They never need a password. You approve each new device yourself.",
   "pairChooseAction": "Claim this name",
   "pairTaken": "That name is already in use. Try another.",
