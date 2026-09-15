@@ -158,17 +158,23 @@ class VoiceNavigationController extends ChangeNotifier {
   /// Safe to call more than once.
   Future<void> initialize() async {
     if (_initialised) return;
-    _initialised = true;
 
     const VoiceLanguageResolver resolver = VoiceLanguageResolver();
 
-    _resolvedInput = await _recognizer.initialize()
+    final bool inputReady = await _recognizer.initialize();
+    _resolvedInput = inputReady
         ? resolver.resolve(_language, await _recognizer.supportedLocales())
         : ResolvedVoiceLanguage(requested: _language, resolved: null, localeId: null);
 
     _resolvedOutput = await _synthesizer.initialize()
         ? resolver.resolve(_language, await _synthesizer.supportedLanguages())
         : ResolvedVoiceLanguage(requested: _language, resolved: null, localeId: null);
+
+    // Remembered only once the recogniser actually came up. Setting this
+    // unconditionally meant a setup that failed because the microphone
+    // permission had not been answered yet was cached as "this language is
+    // unsupported", and every later turn short-circuited on a stale answer.
+    if (inputReady) _initialised = true;
 
     _notify();
   }
@@ -198,7 +204,6 @@ class VoiceNavigationController extends ChangeNotifier {
   /// what they want, and asking again would talk over them.
   Future<void> start({bool ask = true}) async {
     if (isBusy) return;
-    await initialize();
 
     final int turn = ++_turn;
     _error = null;
@@ -207,6 +212,13 @@ class VoiceNavigationController extends ChangeNotifier {
     _status = '';
     _resolving = false;
 
+    // Permission first, engines second — the order matters and used to be the
+    // other way round. This plugin raises the OS prompt from inside its own
+    // `initialize`, so probing the engines first asked for the microphone and
+    // read the answer in the same breath, before the person had touched the
+    // dialog. The turn then failed as "language unsupported" while the prompt
+    // was still on screen. Asking first means `initialize` below runs against
+    // a decision that has already been made.
     if (!await _recognizer.hasPermission()) {
       _set(VoicePhase.requestingPermission);
       final SpeechPermissionOutcome outcome = await _recognizer.requestPermission();
@@ -222,6 +234,9 @@ class VoiceNavigationController extends ChangeNotifier {
           return _fail(VoiceErrorKind.speechUnavailable);
       }
     }
+
+    await initialize();
+    if (_stale(turn)) return;
 
     final ResolvedVoiceLanguage? input = _resolvedInput;
     if (input == null || !input.isSupported) {

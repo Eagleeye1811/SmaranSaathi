@@ -37,14 +37,19 @@ class SpeechToTextRecognizer implements SpeechRecognizer {
   @override
   Future<bool> initialize() async {
     if (_initialised) return _available;
-    _initialised = true;
     _available = await _engine.initialize(
       onError: (SpeechRecognitionError e) => _lastError = e,
       onStatus: _onStatus,
-      // The plugin asks for permission during initialize; we want that
-      // separated so the UI can explain itself first.
       debugLogging: false,
     );
+    // Only a *successful* setup is remembered. The first attempt usually
+    // fails for a reason that stops being true a second later: this plugin
+    // raises the OS permission prompt from inside `initialize`, and reports
+    // failure while the person is still deciding. Latching that answer meant
+    // one tap on the microphone poisoned voice for the rest of the session —
+    // granting permission changed nothing, because nothing ever asked the
+    // engine again.
+    if (_available) _initialised = true;
     return _available;
   }
 

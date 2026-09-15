@@ -175,10 +175,14 @@ class VoiceNavHostState extends State<VoiceNavHost> {
   Future<void> _openPanel() async {
     final VoiceNavigationController controller = _ensureController();
     setState(() => _open = true);
-    await controller.initialize();
     if (!mounted || !_open) return;
     // Straight into listening: the button press *is* the intent to speak, and
     // an extra "now tap to start" step is one more thing to remember.
+    //
+    // `start` does the setup itself, in the one order that works: microphone
+    // permission first, engines second. Calling `initialize` here as well put
+    // the engine probe back in front of the prompt, which is the bug this
+    // ordering exists to avoid.
     await controller.start();
   }
 
