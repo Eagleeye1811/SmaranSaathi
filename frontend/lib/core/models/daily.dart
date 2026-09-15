@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// A personalised check-in question the companion asks during the day.
 @immutable
 class DailyQuestion {
@@ -113,6 +115,7 @@ extension ReminderKindX on ReminderKind {
         ReminderKind.routine => '🛌',
         ReminderKind.social => '🤝',
       };
+
 }
 
 @immutable

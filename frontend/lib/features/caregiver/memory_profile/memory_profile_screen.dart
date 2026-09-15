@@ -10,6 +10,7 @@ import '../../../core/services/photo_store.dart';
 import '../../../core/widgets/illustration.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../../data/mock/mock_data.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/mock_translator.dart';
 import '../life_profile/life_profile_screen.dart';
@@ -184,6 +185,10 @@ class _MemoryProfileScreenState extends State<MemoryProfileScreen> {
   // ── people ─────────────────────────────────────────────────────────────
 
   Widget _people(Patient p, AppState state, AppLocalizations l) {
+    final List<FamilyMember> available = MockData.family
+        .where((FamilyMember f) => !p.family.any((FamilyMember x) => x.id == f.id))
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
