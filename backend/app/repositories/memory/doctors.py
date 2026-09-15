@@ -1,7 +1,12 @@
 from typing import Dict, List, Optional
 
 from app.models.doctor import DoctorPatientLink, DoctorProfile
-from app.repositories.base import DoctorPatientLinkRepository, DoctorProfileRepository
+from app.repositories.base import (
+    DoctorConnectionRequestRepository,
+    DoctorPatientLinkRepository,
+    DoctorProfileRepository,
+)
+from app.schemas.doctor import DoctorConnectionRequest
 
 
 class InMemoryDoctorProfileRepository(DoctorProfileRepository):
@@ -40,3 +45,28 @@ class InMemoryDoctorPatientLinkRepository(DoctorPatientLinkRepository):
         for link_id, link in list(self._links.items()):
             if link.patient_id == patient_id and link.doctor_uid == doctor_uid:
                 del self._links[link_id]
+
+
+class InMemoryDoctorConnectionRequestRepository(DoctorConnectionRequestRepository):
+    """Phase-1 style store, used when Firebase is unconfigured — same
+    lost-on-restart tradeoff every other in-memory repository here accepts."""
+
+    def __init__(self) -> None:
+        self._requests: Dict[str, DoctorConnectionRequest] = {}
+
+    async def get(self, request_id: str) -> Optional[DoctorConnectionRequest]:
+        return self._requests.get(request_id)
+
+    async def save(self, request: DoctorConnectionRequest) -> DoctorConnectionRequest:
+        self._requests[request.request_id] = request
+        return request
+
+    async def list_pending_for_doctor(self, doctor_uid: str) -> List[DoctorConnectionRequest]:
+        return [
+            r
+            for r in self._requests.values()
+            if r.status == "pending" and r.doctor_uid == doctor_uid
+        ]
+
+    async def list_for_patient(self, patient_id: str) -> List[DoctorConnectionRequest]:
+        return [r for r in self._requests.values() if r.patient_id == patient_id]

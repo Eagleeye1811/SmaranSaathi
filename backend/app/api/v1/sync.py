@@ -8,7 +8,7 @@ from app.core.dependencies import (
     get_reminder_repository,
     get_sync_ledger_repository,
 )
-from app.core.device_auth import get_current_device
+from app.core.sync_identity import SyncIdentity, get_sync_identity
 from app.repositories.base import (
     AssessmentRepository,
     DailyRepository,
@@ -20,7 +20,12 @@ from app.repositories.base import (
 from app.schemas.sync import RestoreBundle, SyncOperationRequest, SyncOperationResult
 from app.services.sync_service import SyncService
 
-router = APIRouter(prefix="/sync", tags=["sync"], dependencies=[Depends(get_current_device)])
+# Auth stays a *router* dependency so it runs before the endpoint's own
+# dependencies are built: `get_service` constructs the Firestore-backed
+# repositories, and an unauthenticated caller must be turned away before
+# any of that happens. The endpoints below re-declare it as a parameter to
+# read the resolved identity; FastAPI caches it, so it is resolved once.
+router = APIRouter(prefix="/sync", tags=["sync"], dependencies=[Depends(get_sync_identity)])
 
 
 def get_service(
@@ -43,14 +48,23 @@ def get_service(
 
 @router.post("/operations", response_model=SyncOperationResult)
 async def sync_operation(
-    data: SyncOperationRequest, service: SyncService = Depends(get_service)
+    data: SyncOperationRequest,
+    service: SyncService = Depends(get_service),
+    identity: SyncIdentity = Depends(get_sync_identity),
 ) -> SyncOperationResult:
+    # The body names the record it wants to write; an account caller may only
+    # ever name its own. `SyncService.apply` re-reads and re-validates the same
+    # field, so this check is about who, not about shape.
+    patient_id = data.payload.get("patientId") if isinstance(data.payload, dict) else None
+    if isinstance(patient_id, str) and patient_id:
+        identity.assert_may_access(patient_id)
     return await service.apply(data)
 
 
 @router.get("/restore", response_model=RestoreBundle)
 async def restore(
     patientId: str = Query(...),
+    identity: SyncIdentity = Depends(get_sync_identity),
     patients: PatientRepository = Depends(get_patient_repository),
     sessions: GameSessionRepository = Depends(get_game_session_repository),
     daily: DailyRepository = Depends(get_daily_repository),
@@ -64,6 +78,7 @@ async def restore(
     server has never seen returns an empty bundle rather than a 404 — a new
     profile that has not synced yet is an ordinary state, not an error.
     """
+    identity.assert_may_access(patientId)
     patient = await patients.get(patientId)
     mood = await daily.get_mood(patientId)
     return RestoreBundle(

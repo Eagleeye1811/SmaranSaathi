@@ -4,10 +4,16 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.firebase import get_firestore_client
 from app.models.doctor import DoctorPatientLink, DoctorProfile
-from app.repositories.base import DoctorPatientLinkRepository, DoctorProfileRepository
+from app.repositories.base import (
+    DoctorConnectionRequestRepository,
+    DoctorPatientLinkRepository,
+    DoctorProfileRepository,
+)
+from app.schemas.doctor import DoctorConnectionRequest
 
 _PROFILES_COLLECTION = "doctor_profiles"
 _LINKS_COLLECTION = "doctor_patient_links"
+_REQUESTS_COLLECTION = "doctor_connection_requests"
 
 
 class FirestoreDoctorProfileRepository(DoctorProfileRepository):
@@ -86,3 +92,57 @@ class FirestoreDoctorPatientLinkRepository(DoctorPatientLinkRepository):
                 d.reference.delete()
 
         await run_in_threadpool(_delete)
+
+
+class FirestoreDoctorConnectionRequestRepository(DoctorConnectionRequestRepository):
+    """One document per invite, keyed by request id.
+
+    This is what lets a caregiver invite a doctor in the morning and the
+    doctor accept that evening: the queue no longer lives in the web
+    process's memory, so neither a deploy nor Render's free-tier spin-down
+    takes the request with it.
+    """
+
+    def __init__(self) -> None:
+        self._db = get_firestore_client()
+
+    async def get(self, request_id: str) -> Optional[DoctorConnectionRequest]:
+        def _get() -> Optional[DoctorConnectionRequest]:
+            doc = self._db.collection(_REQUESTS_COLLECTION).document(request_id).get()
+            if not doc.exists:
+                return None
+            return DoctorConnectionRequest.model_validate(doc.to_dict())
+
+        return await run_in_threadpool(_get)
+
+    async def save(self, request: DoctorConnectionRequest) -> DoctorConnectionRequest:
+        def _save() -> DoctorConnectionRequest:
+            self._db.collection(_REQUESTS_COLLECTION).document(request.request_id).set(
+                request.model_dump(mode="json", by_alias=True)
+            )
+            return request
+
+        return await run_in_threadpool(_save)
+
+    async def list_pending_for_doctor(self, doctor_uid: str) -> List[DoctorConnectionRequest]:
+        def _list() -> List[DoctorConnectionRequest]:
+            docs = (
+                self._db.collection(_REQUESTS_COLLECTION)
+                .where("doctorUid", "==", doctor_uid)
+                .where("status", "==", "pending")
+                .stream()
+            )
+            return [DoctorConnectionRequest.model_validate(d.to_dict()) for d in docs]
+
+        return await run_in_threadpool(_list)
+
+    async def list_for_patient(self, patient_id: str) -> List[DoctorConnectionRequest]:
+        def _list() -> List[DoctorConnectionRequest]:
+            docs = (
+                self._db.collection(_REQUESTS_COLLECTION)
+                .where("patientId", "==", patient_id)
+                .stream()
+            )
+            return [DoctorConnectionRequest.model_validate(d.to_dict()) for d in docs]
+
+        return await run_in_threadpool(_list)

@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.dependencies import (
+    get_doctor_connection_request_repository,
     get_doctor_patient_link_repository,
     get_doctor_profile_repository,
     get_game_session_repository,
@@ -25,6 +26,7 @@ from app.models.patient import Patient
 from app.models.user import User, UserRole
 from app.repositories.memory.doctors import (
     InMemoryDoctorPatientLinkRepository,
+    InMemoryDoctorConnectionRequestRepository,
     InMemoryDoctorProfileRepository,
 )
 from app.repositories.memory.patients import InMemoryPatientRepository
@@ -38,11 +40,13 @@ def repos():
     store = {
         "profiles": InMemoryDoctorProfileRepository(),
         "links": InMemoryDoctorPatientLinkRepository(),
+        "requests": InMemoryDoctorConnectionRequestRepository(),
         "patients": InMemoryPatientRepository(),
         "sessions": InMemoryGameSessionRepository(),
     }
     app.dependency_overrides[get_doctor_profile_repository] = lambda: store["profiles"]
     app.dependency_overrides[get_doctor_patient_link_repository] = lambda: store["links"]
+    app.dependency_overrides[get_doctor_connection_request_repository] = lambda: store["requests"]
     app.dependency_overrides[get_patient_repository] = lambda: store["patients"]
     app.dependency_overrides[get_game_session_repository] = lambda: store["sessions"]
 
@@ -51,6 +55,7 @@ def repos():
     for dep in (
         get_doctor_profile_repository,
         get_doctor_patient_link_repository,
+        get_doctor_connection_request_repository,
         get_patient_repository,
         get_game_session_repository,
         get_current_user,
@@ -268,3 +273,80 @@ def test_caseload_scores_are_computed_from_real_sessions_not_fabricated(client, 
     empty_row = next(r for r in caseload2.json() if r["id"] == "p_5")
     assert empty_row["score"] == 0
     assert empty_row["profile"]["scores"] == {}
+
+
+# ── The invite has to outlive the web process and the afternoon ────────────
+#
+# Both of these used to fail. The pending queue was a module-level dict with a
+# 15-minute TTL, so on Render's free tier (which spins the web process down
+# after ~15 minutes idle) a caregiver's invite was essentially never still
+# there when the doctor next opened their app.
+
+
+def test_an_invite_is_held_in_the_durable_store_not_in_process_memory(client, repos):
+    """What actually makes an invite survive a restart: it is written to the
+    injected repository (Firestore in production) rather than to a
+    module-level dict. Asserting on the store is the honest check — a second
+    TestClient would not restart the process, so it could not tell the two
+    apart."""
+    _as("doc-borah", UserRole.doctor)
+    client.post("/api/v1/doctors/profile", json={"name": "Dr. Borah"})
+
+    _as("cg-restart")
+    invited = client.post(
+        "/api/v1/doctors/connections/invite",
+        json={"doctorUid": "doc-borah", "patientId": "acct_cg-restart", "patientName": "Abhinav"},
+    )
+    assert invited.status_code == 201
+    request_id = invited.json()["requestId"]
+
+    # The request is in the store the app was handed, which is the thing that
+    # outlives the process — not in any module the process happens to hold.
+    import asyncio
+
+    stored = asyncio.run(repos["requests"].get(request_id))
+    assert stored is not None
+    assert stored.doctor_uid == "doc-borah"
+    assert stored.status == "pending"
+
+    fresh = TestClient(app)
+    _as("doc-borah", UserRole.doctor)
+    inbox = fresh.get("/api/v1/doctors/connections/requests")
+    assert inbox.status_code == 200
+    assert [r["requestId"] for r in inbox.json()] == [request_id]
+
+    decided = fresh.post(
+        "/api/v1/doctors/connections/respond",
+        json={"requestId": request_id, "approve": True},
+    )
+    assert decided.status_code == 200
+    assert decided.json()["status"] == "approved"
+
+
+def test_an_invite_is_still_pending_the_next_morning(client, repos):
+    """A doctor reads their inbox on their own schedule, not within fifteen
+    minutes of the caregiver sending it."""
+    import asyncio
+    import time
+
+    from app.schemas.doctor import DoctorConnectionRequest
+
+    eight_hours_ago = int(time.time() * 1000) - 8 * 60 * 60 * 1000
+    asyncio.run(
+        repos["requests"].save(
+            DoctorConnectionRequest(
+                request_id="req-overnight",
+                doctor_uid="doc-overnight",
+                caregiver_uid="cg-overnight",
+                patient_id="acct_cg-overnight",
+                patient_name="Abhinav",
+                status="pending",
+                requested_at_millis=eight_hours_ago,
+            )
+        )
+    )
+
+    _as("doc-overnight", UserRole.doctor)
+    inbox = client.get("/api/v1/doctors/connections/requests")
+    assert inbox.status_code == 200
+    assert [r["requestId"] for r in inbox.json()] == ["req-overnight"]

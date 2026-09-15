@@ -15,6 +15,7 @@ from app.models.daily import JournalEntry, MoodLevel, Reminder
 from app.models.game import GameSession
 from app.models.patient import Patient
 from app.models.relationship import CaregiverPatientLink
+from app.schemas.doctor import DoctorConnectionRequest
 from app.models.doctor import DoctorPatientLink, DoctorProfile
 from app.schemas.pairing import ClaimUsernameResponse
 
@@ -119,6 +120,31 @@ class PairingClaimRepository(ABC):
 
     @abstractmethod
     async def list_for_caregiver(self, caregiver_uid: str) -> List[ClaimUsernameResponse]: ...
+
+
+class DoctorConnectionRequestRepository(ABC):
+    """A caregiver's pending invite to a doctor, durable and keyed by its own
+    request id.
+
+    This used to be a process-local dict, on the same reasoning as pairing:
+    a handshake is short-lived, so losing it on a restart is fine. Pairing can
+    afford that because both devices are in the same room, seconds apart. A
+    doctor invite is not that shape — the caregiver sends it and the doctor
+    looks whenever their next clinic session happens to be — so the queue has
+    to outlive both the process and the afternoon.
+    """
+
+    @abstractmethod
+    async def get(self, request_id: str) -> Optional[DoctorConnectionRequest]: ...
+
+    @abstractmethod
+    async def save(self, request: DoctorConnectionRequest) -> DoctorConnectionRequest: ...
+
+    @abstractmethod
+    async def list_pending_for_doctor(self, doctor_uid: str) -> List[DoctorConnectionRequest]: ...
+
+    @abstractmethod
+    async def list_for_patient(self, patient_id: str) -> List[DoctorConnectionRequest]: ...
 
 
 class DoctorProfileRepository(ABC):

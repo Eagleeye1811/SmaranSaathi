@@ -12,6 +12,7 @@ from app.repositories.base import (
     AnalyticsRepository,
     AssessmentRepository,
     CaregiverLinkRepository,
+    DoctorConnectionRequestRepository,
     DailyRepository,
     DoctorPatientLinkRepository,
     DoctorProfileRepository,
@@ -26,6 +27,7 @@ from app.repositories.memory.assessments import InMemoryAssessmentRepository
 from app.repositories.memory.caregivers import InMemoryCaregiverLinkRepository
 from app.repositories.memory.daily import InMemoryDailyRepository
 from app.repositories.memory.doctors import (
+    InMemoryDoctorConnectionRequestRepository,
     InMemoryDoctorPatientLinkRepository,
     InMemoryDoctorProfileRepository,
 )
@@ -124,6 +126,15 @@ def get_doctor_profile_repository() -> DoctorProfileRepository:
 
         return FirestoreDoctorProfileRepository()
     return InMemoryDoctorProfileRepository()
+
+
+@lru_cache
+def get_doctor_connection_request_repository() -> DoctorConnectionRequestRepository:
+    if get_settings().firebase_configured:
+        from app.repositories.firestore.doctors import FirestoreDoctorConnectionRequestRepository
+
+        return FirestoreDoctorConnectionRequestRepository()
+    return InMemoryDoctorConnectionRequestRepository()
 
 
 @lru_cache

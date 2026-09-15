@@ -35,6 +35,7 @@ import 'doctor_connection_service.dart';
 import 'notification_service.dart';
 import 'pairing_service.dart';
 import 'personalization_service.dart';
+import 'http_sync_transport.dart';
 import 'sync_manager.dart';
 import 'weekly_report_service.dart';
 
@@ -178,6 +179,20 @@ class AppState extends ChangeNotifier {
   DoctorConnectionService? _doctorConnections;
   void attachDoctorConnections(DoctorConnectionService service) {
     _doctorConnections = service;
+  }
+
+  /// Lets the sync transport prove *which account* is calling.
+  ///
+  /// [idToken] is asked for only while this device is bound to an account, so
+  /// an anonymous profile (whose patient id is not `acct_<uid>`) keeps using
+  /// the device token and is not rejected by the backend's ownership check.
+  /// Wired from `main.dart`, because the transport is built before sign-in
+  /// exists — same reason as [attachDoctorConnections].
+  void attachAccountTokenProvider(Future<String?> Function() idToken) {
+    final SyncTransport? transport = _transport;
+    if (transport is HttpSyncTransport) {
+      transport.accountTokenProvider = () async => _accountId == null ? null : idToken();
+    }
   }
 
   /// True while a signed-in caregiver is *looking at* the patient's app
@@ -1243,11 +1258,32 @@ class AppState extends ChangeNotifier {
     return !_intake.baselineSessionDates.contains(_dayKey(now ?? DateTime.now()));
   }
 
+  /// The step name the *whole* intake record is filed under on the server.
+  ///
+  /// The backend stores intake answers step by step, keyed by step name
+  /// (`FirestoreAssessmentRepository.save_intake_step`), so after a normal
+  /// onboarding it holds every answer but never the assembled record — and
+  /// `restoreFromServer` on a second device had nothing to rebuild from.
+  /// Writing the finished record under one reserved, always-overwritten key
+  /// gives the restore a single unambiguous place to read.
+  static const String _intakeSnapshotStep = 'snapshot';
+
+  /// Files the assembled record alongside the step that just changed.
+  Future<void> _enqueueIntakeSnapshot(IntakeRecord record) {
+    return _sync.enqueue(SyncOperationKind.assessmentUpdate, <String, dynamic>{
+      'patientId': _patient.id,
+      if (_accountId != null) 'accountId': _accountId,
+      'step': _intakeSnapshotStep,
+      'intake': record.toJson(),
+    });
+  }
+
   void _saveIntake(IntakeRecord next, {Map<String, dynamic>? syncPayload}) {
     // Stamp the record with the account that answered it, so the answers can
     // always be attributed even after the file is copied or synced.
     _intake = _accountId == null ? next : next.copyWith(accountId: _accountId);
     notifyListeners();
+    final IntakeRecord snapshot = _intake;
     _write(() async {
       await _assessment.saveIntake(_assessmentScope, next);
       if (syncPayload != null) {
@@ -1256,6 +1292,7 @@ class AppState extends ChangeNotifier {
           if (_accountId != null) 'accountId': _accountId,
           ...syncPayload,
         });
+        await _enqueueIntakeSnapshot(snapshot);
       }
     });
   }
@@ -1531,6 +1568,10 @@ class AppState extends ChangeNotifier {
         if (_accountId != null) 'accountId': _accountId,
         ...captured.toJson(),
       });
+      // This path writes the intake directly rather than through
+      // [_saveIntake], so the snapshot would otherwise stop short of the
+      // completion stamp this just added.
+      await _enqueueIntakeSnapshot(record);
     });
   }
 
@@ -1616,6 +1657,27 @@ class AppState extends ChangeNotifier {
   ///    sign-in tries again.
   ///
   /// Returns true when something was actually restored.
+  /// Digs the assembled record out of the server's step-keyed intake map.
+  ///
+  /// Three shapes have to be read, because records written by older builds
+  /// are still out there: the reserved [_intakeSnapshotStep] key written on
+  /// every save now, the `accountLinked` step written when an anonymous
+  /// profile was adopted by an account, and the bare `intake` key the very
+  /// first version used. Steps that hold only one question's answer are not
+  /// records and are skipped.
+  static Map<String, dynamic>? _wholeIntakeFrom(Map<String, dynamic> steps) {
+    for (final String key in <String>[_intakeSnapshotStep, 'accountLinked', 'intake']) {
+      final Object? step = steps[key];
+      if (step is Map<String, dynamic>) {
+        final Object? inner = step['intake'];
+        if (inner is Map<String, dynamic> && inner.isNotEmpty) return inner;
+        // The oldest shape put the record straight under the key.
+        if (key == 'intake' && step.isNotEmpty) return step;
+      }
+    }
+    return null;
+  }
+
   Future<bool> restoreFromServer({String? patientId}) async {
     final SyncTransport? transport = _transport;
     if (transport == null) return false;
@@ -1637,14 +1699,28 @@ class AppState extends ChangeNotifier {
 
     final Object? remoteIntake = bundle['intake'];
     if (remoteIntake is Map<String, dynamic> && remoteIntake.isNotEmpty) {
-      // The questionnaire is stored step by step on the server; the whole
-      // record travels under 'intake' when the account was linked.
-      final Object? whole = remoteIntake['intake'];
-      if (whole is Map<String, dynamic>) {
+      final Map<String, dynamic>? whole = _wholeIntakeFrom(remoteIntake);
+      if (whole != null) {
         _intake = IntakeRecord.fromJson(whole);
         changed = true;
         final IntakeRecord filed = _intake;
         await _write(() async => _assessment.saveIntake(_assessmentScope, filed));
+      }
+    }
+
+    // Without this the second device rebuilt the questionnaire but not the
+    // baseline, and `intakeComplete` (which needs both) stayed false — so a
+    // person who had finished their assessment was walked through the whole
+    // thing again on their new phone. The server has had the baseline all
+    // along; nothing was ever reading it back.
+    final Object? remoteBaseline = bundle['baseline'];
+    if (_baseline == null && remoteBaseline is Map<dynamic, dynamic>) {
+      final CognitiveBaseline? restoredBaseline =
+          CognitiveBaseline.fromJson(remoteBaseline);
+      if (restoredBaseline != null) {
+        _baseline = restoredBaseline;
+        changed = true;
+        await _write(() async => _assessment.saveBaseline(_assessmentScope, restoredBaseline));
       }
     }
 

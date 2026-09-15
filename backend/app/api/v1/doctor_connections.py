@@ -10,6 +10,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.dependencies import (
+    get_doctor_connection_request_repository,
     get_doctor_patient_link_repository,
     get_doctor_profile_repository,
     get_game_session_repository,
@@ -20,6 +21,7 @@ from app.models.clinical import ClinicPatient
 from app.models.doctor import DoctorPatientLink, DoctorProfile
 from app.models.user import User
 from app.repositories.base import (
+    DoctorConnectionRequestRepository,
     DoctorPatientLinkRepository,
     DoctorProfileRepository,
     GameSessionRepository,
@@ -41,12 +43,13 @@ router = APIRouter(prefix="/doctors", tags=["doctors"], dependencies=[Depends(ge
 def get_service(
     profiles: DoctorProfileRepository = Depends(get_doctor_profile_repository),
     links: DoctorPatientLinkRepository = Depends(get_doctor_patient_link_repository),
+    requests: DoctorConnectionRequestRepository = Depends(get_doctor_connection_request_repository),
 ) -> DoctorConnectionService:
-    # Constructed fresh per request from these two (test-overridable, same
-    # as `caregivers.py`'s `get_service`) repository dependencies. The
-    # pending-invite queue itself is still one shared, process-wide store —
-    # see the module-level `_requests` in `doctor_connection_service.py`.
-    return DoctorConnectionService(profiles, links)
+    # Constructed fresh per request from these three (test-overridable, same
+    # as `caregivers.py`'s `get_service`) repository dependencies — the
+    # pending-invite queue included, now that it is durable rather than a
+    # module-level dict in `doctor_connection_service.py`.
+    return DoctorConnectionService(profiles, links, requests)
 
 
 @router.post("/profile", response_model=DoctorProfile)

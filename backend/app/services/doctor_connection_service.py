@@ -1,11 +1,16 @@
-"""Doctor connections: a durable profile directory and durable
-doctor↔patient links, plus an ephemeral pending-request queue in between.
+"""Doctor connections: a durable profile directory, durable doctor↔patient
+links, and a durable pending-request queue in between.
 
-Structured exactly like `pairing_service.py`, for the same reason: a pending
-*request* is a short-lived handshake (a restart losing it is fine — the
-caregiver just invites again), so it stays a plain process-local dict, while
-profiles and accepted links are durable (`DoctorProfileRepository` /
-`DoctorPatientLinkRepository`, Firestore in production).
+The queue used to be a process-local dict, structured after
+`pairing_service.py` on the reasoning that a pending *request* is a
+short-lived handshake a restart may safely lose. That holds for pairing,
+where caregiver and patient are in the same room seconds apart. It does not
+hold here: the caregiver sends the invite and the doctor sees it whenever
+their next clinic session happens to be. In production the queue lived in a
+Render free-tier web process that spins down after ~15 minutes idle, and a
+15-minute TTL expired anything that survived that — so an invite was
+essentially never there when the doctor finally looked. All three stores are
+now repositories (Firestore in production).
 
 One real difference from pairing: both sides here are actual Firebase
 accounts. Pairing has to trust a `caregiver_uid` field in the request body
@@ -18,37 +23,36 @@ from __future__ import annotations
 
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from app.models.doctor import DoctorPatientLink, DoctorProfile
-from app.repositories.base import DoctorPatientLinkRepository, DoctorProfileRepository
+from app.repositories.base import (
+    DoctorConnectionRequestRepository,
+    DoctorPatientLinkRepository,
+    DoctorProfileRepository,
+)
 from app.schemas.doctor import DoctorConnectionInvite, DoctorConnectionRequest, DoctorProfileUpsert
 
-# Same reasoning as pairing's request TTL: an invite nobody has acted on in
-# 15 minutes is stale, not worth resurrecting with a late accept.
-_REQUEST_TTL_MILLIS = 15 * 60 * 1000
+# An invite is answered on the doctor's schedule, not the caregiver's, so this
+# is measured in days rather than pairing's minutes. It exists only so a
+# forgotten invite eventually stops cluttering an inbox.
+_REQUEST_TTL_MILLIS = 14 * 24 * 60 * 60 * 1000
 
 
 def _now() -> int:
     return int(time.time() * 1000)
 
 
-# Module-level, not per-instance: `DoctorConnectionService` is constructed
-# fresh per request (see `api/v1/doctor_connections.py`'s `get_service`, the
-# same per-request-factory pattern `caregivers.py` uses, so its two
-# repository dependencies stay overridable in tests) — but the pending
-# invite queue still has to be one shared, process-wide queue, or an invite
-# made on one request would be invisible to the accept made on the next.
-# Same lifetime reasoning as pairing's `_requests`: fine to lose on a
-# restart, not fine to lose between two requests seconds apart.
-_requests: Dict[str, DoctorConnectionRequest] = {}
-
-
 class DoctorConnectionService:
-    def __init__(self, profiles: DoctorProfileRepository, links: DoctorPatientLinkRepository) -> None:
+    def __init__(
+        self,
+        profiles: DoctorProfileRepository,
+        links: DoctorPatientLinkRepository,
+        requests: DoctorConnectionRequestRepository,
+    ) -> None:
         self._profiles = profiles
         self._links = links
-        self._requests = _requests
+        self._requests = requests
 
     # ── profile / directory ────────────────────────────────────────────
     async def upsert_profile(
@@ -75,16 +79,10 @@ class DoctorConnectionService:
         if existing_link is not None and existing_link.doctor_uid == data.doctor_uid:
             raise ValueError("already_connected")
 
-        self._expire_stale()
-
         # One live invite per doctor+patient pair — asking twice must not
         # fill the doctor's inbox with duplicates of the same request.
-        for req in self._requests.values():
-            if (
-                req.status == "pending"
-                and req.doctor_uid == data.doctor_uid
-                and req.patient_id == data.patient_id
-            ):
+        for req in await self._requests.list_for_patient(data.patient_id):
+            if self._is_live(req) and req.doctor_uid == data.doctor_uid:
                 return req
 
         request = DoctorConnectionRequest(
@@ -98,16 +96,17 @@ class DoctorConnectionService:
             status="pending",
             requested_at_millis=_now(),
         )
-        self._requests[request.request_id] = request
-        return request
+        return await self._requests.save(request)
 
     async def pending_for(self, doctor_uid: str) -> List[DoctorConnectionRequest]:
-        self._expire_stale()
-        return [r for r in self._requests.values() if r.status == "pending" and r.doctor_uid == doctor_uid]
+        """Newest first, so the doctor's inbox reads the way an inbox should."""
+        live = [r for r in await self._requests.list_pending_for_doctor(doctor_uid) if self._is_live(r)]
+        live.sort(key=lambda r: r.requested_at_millis, reverse=True)
+        return live
 
     # ── deciding ────────────────────────────────────────────────────────
     async def decide(self, request_id: str, doctor_uid: str, approve: bool) -> DoctorConnectionRequest:
-        request = self._requests.get(request_id)
+        request = await self._requests.get(request_id)
         if request is None:
             raise LookupError("unknown_request")
 
@@ -123,7 +122,7 @@ class DoctorConnectionService:
         decided = request.model_copy(
             update={"status": "approved" if approve else "declined", "decided_at_millis": _now()}
         )
-        self._requests[request_id] = decided
+        await self._requests.save(decided)
 
         if approve:
             await self._links.create(
@@ -148,8 +147,14 @@ class DoctorConnectionService:
         await self._links.delete(patient_id, doctor_uid)
 
     # ── housekeeping ────────────────────────────────────────────────────
-    def _expire_stale(self) -> None:
-        cutoff = _now() - _REQUEST_TTL_MILLIS
-        for rid, req in list(self._requests.items()):
-            if req.status == "pending" and req.requested_at_millis < cutoff:
-                self._requests[rid] = req.model_copy(update={"status": "expired"})
+    @staticmethod
+    def _is_live(request: DoctorConnectionRequest) -> bool:
+        """Pending and not yet past its TTL.
+
+        Read at the point of use rather than swept on a timer: with the queue
+        in Firestore there is no long-lived process to run a sweep, and a
+        stale row is harmless as long as nothing treats it as live.
+        """
+        if request.status != "pending":
+            return False
+        return request.requested_at_millis >= _now() - _REQUEST_TTL_MILLIS

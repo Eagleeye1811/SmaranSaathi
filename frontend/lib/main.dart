@@ -53,6 +53,13 @@ Future<void> main() async {
     state.attachDoctorConnections(doctorConnections);
   }
 
+  // Before any sync or restore runs: from here on the backend can tell this
+  // caller is a specific account rather than just "a copy of the app", and
+  // holds it to that account's own record.
+  if (auth != null) {
+    state.attachAccountTokenProvider(auth.idToken);
+  }
+
   final AuthUser? restored = await _restoreSession(auth);
   if (restored != null) {
     // Binding the account before the first frame is what lets the app open

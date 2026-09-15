@@ -204,3 +204,90 @@ def test_sync_rejects_an_unrecognised_kind(authed_client, device_headers) -> Non
     response = authed_client.post("/api/v1/sync/operations", json=body, headers=device_headers)
     assert response.status_code == 422
 
+
+
+# ── Account ownership ──────────────────────────────────────────────────────
+#
+# A device token proves only "a copy of SmaranSaathi is calling", so it stays
+# as permissive as it always was. A Firebase ID token proves *who*, and the
+# client derives its patient id from the uid (`acct_<uid>`), so an account is
+# held to its own record — which is what makes signing in on a second device
+# return that person's data and nobody else's.
+
+_ACCOUNT_UID = "uid-abhinav"
+_OWN_PATIENT_ID = f"acct_{_ACCOUNT_UID}"
+_SOMEONE_ELSE = "acct_uid-ramesh"
+
+
+def _as_account(monkeypatch_app, uid: str = _ACCOUNT_UID):
+    from app.core.sync_identity import SyncIdentity, get_sync_identity
+
+    monkeypatch_app.dependency_overrides[get_sync_identity] = lambda: SyncIdentity(uid=uid)
+
+
+def _profile_body(operation_id: str, patient_id: str) -> dict:
+    return {
+        "operationId": operation_id,
+        "kind": "profileUpdate",
+        "createdAtMillis": int(time.time() * 1000),
+        "payload": {"patientId": patient_id, "name": "Abhinav"},
+    }
+
+
+def test_an_account_may_write_its_own_record(authed_client) -> None:
+    from app.core.sync_identity import get_sync_identity
+    from app.main import app
+
+    _as_account(app)
+    try:
+        response = authed_client.post(
+            "/api/v1/sync/operations", json=_profile_body("op-own", _OWN_PATIENT_ID)
+        )
+        assert response.status_code == 200
+    finally:
+        app.dependency_overrides.pop(get_sync_identity, None)
+
+
+def test_an_account_may_not_write_another_persons_record(authed_client) -> None:
+    from app.core.sync_identity import get_sync_identity
+    from app.main import app
+
+    _as_account(app)
+    try:
+        response = authed_client.post(
+            "/api/v1/sync/operations", json=_profile_body("op-theirs", _SOMEONE_ELSE)
+        )
+        assert response.status_code == 403
+        assert response.json()["error"]["code"] == "forbidden"
+    finally:
+        app.dependency_overrides.pop(get_sync_identity, None)
+
+
+def test_an_account_may_not_restore_another_persons_record(authed_client) -> None:
+    """The gap this closes: `restore` took the patient id straight from the
+    query string, so any caller could pull down any record."""
+    from app.core.sync_identity import get_sync_identity
+    from app.main import app
+
+    _as_account(app)
+    try:
+        mine = authed_client.get(f"/api/v1/sync/restore?patientId={_OWN_PATIENT_ID}")
+        assert mine.status_code == 200
+
+        theirs = authed_client.get(f"/api/v1/sync/restore?patientId={_SOMEONE_ELSE}")
+        assert theirs.status_code == 403
+    finally:
+        app.dependency_overrides.pop(get_sync_identity, None)
+
+
+def test_a_paired_patient_device_still_syncs_its_caregivers_record(
+    authed_client, device_headers
+) -> None:
+    """A patient's phone has no account at all — it carries the caregiver's
+    patient id under a device token, and must keep working."""
+    response = authed_client.post(
+        "/api/v1/sync/operations",
+        json=_profile_body("op-paired", _SOMEONE_ELSE),
+        headers=device_headers,
+    )
+    assert response.status_code == 200

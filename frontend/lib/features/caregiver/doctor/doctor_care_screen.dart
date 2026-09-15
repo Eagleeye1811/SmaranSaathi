@@ -4,6 +4,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/models/doctor.dart';
+import '../../../core/models/telehealth.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/services/doctor_connection_service.dart';
 import '../../../core/telehealth/consultation_format.dart';

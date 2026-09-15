@@ -37,6 +37,30 @@ class HttpSyncTransport implements SyncTransport {
   late String _activeBaseUrl;
   String? _deviceToken;
 
+  /// Supplies the signed-in account's Firebase ID token, or null when the app
+  /// is not bound to an account (anonymous use, or a paired patient device).
+  ///
+  /// Wired in `main.dart` once both [AppState] and `AuthService` exist, which
+  /// is after this transport is built. When it yields a token the backend
+  /// resolves the caller as that *account* and pins every read and write to
+  /// that account's own record, so a second device gets this person's data
+  /// and nobody else's; the device token below stays the fallback for a
+  /// paired patient phone, which has no account to prove.
+  Future<String?> Function()? accountTokenProvider;
+
+  /// The account token when there is one, else the device token.
+  Future<String> _authToken() async {
+    try {
+      final String? account = await accountTokenProvider?.call();
+      if (account != null && account.isNotEmpty) return account;
+    } catch (error) {
+      // A refresh that cannot reach Google is not a reason to stop syncing —
+      // fall back to the device token exactly as before accounts existed.
+      debugPrint('sync: could not read the account token ($error)');
+    }
+    return _deviceToken ?? await _fetchDeviceToken();
+  }
+
   /// Returns the current active base URL used for server sync.
   String get activeBaseUrl => _activeBaseUrl;
 
@@ -44,7 +68,7 @@ class HttpSyncTransport implements SyncTransport {
   /// the same device token rather than minting a second of each.
   http.Client get httpClient => _client;
 
-  Future<String> deviceTokenForRestore() async => _deviceToken ?? await _fetchDeviceToken();
+  Future<String> deviceTokenForRestore() async => _authToken();
 
   @override
   Future<Map<String, dynamic>?> restore(String patientId) => restoreBundle(patientId);
@@ -120,7 +144,7 @@ class HttpSyncTransport implements SyncTransport {
 
   @override
   Future<void> send(PendingOperation operation) async {
-    final String token = _deviceToken ?? await _fetchDeviceToken();
+    final String token = await _authToken();
     http.Response response;
     try {
       response = await _postOperation(operation, token);
@@ -131,8 +155,11 @@ class HttpSyncTransport implements SyncTransport {
     }
 
     if (response.statusCode == 401) {
-      final String freshToken = await _fetchDeviceToken();
-      response = await _postOperation(operation, freshToken);
+      // Drop the cached device token so it is re-minted; an account token
+      // needs no such nudge, since `getIdToken()` refreshes an expired one
+      // on its own. Either way `_authToken` picks the right one again.
+      _deviceToken = null;
+      response = await _postOperation(operation, await _authToken());
     }
 
     if (response.statusCode >= 400) {
