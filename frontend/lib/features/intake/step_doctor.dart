@@ -6,6 +6,7 @@ import '../../app/theme/app_theme.dart';
 import '../../core/models/assessment.dart';
 import '../../core/models/doctor.dart';
 import '../../core/services/app_state.dart';
+import '../../core/services/doctor_connection_service.dart';
 import '../../core/widgets/ui_kit.dart';
 import '../../l10n/app_localizations.dart';
 import 'intake_kit.dart';
@@ -21,6 +22,11 @@ import 'intake_kit.dart';
 /// so is naming a doctor the family already has; so is saying no. A
 /// questionnaire that would not end until a stranger replied would be a
 /// questionnaire nobody finishes.
+///
+/// Every doctor named here is a real, signed-up account — there is no more
+/// "add your own doctor" fabricated entry. A family whose doctor has not
+/// signed up on SmaranSaathi yet has nobody to invite; the copy says so
+/// plainly rather than inventing a listing that can never be answered.
 class DoctorConnectStep extends StatefulWidget {
   const DoctorConnectStep({super.key, required this.onDone, this.onBack});
 
@@ -32,40 +38,46 @@ class DoctorConnectStep extends StatefulWidget {
 }
 
 class _DoctorConnectStepState extends State<DoctorConnectStep> {
-  bool _addingOwn = false;
-
-  final TextEditingController _name = TextEditingController();
-  final TextEditingController _spec = TextEditingController();
-  final TextEditingController _clinic = TextEditingController();
-  final TextEditingController _email = TextEditingController();
+  bool _sendingTo = false;
+  String? _sendingToId;
 
   @override
-  void dispose() {
-    _name.dispose();
-    _spec.dispose();
-    _clinic.dispose();
-    _email.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    final AppState state = AppScope.read(context);
+    state.loadDoctorDirectory();
+    state.refreshConnectedDoctor();
   }
 
-  void _addOwnDoctor(AppState state) {
-    final String name = _name.text.trim();
-    if (name.isEmpty) return;
-    final String id = 'doc_${DateTime.now().millisecondsSinceEpoch}';
-    state.addDoctor(DoctorProfile(
-      id: id,
-      name: name,
-      specialization: _spec.text.trim(),
-      hospital: _clinic.text.trim(),
-      email: _email.text.trim(),
-      avatarInitials: name[0].toUpperCase(),
-      status: InvitationStatus.notSent,
-    ));
-    state.inviteDoctor(id);
-    setState(() => _addingOwn = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Invitation sent to Dr. $name')),
-    );
+  Future<void> _invite(AppState state, DoctorProfile doctor) async {
+    setState(() {
+      _sendingTo = true;
+      _sendingToId = doctor.id;
+    });
+    try {
+      await state.inviteDoctor(doctor.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invitation sent to ${doctor.displayName}')),
+      );
+    } on DoctorAlreadyConnectedException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${doctor.displayName} is already connected to this record.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not send the invitation. Please try again.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sendingTo = false;
+          _sendingToId = null;
+        });
+      }
+    }
   }
 
   @override
@@ -75,9 +87,12 @@ class _DoctorConnectStepState extends State<DoctorConnectStep> {
     const IntakeStep here = IntakeStep.doctor;
 
     final List<DoctorProfile> invited = state.doctorDirectory
-        .where((DoctorProfile d) => d.status.isWaiting)
+        .where((DoctorProfile d) => state.statusOf(d) == InvitationStatus.sent)
         .toList(growable: false);
     final DoctorProfile? connected = state.connectedDoctor;
+    final List<DoctorProfile> available = state.doctorDirectory
+        .where((DoctorProfile d) => state.statusOf(d) == InvitationStatus.notSent)
+        .toList(growable: false);
 
     return IntakeScaffold(
       stepIndex: IntakeRecord.order.indexOf(here),
@@ -128,61 +143,20 @@ class _DoctorConnectStepState extends State<DoctorConnectStep> {
           const SizedBox(height: Insets.lg),
         ],
 
-        // ── Their own doctor ─────────────────────────────────────────
-        if (_addingOwn) ...<Widget>[
-          QuestionLabel('Your doctor', hint: 'We will send them an invitation'),
-          IntakeField(label: 'Name', controller: _name, onChanged: () => setState(() {})),
-          IntakeField(
-              label: 'Specialisation',
-              hint: 'Neurologist, physician…',
-              controller: _spec,
-              onChanged: () {}),
-          IntakeField(
-              label: 'Clinic or hospital', controller: _clinic, onChanged: () {}),
-          IntakeField(
-              label: 'Their email',
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              onChanged: () {}),
-          const SizedBox(height: Insets.sm),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: SoftButton(
-                  label: l.actionCancel,
-                  color: AppColors.inkSoft,
-                  onPressed: () => setState(() => _addingOwn = false),
-                ),
-              ),
-              const SizedBox(width: Insets.sm),
-              Expanded(
-                flex: 2,
-                child: SoftButton(
-                  label: 'Send Invitation',
-                  icon: Icons.send_rounded,
-                  color: AppColors.primary,
-                  filled: true,
-                  onPressed:
-                      _name.text.trim().isEmpty ? null : () => _addOwnDoctor(state),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.lg),
-        ] else ...<Widget>[
-          SoftButton(
-            label: 'I already have a doctor',
-            icon: Icons.person_add_alt_rounded,
-            onPressed: () => setState(() => _addingOwn = true),
-          ),
-          const SizedBox(height: Insets.lg),
-        ],
-
-        // ── Or one from the directory ────────────────────────────────
+        // ── Real, signed-up doctors ───────────────────────────────────
         Text('Or choose a memory clinic near you', style: AppText.overline),
         const SizedBox(height: Insets.sm),
-        for (final DoctorProfile d in state.doctorDirectory)
-          if (d.status == InvitationStatus.notSent)
+        if (available.isEmpty)
+          MmCard(
+            padding: const EdgeInsets.all(Insets.md),
+            child: Text(
+              "Can't find your doctor? Ask them to sign up on SmaranSaathi as "
+              "a doctor — they'll appear here once they do.",
+              style: AppText.bodySmall,
+            ),
+          )
+        else
+          for (final DoctorProfile d in available)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: MmCard(
@@ -214,12 +188,8 @@ class _DoctorConnectStepState extends State<DoctorConnectStep> {
                       icon: Icons.send_rounded,
                       color: AppColors.primary,
                       filled: true,
-                      onPressed: () {
-                        state.inviteDoctor(d.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Invitation sent to ${d.displayName}')),
-                        );
-                      },
+                      onPressed:
+                          (_sendingTo && _sendingToId == d.id) ? null : () => _invite(state, d),
                     ),
                   ],
                 ),

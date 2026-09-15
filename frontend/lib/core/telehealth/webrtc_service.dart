@@ -82,8 +82,9 @@ class WebRtcService extends ChangeNotifier {
         return;
       }
 
-      await _setupPeerConnection();
+      await _createPeerConnection();
       await _connectSignaling();
+      await _startOfferIfInitiator();
     } catch (e) {
       debugPrint('[WebRTC] Error initializing media devices: $e');
       // Graceful fallback for emulators without camera
@@ -93,8 +94,9 @@ class WebRtcService extends ChangeNotifier {
         isInitialized = true;
         notifyListeners();
         if (!isSelfTestMode) {
-          await _setupPeerConnection();
+          await _createPeerConnection();
           await _connectSignaling();
+          await _startOfferIfInitiator();
         }
       } catch (e2) {
         debugPrint('[WebRTC] Audio fallback failed: $e2');
@@ -102,7 +104,14 @@ class WebRtcService extends ChangeNotifier {
     }
   }
 
-  Future<void> _setupPeerConnection() async {
+  /// Builds the peer connection and wires every handler, but sends nothing.
+  ///
+  /// Split from [_startOfferIfInitiator] and run *before* [_connectSignaling]
+  /// on purpose: `onDataChannel`/`onTrack` have to already be listening the
+  /// moment the signaling socket opens, in case the other side's offer
+  /// arrives before this device is done setting up — a peer connection that
+  /// doesn't exist yet can't receive anything sent to it.
+  Future<void> _createPeerConnection() async {
     _peerConnection = await createPeerConnection(_iceServers);
 
     _localStream?.getTracks().forEach((MediaStreamTrack track) {
@@ -128,25 +137,39 @@ class WebRtcService extends ChangeNotifier {
       });
     };
 
-    if (isInitiator) {
-      final RTCDataChannelInit dcInit = RTCDataChannelInit()..ordered = true;
-      _dataChannel = await _peerConnection?.createDataChannel('chat', dcInit);
-      _setupDataChannel();
-
-      final RTCSessionDescription offer = await _peerConnection!.createOffer();
-      await _peerConnection!.setLocalDescription(offer);
-      _sendSignalingMessage(<String, dynamic>{
-        'type': 'offer',
-        'offer': <String, dynamic>{'sdp': offer.sdp, 'type': offer.type},
-      });
-      callState = CallState.ringing;
-      notifyListeners();
-    } else {
+    if (!isInitiator) {
       _peerConnection?.onDataChannel = (RTCDataChannel channel) {
         _dataChannel = channel;
         _setupDataChannel();
       };
     }
+  }
+
+  /// Creates and sends the SDP offer — the initiator's half of the
+  /// handshake. Must run *after* [_connectSignaling] has actually opened the
+  /// socket: `createOffer`/`setLocalDescription` starts ICE gathering
+  /// immediately, and every candidate (like the offer itself) goes out
+  /// through `_sendSignalingMessage`, which silently drops anything sent
+  /// before `_wsChannel` exists. Running this too early — as the previous
+  /// version did, before the signaling socket had even started connecting —
+  /// meant the offer never left the device: the answering side had nothing
+  /// to respond to, so it never sent a track back, which is exactly "I can
+  /// see myself but never the other person," on every single attempt.
+  Future<void> _startOfferIfInitiator() async {
+    if (!isInitiator || _peerConnection == null) return;
+
+    final RTCDataChannelInit dcInit = RTCDataChannelInit()..ordered = true;
+    _dataChannel = await _peerConnection?.createDataChannel('chat', dcInit);
+    _setupDataChannel();
+
+    final RTCSessionDescription offer = await _peerConnection!.createOffer();
+    await _peerConnection!.setLocalDescription(offer);
+    _sendSignalingMessage(<String, dynamic>{
+      'type': 'offer',
+      'offer': <String, dynamic>{'sdp': offer.sdp, 'type': offer.type},
+    });
+    callState = CallState.ringing;
+    notifyListeners();
   }
 
   void _setupDataChannel() {
@@ -187,12 +210,17 @@ class WebRtcService extends ChangeNotifier {
   }
 
   void _sendSignalingMessage(Map<String, dynamic> message) {
-    if (_wsChannel != null) {
-      try {
-        _wsChannel.add(jsonEncode(message));
-      } catch (e) {
-        debugPrint('[Signaling] Send error: $e');
-      }
+    if (_wsChannel == null) {
+      // Not silent: dropping an offer/answer/candidate here means the call
+      // can never connect, and used to fail exactly this way with nothing in
+      // the log to point at why.
+      debugPrint('[Signaling] Dropped ${message['type']} — socket not connected');
+      return;
+    }
+    try {
+      _wsChannel.add(jsonEncode(message));
+    } catch (e) {
+      debugPrint('[Signaling] Send error: $e');
     }
   }
 

@@ -1,7 +1,7 @@
 from typing import List
 
 from app.core.errors import ApiError
-from app.models.clinical import ClinicPatient, CognitiveProfile, DoctorAlert, SeriesPoint
+from app.models.clinical import CognitiveProfile, DoctorAlert, SeriesPoint
 from app.repositories.base import AnalyticsRepository
 
 
@@ -20,9 +20,6 @@ class AnalyticsService:
 
     async def weekly_series(self, patient_id: str, series: str) -> List[SeriesPoint]:
         return await self._repository.weekly_series(patient_id, series)
-
-    async def caseload(self) -> List[ClinicPatient]:
-        return await self._repository.caseload()
 
     async def alerts(self) -> List[DoctorAlert]:
         return await self._repository.alerts()

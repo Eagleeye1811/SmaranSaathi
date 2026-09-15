@@ -16,6 +16,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 
 
@@ -286,91 +287,50 @@ class _MemoryCardsGameState extends State<MemoryCardsGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 1,
-                            icon: Icons.grid_view_rounded,
-                            title: l.gameLevelEasy,
-                            subtitle: l.gameMemoryCardsPairsCount(4),
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 2,
-                            icon: Icons.grid_3x3_rounded,
-                            title: l.gameLevelMedium,
-                            subtitle: l.gameMemoryCardsPairsCount(6),
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 3,
-                            icon: Icons.view_comfy_rounded,
-                            title: l.gameLevelHard,
-                            subtitle: l.gameMemoryCardsPairsCount(8),
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 4,
-                            icon: Icons.apps_rounded,
-                            title: l.gameLevelExpert,
-                            subtitle: l.gameMemoryCardsPairsCount(10),
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 104,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 5,
-                            icon: Icons.workspace_premium_rounded,
-                            title: l.gameLevelMastery,
-                            subtitle: l.gameMemoryCardsPairsCount(12),
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.memoryCards,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: l.gameLevelEasy,
+                  subtitle: l.gameMemoryCardsPairsCount(4),
+                  icon: Icons.grid_view_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: l.gameLevelMedium,
+                  subtitle: l.gameMemoryCardsPairsCount(6),
+                  icon: Icons.grid_3x3_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: l.gameLevelHard,
+                  subtitle: l.gameMemoryCardsPairsCount(8),
+                  icon: Icons.view_comfy_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: l.gameLevelExpert,
+                  subtitle: l.gameMemoryCardsPairsCount(10),
+                  icon: Icons.apps_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: l.gameLevelMastery,
+                  subtitle: l.gameMemoryCardsPairsCount(12),
+                  icon: Icons.workspace_premium_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(

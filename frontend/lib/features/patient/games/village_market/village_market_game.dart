@@ -13,6 +13,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/content_labels.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 import 'market_map.dart';
 import 'market_stalls.dart';
 
@@ -406,38 +407,23 @@ class _VillageMarketGameState extends State<VillageMarketGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        for (int lvl = 1; lvl <= AdaptiveDifficultyService.maxLevel; lvl++) ...<Widget>[
-                          if (lvl > 1) const SizedBox(width: 8),
-                          SizedBox(
-                            width: 122,
-                            child: LevelOptionChip(
-                              accent: _game.accent,
-                              levelNum: lvl,
-                              icon: _levelIcon(lvl),
-                              title: localizedLevelDescription(l, GameId.villageMarket, lvl),
-                              subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
-                              unlocked: lvl <= _maxUnlockedLevel,
-                              selected: _selectedLevel == lvl,
-                              onTap: lvl <= _maxUnlockedLevel ? () => _changeLevel(lvl) : null,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.villageMarket,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: <GameLevelItem>[
+                for (int lvl = 1; lvl <= AdaptiveDifficultyService.maxLevel; lvl++)
+                  GameLevelItem(
+                    levelNum: lvl,
+                    title: localizedLevelDescription(l, GameId.villageMarket, lvl),
+                    subtitle: l.gameVillageMarketStallsOpen(_stallCountFor(lvl)),
+                    icon: _levelIcon(lvl),
+                    stars: lvl == 1 ? 3 : (lvl <= _maxUnlockedLevel ? 2 : 0),
                   ),
-                ],
-              ),
+              ],
             ),
             const SizedBox(height: Insets.md),
             MmCard(

@@ -27,14 +27,16 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
   @override
   void initState() {
     super.initState();
+    AppScope.read(context).loadPendingDoctorRequests();
   }
 
   /// Accepting here is what connects the doctor on the caregiver's screen —
-  /// the two used to be separate lists that never heard about each other, so
-  /// a request could be accepted here and the caregiver would go on seeing an
-  /// invitation nobody had answered.
-  void _acceptConnection(String id) {
-    AppScope.read(context).acceptConnectionRequest(id);
+  /// real, backend-persisted now: the caregiver's next `refreshConnectedDoctor`
+  /// sees the durable link this creates, not a shared in-memory list two
+  /// roles on the same device used to read out of each other's way.
+  Future<void> _acceptConnection(String id) async {
+    await AppScope.read(context).acceptConnectionRequest(id);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Connection accepted. Patient added to caseload.'),
@@ -44,8 +46,9 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
     );
   }
 
-  void _declineConnection(String id) {
-    AppScope.read(context).declineConnectionRequest(id);
+  Future<void> _declineConnection(String id) async {
+    await AppScope.read(context).declineConnectionRequest(id);
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Connection request declined.'),
@@ -62,7 +65,7 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
         .where((DoctorAlert a) => a.severity == AlertSeverity.urgent)
         .toList();
 
-    final bool hasItems = state.myConnectionRequests.isNotEmpty || urgentAlerts.isNotEmpty;
+    final bool hasItems = state.pendingDoctorRequests.isNotEmpty || urgentAlerts.isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.clinicBackground,
@@ -80,7 +83,7 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
                 padding: const EdgeInsets.fromLTRB(Insets.gutter, 8, Insets.gutter, 32),
                 children: <Widget>[
                   // ── Pending Connection Requests ──────────────────────
-                  if (state.myConnectionRequests.isNotEmpty) ...<Widget>[
+                  if (state.pendingDoctorRequests.isNotEmpty) ...<Widget>[
                     Row(
                       children: <Widget>[
                         const Icon(Icons.person_add_outlined, size: 18, color: Color(0xFFD9962B)),
@@ -101,14 +104,14 @@ class _DoctorAlertsScreenState extends State<DoctorAlertsScreen> {
                             borderRadius: Corners.r(10),
                           ),
                           child: Text(
-                            '${state.myConnectionRequests.length}',
+                            '${state.pendingDoctorRequests.length}',
                             style: CT.caption.wght(700).tint(const Color(0xFFD9962B)),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    for (final ConnectionRequest req in state.myConnectionRequests)
+                    for (final ConnectionRequest req in state.pendingDoctorRequests)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: ClinicCard(

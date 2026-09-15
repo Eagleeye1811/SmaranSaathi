@@ -21,6 +21,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../l10n/content_labels.dart';
 import '../patient_view_screen.dart';
 import '../pairing_widgets.dart';
+import '../learning/caregiver_learning_screen.dart';
 
 /// The caregiver's home: what needs attention, then how the day has gone.
 ///
@@ -108,6 +109,20 @@ class _CaregiverDashboardScreenState extends State<CaregiverDashboardScreen> {
             FadeInUp(
               delayMs: 70,
               child: _TodayGrid(state: state, onOpenTab: onOpenTab),
+            ),
+            const SizedBox(height: Insets.lg),
+
+            // ── Caregiver Education & Counseling Hub ──────────────────────
+            FadeInUp(
+              delayMs: 75,
+              child: const SectionHeader(
+                title: 'Caregiver Learning & Counseling',
+                icon: Icons.school_rounded,
+              ),
+            ),
+            FadeInUp(
+              delayMs: 80,
+              child: const _CaregiverLearningCard(),
             ),
             const SizedBox(height: Insets.lg),
 
@@ -1209,3 +1224,95 @@ class _OpenPatientAppRow extends StatelessWidget {
     );
   }
 }
+
+class _CaregiverLearningCard extends StatelessWidget {
+  const _CaregiverLearningCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: <Color>[
+            AppColors.primary,
+            Color.lerp(AppColors.primary, AppColors.secondary, 0.4)!,
+          ],
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.22),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => Nav.push(context, const CaregiverLearningScreen()),
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(Insets.md),
+            child: Row(
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white24,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: Insets.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              'Learning & Counseling Hub',
+                              style: AppText.body.wght(700).copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'NEW',
+                              style: AppText.caption.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

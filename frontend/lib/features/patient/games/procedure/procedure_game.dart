@@ -14,6 +14,7 @@ import '../../../../data/mock/mock_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../game_result_screen.dart';
 import '../game_shell.dart';
+import '../widgets/game_level_path_map.dart';
 
 /// One step of an everyday procedure.
 class ProcedureStep {
@@ -272,92 +273,50 @@ class _ProcedureGameState extends State<ProcedureGame> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // ── Level Selector ──────────────────────────────────────
-            MmCard(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(l.gameMemoryCardsChooseLevel, style: AppText.overline),
-                  const SizedBox(height: 10),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: <Widget>[
-                        SizedBox(
-                          width: 112,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 1,
-                            icon: Icons.emoji_food_beverage_rounded,
-                            title: 'Making tea',
-                            subtitle: '4 steps • Video',
-                            unlocked: 1 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 1,
-                            onTap: (1 <= _maxUnlockedLevel) ? () => _changeLevel(1) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 112,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 2,
-                            icon: Icons.local_laundry_service_rounded,
-                            title: 'Washing clothes',
-                            subtitle: '5 steps • Video',
-                            unlocked: 2 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 2,
-                            onTap: (2 <= _maxUnlockedLevel) ? () => _changeLevel(2) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 112,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 3,
-                            icon: Icons.cookie_rounded,
-                            title: 'Til pitha',
-                            subtitle: '6 steps • Cards',
-                            unlocked: 3 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 3,
-                            onTap: (3 <= _maxUnlockedLevel) ? () => _changeLevel(3) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 112,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 4,
-                            icon: Icons.auto_awesome_rounded,
-                            title: 'Til pitha (Adv)',
-                            subtitle: '6 steps • Advanced',
-                            unlocked: 4 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 4,
-                            onTap: (4 <= _maxUnlockedLevel) ? () => _changeLevel(4) : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 112,
-                          child: LevelOptionChip(
-                            accent: _game.accent,
-                            levelNum: 5,
-                            icon: Icons.workspace_premium_rounded,
-                            title: 'Washing (Master)',
-                            subtitle: '5 steps • Mastery',
-                            unlocked: 5 <= _maxUnlockedLevel,
-                            selected: _selectedLevel == 5,
-                            onTap: (5 <= _maxUnlockedLevel) ? () => _changeLevel(5) : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            // ── Level Path Map ──────────────────────────────────────
+            GameLevelPathMap(
+              gameId: GameId.procedure,
+              accentColor: _game.accent,
+              selectedLevel: _selectedLevel,
+              maxUnlockedLevel: _maxUnlockedLevel,
+              onLevelSelected: _changeLevel,
+              levels: const <GameLevelItem>[
+                GameLevelItem(
+                  levelNum: 1,
+                  title: 'Making tea',
+                  subtitle: '4 steps • Video',
+                  icon: Icons.emoji_food_beverage_rounded,
+                  stars: 3,
+                ),
+                GameLevelItem(
+                  levelNum: 2,
+                  title: 'Washing clothes',
+                  subtitle: '5 steps • Video',
+                  icon: Icons.local_laundry_service_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 3,
+                  title: 'Til pitha',
+                  subtitle: '6 steps • Cards',
+                  icon: Icons.cookie_rounded,
+                  stars: 2,
+                ),
+                GameLevelItem(
+                  levelNum: 4,
+                  title: 'Til pitha (Adv)',
+                  subtitle: '6 steps • Advanced',
+                  icon: Icons.auto_awesome_rounded,
+                  stars: 1,
+                ),
+                GameLevelItem(
+                  levelNum: 5,
+                  title: 'Washing (Master)',
+                  subtitle: '5 steps • Mastery',
+                  icon: Icons.workspace_premium_rounded,
+                  stars: 0,
+                ),
+              ],
             ),
 
             const SizedBox(height: Insets.md),

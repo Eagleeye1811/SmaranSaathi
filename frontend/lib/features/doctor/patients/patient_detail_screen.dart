@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
@@ -40,10 +42,28 @@ class PatientDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    final ClinicPatient patient = state.caseload.firstWhere(
-      (ClinicPatient c) => c.id == patientId,
-      orElse: () => state.caseload.first,
-    );
+    // A real caseload can be empty or still loading — the old fixed
+    // 8-patient mock never was, so `.first` as a fallback used to be safe.
+    // It no longer is: an empty real caseload would crash here instead of
+    // just showing a loading state.
+    if (state.caseload.isEmpty) unawaited(state.loadCaseload());
+    ClinicPatient? matched;
+    for (final ClinicPatient c in state.caseload) {
+      if (c.id == patientId) {
+        matched = c;
+        break;
+      }
+    }
+    if (matched == null) {
+      return Theme(
+        data: AppTheme.clinic(),
+        child: const Scaffold(
+          backgroundColor: AppColors.clinicBackground,
+          body: Center(child: CircularProgressIndicator(color: AppColors.clinicAccent)),
+        ),
+      );
+    }
+    final ClinicPatient patient = matched;
     final bool isDemoPatient = patient.id == state.patient.id;
 
     return Theme(
@@ -592,10 +612,10 @@ class PatientDetailScreen extends StatelessWidget {
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
                                           builder: (_) => VideoConsultationScreen(
-                                            doctorId: 'doc_001',
+                                            doctorId: state.myDoctorProfile?.id ?? '',
                                             patientId: patient.id,
                                             patientName: patient.name,
-                                            doctorName: 'Dr. Sharma',
+                                            doctorName: state.myDoctorProfile?.displayName ?? 'Doctor',
                                             isDoctor: true,
                                             isSelfTestMode: false,
                                           ),
@@ -626,10 +646,10 @@ class PatientDetailScreen extends StatelessWidget {
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
                                           builder: (_) => DoctorPatientChatScreen(
-                                            doctorId: 'doc_001',
+                                            doctorId: state.myDoctorProfile?.id ?? '',
                                             patientId: patient.id,
                                             patientName: patient.name,
-                                            doctorName: 'Dr. Sharma',
+                                            doctorName: state.myDoctorProfile?.displayName ?? 'Doctor',
                                             isDoctor: true,
                                           ),
                                         ),

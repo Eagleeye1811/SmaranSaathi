@@ -57,11 +57,11 @@ Then:
 | auth | `GET /api/v1/auth/me`, `POST /api/v1/auth/role`, `POST /api/v1/auth/device` |
 | patients | `GET/POST /api/v1/patients`, `GET/PUT /api/v1/patients/{id}` |
 | sessions | `POST /api/v1/sessions`, `GET /api/v1/sessions?patientId=` |
-| analytics | `GET /api/v1/analytics/{id}/cognitive-profile`, `GET /api/v1/analytics/{id}/weekly?series=`, `GET /api/v1/analytics/caseload`, `GET /api/v1/analytics/alerts` |
+| analytics | `GET /api/v1/analytics/{id}/cognitive-profile`, `GET /api/v1/analytics/{id}/weekly?series=` |
 | daily | `POST /api/v1/daily/mood`, `POST /api/v1/daily/journal`, `GET /api/v1/daily?patientId=` |
 | reminders | `GET /api/v1/reminders?patientId=`, `POST /api/v1/reminders`, `PATCH /api/v1/reminders/{id}?patientId=` |
 | caregivers | `POST /api/v1/caregivers/links`, `GET /api/v1/caregivers/{id}/patients` |
-| doctors | `GET /api/v1/doctors/caseload` |
+| doctors | `POST /api/v1/doctors/profile`, `GET /api/v1/doctors/directory`, `POST /api/v1/doctors/connections/invite`, `GET /api/v1/doctors/connections/requests`, `POST /api/v1/doctors/connections/respond`, `GET /api/v1/doctors/connections/for-patient?patientId=`, `GET /api/v1/doctors/connections/caseload`, `POST /api/v1/doctors/connections/disconnect` |
 | alerts | `GET /api/v1/alerts` |
 | sync | `POST /api/v1/sync/operations` |
 | insights | `GET /api/v1/insights/{id}` — `501 not_implemented` (the AI layer runs on the device) |
