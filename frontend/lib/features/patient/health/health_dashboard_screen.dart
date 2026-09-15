@@ -28,7 +28,6 @@ import '../assistant/assistant_screen.dart';
 import '../asha/asha_screen.dart';
 import '../../intake/intake_kit.dart';
 import '../games/game_launcher.dart';
-import '../memories/memory_wallet_screen.dart';
 import '../today/today_screen.dart';
 import '../widgets/patient_widgets.dart';
 import 'cognitive_profile_screen.dart';
@@ -155,17 +154,7 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
               const SizedBox(height: Insets.lg),
 
               // ── How they are ──────────────────────────────────────────
-              _CheckIn(
-                state: state,
-                onTalk: (String opening) => Nav.open(
-                  context,
-                  AssistantScreen(
-                    seedTurns: <ConversationTurn>[
-                      ConversationTurn(fromUser: false, text: opening),
-                    ],
-                  ),
-                ),
-              ),
+              _CheckIn(state: state),
               const SizedBox(height: Insets.lg),
 
               // Written for this person from their onboarding answers — by
@@ -224,16 +213,6 @@ class _HealthDashboardScreenState extends State<HealthDashboardScreen> {
                           Nav.push(context, const AshaScreen());
                         }
                       },
-                    ),
-                  ),
-                  const SizedBox(width: Insets.sm),
-                  Expanded(
-                    child: _ActionCard(
-                      icon: Icons.favorite_outline_rounded,
-                      label: l.dashboardMemoryWallet,
-                      detail: l.dashboardPeopleAndPlaces,
-                      color: AppColors.terracotta,
-                      onTap: () => Nav.push(context, const MemoryWalletScreen()),
                     ),
                   ),
                   const SizedBox(width: Insets.sm),
@@ -784,26 +763,9 @@ class _TodaysActivity extends StatelessWidget {
 }
 
 class _CheckIn extends StatelessWidget {
-  const _CheckIn({required this.state, required this.onTalk});
+  const _CheckIn({required this.state});
 
   final AppState state;
-
-  /// Opens the companion, carrying the opening line with it.
-  final ValueChanged<String> onTalk;
-
-  /// What the companion should say first, in the mood's own register.
-  ///
-  /// Three different openings rather than one, because "I am glad" and "I am
-  /// sorry" are not interchangeable and a person who has just said they feel
-  /// low will notice immediately if the app did not read it.
-  String _opening(MoodLevel mood, String name) => switch (mood) {
-        MoodLevel.good => 'You said you are feeling good today. '
-            'I would love to hear what has made it a good day.',
-        MoodLevel.okay => 'You said today feels about okay. '
-            'Tell me how it has gone so far. I have time.',
-        MoodLevel.low => 'You said you are not feeling good today, $name. '
-            'I am here. Would you like to tell me what is on your mind?',
-      };
 
   /// Short enough to stay on one line, and said the way a person would say
   /// it. "I would like to talk about it" is how a form asks; nobody stands in
@@ -812,11 +774,7 @@ class _CheckIn extends StatelessWidget {
   /// Mitra by name, because that is who is on the other side of the tap and
   /// the whole app calls the companion that already. "Talk to Mitra" is a
   /// person you can go and find; "open the assistant" is a feature.
-  String _invitation(MoodLevel mood) => switch (mood) {
-        MoodLevel.good => 'Tell Mitra about it',
-        MoodLevel.okay => 'Tell Mitra about it',
-        MoodLevel.low => 'Talk to Mitra',
-      };
+  String _invitation(MoodLevel mood) => 'Talk to Asha';
 
   @override
   Widget build(BuildContext context) {
@@ -857,12 +815,10 @@ class _CheckIn extends StatelessWidget {
             const SizedBox(height: Insets.sm),
             BigButton(
               label: _invitation(mood),
-              icon: Icons.forum_rounded,
+              icon: Icons.record_voice_over_rounded,
+              color: AppColors.primary,
               height: 58,
-              // The app's own green, whatever the mood. Turning the button red
-              // for "not good" made the offer of a conversation look like a
-              // warning about the answer they had just given.
-              onPressed: () => onTalk(_opening(mood, state.patient.shortName)),
+              onPressed: () => Nav.open(context, const AshaScreen()),
             ),
           ],
         ],

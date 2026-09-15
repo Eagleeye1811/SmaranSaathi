@@ -16,6 +16,7 @@ import '../doctor/doctor_shell.dart';
 import '../patient/patient_shell.dart';
 import '../../l10n/app_localizations.dart';
 import 'package:video_player/video_player.dart';
+import 'intake_kit.dart';
 
 class AvatarVideoPlayer extends StatefulWidget {
   const AvatarVideoPlayer({super.key});
@@ -266,7 +267,7 @@ class WelcomeScreen extends StatelessWidget {
                           'not detect, diagnose or treat dementia, and it does not '
                           'replace a professional assessment.',
                     ),
-                  ),
+                  ],
                 ),
               ),
               Padding(

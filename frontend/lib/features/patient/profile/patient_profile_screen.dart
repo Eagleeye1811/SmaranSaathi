@@ -4,6 +4,7 @@ import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/models/daily.dart';
 import '../../../core/models/patient.dart';
 import '../../../core/services/app_state.dart';
 import '../../../core/services/auth_service.dart';
@@ -187,7 +188,7 @@ class PatientProfileScreen extends StatelessWidget {
                                     Expanded(
                                       child: _FactTile(
                                         icon: Icons.work_outline_rounded,
-                                        label: l.walletHerWork,
+                                        label: 'Work',
                                         value: p.occupation,
                                         color: AppColors.indigo,
                                       ),
@@ -209,6 +210,13 @@ class PatientProfileScreen extends StatelessWidget {
                           ],
                         ),
                       ),
+                    ),
+                    const SizedBox(height: Insets.lg),
+
+                    // ── How Are You Feeling Today? Mood Check-In ─────────────────
+                    FadeInUp(
+                      delayMs: 15,
+                      child: _PatientProfileCheckIn(state: state),
                     ),
                     const SizedBox(height: Insets.lg),
 
@@ -945,3 +953,55 @@ class _SmsPhoneNumberCardState extends State<_SmsPhoneNumberCard> {
     );
   }
 }
+
+/// Mood check-in card for Patient Profile with "Talk to Asha" button navigation.
+class _PatientProfileCheckIn extends StatelessWidget {
+  const _PatientProfileCheckIn({required this.state});
+
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final MoodLevel? mood = state.mood;
+
+    return MmCard(
+      padding: const EdgeInsets.all(Insets.lg),
+      color: AppColors.surface,
+      child: Column(
+        children: <Widget>[
+          Text(
+            mood == null ? l.homeMoodQuestion : mood.companionReply,
+            key: ValueKey<String>(mood?.name ?? 'ask'),
+            textAlign: TextAlign.center,
+            style: AppText.h3,
+          ),
+          const SizedBox(height: Insets.md),
+          MoodPicker(
+            selected: mood,
+            onSelect: state.setMood,
+          ),
+          if (mood != null) ...<Widget>[
+            const SizedBox(height: Insets.md),
+            Text(
+              mood == MoodLevel.low
+                  ? 'You do not have to carry it on your own.'
+                  : 'I would love to hear more, if you feel like sharing.',
+              textAlign: TextAlign.center,
+              style: AppText.bodySmall.tint(AppColors.inkSoft),
+            ),
+            const SizedBox(height: Insets.sm),
+            BigButton(
+              label: 'Talk to Asha',
+              icon: Icons.record_voice_over_rounded,
+              color: AppColors.primary,
+              height: 58,
+              onPressed: () => Nav.open(context, const AshaScreen()),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
