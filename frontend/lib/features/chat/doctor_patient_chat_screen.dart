@@ -91,6 +91,7 @@ class _DoctorPatientChatScreenState extends State<DoctorPatientChatScreen> {
     state.sendDoctorChatMessage(
       patientId: widget.patientId,
       text: text,
+      fromDoctor: widget.isDoctor,
     );
 
     // Sync in background if backend available
@@ -111,7 +112,18 @@ class _DoctorPatientChatScreenState extends State<DoctorPatientChatScreen> {
   @override
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
-    final DoctorConversation conv = state.getOrCreateDoctorConversation(widget.patientId);
+    // The caregiver's device is the one that knows who this thread is with —
+    // the doctor's caseload does not contain a patient who has only ever
+    // messaged. Handing those details over is what stops the doctor's inbox
+    // reading "Connected Patient · Primary Caregiver".
+    final DoctorConversation conv = state.getOrCreateDoctorConversation(
+      widget.patientId,
+      patientName: widget.isDoctor ? null : widget.patientName,
+      caregiverName: widget.isDoctor ? null : state.caregiverName,
+      patientAge: widget.isDoctor ? null : state.patient.age,
+      district: widget.isDoctor ? null : state.patient.location,
+      sceneId: widget.isDoctor ? null : state.patient.portraitScene,
+    );
     final List<ChatMessage> messages = conv.messages;
     final String otherUserName = widget.isDoctor ? widget.patientName : widget.doctorName;
     final String initial = otherUserName.trim().isNotEmpty

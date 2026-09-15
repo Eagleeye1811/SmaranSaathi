@@ -30,6 +30,8 @@ void main() {
     });
   });
 
+  _caregiverChatTests();
+
   group('doctor chat threads', () {
     test('the thread just replied to moves to the top', () {
       final AppState state = AppState();
@@ -56,5 +58,90 @@ void main() {
             reason: 'thread $i is newer than the one above it');
       }
     });
+  });
+}
+
+// ── The caregiver's side of the same thread ───────────────────────────────
+
+void _caregiverChatTests() {
+  test('a caregiver message is attributed to the caregiver, not the doctor',
+      () {
+    final AppState state = AppState();
+    final String id = state.doctorConversations.first.patientId;
+
+    state.sendDoctorChatMessage(
+        patientId: id, text: 'Is the new dose alright?', fromDoctor: false);
+
+    final ChatMessage sent = state.doctorConversations.first.lastMessage!;
+    expect(sent.text, 'Is the new dose alright?');
+    expect(sent.isFromDoctor, isFalse,
+        reason: 'filed as the doctor, it would render on the wrong side for '
+            'both of them');
+  });
+
+  test('a thread started by the caregiver carries real names, not placeholders',
+      () {
+    final AppState state = AppState();
+    const String id = 'acct_cg-uid';
+
+    // What the caregiver's device knows and the doctor's caseload does not.
+    final DoctorConversation conv = state.getOrCreateDoctorConversation(
+      id,
+      patientName: 'Rohan',
+      caregiverName: 'Virat',
+      patientAge: 68,
+      district: 'Guwahati, Assam',
+    );
+
+    expect(conv.patientName, 'Rohan');
+    expect(conv.caregiverName, 'Virat');
+    expect(conv.patientAge, 68);
+    expect(conv.district, 'Guwahati, Assam');
+  });
+
+  test('a thread already created blind is healed once the names are known', () {
+    final AppState state = AppState();
+    const String id = 'acct_cg-uid';
+
+    // Created before anyone said who it was with.
+    final DoctorConversation blind = state.getOrCreateDoctorConversation(id);
+    expect(blind.patientName, 'Connected Patient');
+    expect(blind.caregiverName, 'Primary Caregiver');
+
+    final DoctorConversation healed = state.getOrCreateDoctorConversation(
+      id,
+      patientName: 'Rohan',
+      caregiverName: 'Virat',
+    );
+    expect(healed.patientName, 'Rohan');
+    expect(healed.caregiverName, 'Virat');
+    expect(state.doctorConversations.where((DoctorConversation c) => c.patientId == id).length, 1,
+        reason: 'healing must not create a second thread');
+  });
+
+  test('a real name is never overwritten by a placeholder', () {
+    final AppState state = AppState();
+    const String id = 'acct_cg-uid';
+    state.getOrCreateDoctorConversation(id, patientName: 'Rohan', caregiverName: 'Virat');
+
+    // The doctor's side opens the same thread knowing nothing.
+    final DoctorConversation again = state.getOrCreateDoctorConversation(id);
+    expect(again.patientName, 'Rohan');
+    expect(again.caregiverName, 'Virat');
+  });
+
+  test('the doctor and caregiver share one thread', () {
+    final AppState state = AppState();
+    final String id = state.doctorConversations.first.patientId;
+    final int before = state.getOrCreateDoctorConversation(id).messages.length;
+
+    state.sendDoctorChatMessage(patientId: id, text: 'Q', fromDoctor: false);
+    state.sendDoctorChatMessage(patientId: id, text: 'A', fromDoctor: true);
+
+    final DoctorConversation conv = state.getOrCreateDoctorConversation(id);
+    expect(conv.messages.length, before + 2,
+        reason: 'a second thread would have been started instead');
+    expect(conv.messages[conv.messages.length - 2].isFromDoctor, isFalse);
+    expect(conv.messages.last.isFromDoctor, isTrue);
   });
 }

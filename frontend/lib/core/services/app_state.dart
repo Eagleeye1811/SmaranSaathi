@@ -2698,22 +2698,69 @@ class AppState extends ChangeNotifier {
       _doctorConversations.fold<int>(0, (int sum, DoctorConversation c) => sum + c.unreadCount);
 
   /// Get specific conversation by patient id, or create an initial one if patient exists in caseload.
-  DoctorConversation getOrCreateDoctorConversation(String patientId) {
-    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
-    if (idx != -1) {
-      return _doctorConversations[idx];
-    }
+  /// Placeholders used when nobody has told us who this thread is with.
+  static const String _unknownPatient = 'Connected Patient';
+  static const String _unknownCaregiver = 'Primary Caregiver';
+
+  /// The thread with one patient, created on first use.
+  ///
+  /// The details are optional because only one side of the conversation knows
+  /// them. A doctor opening a thread has the patient in their caseload; a
+  /// caregiver opening the same thread from their own Doctors page does not
+  /// have a caseload at all, so the row was created as "Connected Patient ·
+  /// Primary Caregiver · 70y · Assam" and the doctor's inbox showed that
+  /// instead of the person's name. Passing what the caller knows fixes the
+  /// row at creation, and heals one that was already created blind.
+  DoctorConversation getOrCreateDoctorConversation(
+    String patientId, {
+    String? patientName,
+    String? caregiverName,
+    int? patientAge,
+    String? district,
+    String? sceneId,
+  }) {
     final ClinicPatient? patient = caseload.cast<ClinicPatient?>().firstWhere(
       (ClinicPatient? p) => p?.id == patientId,
       orElse: () => null,
     );
+
+    /// Anything real beats a placeholder; a placeholder beats nothing.
+    String pick(String current, String? offered, String? known, String fallback) {
+      for (final String? candidate in <String?>[offered, known, current]) {
+        final String value = (candidate ?? '').trim();
+        if (value.isNotEmpty && value != fallback) return value;
+      }
+      return current.isEmpty ? fallback : current;
+    }
+
+    final int idx = _doctorConversations.indexWhere((DoctorConversation c) => c.patientId == patientId);
+    if (idx != -1) {
+      final DoctorConversation existing = _doctorConversations[idx];
+      final DoctorConversation healed = existing.copyWith(
+        patientName: pick(existing.patientName, patientName, patient?.name, _unknownPatient),
+        caregiverName: pick(existing.caregiverName, caregiverName, null, _unknownCaregiver),
+        patientAge: (patientAge ?? 0) > 0 ? patientAge : existing.patientAge,
+        district: pick(existing.district, district, patient?.district, ''),
+        sceneId: pick(existing.sceneId, sceneId, patient?.sceneId, ''),
+      );
+      if (healed.patientName != existing.patientName ||
+          healed.caregiverName != existing.caregiverName ||
+          healed.patientAge != existing.patientAge ||
+          healed.district != existing.district ||
+          healed.sceneId != existing.sceneId) {
+        _doctorConversations[idx] = healed;
+        notifyListeners();
+      }
+      return _doctorConversations[idx];
+    }
+
     final DoctorConversation newConv = DoctorConversation(
       patientId: patientId,
-      patientName: patient?.name ?? 'Connected Patient',
-      caregiverName: 'Primary Caregiver',
-      patientAge: patient?.age ?? 70,
-      district: patient?.district ?? 'Assam',
-      sceneId: patient?.sceneId ?? 'portrait_aama',
+      patientName: pick('', patientName, patient?.name, _unknownPatient),
+      caregiverName: pick('', caregiverName, null, _unknownCaregiver),
+      patientAge: (patientAge ?? 0) > 0 ? patientAge! : (patient?.age ?? 0),
+      district: pick('', district, patient?.district, ''),
+      sceneId: pick('', sceneId, patient?.sceneId, 'portrait_aama'),
       messages: const <ChatMessage>[],
       unreadCount: 0,
       isOnline: true,
@@ -2743,9 +2790,15 @@ class AppState extends ChangeNotifier {
   }
 
   /// Send a message from the doctor to a patient/caregiver.
+  /// [fromDoctor] is what decides which side of the thread the message lands
+  /// on. It used to be hardcoded true, which was harmless while only the
+  /// doctor's app could open a chat — the moment the caregiver can send from
+  /// their own Doctors page, their message would be filed as the doctor's and
+  /// drawn on the wrong side for both of them.
   void sendDoctorChatMessage({
     required String patientId,
     required String text,
+    bool fromDoctor = true,
     String? attachmentType,
     String? attachmentTitle,
     String? attachmentSubtitle,
@@ -2756,7 +2809,7 @@ class AppState extends ChangeNotifier {
       conversationId: patientId,
       text: text,
       timestamp: DateTime.now(),
-      isFromDoctor: true,
+      isFromDoctor: fromDoctor,
       status: MessageStatus.delivered,
       attachmentType: attachmentType,
       attachmentTitle: attachmentTitle,

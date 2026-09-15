@@ -11,6 +11,7 @@ import '../../../core/telehealth/consultation_format.dart';
 import '../../../core/telehealth/telehealth_service.dart';
 import '../../../core/widgets/motifs.dart';
 import '../../../core/widgets/ui_kit.dart';
+import '../../chat/doctor_patient_chat_screen.dart';
 import '../../telehealth/video_consultation_screen.dart';
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -132,6 +133,27 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
       );
     }
 
+    /// Opens the thread with the connected doctor, from the caregiver's side.
+    ///
+    /// Same conversation the doctor sees in their Chats tab — keyed by the
+    /// same doctor uid and patient id, so a message sent here lands in the
+    /// thread they already have rather than starting a parallel one.
+    void messageDoctor() {
+      final DoctorProfile? connected = doctor;
+      if (connected == null) return;
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DoctorPatientChatScreen(
+            doctorId: connected.id,
+            patientId: state.patient.id,
+            patientName: state.patient.name,
+            doctorName: connected.displayName,
+            isDoctor: false,
+          ),
+        ),
+      );
+    }
+
     return MotifBackground(
       opacity: 0.04,
       showTopWash: false,
@@ -194,6 +216,8 @@ class _DoctorCareScreenState extends State<DoctorCareScreen> {
                       child: _ConnectedDoctorCard(
                         doctor: doctor,
                         onDisconnect: () => state.disconnectDoctor(doctor.id),
+                        onMessage: messageDoctor,
+                        onJoin: joinConsultation,
                       ),
                     ),
                     const SizedBox(height: Insets.lg),
@@ -429,10 +453,16 @@ class _DirectoryDoctorCard extends StatelessWidget {
 }
 
 class _ConnectedDoctorCard extends StatelessWidget {
-  const _ConnectedDoctorCard(
-      {required this.doctor, required this.onDisconnect});
+  const _ConnectedDoctorCard({
+    required this.doctor,
+    required this.onDisconnect,
+    required this.onMessage,
+    required this.onJoin,
+  });
   final DoctorProfile doctor;
   final VoidCallback onDisconnect;
+  final VoidCallback onMessage;
+  final VoidCallback onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -499,6 +529,35 @@ class _ConnectedDoctorCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: Insets.md),
+          // Reaching the doctor was the one thing this card could not do.
+          // A connected caregiver could see the phone number and nothing
+          // else — the chat screen existed but only the doctor's side ever
+          // opened it, so a question between appointments had nowhere to go.
+          // Message leads, because it is the one that costs the doctor
+          // nothing to answer later.
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: SoftButton(
+                  label: 'Message',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  color: AppColors.primary,
+                  filled: true,
+                  onPressed: onMessage,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SoftButton(
+                  label: 'Call',
+                  icon: Icons.video_call_rounded,
+                  color: AppColors.secondary,
+                  onPressed: onJoin,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Insets.xs),
           // The way out. `onDisconnect` was declared and passed in but never
           // wired to anything, so a caregiver could connect to a doctor and
           // then had no way to change their mind — and no way to reach the
@@ -617,8 +676,11 @@ class _AppointmentCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
+                // 'Join Consultation' did not fit beside Reschedule and
+                // ellipsised to 'Join Consulta…', which reads as broken. The
+                // video icon already says what is being joined.
                 child: SoftButton(
-                  label: 'Join Consultation',
+                  label: 'Join',
                   icon: Icons.video_call_rounded,
                   color: AppColors.primary,
                   filled: true,
