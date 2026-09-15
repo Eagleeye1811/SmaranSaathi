@@ -15,7 +15,119 @@ import '../caregiver/caregiver_entry.dart';
 import '../doctor/doctor_shell.dart';
 import '../patient/patient_shell.dart';
 import '../../l10n/app_localizations.dart';
-import 'intake_kit.dart';
+import 'package:video_player/video_player.dart';
+
+class AvatarVideoPlayer extends StatefulWidget {
+  const AvatarVideoPlayer({super.key});
+
+  @override
+  State<AvatarVideoPlayer> createState() => _AvatarVideoPlayerState();
+}
+
+class _AvatarVideoPlayerState extends State<AvatarVideoPlayer> {
+  late VideoPlayerController _controller;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _initVideo();
+  }
+
+  Future<void> _initVideo() async {
+    _controller = VideoPlayerController.asset('assets/videos/avatar_hi.mp4');
+    try {
+      await _controller.initialize();
+      // On Web, volume 0.0 MUST be applied after initialize() so the HTML5
+      // <video> element gets the 'muted' property required for Chrome autoplay.
+      await _controller.setVolume(0.0);
+      await _controller.setLooping(true);
+      await _controller.play();
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString();
+        });
+        debugPrint('Video initialization error: $error');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    if (!_controller.value.isInitialized) return;
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+    } else {
+      _controller.play();
+    }
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return SizedBox(
+        height: 200,
+        child: Center(child: Text('Video Error:\n$_error', textAlign: TextAlign.center, style: const TextStyle(color: Colors.red))),
+      );
+    }
+    if (!_controller.value.isInitialized) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return Center(
+      child: GestureDetector(
+        onTap: _togglePlay,
+        child: Container(
+          width: 350,
+          height: 350,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFFF2EEE6),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              width: 3.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                blurRadius: 24,
+                spreadRadius: 2,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipOval(
+            clipBehavior: Clip.antiAlias,
+            child: Transform.scale(
+              scale: 0.80,
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _controller.value.size.width,
+                  height: _controller.value.size.height,
+                  child: VideoPlayer(_controller),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 /// What the product is, before anyone signs anything.
 ///
@@ -154,7 +266,7 @@ class WelcomeScreen extends StatelessWidget {
                           'not detect, diagnose or treat dementia, and it does not '
                           'replace a professional assessment.',
                     ),
-                  ],
+                  ),
                 ),
               ),
               Padding(
