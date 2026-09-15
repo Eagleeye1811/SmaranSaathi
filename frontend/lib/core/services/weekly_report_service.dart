@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../backend_base_url.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -11,7 +12,7 @@ class WeeklyReportService {
   WeeklyReportService({http.Client? client, String? baseUrl})
       : _client = client ?? http.Client(),
         baseUrl = baseUrl ??
-            const String.fromEnvironment('MM_SYNC_BASE_URL', defaultValue: 'http://10.0.2.2:8000');
+            backendBaseUrl;
 
   final http.Client _client;
   final String baseUrl;

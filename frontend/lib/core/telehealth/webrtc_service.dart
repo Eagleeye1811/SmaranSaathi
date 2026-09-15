@@ -38,16 +38,49 @@ class WebRtcService extends ChangeNotifier {
   bool isFrontCamera = true;
   CallState callState = CallState.idle;
 
+  /// Why the media path failed, in words a caregiver can act on. Null while
+  /// nothing has gone wrong.
+  String? iceFailureReason;
+
   final List<Map<String, String>> inCallMessages = <Map<String, String>>[];
   final List<String> transcriptLog = <String>[];
 
-  static const Map<String, dynamic> _iceServers = <String, dynamic>{
-    'iceServers': <Map<String, dynamic>>[
-      <String, dynamic>{'urls': 'stun:stun.l.google.com:19302'},
-      <String, dynamic>{'urls': 'stun:stun1.l.google.com:19302'},
-      <String, dynamic>{'urls': 'stun:stun2.l.google.com:19302'},
-    ],
-  };
+  /// TURN credentials, supplied at build time.
+  ///
+  ///     flutter run \
+  ///       --dart-define=TURN_URL=turn:your-subdomain.metered.live:80 \
+  ///       --dart-define=TURN_USERNAME=... \
+  ///       --dart-define=TURN_CREDENTIAL=...
+  ///
+  /// `TURN_URL` accepts several comma-separated URLs, which is how a provider
+  /// usually gives them (UDP :80, UDP :443, TCP :443) — a caregiver on a
+  /// network that blocks UDP still gets through on the TCP one.
+  static const String _turnUrl = String.fromEnvironment('TURN_URL');
+  static const String _turnUsername = String.fromEnvironment('TURN_USERNAME');
+  static const String _turnCredential = String.fromEnvironment('TURN_CREDENTIAL');
+
+  /// True when this build can relay. Read by the UI to explain a failed call
+  /// honestly rather than blaming the person's connection.
+  static bool get hasTurn => _turnUrl.isNotEmpty;
+
+  /// STUN discovers a public address; it cannot forward packets. Between two
+  /// mobile networks — the normal case for a doctor and a caregiver — that is
+  /// not enough, and the call fails after a handshake that looked fine. TURN
+  /// is the relay that carries the media when a direct path cannot be found,
+  /// so without these three defines the call only works on friendly networks.
+  static Map<String, dynamic> get _iceServers => <String, dynamic>{
+        'iceServers': <Map<String, dynamic>>[
+          <String, dynamic>{'urls': 'stun:stun.l.google.com:19302'},
+          <String, dynamic>{'urls': 'stun:stun1.l.google.com:19302'},
+          <String, dynamic>{'urls': 'stun:stun2.l.google.com:19302'},
+          if (_turnUrl.isNotEmpty)
+            <String, dynamic>{
+              'urls': _turnUrl.split(',').map((String u) => u.trim()).toList(),
+              'username': _turnUsername,
+              'credential': _turnCredential,
+            },
+        ],
+      };
 
   static const Map<String, dynamic> _mediaConstraints = <String, dynamic>{
     'audio': true,
@@ -124,6 +157,44 @@ class WebRtcService extends ChangeNotifier {
         callState = CallState.connected;
         notifyListeners();
       }
+    };
+
+    // `connected` used to be set the moment the SDP answer was handled, which
+    // only proves the two sides exchanged *text* through the signaling server.
+    // Whether media can actually flow is decided later, by ICE — and with no
+    // TURN server configured, ICE is exactly the step that fails between two
+    // mobile networks. So the screen said "Connected" over a black video with
+    // nothing in the log. The connection state is now read from the peer
+    // connection itself, so the UI says what is true.
+    _peerConnection?.onIceConnectionState = (RTCIceConnectionState state) {
+      debugPrint('[WebRTC] ICE state: $state');
+      switch (state) {
+        case RTCIceConnectionState.RTCIceConnectionStateConnected:
+        case RTCIceConnectionState.RTCIceConnectionStateCompleted:
+          callState = CallState.connected;
+          iceFailureReason = null;
+        case RTCIceConnectionState.RTCIceConnectionStateFailed:
+          // The honest end state for the no-TURN case: the handshake worked
+          // and the media path did not.
+          callState = CallState.ended;
+          iceFailureReason =
+              hasTurn
+                  ? 'Could not open a media path to the other person. Check '
+                      'both connections and try again.'
+                  // Says the true thing rather than blaming their network:
+                  // this build has no relay configured, so a call between two
+                  // mobile networks was never going to connect.
+                  : 'This build has no TURN relay configured, so the call '
+                      'could not find a media path. Calls only connect when '
+                      'both sides are on friendly networks.';
+        case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+          iceFailureReason = 'Connection lost. Trying to recover…';
+        case RTCIceConnectionState.RTCIceConnectionStateClosed:
+          callState = CallState.ended;
+        default:
+          break;
+      }
+      notifyListeners();
     };
 
     _peerConnection?.onIceCandidate = (RTCIceCandidate candidate) {
@@ -242,7 +313,9 @@ class WebRtcService extends ChangeNotifier {
           'type': 'answer',
           'answer': <String, dynamic>{'sdp': answer.sdp, 'type': answer.type},
         });
-        callState = CallState.connected;
+        // Handshake done, media not yet proven — `onIceConnectionState` above
+        // is what promotes this to `connected`.
+        callState = CallState.ringing;
         notifyListeners();
       } else if (type == 'answer' && isInitiator) {
         final Map<String, dynamic> answerMap = msg['answer'] as Map<String, dynamic>;
@@ -251,7 +324,6 @@ class WebRtcService extends ChangeNotifier {
           answerMap['type'] as String,
         );
         await _peerConnection?.setRemoteDescription(answer);
-        callState = CallState.connected;
         notifyListeners();
       } else if (type == 'candidate') {
         final Map<String, dynamic> cMap = msg['candidate'] as Map<String, dynamic>;
