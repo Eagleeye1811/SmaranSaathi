@@ -287,26 +287,11 @@ class PatientDetailScreen extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
-                                  Row(
-                                    children: <Widget>[
-                                      Expanded(
-                                        child: Text(
-                                          l.doctorDetailAIPreconsult,
-                                          style: CT.body.wght(700),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.clinicAccent.withValues(alpha: 0.1),
-                                          borderRadius: Corners.r(4),
-                                        ),
-                                        child: Text('AI Digest', style: CT.caption.sized(9.5).wght(700).tint(AppColors.clinicAccent)),
-                                      ),
-                                    ],
+                                  Text(
+                                    l.doctorDetailAIPreconsult,
+                                    style: CT.body.wght(700),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(

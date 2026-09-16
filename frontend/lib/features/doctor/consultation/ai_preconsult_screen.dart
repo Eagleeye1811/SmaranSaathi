@@ -37,29 +37,6 @@ class AIPreconsultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // ── Compact AI Disclaimer ────────────────────────────
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.clinicAccent.withValues(alpha: 0.08),
-                borderRadius: Corners.r(8),
-                border: Border.all(color: AppColors.clinicAccent.withValues(alpha: 0.25)),
-              ),
-              child: Row(
-                children: <Widget>[
-                  const Icon(Icons.shield_outlined, size: 16, color: AppColors.clinicAccent),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'AI Decision Support · Non-diagnostic 7-day synthesis for clinician review',
-                      style: CT.caption.sized(11).wght(600).tint(AppColors.clinicAccent),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
             // ── Patient Quick Header ─────────────────────────────
             ClinicCard(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

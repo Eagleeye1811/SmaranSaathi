@@ -424,7 +424,7 @@
   "doctorCarePlanSharedNote": "Caregiver can now view this care plan in their app.",
   "doctorDetailCarePlan": "Care plan",
   "doctorDetailMedicalReports": "Medical reports",
-  "doctorDetailAIPreconsult": "AI pre-consult summary",
+  "doctorDetailAIPreconsult": "Pre-consult summary",
   "doctorDetailCaregiverObs": "Caregiver observations",
   "doctorDetailMedicationInfo": "Medication & routine",
   "doctorDetailMoodTrends": "Mood & wellbeing trends",
