@@ -531,15 +531,6 @@ void main() {
     await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Up to class 10'));
     await tapAfterScroll(tester, find.widgetWithText(ChipChoice, 'Weaver'));
     await tapAfterScroll(tester, find.widgetWithText(ChoiceTile, 'Son or daughter'));
-    // Naming yourself is only asked of someone answering for another person,
-    // and the field only exists once they have said they are one — so it has
-    // to be scrolled into existence before it can be typed into.
-    final Finder nameLabel = find.text('And your name?');
-    await tester.dragUntilVisible(
-        nameLabel, find.byType(Scrollable).first, const Offset(0, -120));
-    await beat(tester);
-    await tester.enterText(find.byType(TextField).last, 'Priya');
-    await beat(tester);
     await next();
 
     // 3 · health and care background
@@ -650,9 +641,10 @@ void main() {
         reason: 'a daughter answered, so the report has corroboration');
     expect(state.patient.name, 'Aruna Devi');
     expect(state.patient.occupation, 'Weaver');
-    // And the caregiver has a profile of their own, not a stand-in name.
-    expect(state.caregiverName, 'Priya');
-    expect(state.hasCaregiverProfile, isTrue);
+    // The caregiver's own name now comes from the account, not a question
+    // asked again here — this harness signs in nobody, so there is none to
+    // read back.
+    expect(state.caregiverName, isEmpty);
     expect(state.hasPatientProfile, isTrue);
   });
 

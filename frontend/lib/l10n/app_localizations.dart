@@ -1878,9 +1878,6 @@ class AppLocalizations {
   String authContinueAs(Object role) => _f('authContinueAs', <String, Object?>{'role': role});
   String get authSigningIn => _s('authSigningIn');
   String get authNoAccountNeeded => _s('authNoAccountNeeded');
-  String get onbCaregiverNameLabel => _s('onbCaregiverNameLabel');
-  String get onbCaregiverNameHint => _s('onbCaregiverNameHint');
-  String get onbCaregiverNamePrompt => _s('onbCaregiverNamePrompt');
   String caregiverViewPatientTitle(Object name) => _f('caregiverViewPatientTitle', <String, Object?>{'name': name});
   String get caregiverViewPatientBody => _s('caregiverViewPatientBody');
   String get caregiverViewPatientAction => _s('caregiverViewPatientAction');
@@ -1932,6 +1929,7 @@ class AppLocalizations {
   String get onbHelperChild => _s('onbHelperChild');
   String get onbHelperOtherFamily => _s('onbHelperOtherFamily');
   String get onbHelperProfessional => _s('onbHelperProfessional');
+  String get onbHelperOther => _s('onbHelperOther');
   String get onbHealthTitle => _s('onbHealthTitle');
   String get onbHealthSubtitle => _s('onbHealthSubtitle');
   String get onbDiagnosisQuestion => _s('onbDiagnosisQuestion');

@@ -88,11 +88,21 @@ class _PersonStepState extends State<PersonStep> with OnboardingStep<PersonStep>
   late final TextEditingController _name;
   late final TextEditingController _age;
   late final TextEditingController _occupation;
-  late final TextEditingController _caregiverName;
   late String _language;
 
   static const List<String> _languages = <String>[
     'Assamese', 'Hindi', 'English', 'Bodo', 'Khasi', 'Mizo', 'Manipuri', 'Nepali',
+  ];
+
+  /// Every helper this screen offers, "myself" excluded — this onboarding is
+  /// always reached by choosing "Caregiver" on the authentication screen, so
+  /// the person filling it in is never the patient answering for themself.
+  static const List<HelperRole> _helperRoles = <HelperRole>[
+    HelperRole.spouse,
+    HelperRole.child,
+    HelperRole.otherFamily,
+    HelperRole.professionalCaregiver,
+    HelperRole.other,
   ];
 
   @override
@@ -102,7 +112,6 @@ class _PersonStepState extends State<PersonStep> with OnboardingStep<PersonStep>
     _age = TextEditingController(
         text: state.patient.age > 0 ? state.patient.age.toString() : '');
     _occupation = TextEditingController(text: state.patient.occupation);
-    _caregiverName = TextEditingController(text: draft.caregiverName);
     _language =
         _languages.contains(state.patient.language) ? state.patient.language : 'Assamese';
   }
@@ -112,23 +121,21 @@ class _PersonStepState extends State<PersonStep> with OnboardingStep<PersonStep>
     _name.dispose();
     _age.dispose();
     _occupation.dispose();
-    _caregiverName.dispose();
     super.dispose();
   }
-
-  /// Someone answering for another person has to say who they are; someone
-  /// answering for themselves has nobody else to name.
-  bool get _needsCaregiverName => draft.helper?.isSomeoneElse ?? false;
 
   bool get _valid =>
       _name.text.trim().isNotEmpty &&
       (int.tryParse(_age.text.trim()) ?? 0) > 0 &&
       draft.education != null &&
-      draft.helper != null &&
-      (!_needsCaregiverName || _caregiverName.text.trim().isNotEmpty);
+      draft.helper != null;
 
   void _save() {
-    edit((OnboardingRecord d) => d.copyWith(caregiverName: _caregiverName.text.trim()));
+    // The caregiver's own name was already given when the account was
+    // created — asking again here was a second question for the same
+    // answer, so it is taken from the account instead.
+    edit((OnboardingRecord d) =>
+        d.copyWith(caregiverName: state.accountDisplayName?.trim() ?? ''));
     // The identifying details belong to the patient, not to the questionnaire:
     // the occupation in particular is what PersonalizationService reads to
     // decide whether the activities rebuild a loom or a classroom.
@@ -187,18 +194,11 @@ class _PersonStepState extends State<PersonStep> with OnboardingStep<PersonStep>
         ),
         VoiceIntakeQuestion(
           prompt: l.onbHelperLabel,
-          options:
-              HelperRole.values.map((HelperRole r) => helperRoleLabel(l, r)).toList(growable: false),
-          answeredIndex: draft.helper?.index,
+          options: _helperRoles.map((HelperRole r) => helperRoleLabel(l, r)).toList(growable: false),
+          answeredIndex: draft.helper == null ? null : _helperRoles.indexOf(draft.helper!),
           onSelect: (int i) =>
-              edit((OnboardingRecord d) => d.copyWith(helper: HelperRole.values[i])),
+              edit((OnboardingRecord d) => d.copyWith(helper: _helperRoles[i])),
         ),
-        if (_needsCaregiverName)
-          VoiceIntakeQuestion.dictated(
-            prompt: l.onbCaregiverNamePrompt,
-            answered: _caregiverName.text,
-            onSpeak: (String value) => setState(() => _caregiverName.text = value),
-          ),
       ],
       onContinue: _valid ? _save : null,
       children: <Widget>[
@@ -263,23 +263,12 @@ class _PersonStepState extends State<PersonStep> with OnboardingStep<PersonStep>
         ),
         const SizedBox(height: Insets.lg),
         QuestionLabel(l.onbHelperLabel),
-        for (final HelperRole r in HelperRole.values)
+        for (final HelperRole r in _helperRoles)
           ChoiceTile(
             label: helperRoleLabel(l, r),
             selected: draft.helper == r,
             onTap: () => edit((OnboardingRecord d) => d.copyWith(helper: r)),
           ),
-        // Only once they have said they are someone else. Asking "and your
-        // name?" of a person who just answered "myself" would be absurd.
-        if (_needsCaregiverName) ...<Widget>[
-          const SizedBox(height: Insets.md),
-          IntakeField(
-            label: l.onbCaregiverNameLabel,
-            hint: l.onbCaregiverNameHint,
-            controller: _caregiverName,
-            onChanged: () => setState(() {}),
-          ),
-        ],
         const SizedBox(height: Insets.sm),
         WhyWeAsk(l.onbHelperWhy),
       ],

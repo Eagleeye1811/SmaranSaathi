@@ -271,6 +271,10 @@ class AppState extends ChangeNotifier {
   /// the onboarding rather than from a hardcoded stand-in.
   String get caregiverName => _intake.onboarding.caregiverName.trim();
 
+  /// The name given when this account was created — the source `caregiverName`
+  /// is filled from now, so the onboarding never has to ask for it again.
+  String? get accountDisplayName => _accountDisplayName;
+
   HelperRole? get caregiverRelation => _intake.onboarding.helper;
 
   bool get hasCaregiverProfile => caregiverName.isNotEmpty;
@@ -2538,6 +2542,24 @@ class AppState extends ChangeNotifier {
       _connectedDoctor = match ??
           DoctorProfile(id: doctorUid, name: 'Your doctor', specialization: '', hospital: '', email: '');
       notifyListeners();
+      unawaited(_attachDoctorToExistingReport(doctorUid));
+    } catch (_) {
+      // Best-effort.
+    }
+  }
+
+  /// A report finished and sent *before* this doctor's connection was
+  /// accepted went up with `doctor_id: null` — `_syncWeeklyReport` only
+  /// knows [connectedDoctor] at the moment a cycle closes, and nothing
+  /// reopens a report once it has been sent. The doctor still finds it today
+  /// (the fetch below is keyed by patient, not doctor), but the report's own
+  /// record of who it belongs to would otherwise stay wrong forever. Called
+  /// every time a connection resolves, so the fix lands the moment it can.
+  Future<void> _attachDoctorToExistingReport(String doctorUid) async {
+    try {
+      final WeeklyClinicalReport? existing = await _weeklyReports.getReport(_patient.id);
+      if (existing == null || existing.doctorId == doctorUid) return;
+      await _weeklyReports.upsertReport(existing.withDoctor(doctorUid));
     } catch (_) {
       // Best-effort.
     }

@@ -199,52 +199,46 @@ class _PatientTile extends StatelessWidget {
           SceneImage(sceneId: patient.sceneId, size: 46, circle: true),
           const SizedBox(width: 12),
           Expanded(
-            flex: 4,
+            flex: 5,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // The name gets the row to itself — it used to share this
+                // line with the "Sample" pill, and on a narrow phone the two
+                // together squeezed real names down to two or three letters
+                // and an ellipsis, which defeats the entire point of a name
+                // column. Nothing else needs to compete with it.
+                Text(patient.name,
+                    style: CT.body.wght(700), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
                 Row(
                   children: <Widget>[
-                    // `Expanded`, not `Flexible`: the badge has an intrinsic
-                    // width, so the name has to be the part that yields — on a
-                    // small phone a loose fit overflowed the row by a pixel.
                     Expanded(
-                      child: Text(patient.name,
-                          style: CT.body.wght(700),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
+                      child: Text('${patient.age} · ${patient.district}',
+                          style: CT.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
-                    // Says which rows are seeded examples, right next to the
-                    // name. A clinician reads decisions off this list, so the
-                    // difference cannot be something they have to infer from
-                    // the data looking a bit too tidy.
+                    // Says which rows are seeded examples. Moved down here,
+                    // off the name's own line, so it never costs the name any
+                    // of its width.
                     if (patient.isDemo) ...<Widget>[
                       const SizedBox(width: 6),
-                      // Flexible as well as the name: with one rigid child a
-                      // narrow tile still overflowed by a pixel. Neither can
-                      // force the row wider than the space it has.
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: AppColors.inkMuted.withValues(alpha: 0.14),
-                            borderRadius: Corners.r(Corners.pill),
-                          ),
-                          child: Text(
-                            'Sample',
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
-                            softWrap: false,
-                            style: CT.caption.sized(10).wght(700).tint(AppColors.inkSoft),
-                          ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: AppColors.inkMuted.withValues(alpha: 0.14),
+                          borderRadius: Corners.r(Corners.pill),
+                        ),
+                        child: Text(
+                          'Sample',
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          softWrap: false,
+                          style: CT.caption.sized(10).wght(700).tint(AppColors.inkSoft),
                         ),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 2),
-                Text('${patient.age} · ${patient.district}',
-                    style: CT.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
                 Text(patient.lastSession, style: CT.caption.sized(11)),
               ],
@@ -259,12 +253,12 @@ class _PatientTile extends StatelessWidget {
                 ? patient.thirtyDay
                 : patient.thirtyDay.sublist(patient.thirtyDay.length - 14),
             color: tc,
-            width: 58,
+            width: 46,
             height: 26,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           SizedBox(
-            width: 72,
+            width: 62,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[

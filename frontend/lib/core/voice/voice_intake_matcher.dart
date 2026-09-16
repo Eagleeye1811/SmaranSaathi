@@ -118,9 +118,14 @@ class VoiceIntakeMatcher {
     'often': <String>['frequently', 'a lot', 'many times', 'always', 'all the time', 'হামেশা', 'সঘনাই', 'প্ৰায়েই'],
   };
 
+  /// `\p{M}` is easy to miss and expensive to get wrong: Devanagari matras
+  /// and the Assamese virama are marks, not letters, so a `[^\p{L}\p{N}]`
+  /// filter alone silently turns "हाँ" into "ह" and "नहीं" into "नह" —
+  /// every Hindi and Assamese phrase with a vowel sign stops matching, which
+  /// is most of them.
   String _normalise(String raw) => raw
       .toLowerCase()
-      .replaceAll(RegExp(r'[^\p{L}\p{N}\s]', unicode: true), ' ')
+      .replaceAll(RegExp(r'[^\p{L}\p{N}\p{M}\s]', unicode: true), ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 
@@ -155,6 +160,48 @@ class VoiceIntakeMatcher {
     // Two options matched and no position was given — ask again rather than
     // record a guess.
     return const VoiceIntakeMatch.none();
+  }
+
+  /// Every option whose words appear in [transcript] — for a "select
+  /// everything that applies" question, where "music gardening reading"
+  /// should pick three options at once rather than being refused as an
+  /// ambiguous single answer, which is what [match] does on purpose for a
+  /// single-choice question.
+  List<int> matchAll(String transcript, List<String> options) {
+    final String said = _normalise(transcript);
+    if (said.isEmpty) return const <int>[];
+    final List<int> hits = <int>[];
+    for (int i = 0; i < options.length; i++) {
+      if (_matchesOption(said, options[i])) hits.add(i);
+    }
+    return hits;
+  }
+
+  static const List<String> _affirmative = <String>[
+    'yes', 'yeah', 'yep', 'yup', 'correct', 'right', 'sure', 'ok', 'okay',
+    'haan', 'ha', 'ji', 'हाँ', 'हो', 'हां', 'ठीक',
+    'হয়', 'ঠিক', 'হয়ঁ',
+  ];
+
+  static const List<String> _negative = <String>[
+    'no', 'nope', 'not yet', 'wait',
+    'nahi', 'nahin', 'नहीं', 'ना',
+    'নহয়', 'নাই',
+  ];
+
+  /// Whether [transcript] answers "shall I move on?" with a yes — used only
+  /// while the flow is waiting for that confirmation, never against the
+  /// intake questions themselves, so it cannot be confused with an option
+  /// that happens to be named "Yes".
+  bool isAffirmative(String transcript) {
+    final String said = _normalise(transcript);
+    return _affirmative.any((String w) => _containsPhrase(said, w));
+  }
+
+  /// The "no" counterpart to [isAffirmative].
+  bool isNegative(String transcript) {
+    final String said = _normalise(transcript);
+    return _negative.any((String w) => _containsPhrase(said, w));
   }
 
   bool _matchesOption(String said, String option) {

@@ -17,7 +17,9 @@ String helperRoleLabel(AppLocalizations l, HelperRole r) => switch (r) {
       HelperRole.child => l.onbHelperChild,
       HelperRole.otherFamily => l.onbHelperOtherFamily,
       HelperRole.professionalCaregiver => l.onbHelperProfessional,
-      HelperRole.other => l.onbOptionOther,
+      // Its own string rather than the shared "Something else" every other
+      // multi-select uses: this option names a person, not a thing.
+      HelperRole.other => l.onbHelperOther,
     };
 
 String educationLabel(AppLocalizations l, EducationLevel e) => switch (e) {

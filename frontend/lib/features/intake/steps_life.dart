@@ -61,6 +61,18 @@ class _StrengthsStepState extends State<StrengthsStep> with OnboardingStep<Stren
       subtitle: l.onbStrengthsSubtitle,
       accent: AppColors.secondary,
       voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion.multiSelect(
+          prompt: l.onbStrengthsTitle,
+          options: <String>[
+            for (final EnjoyedActivity e in EnjoyedActivity.values) enjoyedActivityLabel(l, e),
+          ],
+          selectedIndices: <int>{
+            for (int i = 0; i < EnjoyedActivity.values.length; i++)
+              if (draft.enjoys.contains(EnjoyedActivity.values[i])) i,
+          },
+          onSelect: (int i) => edit((OnboardingRecord d) =>
+              d.copyWith(enjoys: toggled(d.enjoys, EnjoyedActivity.values[i]))),
+        ),
         VoiceIntakeQuestion.dictated(
           prompt: l.onbStillDoesWellLabel,
           answered: _stillDoesWell.text,
@@ -165,6 +177,18 @@ class _GoalsStepState extends State<GoalsStep> with OnboardingStep<GoalsStep> {
       subtitle: l.onbGoalsSubtitle,
       accent: AppColors.secondary,
       voiceQuestions: <VoiceIntakeQuestion>[
+        VoiceIntakeQuestion.multiSelect(
+          prompt: l.onbGoalsTitle,
+          options: <String>[
+            for (final SupportGoal g in SupportGoal.values) supportGoalLabel(l, g),
+          ],
+          selectedIndices: <int>{
+            for (int i = 0; i < SupportGoal.values.length; i++)
+              if (draft.goals.contains(SupportGoal.values[i])) i,
+          },
+          maxSelectable: OnboardingRecord.maxGoals,
+          onSelect: (int i) => _toggleGoal(SupportGoal.values[i]),
+        ),
         VoiceIntakeQuestion.dictated(
           prompt: l.onbAnythingElseLabel,
           answered: _anythingElse.text,

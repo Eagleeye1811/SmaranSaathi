@@ -199,6 +199,25 @@ class PatientDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: Insets.md),
 
+                    // ── Weekly Cognitive Report (doctor-only) ────────────
+                    //
+                    // Placed right after the identity card, not buried near
+                    // the bottom of a long scroll — this is the one thing on
+                    // the screen that answers "did they actually do their
+                    // activities this week", and it used to take a dozen
+                    // cards of scrolling to find. The accent edge marks it as
+                    // the thing to check first, the way the alert-style cards
+                    // elsewhere in the clinic theme do.
+                    FadeInUp(
+                      delayMs: 10,
+                      child: ClinicCard(
+                        padding: const EdgeInsets.all(Insets.lg),
+                        accentEdge: AppColors.clinicAccent,
+                        child: _WeeklyReportHistoryCard(patientId: patient.id),
+                      ),
+                    ),
+                    const SizedBox(height: Insets.md),
+
                     // ── The patient's own summary ───────────────────────
                     if (patient.id == state.patient.id && state.intakeComplete) ...<Widget>[
                       FadeInUp(
@@ -985,16 +1004,6 @@ class PatientDetailScreen extends StatelessWidget {
                               ),
                           ],
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: Insets.lg),
-
-                    // ── Weekly Cognitive Report (doctor-only) ────────────
-                    FadeInUp(
-                      delayMs: 130,
-                      child: ClinicCard(
-                        padding: const EdgeInsets.all(Insets.lg),
-                        child: _WeeklyReportHistoryCard(patientId: patient.id),
                       ),
                     ),
                     const SizedBox(height: Insets.lg),

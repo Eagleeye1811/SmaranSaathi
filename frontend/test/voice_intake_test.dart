@@ -63,6 +63,25 @@ void main() {
       expect(kMatcher.match('mmm hmm what', kYesNo).command, VoiceIntakeCommand.repeat);
       expect(kMatcher.match('bananas', kFrequency).isNothing, isTrue);
     });
+
+    test('matchAll finds every option named in one sentence, for a '
+        'multi-select question a single match() would refuse', () {
+      const List<String> options = <String>['Music', 'Gardening', 'Reading', 'Walking'];
+      expect(kMatcher.matchAll('music gardening reading', options), <int>[0, 1, 2]);
+      expect(kMatcher.matchAll('just walking', options), <int>[3]);
+      expect(kMatcher.matchAll('nothing here', options), isEmpty);
+    });
+
+    test('isAffirmative and isNegative recognise a yes or a no in three languages', () {
+      for (final String said in <String>['yes', 'yeah', 'haan', 'हाँ', 'হয়']) {
+        expect(kMatcher.isAffirmative(said), isTrue, reason: 'for "$said"');
+      }
+      for (final String said in <String>['no', 'nope', 'nahi', 'नहीं']) {
+        expect(kMatcher.isNegative(said), isTrue, reason: 'for "$said"');
+      }
+      expect(kMatcher.isAffirmative('gardening'), isFalse);
+      expect(kMatcher.isNegative('gardening'), isFalse);
+    });
   });
 
   group('spoken numbers and dictation', () {
@@ -270,16 +289,21 @@ void main() {
           onSpeak: names.add,
         ),
       ]);
-      mic.script = const <SpeechResult>[
-        SpeechResult(text: 'my name is anita das', isFinal: true),
-      ];
 
       await controller.start();
+      mic.emit(const SpeechResult(text: 'my name is anita das', isFinal: true));
       await Future<void>.delayed(Duration.zero);
 
       expect(names, <String>['Anita Das']);
       expect(voice.spoken.any((String s) => s.contains('Anita Das.')), isTrue,
           reason: 'it reads the name back so a mishearing can be caught');
+      expect(advanced, 0,
+          reason: 'the mic asks whether to move on before it does — it never '
+              'advances a question by itself');
+
+      // Confirming is what actually moves the flow on.
+      mic.emit(const SpeechResult(text: 'next', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
       expect(advanced, 1);
       controller.dispose();
     });
@@ -371,6 +395,99 @@ void main() {
 
       expect(controller.questionIndex, 1);
       expect(voice.spoken.first, contains('Still open'));
+      controller.dispose();
+    });
+
+    test('a single-choice answer waits to be confirmed before it advances',
+        () async {
+      final VoiceIntakeController controller = build();
+      await controller.start();
+      mic.emit(const SpeechResult(text: 'often I think', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(answers, <int>[3], reason: 'the answer is applied immediately');
+      expect(advanced, 0, reason: 'but the screen has not moved yet');
+      expect(voice.spoken.any((String s) => s.contains('Say next to continue')), isTrue);
+
+      mic.emit(const SpeechResult(text: 'next', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(advanced, 1);
+      controller.dispose();
+    });
+
+    test('a multi-select question applies every option heard in one sentence',
+        () async {
+      final Set<int> selected = <int>{};
+      final VoiceIntakeController controller = build(
+        questions: <VoiceIntakeQuestion>[
+          VoiceIntakeQuestion.multiSelect(
+            prompt: 'What do they enjoy?',
+            options: const <String>['Music', 'Gardening', 'Reading', 'Walking'],
+            selectedIndices: selected,
+            onSelect: (int i) => selected.add(i),
+          ),
+        ],
+      );
+      await controller.start();
+      mic.emit(const SpeechResult(text: 'music gardening reading', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(selected, <int>{0, 1, 2}, reason: 'all three named options are picked');
+      expect(advanced, 0, reason: 'it still waits for confirmation, same as any answer');
+      expect(voice.spoken.any((String s) => s.contains('Music, Gardening, Reading.')), isTrue);
+      controller.dispose();
+    });
+
+    test('a multi-select question keeps taking answers through the confirm turn',
+        () async {
+      final Set<int> selected = <int>{};
+      final VoiceIntakeController controller = build(
+        questions: <VoiceIntakeQuestion>[
+          VoiceIntakeQuestion.multiSelect(
+            prompt: 'What do they enjoy?',
+            options: const <String>['Music', 'Gardening', 'Reading', 'Walking'],
+            selectedIndices: selected,
+            onSelect: (int i) => selected.add(i),
+          ),
+        ],
+      );
+      await controller.start();
+      mic.emit(const SpeechResult(text: 'music', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(selected, <int>{0});
+
+      // Said after being asked "say next, or tell me more" — not a command,
+      // so it is tried against the same question rather than being refused.
+      mic.emit(const SpeechResult(text: 'gardening', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(selected, <int>{0, 1}, reason: 'a second answer adds to the first');
+      expect(advanced, 0);
+
+      mic.emit(const SpeechResult(text: 'next', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+      expect(advanced, 1);
+      controller.dispose();
+    });
+
+    test('a multi-select question stops at its cap and says so', () async {
+      final Set<int> selected = <int>{0};
+      final VoiceIntakeController controller = build(
+        questions: <VoiceIntakeQuestion>[
+          VoiceIntakeQuestion.multiSelect(
+            prompt: 'What would help most?',
+            options: const <String>['Money', 'Time', 'Advice', 'Company'],
+            selectedIndices: selected,
+            maxSelectable: 2,
+            onSelect: (int i) => selected.add(i),
+          ),
+        ],
+      );
+      await controller.start();
+      mic.emit(const SpeechResult(text: 'time and advice', isFinal: true));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(selected, <int>{0, 1}, reason: 'only room for one more, so only one is added');
+      expect(voice.spoken.any((String s) => s.contains('up to 2')), isTrue);
       controller.dispose();
     });
   });

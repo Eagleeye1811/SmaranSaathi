@@ -23,7 +23,29 @@ class VoiceIntakeQuestion {
     this.answeredIndex,
   })  : onDictate = null,
         onNumber = null,
-        answeredText = null;
+        answeredText = null,
+        multiple = false,
+        selectedIndices = const <int>{},
+        maxSelectable = null;
+
+  /// A question answered by choosing any number of [options] — "select
+  /// everything that applies". [selectedIndices] is the current answer, read
+  /// fresh on every rebuild exactly like [answeredIndex] is for a single
+  /// choice, so the matcher knows what is already picked and only adds what
+  /// is new rather than re-selecting (and thereby un-selecting, since
+  /// [onSelect] toggles) something already said. [maxSelectable] caps how
+  /// many voice will add at once — "choose up to three" screens still cap.
+  const VoiceIntakeQuestion.multiSelect({
+    required this.prompt,
+    required this.options,
+    required this.onSelect,
+    this.selectedIndices = const <int>{},
+    this.maxSelectable,
+  })  : onDictate = null,
+        onNumber = null,
+        answeredIndex = null,
+        answeredText = null,
+        multiple = true;
 
   /// A question answered in the person's own words — a name, an occupation.
   const VoiceIntakeQuestion.dictated({
@@ -35,7 +57,10 @@ class VoiceIntakeQuestion {
         onDictate = onSpeak,
         onNumber = null,
         answeredIndex = null,
-        answeredText = answered;
+        answeredText = answered,
+        multiple = false,
+        selectedIndices = const <int>{},
+        maxSelectable = null;
 
   /// A question answered with a number said out loud — an age.
   const VoiceIntakeQuestion.number({
@@ -47,7 +72,10 @@ class VoiceIntakeQuestion {
         onDictate = null,
         onNumber = onSpeak,
         answeredIndex = null,
-        answeredText = answered;
+        answeredText = answered,
+        multiple = false,
+        selectedIndices = const <int>{},
+        maxSelectable = null;
 
   static void _ignore(int _) {}
 
@@ -65,10 +93,22 @@ class VoiceIntakeQuestion {
   final int? answeredIndex;
   final String? answeredText;
 
+  /// True for a "select everything that applies" question — the matcher
+  /// applies every option it hears in one sentence instead of refusing a
+  /// sentence that names more than one.
+  final bool multiple;
+
+  /// The options already chosen on a [multiSelect] question.
+  final Set<int> selectedIndices;
+
+  /// The most a [multiSelect] question will accept, or null for no cap.
+  final int? maxSelectable;
+
   bool get isDictated => onDictate != null || onNumber != null;
 
   /// Whether this question already has an answer, whichever kind it is.
   bool get isAnswered => answeredIndex != null ||
+      selectedIndices.isNotEmpty ||
       (answeredText != null && answeredText!.trim().isNotEmpty);
 }
 
@@ -137,6 +177,11 @@ class VoiceIntakeController extends ChangeNotifier {
   /// of the question, and the screen is fully usable by tapping.
   int _misses = 0;
   static const int _maxMisses = 2;
+
+  /// True while listening for "shall I move on?" rather than for the answer
+  /// itself — [stopListening] and the result callback both need to know
+  /// which of [_handle] or [_handleConfirm] the words heard belong to.
+  bool _confirming = false;
 
   // ── What the UI reads ──────────────────────────────────────────────────
 
@@ -261,6 +306,7 @@ class VoiceIntakeController extends ChangeNotifier {
     _heard = '';
 
     _misses = 0;
+    _confirming = false;
     final StringBuffer script = StringBuffer(question.prompt);
     for (int i = 0; i < question.options.length; i++) {
       script.write('. ${i + 1}. ${question.options[i]}');
@@ -271,6 +317,8 @@ class VoiceIntakeController extends ChangeNotifier {
       script.write('. ${VoiceIntakeSpeech.sayAfterBeep(_language)}');
     } else if (question.options.isEmpty) {
       script.write('. ${VoiceIntakeSpeech.sayNext(_language)}');
+    } else if (question.multiple) {
+      script.write('. ${VoiceIntakeSpeech.sayEverythingThatApplies(_language)}');
     } else {
       script.write('. ${VoiceIntakeSpeech.sayAnswerOrNumber(_language)}');
     }
@@ -361,7 +409,11 @@ class VoiceIntakeController extends ChangeNotifier {
     final int turn = _turn;
     await _recognizer.stop();
     if (_stale(turn)) return;
-    await _handle(_heard, turn);
+    if (_confirming) {
+      await _handleConfirm(_heard, turn);
+    } else {
+      await _handle(_heard, turn);
+    }
   }
 
   Future<void> _nudge(int turn) async {
@@ -417,7 +469,7 @@ class VoiceIntakeController extends ChangeNotifier {
     // A dictated question takes the words themselves, once they are not an
     // instruction — otherwise "next" would be recorded as somebody's name.
     if (question.isDictated && !result.isCommand) {
-      final String cleaned = _matcher.cleanDictation(transcript);
+      String heardText;
       if (question.onNumber != null) {
         final int? number = _matcher.spokenNumber(transcript);
         if (number == null) {
@@ -426,18 +478,58 @@ class VoiceIntakeController extends ChangeNotifier {
         }
         _misses = 0;
         question.onNumber!(number);
-        await _say('$number.', turn: turn);
+        heardText = '$number.';
       } else {
+        final String cleaned = _matcher.cleanDictation(transcript);
         if (cleaned.isEmpty) {
           await _nudge(turn);
           return;
         }
         _misses = 0;
         question.onDictate!(cleaned);
-        await _say('$cleaned.', turn: turn);
+        heardText = '$cleaned.';
       }
       if (_stale(turn) || !_active) return;
-      await _advance();
+      await _confirmAdvance(turn, heardText);
+      return;
+    }
+
+    // "Select everything that applies": every option named in the one
+    // sentence is applied at once, not just the first — "music gardening
+    // reading" answers three options, not one.
+    if (question.multiple) {
+      final List<int> hits = _matcher.matchAll(transcript, question.options);
+      final List<int> fresh =
+          hits.where((int i) => !question.selectedIndices.contains(i)).toList(growable: false);
+      if (fresh.isEmpty) {
+        // Something was already chosen and this turn did not add to it — read
+        // as more silence in the confirmation window rather than a miss on
+        // the question itself, since the question has already been answered.
+        if (question.selectedIndices.isNotEmpty) {
+          await _confirmAdvance(turn, null);
+        } else {
+          await _nudge(turn);
+        }
+        return;
+      }
+      _misses = 0;
+      final int room = question.maxSelectable == null
+          ? fresh.length
+          : (question.maxSelectable! - question.selectedIndices.length)
+              .clamp(0, fresh.length);
+      final List<int> apply = fresh.take(room).toList(growable: false);
+      for (final int i in apply) {
+        question.onSelect(i);
+      }
+      final String? said = apply.isEmpty
+          ? null
+          : '${apply.map((int i) => question.options[i]).join(', ')}.';
+      final String? capped = apply.length < fresh.length && question.maxSelectable != null
+          ? VoiceIntakeSpeech.maxChosen(_language, question.maxSelectable!)
+          : null;
+      final String heardText =
+          <String?>[said, capped].whereType<String>().join(' ').trim();
+      await _confirmAdvance(turn, heardText.isEmpty ? null : heardText);
       return;
     }
 
@@ -445,13 +537,143 @@ class VoiceIntakeController extends ChangeNotifier {
       _misses = 0;
       final int choice = result.optionIndex!;
       question.onSelect(choice);
-      await _say('${question.options[choice]}.', turn: turn);
-      if (_stale(turn) || !_active) return;
-      await _advance();
+      await _confirmAdvance(turn, '${question.options[choice]}.');
       return;
     }
 
     await _nudge(turn);
+  }
+
+  /// Speaks what was just heard, asks whether to move on, and waits for the
+  /// answer — the mic never advances a question by itself; it advances when
+  /// it is told to. Reused after every kind of answer so the behaviour is the
+  /// same everywhere voice is used: hear, apply, confirm, then move.
+  Future<void> _confirmAdvance(int turn, String? heardText) async {
+    if (_stale(turn) || !_active) return;
+    final String ask = VoiceIntakeSpeech.confirmAdvance(_language);
+    final String text = heardText == null || heardText.isEmpty ? ask : '$heardText $ask';
+    await _say(text, turn: turn);
+    if (_stale(turn) || !_active) return;
+    await _listenConfirm(turn);
+  }
+
+  /// Mirrors [_listen], but its result goes to [_handleConfirm] — hearing
+  /// "yes" here must mean "move on", not be matched against the question's
+  /// own options the way an answer would be.
+  Future<void> _listenConfirm(int turn) async {
+    final ResolvedVoiceLanguage? input = _input;
+    if (input == null || !input.isSupported) {
+      _fail(VoiceErrorKind.languageUnsupported);
+      return;
+    }
+
+    _confirming = true;
+    _set(VoicePhase.listening);
+    try {
+      await _recognizer.listen(
+        localeId: input.localeId!,
+        onResult: (SpeechResult result) {
+          if (_stale(turn) || _phase != VoicePhase.listening) return;
+          _heard = result.text;
+          _notify();
+          if (result.isFinal) unawaited(_handleConfirm(result.text, turn));
+        },
+        onError: (VoiceError error) {
+          if (_stale(turn)) return;
+          if (error.kind == VoiceErrorKind.noSpeechDetected) {
+            unawaited(_nudgeConfirm(turn));
+            return;
+          }
+          _fail(error.kind, detail: error.detail);
+        },
+      );
+    } catch (error) {
+      if (_stale(turn)) return;
+      _fail(VoiceErrorKind.recognitionFailed, detail: error.toString());
+    }
+  }
+
+  /// What "shall I move on?" was answered with: a command, a yes, a no, more
+  /// of a multi-select answer, or nothing understood.
+  Future<void> _handleConfirm(String transcript, int turn) async {
+    if (_stale(turn) || !_active) return;
+    final VoiceIntakeQuestion? question = current;
+    if (question == null) return;
+
+    _confirming = false;
+    _set(VoicePhase.thinking);
+    final VoiceIntakeMatch result = _matcher.match(transcript, const <String>[]);
+
+    if (result.isCommand) {
+      _misses = 0;
+      switch (result.command!) {
+        case VoiceIntakeCommand.next:
+          await _advance();
+        case VoiceIntakeCommand.back:
+          await _goBack();
+        case VoiceIntakeCommand.repeat:
+          await repeat();
+        case VoiceIntakeCommand.stop:
+          await _say(VoiceIntakeSpeech.voiceOff(_language), turn: turn);
+          await stop();
+      }
+      return;
+    }
+
+    // "Anything else?" is implicit: someone often adds a second thing here
+    // rather than saying "next" first, so a multi-select question keeps
+    // accepting new options through the confirmation turn.
+    if (question.multiple) {
+      final List<int> hits = _matcher.matchAll(transcript, question.options);
+      final List<int> fresh =
+          hits.where((int i) => !question.selectedIndices.contains(i)).toList(growable: false);
+      if (fresh.isNotEmpty) {
+        _misses = 0;
+        final int room = question.maxSelectable == null
+            ? fresh.length
+            : (question.maxSelectable! - question.selectedIndices.length)
+                .clamp(0, fresh.length);
+        final List<int> apply = fresh.take(room).toList(growable: false);
+        for (final int i in apply) {
+          question.onSelect(i);
+        }
+        await _confirmAdvance(
+            turn, '${apply.map((int i) => question.options[i]).join(', ')}.');
+        return;
+      }
+    }
+
+    if (_matcher.isAffirmative(transcript)) {
+      _misses = 0;
+      await _advance();
+      return;
+    }
+    if (_matcher.isNegative(transcript)) {
+      _misses = 0;
+      await repeat();
+      return;
+    }
+
+    await _nudgeConfirm(turn);
+  }
+
+  /// The confirmation-turn counterpart to [_nudge].
+  Future<void> _nudgeConfirm(int turn) async {
+    if (_stale(turn) || !_active) return;
+    _misses++;
+    if (_misses > _maxMisses) {
+      await _say(VoiceIntakeSpeech.hearingTrouble(_language), turn: turn);
+      // The answer already given stands — only "shall I move on?" goes
+      // unanswered — so leave the person on this question rather than
+      // switching voice off entirely; the Continue button still works, and
+      // saying "next" plainly still will.
+      _misses = 0;
+      _set(VoicePhase.idle);
+      return;
+    }
+    await _say(VoiceIntakeSpeech.confirmRepeat(_language), turn: turn);
+    if (_stale(turn) || !_active) return;
+    await _listenConfirm(turn);
   }
 
   /// The next question, or the next screen when this was the last one.
@@ -567,6 +789,15 @@ class VoiceIntakeSpeech {
         VoiceLanguage.assamese => 'আপোনাৰ উত্তৰ কওক, বা নম্বৰটো কওক।',
       };
 
+  /// The trailing instruction on a "select everything that applies" question
+  /// — distinct from [sayAnswerOrNumber] so it does not promise a single
+  /// answer is enough.
+  static String sayEverythingThatApplies(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say everything that applies, one after another.',
+        VoiceLanguage.hindi => 'जो भी लागू हो, एक के बाद एक बोलिए।',
+        VoiceLanguage.assamese => 'যিয়েই প্ৰযোজ্য, এটাৰ পিছত এটাকৈ কওক।',
+      };
+
   static String hearingTrouble(VoiceLanguage l) => switch (l) {
         VoiceLanguage.english =>
           'I am having trouble hearing you. You can tap your answer on the screen instead.',
@@ -586,5 +817,30 @@ class VoiceIntakeSpeech {
         VoiceLanguage.english => 'Voice off. You can still tap your answers.',
         VoiceLanguage.hindi => 'आवाज़ बंद। आप स्क्रीन पर उत्तर दे सकते हैं।',
         VoiceLanguage.assamese => 'ভইচ বন্ধ। আপুনি পৰ্দাত উত্তৰ দিব পাৰে।',
+      };
+
+  /// Asked after every answer, before the flow moves anywhere — the mic never
+  /// advances a question on its own.
+  static String confirmAdvance(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Say next to continue, or tell me more.',
+        VoiceLanguage.hindi => 'जारी रखने के लिए अगला बोलिए, या और बताइए।',
+        VoiceLanguage.assamese =>
+          'অব্যাহত ৰাখিবলৈ পৰৱৰ্তী বুলি কওক, বা অধিক কওক।',
+      };
+
+  /// Repeated when the confirmation turn was not understood — distinct from
+  /// [didNotCatch] so it still asks the actual question, "move on or not?".
+  static String confirmRepeat(VoiceLanguage l) => switch (l) {
+        VoiceLanguage.english => 'Should I move on? Say next, or tell me more.',
+        VoiceLanguage.hindi => 'क्या मैं आगे बढ़ूँ? अगला बोलिए, या और बताइए।',
+        VoiceLanguage.assamese => 'মই আগবাঢ়িম নেকি? পৰৱৰ্তী বুলি কওক, বা অধিক কওক।',
+      };
+
+  /// Spoken when a "choose up to N" question already has its full quota, so a
+  /// further name spoken by voice was not added.
+  static String maxChosen(VoiceLanguage l, int n) => switch (l) {
+        VoiceLanguage.english => 'You can choose up to $n.',
+        VoiceLanguage.hindi => 'आप अधिकतम $n चुन सकते हैं।',
+        VoiceLanguage.assamese => 'আপুনি সৰ্বাধিক $n বাছি ল\'ব পাৰে।',
       };
 }

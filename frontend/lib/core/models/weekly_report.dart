@@ -169,6 +169,23 @@ class WeeklyClinicalReport {
   final List<CaregiverNoteRecord> notes;
   final String? onboardingBaselineNote;
 
+  /// Re-attaches the report to a doctor after the fact — the one field that
+  /// changes without the report itself changing, when a connection request
+  /// is accepted after the report already went up with no doctor on it.
+  WeeklyClinicalReport withDoctor(String doctorId) => WeeklyClinicalReport(
+        patientId: patientId,
+        doctorId: doctorId,
+        patientName: patientName,
+        cycleStart: cycleStart,
+        generatedAt: generatedAt,
+        daysActive: daysActive,
+        activitiesCompleted: activitiesCompleted,
+        gameSummaries: gameSummaries,
+        concernUpdates: concernUpdates,
+        notes: notes,
+        onboardingBaselineNote: onboardingBaselineNote,
+      );
+
   Map<String, dynamic> toJson() => <String, dynamic>{
         'patient_id': patientId,
         'doctor_id': doctorId,

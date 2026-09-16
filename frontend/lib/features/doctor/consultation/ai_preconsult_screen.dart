@@ -205,10 +205,14 @@ class AIPreconsultScreen extends StatelessWidget {
                       borderRadius: Corners.r(6),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         const Icon(Icons.verified_outlined, size: 14, color: AppColors.success),
                         const SizedBox(width: 6),
-                        Text('No adverse side-effects or missed critical doses', style: CT.caption.sized(11).wght(600).tint(AppColors.success)),
+                        Expanded(
+                          child: Text('No adverse side-effects or missed critical doses',
+                              style: CT.caption.sized(11).wght(600).tint(AppColors.success)),
+                        ),
                       ],
                     ),
                   ),
@@ -433,15 +437,25 @@ class _MedicationStatusRow extends StatelessWidget {
         children: <Widget>[
           Icon(timeIcon, size: 14, color: tagColor),
           const SizedBox(width: 6),
-          Text(medName, style: CT.bodySmall.wght(700)),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.12),
-              borderRadius: Corners.r(4),
+          Expanded(
+            flex: 3,
+            child: Text(medName,
+                style: CT.bodySmall.wght(700), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.12),
+                borderRadius: Corners.r(4),
+              ),
+              child: Text(status,
+                  style: CT.caption.sized(10.5).wght(600).tint(AppColors.success),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
             ),
-            child: Text(status, style: CT.caption.sized(10.5).wght(600).tint(AppColors.success)),
           ),
         ],
       ),
