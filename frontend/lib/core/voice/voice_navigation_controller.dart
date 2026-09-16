@@ -259,10 +259,15 @@ class VoiceNavigationController extends ChangeNotifier {
     try {
       await _recognizer.listen(
         localeId: input.localeId!,
-        // A place name is one or two words, so a short pause ends the turn:
-        // waiting four seconds after "home" makes voice feel broken.
+        // A shorter pauseFor here used to end the turn faster after a
+        // one-word answer like "home" — but on real devices the OS treats
+        // this same value as the grace period before the mic opens at all,
+        // and 2s was barely longer than the reaction time needed right after
+        // the prompt finishes speaking, so turns were failing as "no speech
+        // detected" before the person could get a word out. Matches the 4s
+        // default used everywhere else voice is used in the app.
         listenFor: const Duration(seconds: 12),
-        pauseFor: const Duration(seconds: 2),
+        pauseFor: const Duration(seconds: 4),
         onResult: (SpeechResult result) {
           if (_stale(turn) || _phase != VoicePhase.listening) return;
           _heard = result.text;

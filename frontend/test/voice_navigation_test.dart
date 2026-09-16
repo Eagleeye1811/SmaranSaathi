@@ -536,7 +536,7 @@ void main() {
   });
 
   group('VoiceNavHost', () {
-    testWidgets('the mic asks a question and offers no menu to read',
+    testWidgets('the mic asks a question and offers a tap fallback for every destination',
         (WidgetTester tester) async {
       final FakeSpeechSynthesizer tts = FakeSpeechSynthesizer();
 
@@ -569,10 +569,11 @@ void main() {
       expect(tts.spoken, <String>['What should I do for you?']);
       expect(find.text('What should I do for you?'), findsOneWidget);
 
-      // No destination menu: the person answers the question rather than
-      // reading a list.
-      expect(find.text('Home'), findsNothing);
-      expect(find.text('Report'), findsNothing);
+      // The question is the primary route, but a tap fallback for every
+      // reachable destination is still offered — the panel covers the bottom
+      // nav bar while it is open, so this is the only way to move by touch.
+      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Report'), findsOneWidget);
     });
 
     testWidgets('a screen\'s own floating button clears the microphone',

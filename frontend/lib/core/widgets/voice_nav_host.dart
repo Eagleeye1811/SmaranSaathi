@@ -281,13 +281,15 @@ class VoiceMicButton extends StatelessWidget {
   }
 }
 
-/// The listening panel: a scrim, the question, and the live transcript.
+/// The listening panel: a scrim, the question, the live transcript, and a row
+/// of tappable destinations.
 ///
-/// Deliberately one thing at a time. A list of destinations here would turn a
-/// spoken request into a reading task, which is the opposite of the point —
-/// the person is meant to answer the question, not scan a menu. Anyone who
-/// would rather tap still has the bottom navigation bar, visible below the
-/// panel the whole time.
+/// The question comes first and is meant to be answered, not read — the
+/// chips are a fallback, not a menu to scan. They exist because this panel
+/// fills the whole screen while it is open, including the bottom navigation
+/// bar underneath, so a noisy room, a missing language model, or a device
+/// whose speech engine will not cooperate must not leave someone stuck with
+/// no way to move at all.
 class _VoicePanel extends StatelessWidget {
   const _VoicePanel({
     required this.controller,
@@ -395,6 +397,29 @@ class _VoicePanel extends StatelessWidget {
                             style: AppText.caption.tint(AppColors.warning),
                           ),
                         ),
+                      // Tap fallback: every destination this shell can reach,
+                      // reachable with a finger regardless of whether the
+                      // microphone ever hears anything — a noisy room, a
+                      // missing language model, or a device whose speech
+                      // engine simply will not cooperate should never leave
+                      // voice navigation as the only way through.
+                      const SizedBox(height: Insets.md),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: <Widget>[
+                          for (final ({VoiceDestination destination, String label}) o
+                              in controller.options)
+                            ActionChip(
+                              label: Text(o.label, style: AppText.bodySmall.wght(700)),
+                              backgroundColor: accent.withValues(alpha: 0.10),
+                              side: BorderSide(color: accent.withValues(alpha: 0.25)),
+                              onPressed: phase.isBusy && phase != VoicePhase.listening
+                                  ? null
+                                  : () => controller.go(o.destination),
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: Insets.lg),
                       SizedBox(
                         width: double.infinity,
