@@ -37,6 +37,7 @@ class _DoctorShellState extends State<DoctorShell> {
     VoiceDestination.analytics,
     VoiceDestination.alerts,
     VoiceDestination.profile,
+    VoiceDestination.chats,
   };
 
   bool _onVoiceNavigate(VoiceDestination destination) {
@@ -47,6 +48,8 @@ class _DoctorShellState extends State<DoctorShell> {
         _go(0);
       case VoiceDestination.patients:
         _go(1);
+      case VoiceDestination.chats:
+        _go(2);
       case VoiceDestination.alerts:
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const DoctorAlertsScreen()),

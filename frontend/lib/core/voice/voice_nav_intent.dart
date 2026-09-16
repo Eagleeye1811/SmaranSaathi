@@ -36,6 +36,13 @@ enum VoiceDestination {
   patients,
   analytics,
   alerts,
+
+  // ── Shared: doctor and caregiver ────────────────────────────────────
+  //
+  // The human conversation between a doctor and a caregiver — distinct from
+  // [companion], which is the patient's own chat with Mitra. The two never
+  // sit in the same shell's allowed set, so "chat" cannot resolve to both.
+  chats,
 }
 
 /// A spoken instruction that moves nothing but the flow itself.
@@ -224,6 +231,12 @@ class VoiceNavMatcher {
       'chetavani',
       'अलर्ट', 'चेतावनी', 'सूचना',
       'সতৰ্কবাণী', 'জাননী',
+    ],
+    VoiceDestination.chats: <String>[
+      'chats', 'chat', 'messages', 'message', 'conversation', 'conversations', 'inbox',
+      'chait', 'sandesh',
+      'चैट', 'संदेश', 'बातचीत',
+      'চেট', 'বাৰ্তা', 'কথোপকথন',
     ],
   };
 
@@ -532,6 +545,7 @@ const Map<VoiceDestination, String> _labelsEn = <VoiceDestination, String>{
   VoiceDestination.patients: 'Patients',
   VoiceDestination.analytics: 'Analytics',
   VoiceDestination.alerts: 'Alerts',
+  VoiceDestination.chats: 'Chats',
 };
 
 const Map<VoiceDestination, String> _labelsHi = <VoiceDestination, String>{
@@ -555,6 +569,7 @@ const Map<VoiceDestination, String> _labelsHi = <VoiceDestination, String>{
   VoiceDestination.patients: 'रोगी सूची',
   VoiceDestination.analytics: 'विश्लेषण',
   VoiceDestination.alerts: 'चेतावनी',
+  VoiceDestination.chats: 'चैट',
 };
 
 
@@ -579,6 +594,7 @@ const Map<VoiceDestination, String> _labelsAs = <VoiceDestination, String>{
   VoiceDestination.patients: 'ৰোগীসকল',
   VoiceDestination.analytics: 'বিশ্লেষণ',
   VoiceDestination.alerts: 'সতৰ্কবাণী',
+  VoiceDestination.chats: 'চেট',
 };
 
 /// Everything the assistant says while navigating, in all three languages.

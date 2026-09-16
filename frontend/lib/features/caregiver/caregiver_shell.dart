@@ -155,6 +155,7 @@ class _CaregiverShellState extends State<CaregiverShell> {
     VoiceDestination.reminders,
     VoiceDestination.safeZone,
     VoiceDestination.profile,
+    VoiceDestination.chats,
   };
 
   bool _onVoiceNavigate(VoiceDestination destination) {
@@ -175,6 +176,10 @@ class _CaregiverShellState extends State<CaregiverShell> {
         _go(7);
       case VoiceDestination.safeZone:
         _go(3);
+      // The conversation with the doctor lives inside "Doctor & Care" rather
+      // than on its own tab — there is no separate chat screen to jump to.
+      case VoiceDestination.chats:
+        _go(4);
       default:
         return false;
     }

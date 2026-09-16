@@ -199,11 +199,23 @@ void main() {
       VoiceDestination.analytics,
       VoiceDestination.alerts,
       VoiceDestination.profile,
+      VoiceDestination.chats,
     };
 
     test('a reachable place resolves', () {
       expect(matcher.match('alerts', allowed: doctorSet).destination,
           VoiceDestination.alerts);
+    });
+
+    test('"take me to chats" reaches chats, not a fuzzy-matched near miss', () {
+      // Regression: with no exact phrase for "chats" in the table, "chats"
+      // fell through to fuzzy correction and landed on "charts" (Analytics) —
+      // one edit away — silently opening the wrong screen. It must resolve
+      // as an exact match now that the chats destination exists.
+      expect(matcher.match('take me to chats', allowed: doctorSet).destination,
+          VoiceDestination.chats);
+      expect(matcher.match('go to chats', allowed: doctorSet).destination,
+          VoiceDestination.chats);
     });
 
     test('an unreachable place still resolves, so it can be refused aloud', () {
